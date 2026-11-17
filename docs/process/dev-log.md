@@ -159,3 +159,96 @@ Bundle: app JS **42 KB gz**, against a budget of 150 KB. MapLibre is 265 KB gz a
 5. Add the update toast via `updateReady` / `applyUpdate()` / `justUpdated`. Add a second e2e with two builds for AC 4.
 6. Gate: the `npm run gate` script (typecheck, unit, i18n check, secret scan, build + size, e2e, axe, Lighthouse) and rect-overlap/tap-size checks at 150% × 200% zoom.
 7. Deploy the preview: Pages project `src/web/dist`, with `/api/*` routed to the Worker, or set `VITE_API_BASE`.
+
+## 2026-11-17 — M1 UI round (Developer, branch `dev/m1-ui`)
+
+**Done.** The placeholder views are replaced by production screens built to STYLE-GUIDE v1.1 (§1–5, H1–H4, H13, §6b F1–F8; `dev/creative-b` merged).
+- **Tokens:** `src/web/src/styles/tokens.css` holds the prototype `:root` values verbatim: light, dark, and auto via `prefers-color-scheme` (guarded by `data-theme`). It also sets `--ts` from `html[data-text-size]` (100/125/150/200 %) and defines the map aliases. `styles/app.css` holds the component rules, copied from the prototype. The stage is a full-bleed phone layout, with a 480 px centred column at ≥ 600 px.
+- **Reduce motion:** `html.rm` is set from the OS setting or from Settings → 减少动画.
+- **Fonts:** Google Fonts, `display=swap`, weights 400/700/900.
+- **Settings model:** `textSize` gains `xxlarge` (200 %). New settings `motion` (auto/on/off) and `name` (the greeting).
+- **Screens:**
+  - H1 Home: greeting by SGT hour, with the optional name.
+  - H2 Search: debounced live search with recent, results, empty, loading, error, offline and busy states. The mic uses Web Speech (zh-CN / en-SG) through the new `platform.recognition`; it is hidden when that is unsupported.
+  - H3 Route options: shared ranking with least walking as the default. Cards show the tag, duration, arrival time, chips and facts; there are no stairs or lift facts. Notes: only one option, and the honest bus-times note.
+  - H4 Trip overview: map plus timeline. Start appears only with `?ff=guide` / `VITE_FLAGS=guide` (OQ5).
+- **§6b states:**
+  - F1 first run: 3 pages. It is the root of the stack, and Skip or Done never shows it again.
+  - F2: location explainer before any browser prompt, and denied help with Android/iPhone tabs.
+  - F3 route states: loading skeleton with the seal mark (+6 s line), none, too close, outside SG (destination / me), error, busy, offline with auto-retry.
+  - F4 search states.
+  - F5 toasts: updated, offline/online (a drop under 3 s is suppressed), installed, home-set, cleared, copied, report.
+  - F6 Settings as a full screen: Me / Display / History / This app, with name, home, clear, install and report sheets, plus an About & privacy screen.
+  - F7 update banner, on Home only.
+  - F8 Home mapping: location pill = From, Recent under My places, "Set your Home" dock.
+- **Map:** route casing, walk dotted in ink-2, bus in primary, MRT in its line token. Boarding and alighting stops; saffron destination dot. All colours come from tokens.
+- **Test hooks:** `state:` lines for every new state: `routes-*`, `search-*`, `toast-*`, `trip-bus|mrt|walk`, `home-*`.
+- **Tests:**
+  - vitest: 50 tests (+14): presentation helpers, i18n key parity (AC 8), router `replaceSheet`/`reset`, SG box, settings defaults.
+  - Playwright: 52 tests, about 55 s including the build:
+    - zh/en journeys and dark mode;
+    - 200 % layout checks: clipping, horizontal scroll, overlap, 56 px targets;
+    - Back on every screen and sheet;
+    - location explainer → denied; first run; offline; too close;
+    - 36 screenshot baselines in `src/web/e2e/baselines/`.
+- **Bundle:** app JS 58 KB gz (budget 150). MapLibre is still lazy.
+
+### Visible changes for Creative's review (exact strings → where)
+| Where | zh | en |
+|---|---|---|
+| H1 bar | 怎么去? (B seal mark) · EN · AA (SR 字体大小：{n}%) · ⚙ (SR 设置) | 中 / Text size: {n}% / Settings |
+| H1 greeting | 早上好 / 下午好 / 晚上好[，{name}] · 今天想去哪里？ | Good morning…[, {name}] · Where would you like to go today? |
+| H1 pill (From) | 你在：家附近 · 你在：{label}附近 · 从：我的位置 · 从：{typed place} (SR 出发地：{p}，按一下更改) | You are near: … / From: My location |
+| H1 | 说出或打出地方名字 · 常去的地方 + date · 家 tile · 最近去过 rows · 需要帮忙？/打电话给家人，或给司机看地址 | Say or type a place · My places · Home · Recent · Need help? … |
+| H1 dock | 带我回家 (home set) · 设好你的家 (no home) · toast 你现在就在家附近，不用找路啦。 | Take me home · Set your Home · You're already near home. No trip needed. |
+| H1 offline note | 没有网络，已保存的行程还能用 | No internet. Saved trips still work. |
+| H1 update banner | 有新版本 · 更新 · ✕ (SR 以后再说) | New version ready · Update · Later |
+| H2 titles | 去哪里？ · 找你的家 (set-home mode) · **打出发的地方 (From mode, borrowed from F3)** | Where to? · Find your home · Type where I'm starting |
+| H2 | 地方名字 · 用说的 · 我在听…请说地方名字 · 最近去过 · 找到这些地方 · 没找到“{q}” · 换个说法试试… · 我在找… · From mode first row: 用我现在的位置 | Place name · Speak · … |
+| H3 | 怎么去 {p}？ · 从：{p} · 推荐 · 最少走路 / 最快 / 最少转车 · {n} 分钟 · 上午 10:27 到达 · 走路 {n} 分钟 · 不用转车 · {n} 站 · 选这条路 · notes 这里很近，只有一条好走的路。/ 巴士时间来自实时信息，可能会有几分钟变化。 · 帮忙 | How do I get to {p}? … |
+| H4 | 去 {p} · {n} 分钟 · {t} 到达 · 走到 {p}/大约 {n} 分钟 · 坐 {s} 号巴士，坐 {n} 站/在 {p} 下车 · 坐地铁 {l} 线，坐 {n}[ · 往 {p} 方向] · 到达 {p}/{address} | To {p} … |
+| F6 Settings | 设置 · 我 / 称呼 (没有设) / 家 · 看和听 + 语言 Language / 字体大小 100–200% / 颜色 跟手机·白天·夜间 / 减少动画 跟手机·开·关 · 记录 / 清除最近去过的地方 (没有记录) · 这个应用 / 安装到主屏幕 / 报告问题 / 关于和隐私 · 版本 0.1.0 | … |
+| F6 sheets | Name: title **怎么称呼你？ (F1 page 2 title)**, 保存 / 删除称呼 · Home: title **家：{label}**, 换个地址 / 删除 · Clear / Install / Report as in §6b | |
+| End-trip sheet | 要结束这次行程吗？ · 结束后，语音和地图提示会停止。 · 继续行程 / 结束行程 | End this trip? … |
+
+### Deviations from the frames (with reason)
+1. **Logo:** the wordmark uses `creative/logo/b-qu-seal.svg` as is (owner pick B, D-8). The manifest icons and favicon wait for Creative's B master. `theme_color`/`background_color` = `c-canvas`.
+2. **Baselines** are at DPR 1 (round brief), not DPR 2 (§6). Fonts and OneMap tiles are stubbed in tests, so baselines render with system fallback fonts. The map canvas and `<img>` are masked.
+3. **The 8 §6b icons** (wifi-off, refresh, install, ios-share, info, trash, person, report) were drawn by Dev on the 24 px grid with a 2.2 stroke. They still need Director approval and a Creative check.
+4. **"设为家" per search row removed.** Home is now set only through the set-home mode (F1 / F8 / F6), which has Creative copy.
+5. **H2 From-mode title** borrows F3's "打出发的地方 / Type where I'm starting", because no title exists for that mode. Creative to confirm.
+6. **F2 "unavailable" note:** it shows as an H3 state panel (Try again · Type a place), because there is no From field on H3.
+7. **Too close:** distance is a straight line, and minutes assume 1 m/s.
+8. **H3 notes:**
+   - The honest note says bus times are *live*. M1 has no live bus data, only OneMap schedules. **Creative/Director: keep or reword?**
+   - "这里很近…" shows for any single option, as §5.2 says, even when the option is far.
+9. **H3 tags:** a card with no preference label has no tag pill. The sample's second card shows "最快", but the engine gives that label to the best card when it is also fastest.
+10. **Motion:** only the incoming screen animates (push 12 % / pop −6 %). Sheets rise with the spring but close without the exit animation.
+11. **Map:** line width 6 px, casing +4 px, stop dot r 6, destination r 10. These are map-only values with no token.
+12. **Not built:**
+    - the H1 "Add a place" tile (saved places beyond Home = M4);
+    - the F8 Swap button (Director to rule);
+13. **F6 details:**
+    - Voice/vibration rows are hidden (flag `guide` off).
+    - The About contact bullet is omitted until the owner supplies the PDPA contact.
+    - The en LTA line has no "Transport data:" prefix (no en copy given).
+14. **F1:** if storage throws, the first run reappears on every load, not once per session.
+
+### Left for the fix round / M2
+- **Old shell placeholder strings still in use** (no frame yet):
+  - Guide, Share, Viewer, Help and 404 screens;
+  - `no_route` on H4 without options;
+  - the map `error_generic`, `recentre` and `overview` labels;
+  - `continue_trip`.
+- **H2 listening state:** no baseline (`H2-listening` needs a recognition stub).
+- **Missing baselines:** F3 loading/none/error/busy/offline, F4 error, F5 toasts, F6 name/clear/install, F7 update. These need mock error injection; the spec already has the hooks.
+- **AC 4:** the two-build SW update e2e. AC 45: the `npm run gate` script (axe, Lighthouse, secret scan).
+- **Shared step templates** (`src/shared/src/i18n/steps.ts`) still use the engine's wording (步行到…, 走路最少). H3/H4 use the web copy from the frames. Align them for M2 guidance.
+- **Platform `VIBRATE_PATTERNS`** do not match §3 yet (M2).
+
+### Next steps (precise)
+1. Creative reviews the visible-changes table and deviations 4, 5, 8 and 9. Director approves the 8 icons and rules on Swap (F8).
+2. Add a mock-API fault switch (`?fault=route:429|500|none`) and record the remaining F3/F4/F5/F7 baselines.
+3. Swap in the logo B master: favicon, apple-touch-icon, manifest icons 192/512/maskable.
+4. Write the gate script and the two-build update e2e.
+5. M2: turn on `guide`, build H5/H6/H11/H12 on the same kit (`ui/kit.tsx`, `views/present.ts`), and align the shared step strings.
