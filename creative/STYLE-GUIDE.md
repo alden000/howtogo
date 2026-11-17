@@ -4,20 +4,24 @@ Source of truth for the build. **Build strictly to these tokens and frames:** no
 
 ---
 
-## 0. Logo
+## 0. Logo — B · 去 Seal (owner pick, D-8 / D17)
 
-| File | Concept | Verdict |
-|---|---|---|
-| `logo/a-question-path.svg` | **A · Question Path.** A "?" drawn as a route: start ring → winding path → saffron destination dot. | **Recommended.** Reads at 16px (the ? silhouette plus the yellow dot survives). Ownable, and literally the app name. Not a pin, arrow, roundel or train. |
-| `logo/a-question-path-maskable.svg` | A, full-bleed square with the mark scaled to 72% inside the 80% safe circle. | PWA `purpose: maskable` (192/512). Checked under a circle mask. |
-| `logo/a-question-path-mono.svg` | A, single colour. | Android notification and badge icon (white on transparent at build). |
-| `logo/b-qu-seal.svg` | B · 去 Seal. The character 去 as a chop seal, the last stroke ending in the dot. | Strong for Chinese readers, but it turns to mush at 16px and reads "official stamp". |
-| `logo/c-lantern.svg` | C · Lantern lighting a winding path. | Warm and festive, but seasonal (CNY/Mid-Autumn) and busy small. |
-| `logo/d-walk-with.svg` | D · Two companions walking a path. | Lovely story, but abstract. At 48px the dots read as a weather or sun icon. |
+**The mark:** the character 去 ("go") cut as a white-on-persimmon chop seal. Its last stroke, 厶's turn, is drawn as a path that rises toward a **saffron dot**: the 点 of 去 doubles as the destination, "arrived". The dot is the signature and is always saffron `#FFD23F` (never recoloured, except in mono). Seal `#9A3412` (`c-primary` light), glyph `#FBF5EC` (`c-canvas` light). The same colours in dark mode: the seal is a solid object.
 
-`logo/logo-sizes.png` shows every concept rendered at 192, 48 and 16px (DPR 1), plus the maskable variant under a circle mask.
-Clear space = the dot's diameter. Minimum size is 16px (favicon). Below 24px, use the mono version on non-persimmon backgrounds.
-Wordmark: "怎么去?" in Noto Sans SC 900 next to the mark. The "?" is ASCII, so it matches the mark.
+| File (`logo/final/`) | Use |
+|---|---|
+| `icon.svg` → `icon-192.png`, `icon-512.png` | Manifest `purpose: any`. Rounded square (rx 112/512) with an inner chop frame line (12/512); glyph at 84%. |
+| `maskable.svg` → `maskable-192.png`, `maskable-512.png` | Manifest `purpose: maskable`. Full bleed, no frame; glyph at 74%, wholly inside the central 80% circle. Checked under circle and squircle masks. |
+| `apple-touch-icon-180.png` | From the maskable art (iOS applies its own corners). |
+| `favicon.svg` → `favicon-32.png`, `favicon-16.png` | Pixel geometry: every bar on a 32/512 grid (1px at 16, 2px at 32), equal 64/512 strokes, no frame line. Use this geometry for every rendering ≤ 48px (top-bar wordmark too). |
+| `mono.svg` | One colour (`currentColor`), glyph and dot knocked out. Android notification/badge, print, embossing. |
+| `wordmark.svg` | Mark + "怎么去?" in Noto Sans SC 900, gap = 0.17 × mark. In the app the text is live HTML, not the SVG text. |
+| `check.png` | Check sheet: 16/32/48/192 on paper, dark and white; circle and squircle masks; mono 48/24; 8× pixel zoom of 16/32. |
+| `build.js` | Generates all of the above from one geometry (`node creative/logo/build.js`, Playwright). Edit the geometry there, never the SVGs by hand. |
+
+Geometry (master, 512 grid): 土 = vertical `M256 96V204` (w 56), short bar `M196 128H316` and long bar `M100 216H412` (w 50: horizontals 6 units lighter so they read optically equal), 厶 path `M262 292L178 408L304 396` (w 56, the last arm rises 12 units toward the dot), dot `c(388,392) r44`. Optical centre is 6 units below the geometric centre.
+Clear space = the dot's diameter on every side. Minimum size 16px. Don't rotate, outline, recolour the dot, put the glyph on a non-persimmon seal, or set the seal on `c-primary` dark (`#FF9466`); on persimmon or busy backgrounds use mono.
+Earlier concepts (A, C, D and the B sketch) stay in `logo/` for the record only; `logo/a-*` are retired.
 
 ## 1. Tokens
 
@@ -110,10 +114,10 @@ Icons always come with a text label, except close, mute and follow-map, which ha
 - **Map camera:** exponential ease (k = 3.2/s) of x, y, zoom and rotation along the shortest arc. It is never instant, except under reduce motion.
 - **Signature moments:**
   1. **Get off now (H6):** the saffron panel springs up. The bell swings (1.2s loop). Two ripple rings expand (1.6s). The screen edge glows saffron (1.2s breathe). Haptic `getoff`. Voice speaks the line, then repeats the second line after 2.2s.
-  2. **Arrival (H12):** the Question Path stroke draws (1.1s) → saffron dot drops with the spring (0.7s) → ring ripples out → 18 petals in persimmon, saffron and jade drift outward (1.6–2.4s) → text rises (staggered 150ms). Haptic `arrive`. Voice: 到了！
+  2. **Arrival (H12) — "the seal stamps, the dot lands":** the seal stamps down (from scale 1.35, −6°, `ease-spring` 0.5s at 0.15s) with a persimmon ink ring spreading from its edge (0.7s) → 厶's path draws (0.5s at 0.6s) → the saffron dot drops onto the end of the path with the spring (0.7s at 1.1s) → a saffron ring ripples out of the dot (1.2s at 1.6s) → 18 petals in persimmon, saffron and jade drift outward (1.6–2.4s) → text rises (staggered 150ms). Haptic `arrive`. Voice: 到了！
   3. **Bus is here:** the arrival chip flips to saffron, plus haptic `attention`.
   4. **Live:** the user-dot pulse (2s) and the "live" dot blink (1.6s) show that data is fresh.
-- **Reduce motion** (OS setting, or Settings → 减少动画): all transitions become a 120ms cross-fade. Pulses, petals and ripples are removed. The alert appears without bounce and the edge glow is static. The map camera snaps. The arrival mark is shown complete. Haptics and voice are unchanged.
+- **Reduce motion** (OS setting, or Settings → 减少动画): all transitions become a 120ms cross-fade. Pulses, petals and ripples are removed. The alert appears without bounce and the edge glow is static. The map camera snaps. The arrival seal is shown complete (stamped, path drawn, dot in place). Haptics and voice are unchanged.
 
 ## 3. Haptics (`navigator.vibrate`; iOS Safari ignores it, so voice and visual must carry the moment)
 | Name | Pattern (ms) | Use |

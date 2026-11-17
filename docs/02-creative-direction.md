@@ -1,6 +1,6 @@
 # 怎么去? — Creative direction
 
-**Version:** v1.0 (2026-11-17) · **Owner:** Creative · **Status:** for owner sign-off
+**Version:** v1.1 (2026-11-17) · **Owner:** Creative · **Status:** signed off by the owner (D-8); v1.1 applies the owner's choices
 Companion files: `creative/STYLE-GUIDE.md` (tokens, components, frames H1–H13), `creative/logo/`, `creative/prototype/index.html`.
 
 ---
@@ -81,18 +81,19 @@ Visual personality: **warm paper, persimmon and saffron.** The palette comes fro
 | D10 | **帮忙 Help** is a persistent, high-contrast ink pill in guidance and a row on Home. Its order is: call family → show the driver my address → where am I → find my way again → 995 (last, outlined). | The most common real need is "call my daughter". Next is "tell the taxi uncle where I live". |
 | D11 | **Show the driver** is a full-screen, always-light card: big English address and postal code (on a saffron highlight), Chinese underneath. It has three tabs: where I'm going, my home, where I am. | Taxi and private-hire drivers read English. Postal codes are what they type. |
 | D12 | **Share my trip** is time-boxed to *this trip* and stops on arrival. Family see a no-install web page with the ETA, plain status ("On bus 139, 3 stops to go"), a map and **Call Mum**. | Privacy by default. It builds trust for both the senior and the family. |
-| D13 | **Arrival moment:** the Question Path draws itself, the saffron dot drops in with a spring and ripples out, petals rise, the voice says "到了！你做得很好", and an arrival vibration plays. It lasts about 2.5 s. With reduce motion, everything shows at once. | A signature, brand-owned moment that marks the user's achievement. |
+| D13 | **Arrival moment (v1.1):** the 去 seal stamps down, the last stroke (the path) draws, the saffron dot lands on its end and ripples out, petals rise, the voice says "到了！你做得很好", and an arrival vibration plays. About 2.5 s. With reduce motion, the finished seal shows at once. | A signature, brand-owned moment: the mark itself "arrives". A seal is also the gesture of completion, so it marks the user's achievement. |
 | D14 | **Say it again** is always on the step card. The voice toggle is in the top bar, and the speaker icon shows its state. | Users miss lines on noisy buses. Repeating is the most-used control in senior voice UX. |
 | D15 | Prototype map is an **illustrated Toa Payoh–Novena map** (not to scale). The build uses **OneMap tiles** (Default by day, Night in dark mode) with the same overlays and the required OneMap/SLA attribution. | It shows the art direction for route overlays independent of tile style. Attribution is planned from day one. |
-| D16 | Route options show at most **3 cards**, labelled by what seniors care about: 最少走路 Least walking (recommended, persimmon border), 最快 Fastest, 最少转车 Fewest changes. Each card also shows "No stairs" or "Lifts all the way". | Walking distance and stairs matter more than 4 minutes saved. |
+| D16 | Route options show at most **3 cards**, labelled by what seniors care about: 最少走路 Least walking (recommended, persimmon border), 最快 Fastest, 最少转车 Fewest changes. ~~Each card also shows "No stairs" or "Lifts all the way".~~ v1.1: those facts are hidden until a data source exists (owner, D-8; research in M3). | Walking distance and stairs matter more than 4 minutes saved. |
+| D17 | **Logo: B, the 去 seal** (owner's pick over the recommended A). Refined into a white-on-persimmon chop: 土 over 厶, whose last arm is a path rising to the saffron dot (the 点 of 去 = "arrived"). Pixel-grid favicon geometry so it reads at 16px; maskable, mono and wordmark variants. Spec in STYLE-GUIDE §0. | The owner prefers the Chinese character. Making the dot the destination keeps A's best idea, and a solid seal (not an outline frame) fixes B's 16px weakness. |
+| D18 | **M1 states** (STYLE-GUIDE 6b): one calm state panel for every empty, error and offline case, never red; first run of at most 3 skippable pages; a location explainer before the browser prompt; the "Start" button exists only behind flag `guide` (OQ5), with no preview badge. | Seniors read errors as "I did something wrong". One familiar layout plus "try again" keeps them calm. |
 
 ## 5. Open questions for the owner
-1. Approve **Question Path** as the logo (alternatives: 去 Seal, Lantern, Walk With).
-2. Approve **persimmon + saffron + jade** as the brand palette.
-3. Greeting uses a stored nickname ("林阿姨"). Should we ask for a name at first run (optional), or greet without one?
-4. Family share: WhatsApp deep link + SMS + copy link (recommended), or SMS only for v1?
+Answered at sign-off (D-8): logo → **B, 去 seal** (D17); palette and type approved; name asked once at first run, optional; WhatsApp + SMS + link sharing as recommended.
+Still open: the contact line for the About & privacy screen (PDPA contact point), STYLE-GUIDE 6b F6.
 
 ## Change log
 | Version | Date | Change |
 |---|---|---|
+| v1.1 | 2026-11-17 | Owner sign-off applied: logo B master (D17), arrival moment rebuilt around the seal (D13), stairs/lift facts hidden (D16), M1 state frames (D18, STYLE-GUIDE 6b). |
 | v1.0 | 2026-11-17 | First creative run: brand idea, principles, voice, D1–D16, logo concepts, tokens, motion and haptics, components, frames H1–H13, interactive prototype. |
