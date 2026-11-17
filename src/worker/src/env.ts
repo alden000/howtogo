@@ -14,6 +14,11 @@ export interface Env {
    * Dev/QA only (`wrangler dev --var FIXTURE_MODE:1`); unset in production.
    */
   FIXTURE_MODE?: string;
+  /**
+   * Workers Static Assets binding (wrangler.toml `[assets]`). Absent in the preview deploy
+   * (wrangler.preview.toml), which serves the embedded build instead (src/static.ts).
+   */
+  ASSETS?: Fetcher;
   /** KV namespace that holds the cached OneMap token. */
   TOKEN_KV: KVNamespace;
   /** Durable Object namespace: one TripShare per share id. */
