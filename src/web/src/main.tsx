@@ -31,6 +31,8 @@ import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
 
 const DEMO_DEFAULT_MS = 400;
+/** Production Worker origin for the Android app (D-11 domain once live; the workers.dev origin works meanwhile). */
+const NATIVE_API_BASE = 'https://howtogo.raus-ums.workers.dev';
 const DEFAULT_FLAGS = ['guide', 'help'];
 
 async function boot() {
@@ -51,6 +53,10 @@ async function boot() {
   const mock = demo || session.get('mode.mock') === '1' || import.meta.env.VITE_API_MOCK === '1';
   log(`mode:${demo ? 'demo' : mock ? 'mock' : 'live'}`);
 
+  // M6: inside the Android app (Capacitor WebView on https://localhost) the API is the production Worker.
+  const nativeApp = !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+  const apiBase = nativeApp ? (import.meta.env.VITE_NATIVE_API_BASE ?? NATIVE_API_BASE) : (import.meta.env.VITE_API_BASE ?? '');
+
   let api: Api;
   let start = undefined as undefined | { lat: number; lng: number };
   if (mock) {
@@ -58,9 +64,9 @@ async function boot() {
     api = m.createMockApi();
     start = m.DEMO_START;
   } else {
-    api = createHttpApi({ base: import.meta.env.VITE_API_BASE ?? '' });
+    api = createHttpApi({ base: apiBase });
     // D-10: the preview Worker answers from fixtures → show the sample-routes banner.
-    void checkSampleMode(import.meta.env.VITE_API_BASE ?? '');
+    void checkSampleMode(apiBase);
   }
   if (q.get('sample') === '1') session.set('mode.sample', '1');
   if (q.get('sample') === '0') session.remove('mode.sample');
@@ -71,6 +77,12 @@ async function boot() {
   const web = createWebPlatform();
   let platform: Platform = web;
   let fake: FakePlatform | null = null;
+  if (nativeApp && !demo) {
+    // Lazy chunk (M6 AC 5): the web build never loads the native adapter.
+    const { createNativePlatform } = await import('./platform/native');
+    platform = await createNativePlatform(web).catch(() => web);
+    log(`platform:${platform.kind}`);
+  }
   if (demo) {
     fake = createFakePlatform({ start: { ...start!, acc: 8, t: Date.now() } });
     platform = createDemoPlatform(web, fake);
@@ -143,6 +155,19 @@ async function boot() {
   addEventListener('pagehide', flush);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flush());
 
+  // M6 AC 24: System Back follows the in-app stack; at depth 0 the system owns Back (leave the app, predictive back).
+  const device = platform.device;
+  if (device) {
+    device.onBack(() => history.back());
+    effect(() => device.setBackDepth(router.depth.value));
+  }
+  // M6 AC 13 / OQ7: the trip notification's Stop opens the app on the End-trip confirm, never ends at once.
+  platform.trip?.onStopRequested(() => {
+    if (!store.trip.peek()) return;
+    if (router.route.value.name !== 'guide') router.enterGuide();
+    router.openSheet('end-trip');
+  });
+
   const services: Services = { store, router, api, platform, runtime, mode: { demo, mock }, flags };
   render(
     <ServicesContext.Provider value={services}>
@@ -164,7 +189,8 @@ async function boot() {
   });
 
   captureInstallPrompt();
-  if (import.meta.env.PROD && session.get('sw.disabled') !== '1') void registerServiceWorker();
+  // M6 AC 4: no service worker inside the app (assets are local; updates come with a new APK).
+  if (import.meta.env.PROD && !nativeApp && session.get('sw.disabled') !== '1') void registerServiceWorker();
   (window as unknown as { __howtogo?: Services }).__howtogo = services;
 }
 

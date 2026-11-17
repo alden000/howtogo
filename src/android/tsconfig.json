@@ -5,5 +5,5 @@
     "jsx": "react-jsx", "jsxImportSource": "preact",
     "paths": { "@howtogo/shared": ["../shared/src/index.ts"] }
   },
-  "include": ["adapter/**/*.ts", "capacitor.config.ts"]
+  "include": ["capacitor.config.ts"]
 }

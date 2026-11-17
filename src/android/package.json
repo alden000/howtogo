@@ -2,17 +2,16 @@
   "name": "@howtogo/android",
   "private": true,
   "version": "0.0.0",
-  "description": "M6 spike: Capacitor Android shell around src/web/dist (not a root workspace).",
+  "description": "M6: Capacitor Android app around the web release build (not a root workspace).",
   "scripts": {
     "sync": "node scripts/sync.mjs",
-    "apk:debug": "cd android && gradle --no-daemon assembleDebug"
+    "apk:debug": "cd android && gradle --no-daemon --max-workers=2 assembleDebug",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
-    "@capacitor-community/text-to-speech": "^8.0.2",
     "@capacitor/android": "^8.6.2",
     "@capacitor/app": "^8.1.2",
-    "@capacitor/core": "^8.6.2",
-    "@capacitor/local-notifications": "^8.3.1"
+    "@capacitor/core": "^8.6.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.2",

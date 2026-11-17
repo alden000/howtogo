@@ -1,21 +1,26 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# R8 keep rules (M6 AC 35). Capacitor's consumer rules already keep @CapacitorPlugin classes,
+# @PluginMethod / @PermissionCallback methods and Plugin subclasses; these are belt and braces for ours.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Our plugin: the bridge finds methods by name via reflection.
+-keep class com.wwweeeiii.howtogo.TripPlugin { *; }
+-keep class com.wwweeeiii.howtogo.MainActivity { *; }
+# Manifest component (also kept by AAPT rules) and its intent actions.
+-keep class com.wwweeeiii.howtogo.TripService { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Capacitor bridge core (reflection: plugin handles, annotations, JS interface).
+-keep class com.getcapacitor.** { *; }
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# play-services-location ships its own consumer rules; keep the parcelables used across IPC.
+-keep class com.google.android.gms.location.** { *; }
+-dontwarn com.google.android.gms.**
+
+# Release logcat: drop verbose/debug logging (AC 37); Log.i hook lines stay (hook names only).
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+}

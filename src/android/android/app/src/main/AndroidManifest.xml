@@ -3,9 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="${appLabel}"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
@@ -14,7 +17,7 @@
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
-            android:label="@string/title_activity_main"
+            android:label="${appLabel}"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:exported="true">
@@ -26,8 +29,8 @@
 
         </activity>
 
-        <!-- M6 spike: trip location runs in a foreground service of type location, started only
-             while the activity is visible (while-in-use location; no ACCESS_BACKGROUND_LOCATION). -->
+        <!-- Trip location: a foreground service of type location, started only from the Start tap while the
+             activity is visible (while-in-use location; no ACCESS_BACKGROUND_LOCATION). -->
         <service
             android:name=".TripService"
             android:exported="false"
@@ -53,9 +56,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- Pulled in by @capacitor/local-notifications; we only post immediate notifications. -->
+    <!-- Never: ACCESS_BACKGROUND_LOCATION, USE_FULL_SCREEN_INTENT, SCHEDULE_EXACT_ALARM, RECEIVE_BOOT_COMPLETED,
+         REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, REQUEST_INSTALL_PACKAGES (M6 AC 28 allow-list). -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
-    <!-- Not requested: ACCESS_BACKGROUND_LOCATION, USE_FULL_SCREEN_INTENT, SCHEDULE_EXACT_ALARM. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 </manifest>

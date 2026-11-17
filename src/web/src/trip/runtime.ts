@@ -49,6 +49,7 @@ import {
   type GuidanceState,
   type HapticName,
   type Itinerary,
+  type LatLng,
   type Journey,
   type JourneyProgress,
   type MrtEstimate,
@@ -66,7 +67,7 @@ import { ApiError } from '../api/errors';
 import { online } from '../api/offline';
 import { log } from '../log';
 import { followReducer, type FollowEvent, type FollowMode } from '../map/follow';
-import type { LocationFix, Platform, PlatformError, Unsubscribe } from '../platform/types';
+import type { LegHint, LegKind, LocationFix, NativeAlert, Platform, PlatformError, TripAlertEvent, Unsubscribe } from '../platform/types';
 import { toLang, type ActiveTrip, type ShareSession, type Store } from '../state/store';
 import { here } from '../state/location';
 import { local } from '../state/storage';
@@ -210,6 +211,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   let stopWatch: Unsubscribe | null = null;
   let stopHeading: Unsubscribe | null = null;
   let stopVisibility: Unsubscribe | null = null;
+  let stopNativeAlerts: Unsubscribe | null = null;
   let tick: unknown = null;
   let attached = false;
   let watchInterval: number | undefined;
@@ -385,6 +387,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     if (!t) return;
     const r = alertReducer(t.alert ?? null, ev);
     if (r.alert !== (t.alert ?? null)) store.patchTrip((tr) => ({ ...tr, alert: r.alert }));
+    if (r.effect === 'ack' && t.alert) platform.trip?.ack(alertId(t.alert.stepId, t.alert.kind));
     if (r.effect) onAlertEffect(r.effect, r.alert);
     const due = alertDueAt(r.alert);
     if (due === null) clear('escalate');
@@ -408,6 +411,14 @@ export function createTripRuntime(o: TripRuntimeOptions) {
         if (!a) return;
         const zh = lang() === 'zh-CN';
         log(`alert:${a.kind}`);
+        // M6 AC 18: one alert per id. The native service alerted first → the sheet shows, nothing buzzes or speaks twice.
+        const id = alertId(a.stepId, a.kind);
+        if (platform.trip?.firedNatively(id)) {
+          log('alert:dedupe');
+          pocketEvent({ type: 'alert', t: now() });
+          return;
+        }
+        platform.trip?.markFired(id);
         haptic('getoff');
         if (a.kind === 'now') later('getoff2', GETOFF_NOW_REPEAT_MS, () => haptic('getoff'));
         speakAlert(a);
@@ -417,12 +428,14 @@ export function createTripRuntime(o: TripRuntimeOptions) {
           title: a.kind === 'now' ? (zh ? '到站了，请下车' : 'This is your stop. Get off now') : zh ? '下一站下车' : 'Get off at the next stop',
           body: a.stop,
           priority: 'high',
+          alertId: id,
         });
         return;
       }
       case 'escalate':
         if (!a) return;
         log('alert:escalate');
+        if (platform.trip?.firedNatively(alertId(a.stepId, a.kind))) return; // the service re-buzzes its own alert
         haptic('getoff');
         speakAlert(a);
         return;
@@ -482,6 +495,9 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     const g = dispatch({ type: 'fix', fix });
     if (g && !g.gpsWeak && g.fix?.t === f.t) lastGoodFixAt = now();
     syncManual();
+    // AC 16: deadlines also run on fixes, since a hidden WebView throttles setTimeout.
+    const due = alertDueAt(trip()?.alert ?? null);
+    if (due !== null && now() >= due) alertEvent({ type: 'tick', t: now() });
   }
 
   // ------------------------------------------------------------ manual mode (G5)
@@ -532,6 +548,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   // ------------------------------------------------------------ location profile (AC 38)
   function syncProfile() {
     if (!attached || !stopWatch) return;
+    if (platform.trip) return syncNative();
     const p = locationProfile(curStep(), ui.peek().stopsLeft);
     if (p.intervalMs !== watchInterval) void startWatch();
   }
@@ -556,6 +573,83 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     );
     if (!attached || watchInterval !== p.intervalMs) return stop(); // superseded while awaiting
     stopWatch = stop;
+    if (platform.trip) {
+      nativeLegKey = nativeArmKey = '';
+      syncNative();
+    }
+  }
+
+  // ------------------------------------------------------------ native trip service (M6 §C/§D)
+  let nativeLegKey = '';
+  let nativeArmKey = '';
+  const alertId = (stepId: string, kind: 'next' | 'now') => `${trip()?.id ?? ''}:${stepId}:${kind}`;
+
+  function legHint(t: ActiveTrip): LegHint {
+    const step = curStep(t);
+    const kind: LegKind = !step
+      ? 'walk'
+      : step.kind === 'walk_to_destination'
+        ? 'last_walk'
+        : step.kind.startsWith('board')
+          ? 'wait'
+          : isRide(step)
+            ? 'ride'
+            : 'walk';
+    const body = String(step?.say ?? step?.text ?? '').slice(0, 80);
+    return { kind, stopsLeft: kind === 'ride' ? ui.peek().stopsLeft : null, lowBattery: false, body };
+  }
+
+  /** Native backup alerts for a ride step (AC 17): "next" around the stop before alighting, "now" at the alighting stop. */
+  function nativeAlerts(t: ActiveTrip, step: Step): NativeAlert[] {
+    const bus = step.mode === 'bus';
+    const stops = step.stops ?? [];
+    const alight = stops[stops.length - 1] ?? { ...step.end, name: '', displayName: '' };
+    const prev = stops.length > 1 ? stops[stops.length - 2]! : null;
+    const name = String(step.params.stop ?? alight.displayName ?? alight.name ?? '');
+    const zh = t.lang === 'zh-CN';
+    const line = (kind: 'next' | 'now') =>
+      cueToSpeech({ id: '', type: kind === 'now' ? 'get_off_now' : 'get_off_next_stop', priority: 'high', stepId: step.id, stepIndex: 0, params: { stop: name }, t: 0 }, t.lang);
+    const mk = (kind: 'next' | 'now', at: LatLng, radiusM: number): NativeAlert => ({
+      id: alertId(step.id, kind),
+      kind,
+      lat: at.lat,
+      lng: at.lng,
+      radiusM,
+      title: kind === 'now' ? (zh ? '到站了，请下车' : 'This is your stop. Get off now') : zh ? '下一站下车' : 'Get off at the next stop',
+      body: name,
+      speak: line(kind),
+      lang: t.lang,
+    });
+    return [
+      prev ? mk('next', prev, bus ? 80 : 200) : mk('next', step.end, bus ? 500 : 1200),
+      mk('now', step.end, bus ? 150 : 300),
+    ];
+  }
+
+  /** Called from derive() on every fix / step change: leg profile + notification text, and arm/disarm per ride step. */
+  function syncNative() {
+    const svc = platform.trip;
+    const t = trip();
+    if (!svc || !t || !attached) return;
+    const h = legHint(t);
+    const key = `${h.kind}:${h.stopsLeft !== null && h.stopsLeft <= 3 ? 'near' : 'far'}:${h.body}`;
+    if (key !== nativeLegKey) {
+      nativeLegKey = key;
+      void svc.setLeg(h);
+    }
+    const step = curStep(t);
+    const ride = isRide(step) && t.guidance.status !== 'off_route' ? step! : null;
+    const armKey = ride ? `${t.id}:${ride.id}:${t.reroutes}` : '';
+    if (armKey !== nativeArmKey) {
+      nativeArmKey = armKey;
+      void (ride ? svc.arm(nativeAlerts(t, ride)) : svc.disarm());
+    }
+  }
+
+  function onNativeAlert(e: TripAlertEvent) {
+    const a = trip()?.alert;
+    if (e.type === 'fired') log(`alert:native-${e.kind}`);
+    else if (a && alertId(a.stepId, a.kind) === e.id) alertEvent({ type: 'ack', t: now() }); // "知道了" on the lock screen
   }
 
   // ------------------------------------------------------------ wake lock (AC 39)
@@ -776,6 +870,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     if (!t || attached) return;
     log(resumed ? 'trip:resumed' : 'trip:started');
     stopVisibility ??= platform.visibility.onChange(onVisibility);
+    stopNativeAlerts ??= platform.trip?.onAlert(onNativeAlert) ?? null;
     if (t.phase === 'waypoint' || t.phase === 'arrived') {
       // G3 / H12: no GPS watch, no wake lock until "continue".
       patchUi({ phase: t.phase });
@@ -816,6 +911,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   }
 
   function detachWatch() {
+    if (attached && platform.trip) void platform.trip.disarm();
+    nativeLegKey = nativeArmKey = '';
     attached = false;
     stopWatch?.();
     stopHeading?.();
@@ -830,6 +927,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     detachWatch();
     stopVisibility?.();
     stopVisibility = null;
+    stopNativeAlerts?.();
+    stopNativeAlerts = null;
     if (shareTimer !== null) timers.clearTimeout(shareTimer);
     shareTimer = null;
     for (const k of Object.keys(T)) clear(k);

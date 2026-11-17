@@ -87,6 +87,8 @@ export interface NotifyCue {
   title: string;
   body: string;
   priority: CuePriority;
+  /** M6: get-off alerts carry their id so the lock-screen "知道了" acknowledges the right one. */
+  alertId?: string;
 }
 
 export type ShareOutcome = 'shared' | 'copied' | 'cancelled' | 'failed';
@@ -112,6 +114,8 @@ export interface PlatformCapabilities {
   /** Speech and wake lock need a fresh user gesture after a reload (iOS-like): resume shows "Tap to turn voice back on". */
   speechNeedsGesture: boolean;
   os: 'ios' | 'android' | 'other';
+  /** M6: running inside the Android app (Capacitor). The UI hides keep-screen-on advice, the wake-lock note and the install helper. */
+  native?: boolean;
 }
 
 export type NotifyPermission = 'granted' | 'denied' | 'default' | 'unsupported';
@@ -125,6 +129,79 @@ export interface NotificationsApi {
 export interface VisibilityApi {
   isVisible(): boolean;
   onChange(cb: (visible: boolean) => void): Unsubscribe;
+}
+
+/** M6 AC 12: what the native trip service needs to pick its interval/priority (the table lives in Java). */
+export type LegKind = 'walk' | 'wait' | 'ride' | 'last_walk';
+export interface LegHint {
+  kind: LegKind;
+  /** Ride legs: stops still ahead (incl. the alighting stop), or null when unknown. */
+  stopsLeft: number | null;
+  lowBattery: boolean;
+  /** Ongoing-notification line ("current step short text"), no coordinates. */
+  body: string;
+}
+
+/** A native backup get-off alert (M6 AC 17). id = `trip:step:kind`. */
+export interface NativeAlert {
+  id: string;
+  kind: 'next' | 'now';
+  lat: number;
+  lng: number;
+  radiusM: number;
+  title: string;
+  body: string;
+  speak: string;
+  lang: Lang;
+}
+
+export interface TripAlertEvent {
+  id: string;
+  kind: 'next' | 'now';
+  /** fired = the native service alerted first; ack = "知道了" on the lock screen. */
+  type: 'fired' | 'ack';
+}
+
+/**
+ * The native trip service (M6 §C/§D), present only in the Android app. The runtime drives it from
+ * fix events: leg changes, arming the backup alerts, and the JS/native alert dedupe.
+ */
+export interface TripServiceApi {
+  setLeg(hint: LegHint): Promise<void>;
+  /** Replaces the armed alerts (start of a ride leg, re-route). */
+  arm(alerts: NativeAlert[]): Promise<void>;
+  /** End, off-route on a ride leg, arrival, leaving a ride leg. */
+  disarm(): Promise<void>;
+  /** Synchronous: the native side already alerted this id (the JS side then skips its haptic/voice/notification). */
+  firedNatively(id: string): boolean;
+  /** JS alerted first: the native side skips this id. */
+  markFired(id: string): void;
+  ack(id: string): void;
+  onAlert(cb: (e: TripAlertEvent) => void): Unsubscribe;
+  /** The ongoing notification's Stop: the app opens and shows the End-trip confirm (OQ7). */
+  onStopRequested(cb: () => void): Unsubscribe;
+}
+
+export interface DeviceInfo {
+  manufacturer: string;
+  brand: string;
+  sdk: number;
+  /** PowerManager.isIgnoringBatteryOptimizations: status only (AC 29). */
+  batteryUnrestricted: boolean;
+  playServices: boolean;
+  /** The trip service died with the process during the last trip (AC 30). Reported once per launch. */
+  lastTripKilled: boolean;
+}
+
+export type SettingsTarget = 'app' | 'battery' | 'notifications' | 'alerts-channel' | 'tts-install';
+
+/** Native-only device helpers: OEM battery guide, settings shortcuts, System Back. */
+export interface DeviceApi {
+  info(): Promise<DeviceInfo>;
+  openSettings(target: SettingsTarget): Promise<void>;
+  /** AC 24: the router's depth after every navigation; at 0 the system owns Back (predictive back-to-home). */
+  setBackDepth(depth: number): void;
+  onBack(cb: () => void): Unsubscribe;
 }
 
 export interface Platform {
@@ -143,6 +220,9 @@ export interface Platform {
   share(url: string, text: string): Promise<ShareOutcome>;
   battery?: BatteryApi;
   recognition?: RecognitionApi;
+  /** M6: Android app only. */
+  trip?: TripServiceApi;
+  device?: DeviceApi;
 }
 
 /** Vibration patterns (ms on/off), the 6c.13 table. Kept here so web and native agree. */

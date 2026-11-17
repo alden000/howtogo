@@ -1,22 +1,20 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// M6 spike. appId is a placeholder until the Director confirms it.
-// CAP_SPIKE=1 starts on the spike harness (spike/spike.html, copied in by scripts/sync.mjs)
-// instead of the real app; both ship in the same assets folder.
+// M6. appId is permanent for sideload updates (D-11: com.wwweeeiii.howtogo); android/app/build.gradle
+// must say the same (scripts/check-appid.mjs fails the build otherwise).
+// CAP_SPIKE=1 (debug only) starts on the spike harness instead of the real app.
 const spike = process.env.CAP_SPIKE === '1';
 
 const config: CapacitorConfig = {
-  appId: 'sg.howtogo.app',
+  appId: 'com.wwweeeiii.howtogo',
   appName: '怎么去',
   webDir: '../web/dist',
   android: {
-    // The web build is served from https://localhost; keep the default scheme.
-    webContentsDebuggingEnabled: true,
+    // The web build is served from https://localhost (default scheme). Inspectable only in spike/debug runs.
+    webContentsDebuggingEnabled: spike,
+    allowMixedContent: false,
   },
   server: spike ? { appStartPath: '/spike.html' } : {},
-  plugins: {
-    LocalNotifications: { smallIcon: 'ic_stat_trip', iconColor: '#9A3412' },
-  },
 };
 
 export default config;
