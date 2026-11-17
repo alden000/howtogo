@@ -293,3 +293,5 @@ button.where{min-height:var(--tap);text-align:left}
 
 /* M3/M4 fix A: inline text link (About licence, AC 41). */
 .inlink{color:var(--c-primary-text);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+/* M3/M4 fix A: at 150/200 % a long CJK label next to a value may wrap (keep-all clipped "清除最近去过的地方"). */
+:root[data-text-size="xlarge"] .row .tx:has(+ .val),:root[data-text-size="xxlarge"] .row .tx:has(+ .val){word-break:normal;overflow-wrap:anywhere}

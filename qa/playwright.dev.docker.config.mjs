@@ -4,7 +4,7 @@
 // node_modules are Windows builds), and workers can be capped with QA_DEV_WORKERS.
 import base from './playwright.dev.config.mjs';
 import { fileURLToPath } from 'node:url';
-const here = fileURLToPath(new URL('.', import.meta.url)).replace(/\/g, '/');
+const here = fileURLToPath(new URL('.', import.meta.url)).replace(/\\/g, '/');
 const PORT = Number(process.env.QA_DEV_PORT ?? 4183);
 export default {
   ...base,
