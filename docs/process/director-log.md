@@ -120,3 +120,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - 41/46 Must pass; bugs QA-21…27 (1 S2, 4 S3, 2 S4). AC 36/41 blocked on a real phone (owner test).
 - Rulings: QA-25 S2 "route home" must plan from the current position. QA-21: request notification permission at Start, with a one-line explainer, only once; if denied, the in-app alerts still work and a note says alerts need the app open. QA-22: AC wins — H5 headline ≥ 32 px (2rem at 100%); Creative's 200% wrap rules apply. QA-23: the wake-lock note shows once per trip. QA-27: version 0.2.0.
 - ONE M2 fix round now: all QA bugs + Creative F1–F6 + AC 12 All-steps sheet + AC 50 demo controls.
+
+## 2026-11-17 — Owner decisions (D-11)
+- Domain: **howtogo.wwweeeiii.com** (owner adds the custom domain in the Cloudflare dashboard; this session's token can't see the zone). Config must allow both this and the workers.dev origin.
+- Android appId: **com.wwweeeiii.howtogo**. Signing key: generated in this session (never committed), handed to the owner once (file + password) to keep; M6 builds need it back.
+- Error counts: ON, anonymous counts only, listed on the privacy page, Settings switch.
+- Container restarted mid-afternoon; all worktrees/branches survived. M2 fix round done (gate 10/12; remaining failures = QA harness updates + load flakes). M3/M4 web round done on dev/m34-web (dev-e2e 132/132; QA M1 specs contradict M2 flags → QA update).

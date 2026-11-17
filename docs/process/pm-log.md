@@ -27,3 +27,10 @@
 - **Bug found:** shared `SharePayload.status` (`active|off_route|arrived|gps_weak`) ≠ Worker statuses (`travelling|arrived|paused|help`); every live share would get 400. M4 AC 10. Also D-7 help bypass is not implemented yet (M4 AC 13).
 - M2 AC 41 ("share paused in pocket view") is superseded by M4 AC 14 — needs a Director nod.
 - ROADMAP: M3 drops multi-stop and gains recents/zh names; M4 row 8–10 h; total ~41–50 h.
+
+## 2026-11-17 — M5 and M6 requirements
+- Wrote `docs/requirements/M5-hardening-launch.md`: 44 ACs (perf ≥ 90 ×4 median of 3 + LCP ≤ 2.5 s + JS budgets, battery throttling + low-battery mode that never degrades alerts, a11y audit + owner TalkBack/VoiceOver script, SW update with an active trip/share, offline, privacy page/About, install helper incl. in-app browsers, two Workers + live mode + headers, `smoke:deploy`, `smoke:live` (BLOCKED ≠ FAIL), monitoring-lite counts, field-test kit, 1.0 release). Estimate 7–9 h (ROADMAP said 5–6 h).
+- Wrote `docs/requirements/M6-android-app.md`: 44 ACs from the spike (native adapter, TripService intervals/fallback, fix-driven cues + native backup alert with dedupe, lock-screen channels, Back by depth + predictive back, permission UX + manifest allow-list, OEM battery guide, owner-held keystore + test `.qa` key, versionCode N=(M·10000+m·100+p)·100, R8 + release smoke, `/android` sideload page with SHA-256, device script, ≤ 8 %/h). Estimate 7–9 h (ROADMAP said 6–8 h).
+- Owner-only OQs: M5 custom domain, privacy contact, error counts default, field-test participants, keys/secrets; M6 appId, keystore custody/signing place, `allowBackup=false` (FYI).
+- Findings: a 5+ MB APK can't be embedded in the free-plan Worker bundle (D-10) → R2 bucket proposed (M6 OQ3). Native share status must stay `travelling` while the FGS runs (refines M4 AC 10 "hidden → paused"). Notification Stop should open the End-trip confirm, not end silently (M6 OQ7, changes the spike).
+- ROADMAP: M5 and M6 rows 7–9 h each; total ~41–51 h.
