@@ -1,0 +1,15 @@
+{
+  "name": "怎么去?",
+  "short_name": "怎么去",
+  "description": "Step-by-step public transport guide for Singapore",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [],
+  "x_todo_creative": "background_color, theme_color and icons (192, 512, maskable) are placeholders until creative/STYLE-GUIDE.md lands"
+}

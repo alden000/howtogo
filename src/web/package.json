@@ -1,0 +1,28 @@
+{
+  "name": "@howtogo/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --logLevel warn && node scripts/size.mjs",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "vitest run",
+    "e2e": "playwright test --trace off",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json"
+  },
+  "dependencies": {
+    "@howtogo/shared": "*",
+    "@preact/signals": "^2.0.0",
+    "maplibre-gl": "^5.0.0",
+    "preact": "^10.25.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@preact/preset-vite": "^2.10.0",
+    "jsdom": "^25.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.0",
+    "vitest": "5.1.0"
+  }
+}
