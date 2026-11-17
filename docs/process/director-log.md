@@ -102,3 +102,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Deployed Worker `howtogo` (embedded assets, wrangler.preview.toml) → https://howtogo.raus-ums.workers.dev. Version e880916c. KV TOKEN_KV created on the owner's account. First minute after deploy returned mixed 404/500 while the version propagated; stable 200 since. Phone-width smoke (Pixel 7, Playwright): first-run renders, no console errors.
 - The KV namespace id is not a secret (it's useless without the account token) → QA to allow-list it in the secret scan.
 - M1 actual duration: ~5.5 h wall clock from kickoff of the UI round to preview (incl. parallel creative/QA rounds). M3/M4 Worker round done on dev/m34-worker (136 tests), merges after M2.
+
+## 2026-11-17 — Creative round 4 (M3/M4 frames + family viewer) merged
+- STYLE-GUIDE §6d/§6e; family viewer prototype (15 states); prototype v1.3 republished with viewer.html.
+- Approved: 11 new icons (seat, stand, full, wheelchair, wheelchair-no, deck2, train-off, card, copy, edit, qr) and the new components. CCL copy = "往 {next interchange} 方向" + next stop (never clockwise/anticlockwise) → data round's loop keys to be replaced in the M3 UI round.
+- Note for build: sample phone numbers in the prototype must not ship; production uses only the user's own contacts.
