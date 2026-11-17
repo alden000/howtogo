@@ -9,8 +9,9 @@ PM · 2026-11-17 · Estimates are wall-clock hours "if run straight through". Th
 | M2 | Guided trip | 7–8 h | M1 |
 | M3 | SG transit smarts | 6–7 h | M1 (parallel with M2 for engine work) |
 | M4 | Share & safety | 6–7 h | M2 |
-| M5 | 1.0 hardening & launch | 5–6 h | M2–M4 |
-| | **Total** | **~33–39 h** (+ M0 3 h) | |
+| M5 | 1.0 hardening & launch (web) | 5–6 h | M2–M4 |
+| M6 | Android app (Capacitor) | 6–8 h | M2 (can start after M2, parallel with M3–M5); release after M5 |
+| | **Total** | **~39–47 h** (+ M0 3 h) | |
 
 ---
 
@@ -102,3 +103,22 @@ PM · 2026-11-17 · Estimates are wall-clock hours "if run straight through". Th
   - production deploy plus custom domain if wanted;
   - field test with 1–2 seniors.
 - **Exit:** release gate green; owner field-test sign-off; 1.0 tagged.
+
+## M6 — Android app (Capacitor)
+Added 2026-11-17 at the owner's request (director-log D-4/D-5).
+- **Goal:** guidance keeps working with the screen off or the phone locked, in a pocket or bag.
+- **Scope:**
+  - a Capacitor Android shell around the same web build (`src/android`);
+  - a native `platform` adapter implementation (the web UI already calls location, speech, wake-lock, vibration and notifications through one interface):
+    - location via a foreground service (type `location`) only while a trip is active, with an ongoing "Trip in progress" notification (Stop button);
+    - native TTS for voice cues when locked;
+    - high-priority lock-screen notifications plus vibration for "get off at the next stop" / "get off now" / "off route";
+    - share-my-trip updates continue in the background;
+  - permissions: foreground location; `POST_NOTIFICATIONS`; FGS location. Avoid `ACCESS_BACKGROUND_LOCATION` if the FGS-while-in-use pattern suffices (Director to confirm with a spike);
+  - System Back follows the in-app page stack (process §7); predictive back on;
+  - release signing, versionCode ranges (release N, test ≥ N+10, hotfix N+1), R8 off or keep rules plus a release smoke test;
+  - battery: GPS interval adapts to the leg (walk 2 s, bus/MRT 5–10 s, near alight 2 s); Samsung/OEM battery-optimisation guidance screen;
+  - distribution: a sideload APK on the review site first. Play Store optional: a new personal account needs a 12-tester × 14-day closed test (start early) plus a location FGS declaration.
+- **Testability:** an emulator with a mocked GPS route (adb `emu geo fix` script) and the screen locked; then a real-device walk/bus test with the owner's phone under the device rules.
+- **Exit:** a locked-screen bus trip on a real phone gives voice and lock-screen "get off next stop" at the right stop; the release APK passes the gate; no battery drain above budget (≤ 8%/h during guidance).
+- **Later:** an iOS app via the same Capacitor shell (needs a Mac or cloud macOS, plus TestFlight).
