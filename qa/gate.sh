@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# 怎么去? release gate (M1 + M2). One command, terse output, PASS/FAIL summary. Logs: qa/.out/logs/.
+# 怎么去? release gate (M1–M4). One command, terse output, PASS/FAIL summary. Logs: qa/.out/logs/.
 #   qa/gate.sh            full gate
 #   SKIP=lighthouse,qa-e2e qa/gate.sh   skip steps by name (reported as SKIP, gate cannot PASS)
 # Read-only for src/: builds go to qa/.out/dist (A) and qa/.out/dist-b (B, for the SW update test);
 # Playwright never updates snapshots (updateSnapshots: 'none').
 set -uo pipefail
-QA="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$QA/.." && pwd)"; WEB="$ROOT/src/web"
+# `pwd -W` (Git Bash on Windows) gives D:/… paths that node and Playwright understand; elsewhere plain pwd.
+wpwd() { pwd -W 2>/dev/null || pwd; }
+QA="$(cd "$(dirname "$0")" && wpwd)"; ROOT="$(cd "$QA/.." && wpwd)"; WEB="$ROOT/src/web"
 LOG="$QA/.out/logs"; mkdir -p "$LOG"
 VER=$(node -p "require('$WEB/package.json').version")
 declare -a NAMES=() RESULTS=() NOTES=()
