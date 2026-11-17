@@ -103,3 +103,59 @@ Notes:
 4. Add a zh station-name table (LTA has one) and an MRT exit table for the final station (S3 in the plan).
 5. Add LTA BusArrival to the board step: "Bus 139 comes in 4 min".
 6. Field-test the thresholds (`DEFAULT_GUIDANCE_CONFIG`) with real phones. MRT tunnels will mostly produce `gps_weak`, and trains rely on the `on_board`/`got_off` buttons and the station-distance cues.
+
+## 2026-11-17 — Web shell, infrastructure only (Developer, branch `dev/web-shell`)
+
+**Package:** `@howtogo/web` (`src/web`). Vite 8 + Preact 10 + `@preact/signals` + TypeScript. It imports `@howtogo/shared` from source. This round has **no visual design**: the views are bare semantic HTML with `data-testid`s, and the code invents no colours or spacing.
+Scripts: `dev`, `build` (prints one size line and fails over budget), `preview`, `test` (vitest, 36 tests, about 2 s), `e2e` (Playwright, 5 tests, about 10 s including the build), `typecheck` (app + SW).
+Bundle: app JS **42 KB gz**, against a budget of 150 KB. MapLibre is 265 KB gz and is lazy-loaded only when a map mounts. sw.js is 1.2 KB.
+
+### Module map (`src/web/src`)
+| Module | What |
+|---|---|
+| `main.tsx` | Bootstrap. Chooses the mode (live, `?mock=1`, `?demo=1`; the mode sticks per tab via sessionStorage). Builds the API, platform, store, router and runtime. Reflects settings on `<html lang data-text-size data-theme>`. Resumes an unfinished trip. Registers the SW (prod only). Asks the SW to cache the trip's corridor tiles. |
+| `router/` | `routes.ts` is a pure `matchRoute`. `router.ts` puts every screen and sheet in history: `history.state = {howtogo:1, idx, sheet?}`. `navigate`, `openSheet`, `closeSheet` and `back` each move one step. A deep link gets Home seeded under it; `/t/:id` is standalone. Path routing, with `public/_redirects` as the SPA fallback. |
+| `platform/` | `types.ts` holds the D-4 interface: location watch/current/permission, heading (iOS permission), speech (zh/en voices, priority, mute), wake lock (re-acquired on visibilitychange), vibrate(pattern name), notify(cue), share (Web Share → clipboard), battery. It is all async, with no DOM types. `web.ts` is the browser implementation. `fake.ts` is a scripted fix stream that records speech, vibration and notifications. `createDemoPlatform` combines fake location with real speech. |
+| `api/` | `client.ts` is the HTTP client for API.md, with timeouts (10 s, route 15 s), typed `ApiError` (`kind`, `status`, `code`, `retryAfterS`, `retryable`, `shareGone`) and SGT date/time. The live WebSocket reconnects with backoff (1 s→30 s, jittered). After a drop it checks the share with GET and stops on 404/410, `ended` or `expired`. `offline.ts` provides the `online` signal and an `offlineAware()` wrapper that fails fast. `mock.ts` serves the shared fixtures, re-timed to the requested time, with a localStorage share relay that enforces the 3 s limit and the help bypass. |
+| `state/` | `storage.ts` wraps every storage access in try/catch. `store.ts` holds the signals: settings (zh, standard, auto, unmuted, least_walk by default), saved places (Home), the last 5 recents, the plan (sessionStorage) and the active trip (localStorage `howtogo.trip.v1`: itinerary, GuidanceState, share credentials). The trip is written at once on a step, status or share change and at most every 2 s otherwise, plus on pagehide. |
+| `trip/runtime.ts` | Location → `guidanceReducer` → cues (log line, `cueToSpeech` → speak, vibrate, notify) → share PUT (≥ 3 s apart, latest fix wins). It honours 429 Retry-After, drops the share on 404/410, and status `help` bypasses the limit (D-7). On `off_route` it re-routes from the current fix to the final place (at most once per 20 s) and sends `reroute_done`. It also offers next/previous/onBoard/gotOff/repeat, start/resume/end, startShare/stopShare/help, and a 30 s ETA tick. |
+| `map/` | `onemap.ts` holds the tile URL, bounds/zoom (from OneMap's TileJSON), attribution, and the tile maths and corridor tiles. `follow.ts` is the pure follow-me reducer: a gesture sets free; only recentre or a step change sets follow; there is nothing time-based. `map.ts` is the lazy MapLibre controller: raster OneMap with Default/Night, route layers whose colours come from CSS variables, a puck with accuracy circle and heading cone, follow camera (heading-up, pitch 30), fitRoute and setTheme. `MapPanel.tsx` is the component (aria-hidden, with recentre and overview buttons). |
+| `sw/sw.ts` | Hand-written classic SW. It precaches the shell; the file list is injected at build time by the `howtogo-sw` plugin in `vite.config.ts`. Navigations are network-first (3 s) with the cached shell as fallback. OneMap tiles are cache-first in an **LRU of 800** (re-put on hit, trimmed every 25 puts), plus a separate `trip-tiles` cache. `/api` GETs, except share, are network-first with TTL fallback: search/revgeo 1 d, route 10 min, bus 60 s, alerts 5 min. Lazy assets are cached at runtime. A new SW waits for `SKIP_WAITING`. |
+| `pwa/` | `register.ts` exposes the signals `updateReady` and `justUpdated` and `applyUpdate()`. The page reloads on controllerchange, and the next launch shows "已更新". It also has trip-tile messages. `install.ts` captures `beforeinstallprompt`. |
+| `log.ts` | `window.__howtogoLog` (alias `__hooks`), change-only, last 200 lines: `screen:/guide`, `sheet:end-trip`, `cue:get_off_now`, `api:route 200`, `route:n=3 pref=least_walk`, `trip:resumed`, `reroute:done`, `share:help`, `loc:ok`, `sw:update-ready`. It never logs coordinates or search text. `report.ts` builds the redacted report. |
+| `views/`, `app.tsx`, `i18n/ui.ts` | Placeholder screens for every route, plus the `end-trip` sheet as a history entry. There is a minimal zh/en string table. |
+
+### Demo mode
+`/?demo=1[&demoMs=400]` uses the mock API and the demo platform. "My location" is the fixture origin (Toa Payoh). Searching "tan tock", "raffles" or "陈笃生" returns fixture places, and route options are the fixture itineraries re-timed to now. When a trip starts, `simulateFixes(itinerary, {speedWalk:3, intervalS:2, waitCapS:20, seed:7})` plays one fix every `demoMs` ms through the real runtime, so speech, vibration and the share relay are all real code paths. The playback index is kept in sessionStorage so a reload resumes mid-trip. `?mock=1` uses the mock API with the real device GPS. Viewer: open `/t/<id>?demo=1` in another tab of the same browser.
+
+### Tests
+- **vitest:** store (defaults, persistence, corrupt or throwing storage, trip resume); runtime (bus trip cue order, speech, vibration, notify, wake lock; mute; reload/resume; share throttle with latest fix, 429 Retry-After, 410 drop, help bypass; re-route; end deletes the share); API client (URLs, SGT, typed errors, timeout, offline, backoff, WebSocket reconnect/ended/expired); mock; router (sheets, deep-link seeding, reload, standalone viewer); follow-me; log.
+- **Playwright** (headless Chromium from `/opt/pw-browsers`, against `vite preview` of the prod build):
+  - the demo flow search → route → guide with get_off_next_stop before get_off_now and arrived_destination last;
+  - a reload mid-trip resumes;
+  - Back goes guide→trip→routes→home, and a sheet takes one Back;
+  - mocked geolocation;
+  - the SW offline reload shows Home plus the offline notice;
+  - MapLibre with OneMap attribution, with no page errors.
+
+### TODO-creative (placeholders in code)
+- CSS tokens read by the map: `--route-walk`, `--route-bus`, `--route-train`, `--line-ns|ew|cc|ne|dt|te|ce|cg|lrt` (the token names come from `shared/lines.ts`), `--puck`, `--puck-ring`, `--puck-accuracy`, `--route-line-width`. Fallback grey `#888888`.
+- Manifest `theme_color`/`background_color` and icons (192, 512, maskable). The `<meta theme-color>` values are placeholders. There is no favicon or apple-touch-icon yet.
+- All view markup and copy: `i18n/ui.ts` is a stub, and the offline, updated and error copy is placeholder text.
+- Map height and collapse, recentre/overview button styling, and attribution placement at 150% text.
+- Speech rate (0.9) and vibration patterns (`platform/types.ts VIBRATE_PATTERNS`).
+
+### Notes / caveats
+- The attribution wording is the one given in the brief. OneMap's docs require "the OneMap logo and attribution" but show no exact snippet, and their TileJSON carries none. `om_logo.png` was checked live and returns 200. A `Default_HD` 512 px tile set also exists, which could be an option for retina screens.
+- The trip language is fixed at start: steps are built in that language. Switching the language mid-trip only affects the UI chrome.
+- The web platform `notify` shows a notification only when the page is hidden and permission is granted. Requesting permission is a UI-round task, after the share or start-trip explainer.
+- The root `package-lock.json` is updated and committed.
+
+### Next steps for the UI round
+1. Load the Creative tokens into a global CSS file: colours (light/dark, keyed off `html[data-theme]` + `prefers-color-scheme`), the type scale keyed off `html[data-text-size]`, and the map tokens above. Swap the placeholder views for H1–H9 frames. Keep every `data-testid`; the e2e suite depends on them.
+2. Move `i18n/ui.ts` to Creative's copy. Add the missing-key check script (M1 AC 8).
+3. Add a first-run (H1) gate using `settings.onboarded`. Add the location explainer (H4) before the first `platform.location.current()`.
+4. Map: mount `MapPanel` in Route detail (collapsed by default) and Guide (follow-me). Add start, end and stop markers. Pass `steps` from `trip.guidance.steps`.
+5. Add the update toast via `updateReady` / `applyUpdate()` / `justUpdated`. Add a second e2e with two builds for AC 4.
+6. Gate: the `npm run gate` script (typecheck, unit, i18n check, secret scan, build + size, e2e, axe, Lighthouse) and rect-overlap/tap-size checks at 150% × 200% zoom.
+7. Deploy the preview: Pages project `src/web/dist`, with `/api/*` routed to the Worker, or set `VITE_API_BASE`.

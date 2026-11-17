@@ -17,7 +17,9 @@ import { ServicesContext, type Services } from './context';
 import { log } from './log';
 import { createDemoPlatform, createFakePlatform, createWebPlatform, type FakePlatform, type Platform } from './platform';
 import { captureInstallPrompt } from './pwa/install';
-import { registerServiceWorker } from './pwa/register';
+import { cacheTripTiles, clearTripTiles, registerServiceWorker } from './pwa/register';
+import { corridorTiles, styleForTheme } from './map/onemap';
+import { isDark } from './map/MapPanel';
 import { createRouter } from './router/router';
 import { session } from './state/storage';
 import { createStore } from './state/store';
@@ -85,6 +87,17 @@ async function boot() {
   effect(() => {
     const tr = store.trip.value;
     log(`trip:${tr ? (tr.guidance.status === 'arrived' ? 'arrived' : 'active') : 'none'}`);
+  });
+  // Offline active trip: ask the SW to keep the route corridor's tiles (z15–17) while the trip lasts.
+  let tilesFor = '';
+  effect(() => {
+    const tr = store.trip.value;
+    const key = tr ? `${tr.id}:${tr.reroutes}` : '';
+    if (key === tilesFor) return;
+    tilesFor = key;
+    if (!tr) return clearTripTiles();
+    const pts = tr.guidance.steps.flatMap((st) => st.geometry).filter((_, i) => i % 3 === 0);
+    cacheTripTiles(corridorTiles(pts, [15, 16, 17], styleForTheme(isDark(store.settings.peek().theme))));
   });
   const flush = () => store.flushTrip();
   addEventListener('pagehide', flush);
