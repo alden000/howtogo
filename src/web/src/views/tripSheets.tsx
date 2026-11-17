@@ -8,6 +8,7 @@ import type { Place } from '@howtogo/shared';
 import { DWELL_CHOICES_MIN } from '@howtogo/shared';
 import { useServices, useT } from '../context';
 import { here, locate } from '../state/location';
+import { online } from '../api/offline';
 import { announce, Bar, Icon, NumSteps, Sheet } from '../ui/kit';
 import { log } from '../log';
 import { dwellLabel } from './Guide';
@@ -126,7 +127,8 @@ export function DriverSheet() {
   const tabs = (['dest', 'home', 'here'] as DriverTab[]).filter((x) => x !== 'dest' || trip);
   useEffect(() => {
     log(`state:driver-${tab}`);
-    if (tab === 'here' && !here.value) void locate(platform, api);
+    // QA-38: also look the address up when the cached fix has none (e.g. the last trip fix), while online.
+    if (tab === 'here' && (!here.value || (here.value.label === null && online.peek()))) void locate(platform, api);
   }, [tab]);
   useEffect(() => {
     void platform.wakeLock.acquire();
@@ -137,8 +139,9 @@ export function DriverSheet() {
   let p: Place | null = null;
   if (tab === 'dest') p = trip?.places[trip.places.length - 1] ?? null;
   else if (tab === 'home') p = home ?? null;
-  else p = here.value ? { name: here.value.label ?? '', lat: here.value.lat, lng: here.value.lng } : null;
-  const lines = p ? [p.name, p.address && p.address !== p.name ? p.address.replace(/\s*Singapore\s*\d{6}$/i, '') : ''].filter(Boolean) : [];
+  else p = here.value ? { name: here.value.label ?? '', lat: here.value.lat, lng: here.value.lng, ...(here.value.address ? { address: here.value.address } : {}), ...(here.value.postal ? { postal: here.value.postal } : {}) } : null;
+  const hereLines = tab === 'here' && p ? whereAmILines(p) : null;
+  const lines = hereLines ? hereLines.lines : p ? [p.name, p.address && p.address !== p.name ? p.address.replace(/\s*Singapore\s*\d{6}$/i, '') : ''].filter(Boolean) : [];
   const postal = p?.postal ?? /\b(\d{6})\b/.exec(p?.address ?? '')?.[1];
   const head = tab === 'here' ? ['I am here', '我现在在这里'] : ['Please take me to', '请送我去'];
   return (
@@ -169,6 +172,12 @@ export function DriverSheet() {
               <span class="postal num">Singapore {postal}</span>
             </div>
           )}
+          {hereLines?.near && (
+            <div class="zh" data-testid="here-near">
+              Near · <span lang="zh">附近：</span>
+              {hereLines.near}
+            </div>
+          )}
         </div>
         {tab === 'here' && here.value && !here.value.label && <HereFallback lat={here.value.lat} lng={here.value.lng} />}
         {tab === 'here' && p && <SendMyLocation place={p} />}
@@ -176,6 +185,20 @@ export function DriverSheet() {
       </div>
     </div>
   );
+}
+
+/**
+ * QA-38 (M4 AC 36) "Where I am": the reverse-geocoded street address in huge type (without the trailing
+ * "Singapore 123456", which the postal chip shows), then "附近：<building>" when the building name is not
+ * already the address. No address → the place name alone.
+ */
+export function whereAmILines(p: { name: string; address?: string }): { lines: string[]; near: string | null } {
+  const name = p.name.trim();
+  const street = (p.address ?? '').replace(/\s*Singapore\s*\d{6}$/i, '').trim();
+  if (!street) return { lines: name ? [name] : [], near: null };
+  // OneMap addresses end with the building name ("51 Bishan Street 13 Bishan Community Club"): show it once, as "near".
+  const bare = name && street.toLowerCase().endsWith(` ${name.toLowerCase()}`) ? street.slice(0, -name.length - 1).trim() : street;
+  return { lines: [bare], near: name && name.toLowerCase() !== bare.toLowerCase() ? name : null };
 }
 
 /** G7 voice help (6c.11): how to add a Chinese voice; the device's platform first. */

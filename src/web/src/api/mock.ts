@@ -202,6 +202,7 @@ export function createMockApi(opts: MockApiOptions = {}): Api {
     },
     shareCreate({ destName, lang, senderName, senderPhone }) {
       if (scenario('share', 'ok') === 'fail') return fail('share-create', 502, 'upstream_unavailable');
+      if (scenario('share', 'ok') === 'rate_limited') return fail('share-create', 429, 'rate_limited', 600);
       const id = Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 56)]).join('');
       const token = 'mock-' + id;
       const expiresAt = new Date(now() + 4 * 3600_000).toISOString();

@@ -132,7 +132,7 @@ Body `{"lat":1.35,"lng":103.82,"acc":12,"heading":90,"speed":1.2,"etaISO":"2026-
 - `404 share_not_found` (unknown, or already deleted after expiry), `410 share_ended` / `410 share_expired`, `429 rate_limited` (more than one GET per 5 s per IP for this share: poll at 15 s).
 
 ### GET /api/share/:id/live   (WebSocket)
-Upgrade to a WebSocket. Without `Upgrade: websocket` the response is `426`. Viewers are read-only, and sending `ping` gets `pong`. At most 50 viewers per share (`429 too_many_viewers`).
+Upgrade to a WebSocket. Without `Upgrade: websocket` the response is `426`. Viewers are read-only, and sending `ping` gets `pong`. At most 50 viewers per share (`429 too_many_viewers`). Because a browser can't read the status of a refused upgrade, a plain GET (no `Upgrade`) answers `429 too_many_viewers` while the share is full and `426` otherwise; the viewer page probes it after a socket closes before any message (QA-43).
 Server messages:
 - `{"type":"state","state":<same object as GET>}`: sent on connect and after every accepted PUT.
 - On end (DELETE or arrival auto-end): `{"type":"state","state":{...,"status":"ended","lat":null,"senderPhone":null,...}}`, then close 1000 "ended". `senderName` and `destName` are kept so the page can say "妈妈已经停止分享".

@@ -61,6 +61,8 @@ export interface Memory {
   phone: string | null;
   /** Viewer's own network is down (socket closed and GET failed). */
   offline: boolean;
+  /** QA-43 (AC 25): the live socket was refused because 50 people already watch this link. */
+  full: boolean;
 }
 
 export const STALE_MS = 2 * 60_000;
@@ -69,7 +71,7 @@ export const ARRIVED_GRACE_MS = 30 * 60_000;
 export const SHARE_ID_RE = /^[A-Za-z0-9]{6,32}$/;
 
 export const initialMemory = (): Memory => ({
-  share: null, terminal: null, sawArrived: false, arrivedAt: null, helpClearedAt: null, phone: null, offline: false,
+  share: null, terminal: null, sawArrived: false, arrivedAt: null, helpClearedAt: null, phone: null, offline: false, full: false,
 });
 
 const ms = (iso: string | null | undefined): number | null => {
@@ -140,6 +142,10 @@ export interface View {
   arrivedAt: number | null;
   stopsAt: number | null;
   helpCleared: boolean;
+  /** QA-43: show "看的人太多了，请稍后再试" (live socket refused, the page keeps polling). */
+  full: boolean;
+  /** QA-44 (AC 26): "Open in Maps" link for the current position (null = no position to open). */
+  mapsUrl: string | null;
 }
 
 export function deriveView(mem: Memory, now: number): View {
@@ -147,7 +153,7 @@ export function deriveView(mem: Memory, now: number): View {
   const v: View = {
     kind: 'loading', base: 'loading', share: s, phone: s?.senderPhone ?? null, pos: null, greyPuck: false,
     etaAt: null, minutesLeft: null, updatedAgoMin: null, justUpdated: false, lastSeenMin: null,
-    arrivedAt: null, stopsAt: null, helpCleared: false,
+    arrivedAt: null, stopsAt: null, helpCleared: false, full: false, mapsUrl: null,
   };
   const upd = ms(s?.updatedAt);
   if (upd !== null) {
@@ -183,6 +189,8 @@ export function deriveView(mem: Memory, now: number): View {
     v.pos = { lat: s.lat, lng: s.lng, acc: s.acc, heading: s.heading };
   }
   v.greyPuck = base === 'nosignal';
+  if (v.pos) v.mapsUrl = mapsUrl(v.pos.lat, v.pos.lng);
+  v.full = mem.full && !terminal;
   const eta = ms(s?.etaISO);
   if (eta !== null && !terminal && base !== 'arrived' && base !== 'waiting') {
     v.etaAt = eta;
@@ -201,6 +209,9 @@ export function deriveView(mem: Memory, now: number): View {
   }
   return v;
 }
+
+/** QA-44 (M4 AC 26): Google Maps search URL for a position (opens the Maps app where installed, iOS too). */
+export const mapsUrl = (lat: number, lng: number) => `https://maps.google.com/?q=${lat.toFixed(5)},${lng.toFixed(5)}`;
 
 /** Default language: the stored choice, else the share's `lang` (zh unless it starts with "en"). */
 export function pickLang(stored: string | null, shareLang: string | null | undefined): 'zh' | 'en' {

@@ -127,6 +127,8 @@ export function SettingsScreen() {
             testid="row-home"
             onClick={() => (home ? router.openSheet('home') : router.navigate('/search?mode=home'))}
           />
+          {/* QA-40 (AC 39): the My places editor (≤ 6 incl. Home). */}
+          <Row icon="loc" label={t('my_places')} value={String((home ? 1 : 0) + store.places.value.others.length)} testid="row-places" onClick={() => router.navigate('/places')} />
         </div>
         <M4Rows />
         <h2 class="grp">{t('grp_display')}</h2>
@@ -336,7 +338,8 @@ export function About() {
         </p>
         <h2 class="grp">{t('ab_priv_h')}</h2>
         <ul class="bullets" data-testid="privacy">
-          {(['priv_1', 'priv_2', 'priv_3', 'priv_4', 'priv_5', 'priv_6', 'priv_7'] as const).map((k) => (
+          {/* QA-41 (M4 AC 50): on-device data, what a share sends, who sees it, how long, the setup box, delete all. */}
+          {(['priv_1', 'priv_2', 'priv_m4_device', 'priv_3', 'priv_m4_share', 'priv_m4_who', 'priv_m4_time', 'priv_m4_setup', 'priv_4', 'priv_5', 'priv_6', 'priv_7', 'priv_m4_delete'] as const).map((k) => (
             <li>{t(k)}</li>
           ))}
         </ul>

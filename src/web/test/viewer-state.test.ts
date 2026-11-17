@@ -163,10 +163,12 @@ describe('viewer copy and markup', () => {
     expect(help.status).toContain('class="helpbox"');
     expect(help.status).toContain('href="tel:+6591234567"');
     expect(help.status).toContain('Toa Payoh Lorong 4 附近');
-    expect(help.call).toBe('');
+    // The call button lives in the panel; the call area keeps only "Open in Maps" (QA-44).
+    expect(help.call).not.toContain('viewer-call');
+    expect(help.call).toContain('data-testid="viewer-maps"');
     expect(help.title).toBe('妈妈按了帮忙');
     const noPhone = renderParts(deriveView(fold({ senderPhone: null }), T0), 'zh', null);
-    expect(noPhone.call).toBe('');
+    expect(noPhone.call).not.toContain('viewer-call');
     expect(noPhone.status + noPhone.call).not.toContain('tel:');
   });
 
@@ -187,5 +189,28 @@ describe('viewer copy and markup', () => {
       puckFeatures({ lat: 1.3, lng: 103.8, acc, heading, grey: false }).features.map((f) => f.properties!.kind);
     expect(kinds(12, null)).toEqual(['dot']);
     expect(kinds(45, 90)).toEqual(['acc', 'cone', 'dot']);
+  });
+});
+
+describe('M3/M4 fix B: viewer too many viewers (QA-43) and Open in Maps (QA-44)', () => {
+  it('a full share shows "看的人太多了，请稍后再试" over the last state; terminal states never do', () => {
+    const m = { ...fold({ status: 'travelling' }), full: true };
+    const p = renderParts(deriveView(m, T0), 'zh', null);
+    expect(p.note).toContain('看的人太多了，请稍后再试');
+    expect(p.note).toContain('data-testid="viewer-full"');
+    expect(p.status).not.toBe('');
+    expect(renderParts(deriveView(m, T0), 'en', null).note).toContain('Too many people are watching');
+    expect(deriveView({ ...m, terminal: 'ended' }, T0).full).toBe(false);
+    expect(renderParts(deriveView(fold({ status: 'travelling' }), T0), 'zh', null).note).not.toContain('viewer-full');
+  });
+  it('Open in Maps links the current position (Google Maps URL), only when there is one', () => {
+    const v = deriveView(fold({ status: 'travelling' }), T0);
+    expect(v.mapsUrl).toMatch(/^https:\/\/maps\.google\.com\/\?q=1\.\d{5},103\.\d{5}$/);
+    const p = renderParts(v, 'en', null);
+    expect(p.call).toContain('Open in Maps');
+    expect(p.call).toContain('rel="noopener noreferrer"');
+    expect(renderParts(v, 'zh', null).call).toContain('在地图上打开');
+    expect(deriveView(fold({ status: 'waiting', lat: null, lng: null }), T0).mapsUrl).toBeNull();
+    expect(deriveView({ ...fold({ status: 'travelling' }), terminal: 'ended' }, T0).mapsUrl).toBeNull();
   });
 });

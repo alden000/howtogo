@@ -11,6 +11,9 @@ import type { Platform } from '../platform/types';
 export interface Here extends LatLng {
   /** Reverse-geocoded label, or null when that failed (UI falls back to "我的位置", AC 26). */
   label: string | null;
+  /** QA-38 (M4 AC 36): the reverse-geocoded street address and 6-digit postal code, when known. */
+  address?: string;
+  postal?: string;
   /** Horizontal accuracy in metres (AC 39 accuracy circle). */
   acc?: number;
 }
@@ -27,11 +30,9 @@ export async function locate(platform: Platform, api: Api): Promise<'ok' | 'deni
   try {
     const f = await platform.location.current();
     log('loc:ok');
-    const label = await api
-      .revgeocode(f)
-      .then((r) => r.name || null)
-      .catch(() => null);
-    here.value = { lat: f.lat, lng: f.lng, label, acc: f.acc };
+    const r = await api.revgeocode(f).catch(() => null);
+    const label = r?.name || null;
+    here.value = { lat: f.lat, lng: f.lng, label, acc: f.acc, ...(r?.address ? { address: r.address } : {}), ...(r?.postal ? { postal: r.postal } : {}) };
     locFailure.value = null;
     return 'ok';
   } catch (e) {

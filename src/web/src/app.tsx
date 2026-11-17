@@ -24,6 +24,7 @@ import { AllStepsSheet, DriverSheet, DwellSheet, StaleSheet, VoiceHelpSheet } fr
 import { Confirm995Sheet, HelpSheet } from './views/helpSheet';
 import { ShareSheet } from './views/share';
 import { DisruptionOfferSheet, LtaNoticeSheet } from './views/transit';
+import { PlaceRemoveSheet, PlaceRenameSheet, PlacesScreen } from './views/places';
 import { DeleteAllSheet, FamilyEdit, FamilyList, SetupFamily, SetupImport, SetupStart } from './views/family';
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
@@ -123,6 +124,9 @@ export function App() {
     case 'setup':
       view = <SetupFamily />;
       break;
+    case 'places':
+      view = <PlacesScreen />;
+      break;
     case 'setup_import':
       view = <SetupImport code={r.params.code!} />;
       break;
@@ -177,6 +181,8 @@ export function App() {
       {sheet === 'loc-denied' && <LocDeniedSheet />}
       {sheet === 'name' && <NameSheet />}
       {sheet === 'home' && <HomeSheet />}
+      {sheet === 'place-rename' && <PlaceRenameSheet />}
+      {sheet === 'place-remove' && <PlaceRemoveSheet />}
       {sheet === 'clear' && <ClearSheet />}
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
