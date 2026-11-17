@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from 'vite';
 import preact from '@preact/preset-vite';
+import { VIEWER_INPUT, isViewerFile, viewerEntry } from './vite.viewer.ts';
 
 /**
  * Service worker: src/sw/sw.ts is a second build entry emitted as /sw.js (no hash).
@@ -21,6 +22,8 @@ function serviceWorker(): Plugin {
         .filter((f) => !/maplibre/i.test(f))
         // QA-19: demo/mock fixtures are not shell: never precached; `?demo=1`/`?mock=1` loads them on demand (runtime cache).
         .filter((f) => !/(^|\/)mock-/i.test(f))
+        // M4: the family viewer (/t/:id) is a separate entry, never part of the app shell.
+        .filter((f) => !isViewerFile(f))
         .map((f) => '/' + f);
       const precache = ['/', '/manifest.webmanifest', ...files.filter((f) => f !== '/index.html')];
       let h = 0;
@@ -34,14 +37,14 @@ function serviceWorker(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [preact({ prerender: { enabled: false } }), serviceWorker()],
+  plugins: [preact({ prerender: { enabled: false } }), serviceWorker(), viewerEntry()],
   build: {
     target: 'es2022',
     sourcemap: false,
     reportCompressedSize: false,
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
-      input: { index: 'index.html', sw: 'src/sw/sw.ts' },
+      input: { index: 'index.html', sw: 'src/sw/sw.ts', ...VIEWER_INPUT },
       output: {
         entryFileNames: (c) => (c.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js'),
       },

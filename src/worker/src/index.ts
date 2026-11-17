@@ -7,6 +7,7 @@ import { checkRateLimit } from "./ratelimit";
 import { handleCreateSetup, handleSetupByCode } from "./setup";
 import { handleCreateShare, handleShareById } from "./share";
 import { serveEmbedded } from "./static";
+import { VIEWER_PATH, serveViewer } from "./viewer";
 
 export { TripShare } from "./share";
 export { SetupBox } from "./setup";
@@ -58,6 +59,10 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(request.url);
+    // M4 family viewer page: /t/:id → viewer.html with its own headers (noindex, no-referrer, CSP).
+    if (VIEWER_PATH.test(pathname) && (request.method === "GET" || request.method === "HEAD")) {
+      return serveViewer(request, env, { assets: ASSET_MAP, rules: HEADER_RULES });
+    }
     if (pathname !== "/api" && !pathname.startsWith("/api/")) {
       // Static PWA. With [assets] (wrangler.toml) only /api/* reaches the Worker, but delegate anyway;
       // the preview deploy (wrangler.preview.toml) has no ASSETS and serves the embedded build.

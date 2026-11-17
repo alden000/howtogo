@@ -9,7 +9,8 @@
     "preview": "vite preview --port 4173 --strictPort",
     "test": "vitest run",
     "e2e": "playwright test --trace off",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json",
+    "e2e:viewer": "playwright test -c playwright.viewer.config.ts --trace off"
   },
   "dependencies": {
     "@howtogo/shared": "*",

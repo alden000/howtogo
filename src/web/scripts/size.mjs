@@ -9,6 +9,7 @@ const rows = [];
 for (const f of files) {
   const gz = gzipSync(readFileSync(new URL('assets/' + f, dir))).length;
   const isMap = /maplibre/i.test(f);
+  if (/^viewer/i.test(f)) continue; // family viewer entry: own budget (size-viewer.mjs)
   if (f.endsWith('.css')) css += gz;
   else if (isMap) map += gz;
   else app += gz;
@@ -22,3 +23,4 @@ if (app > BUDGET) {
   console.error('app JS over budget');
   process.exit(1);
 }
+await import('./size-viewer.mjs');
