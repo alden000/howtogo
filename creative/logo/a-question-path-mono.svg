@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="怎么去? monochrome notification icon">
   <title>怎么去? — Concept A monochrome (Android notification / badge)</title>
-  <path d="M168 206C168 146 210 104 262 104C318 104 352 142 352 190C352 238 312 256 284 276C266 289 258 304 258 330" fill="none" stroke="#000" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M176 163C190 126 222 104 262 104C318 104 352 142 352 190C352 238 312 256 284 276C266 289 258 304 258 330" fill="none" stroke="#000" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
   <circle cx="168" cy="206" r="44" fill="none" stroke="#000" stroke-width="26"/>
   <circle cx="258" cy="410" r="48" fill="#000"/>
 </svg>
