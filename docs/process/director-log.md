@@ -81,3 +81,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - New parallel tracks: PM specs M3+M4; Creative frames M3+M4 (+ family viewer page); Dev data round (zh station names, MRT exits, line termini) in src/shared/data; Dev M6 spike (Capacitor Android debug APK feasibility in this container). Running alongside: QA M1 re-check, Dev M2 engine round.
 - Host contention rule: Android/Gradle builds wait while Playwright runs (4 CPUs).
 - Deployment: owner pre-approved hosting on their Cloudflare account (D-6). The M1 preview will deploy to pages.dev in fixture mode once the re-check passes; the owner will be told before anything goes live.
+
+## 2026-11-17 — M1 re-check: PASS WITH FIXES → release prep
+- QA re-check (qa/reports/0.1.1-m1-recheck.md): 42/42 Must ACs pass, QA-1…19 fixed. QA-20 (S4): approved — gate Lighthouse uses the median of 3 runs.
+- Hosting ruling (D-10): the Cloudflare token can manage Workers/KV/DO but not Pages → serve the PWA and API from ONE Worker using Workers Static Assets (`assets` = src/web/dist, SPA fallback, `/api/*` → Worker code). Preview runs with FIXTURE_MODE=1 and a clear "示范路线 / Sample routes" banner until the owner's OneMap/LTA keys are in, so nobody mistakes sample routes for real ones.
+- Release-prep round: Creative R1–R3, QA-20, Worker static-assets deploy config, sample-mode banner (Creative copy below).
