@@ -301,3 +301,93 @@ H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-144
 - **Deviation from AC 21 wording:** the AC reads "no credentials → fixtures". The task asked for an explicit flag, so production without secrets answers `503 not_configured` instead of fake routes. Director to confirm. `@howtogo/shared` is resolved via the workspace and not declared in the worker's package.json (that would need a root lockfile change). The fixtures are lazily imported.
 - Also: AC 19 upstream timeout 10 s → 8 s (QA missed it).
 - 91 tests pass; typecheck clean.
+## 2026-11-17 — M6 platform spike (dev/m6-spike): Capacitor Android shell
+Throwaway spike to de-risk M6. Code in `src/android/` (own npm project, not a root workspace). Nothing in `src/web` changed.
+
+### 1 · Toolchain (outside the repo)
+- `dl.google.com`, `maven.google.com`, Maven Central: all HTTP 200 through the proxy.
+- `/home/user/android-sdk`: cmdline-tools `commandlinetools-linux-16111833` (sdkmanager 1.1.16919734), `platforms;android-36`, `build-tools;35.0.0`, `platform-tools` (489 MB). Licences accepted with `yes | sdkmanager --licenses`. Java 21, `/opt/gradle` 8.14.3. `android/local.properties` (gitignored) points at the SDK.
+
+### 2 · Scaffold
+- Capacitor **8.6.2** (latest stable): `@capacitor/core|android|cli`, `@capacitor/app` 8.1.2, `@capacitor/local-notifications` 8.3.1, `@capacitor-community/text-to-speech` 8.0.2. AGP 8.13.0.
+- `capacitor.config.ts`: appId `sg.howtogo.app` (**placeholder, Director to confirm**: it can never change for sideloaded updates), appName 怎么去, `webDir: '../web/dist'`. `CAP_SPIKE=1` sets `server.appStartPath: '/spike.html'`.
+- `npm run sync` (`scripts/sync.mjs`) = `cap sync android` + copies the spike harness `spike/spike.html` into the APK assets beside the real app.
+- Template SDK levels: **minSdk 24, compile/target 36**.
+
+### 3 · Risky bits (minimal code)
+**(a) Location FGS.** Compared three options:
+- `@capacitor-community/background-geolocation` 1.3.1. Read its source:
+  - fixed 1 s interval: no per-leg interval;
+  - no Stop action on the notification;
+  - `exported="true"` service;
+  - deprecated `LocationRequest` constructor;
+  - bound service that stops on unbind;
+  - build.gradle defaults SDK 33.
+- Capawesome: there is no public npm package (404). Their plugins are sponsor-only on a private registry. Transistorsoft's plugin is commercial.
+- **Chosen: a tiny custom local plugin** (`TripPlugin.java` + `TripService.java`, about 330 lines). It is a `foregroundServiceType="location"` service, `exported=false`. Calls: `start`, `setInterval` (walk 2 s, bus 5–10 s), `updateNotification`, `stop`. It shows an ongoing low-importance "行程进行中 / Trip in progress" notification with a 结束 / Stop action, and sends `fix` events to JS. Fused location comes from `play-services-location` 21.3.0. It is `START_NOT_STICKY` and is not resurrected after process death.
+- **ACCESS_BACKGROUND_LOCATION is not needed.** A location FGS started while the activity is visible keeps while-in-use access with the screen off (Android 10+ rule; Android 14 needs FOREGROUND_SERVICE_LOCATION plus a granted location permission at start; Android 12+ forbids starting it from the background). The trip must therefore start from a tap on the visible app. It cannot auto-start later.
+- `armAlert({lat,lng,radiusM,…})` adds a native proximity alert as a safety net. On the first fix inside the radius, the service itself posts the high-importance notification, vibrates and speaks (`USAGE_ASSISTANCE_NAVIGATION_GUIDANCE`). So "get off" does not depend on the WebView's JS.
+- WebView evidence: Capacitor's `Bridge.onPause` only pauses the WebView when `KeepRunning=false` (the default is true; `Bridge.java:463`, `MockCordovaWebViewImpl.setPaused`). JS keeps running while the FGS holds the process. Native→JS events (`notifyListeners` → `evaluateJavascript`) are not timer-based. Chromium still throttles `setTimeout` in hidden pages, though. **Rule for M6: drive guidance from `fix` events, not from timers.** The harness's "after 20 s" tests run on the first fix after the deadline for this reason.
+
+**(b) TTS.** The community plugin uses Android `TextToSpeech` on the app context, so it works without an Activity. Locked-screen speech triggered from a `fix` event can't be checked without a device. A zh-CN voice depends on the phone's engine (Google TTS / Samsung). The harness logs `isLanguageSupported('zh-CN')`.
+
+**(c) Lock-screen alert.**
+- Two paths:
+  - JS: a `@capacitor/local-notifications` channel `getoff` (importance 5, visibility public, vibration) and an immediate `schedule`;
+  - native: the `alerts` channel in TripService (IMPORTANCE_HIGH, VISIBILITY_PUBLIC, pattern = `VIBRATE_PATTERNS.get_off`, CATEGORY_ALARM).
+- No full-screen intent (USE_FULL_SCREEN_INTENT is restricted on Android 14+).
+- I removed the plugin's `SCHEDULE_EXACT_ALARM` and `RECEIVE_BOOT_COMPLETED` with `tools:node="remove"`; we only post immediate notifications.
+
+**(d) Back.**
+- `android:enableOnBackInvokedCallback="true"`.
+- `@capacitor/app` registers an `OnBackPressedCallback`. Without a JS listener it calls `webView.goBack()` and **never exits at the root**. That also breaks predictive back-to-home.
+- Pattern (harness + `adapter/capacitor-platform.ts → wireBack`): a `backButton` listener calls `history.back()`, and after every navigation `App.toggleBackButtonHandler({enabled: depth > 0})`. At depth 0 the system owns Back, so the predictive animation plays.
+
+**Adapter sketch.** `src/android/adapter/capacitor-platform.ts` holds `createNativePlatform(web)`, which overrides location, speech, notify and vibrate on the D-4 interface. `tsc` is clean against `src/web/src/platform/types.ts`. It is not wired into `main.tsx`; M6 moves it to `src/web/src/platform/native.ts`.
+
+### 4 · Debug APK
+- Host rule respected: I checked `pgrep -f "playwright|chromium"` before each build and waited about 2 min once while it was busy. Gradle ran with `--no-daemon --max-workers=2`, `-Xmx3g`, and `org.gradle.workers.max=2` in `gradle.properties`.
+- `gradle assembleDebug` took about 3 min (cold cache). `app-debug.apk` is **5.1 MB** (5,141,824 B; classes.dex 9.2 MB uncompressed, MapLibre JS 1.0 MB). Debug-signed (CN=Android Debug).
+- aapt2: `sg.howtogo.app`, minSdk 24, targetSdk 36, label 怎么去.
+- **Merged-manifest permissions:**
+  - INTERNET, ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION;
+  - FOREGROUND_SERVICE, FOREGROUND_SERVICE_LOCATION;
+  - POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK (from local-notifications);
+  - `sg.howtogo.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (androidx, signature-level).
+  - No BACKGROUND_LOCATION, exact alarm or boot permission.
+- `lintDebug`: 0 errors, 18 warnings (template icons/splash, unused resources, newer deps). No FGS or permission findings.
+- Not committed: SDK, `node_modules`, `android/app/build`, `local.properties`, `*.apk`/`*.aab`/`*.jks`/`*.keystore` (`src/android/.gitignore` + Capacitor's `android/.gitignore`). `assets/public` is regenerated by sync.
+- Rebuild: repo root `npm ci && npm run build -w @howtogo/web`; then in `src/android`: `npm ci`, `CAP_SPIKE=1 npm run sync`, then `cd android && /opt/gradle/bin/gradle --no-daemon --max-workers=2 assembleDebug`.
+
+### Can't be verified here (no emulator, no device)
+- Fixes keep arriving with the screen off.
+- OEM battery killers (Samsung "Put app to sleep", Xiaomi, Huawei without Google Play services, which has no fused location).
+- zh-CN voice availability and audio while locked.
+- Heads-up on the lock screen and vibration under DND.
+- Predictive back animation (Android 15+ shows it by default; 13–14 need the developer option).
+- The real web app inside the WebView: the service worker on `https://localhost`, MapLibre/WebGL, and the Worker API origin (CORS).
+- Battery drain per hour.
+
+### Real-device test script (owner, about 30 min)
+1. Phone: Android 10+ (best: Android 14/15 Samsung). Settings → Security → allow installs from Files/Chrome ("install unknown apps").
+2. Send `app-debug.apk` (from the Developer). Open it → Install. (Play Protect may warn: "Install anyway".)
+3. Open 怎么去 (it starts on the spike page). Tap **Ask location + notifications** → "While using the app" + Allow. The app must never ask for "Allow all the time".
+4. **A:** tap **Start (2 s)**. Check that the "行程进行中 / Trip in progress" notification appears with a 结束 / Stop button. The fix count rises.
+5. Lock the phone. Walk for 3 min (or ride a bus stop). Unlock. "hidden fixes" should be > 60 and "max gap" < 10 s. Screenshot.
+6. **B:** tap **Say now**: you hear Chinese "下一站下车". Tap **Say on first fix after 20 s** and lock at once: within about 25 s you hear it with the screen off.
+7. **C:** tap **JS: notify…** and lock. Then, on another run, tap **Native: arm alert here** and lock. Each time: the screen lights or a heads-up shows "下一站下车" on the lock screen, with three long buzzes (try once with ringer on vibrate).
+8. Pull down the notification and tap **结束 / Stop**: the notification goes and the log says "trip stopped by user".
+9. **D:** tap **Push page** 3×. Back ×3: depth 3→0 and you stay in the app. Back once more: the app leaves, with the shrinking back-to-home preview on Android 15.
+10. Battery: Settings → Battery → app usage after a 1 h trip (budget ≤ 8%/h). Note the phone model and Android version.
+
+### Recommendation for M6
+- **Plugins:** keep the custom Trip plugin (FGS + adaptive interval + Stop + native get-off alert) plus `@capacitor-community/text-to-speech`, `@capacitor/app` (Back) and `@capacitor/local-notifications` (non-trip cues). Do not use community background-geolocation.
+- **Permissions:** the set above. No BACKGROUND_LOCATION.
+- **Battery:** the FGS runs only between Start trip and arrival or Stop. Per-leg interval 2 s / 5–10 s / 2 s near alight, with `PRIORITY_HIGH_ACCURACY` only on walk and near-alight legs and `BALANCED` on long rides. Add an OEM battery-optimisation guidance screen.
+- **Risks:**
+  - JS timers throttled when hidden (drive cues from fixes; native alert as backup);
+  - OEM process killing;
+  - no Google Play services (needs a `LocationManager` fallback);
+  - the trip can't start from the background;
+  - zh voice missing;
+  - appId and signing key are permanent for sideload updates.

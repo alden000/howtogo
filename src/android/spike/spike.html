@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>M6 spike</title>
+<style>
+  body { font: 18px/1.4 system-ui, sans-serif; margin: 0; padding: 16px; background: #faf6ef; color: #1c1917; }
+  @media (prefers-color-scheme: dark) { body { background: #1c1917; color: #faf6ef; } }
+  h1 { font-size: 22px; margin: 8px 0; }
+  section { border-top: 1px solid #9994; padding: 8px 0; }
+  button { font: inherit; min-height: 48px; margin: 4px 4px 4px 0; padding: 0 12px; }
+  #log { font: 13px/1.3 monospace; white-space: pre-wrap; max-height: 40vh; overflow: auto; }
+  .k { font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>怎么去 · M6 spike</h1>
+<p>Page depth: <span class="k" id="depth">0</span> · fixes: <span class="k" id="nfix">0</span> · max gap: <span class="k" id="gap">-</span> s · hidden fixes: <span class="k" id="nhid">0</span></p>
+
+<section><b>0 · Permissions</b><br>
+  <button id="perm">Ask location + notifications</button></section>
+
+<section><b>A · Trip foreground service</b><br>
+  <button id="start">Start (2 s)</button>
+  <button data-iv="2000">2 s</button><button data-iv="5000">5 s</button><button data-iv="10000">10 s</button>
+  <button id="stop">Stop</button></section>
+
+<section><b>B · Native TTS (zh-CN)</b><br>
+  <button id="say">Say now</button>
+  <button id="sayLater">Say on first fix after 20 s (lock the phone)</button></section>
+
+<section><b>C · Lock-screen alert + vibration</b><br>
+  <button id="notifLater">JS: notify on first fix after 20 s</button>
+  <button id="arm">Native: arm alert here (fires on next fix)</button></section>
+
+<section><b>D · Back</b><br>
+  <button id="push">Push page</button> System Back should pop one page; at depth 0 it leaves the app with the predictive back-to-home animation.</section>
+
+<section><b>Log</b> <button id="clear">clear</button><div id="log"></div></section>
+
+<p><a href="/index.html">Open the real app (index.html)</a></p>
+
+<script>
+(() => {
+  const P = (window.Capacitor && window.Capacitor.Plugins) || {};
+  const { Trip, TextToSpeech, LocalNotifications, App } = P;
+  const $ = (id) => document.getElementById(id);
+  const log = (...a) => { const t = new Date().toTimeString().slice(0, 8); $('log').textContent = `${t} ${a.join(' ')}\n` + $('log').textContent; console.log('[spike]', ...a); };
+  if (!Trip) { log('No Capacitor bridge: open this inside the APK.'); return; }
+
+  // ---------- A: fixes ----------
+  let n = 0, nHidden = 0, last = 0, maxGap = 0, pending = [];
+  Trip.addListener('fix', (f) => {
+    n++; if (document.hidden) nHidden++;
+    const now = Date.now(); if (last) maxGap = Math.max(maxGap, (now - last) / 1000); last = now;
+    $('nfix').textContent = n; $('nhid').textContent = nHidden; $('gap').textContent = maxGap.toFixed(1);
+    log(`fix ${f.lat.toFixed(5)},${f.lng.toFixed(5)} ±${Math.round(f.acc)}m hidden=${document.hidden}`);
+    window.__lastFix = f;
+    pending = pending.filter((p) => { if (now >= p.at) { p.run(); return false; } return true; });
+  });
+  Trip.addListener('stopped', (e) => log('trip stopped by', e.reason));
+  Trip.addListener('alertFired', () => log('native alert fired'));
+  document.addEventListener('visibilitychange', () => log('visibility', document.visibilityState));
+
+  $('perm').onclick = async () => log('perms', JSON.stringify(await Trip.requestTripPermissions()));
+  $('start').onclick = async () => {
+    try { await Trip.start({ intervalMs: 2000, title: '行程进行中 / Trip in progress', body: '去 Bedok Interchange · 还有 5 站', stopLabel: '结束 / Stop' }); log('started'); }
+    catch (e) { log('start failed', e.code || '', e.message); }
+  };
+  document.querySelectorAll('[data-iv]').forEach((b) => b.onclick = () => { Trip.setInterval({ intervalMs: +b.dataset.iv }); log('interval', b.dataset.iv); });
+  $('stop').onclick = () => { Trip.stop(); log('stop'); };
+
+  // ---------- B: TTS ----------
+  const say = async () => {
+    try { await TextToSpeech.speak({ text: '下一站下车。Get off at the next stop.', lang: 'zh-CN', rate: 0.9, category: 'playback', queueStrategy: 0 }); log('spoke'); }
+    catch (e) { log('tts failed', e.message); }
+  };
+  $('say').onclick = async () => {
+    try { const { languages } = await TextToSpeech.getSupportedLanguages(); log('zh voice:', languages.some((l) => /^zh/i.test(l))); } catch {}
+    try { log('zh-CN supported:', (await TextToSpeech.isLanguageSupported({ lang: 'zh-CN' })).supported); } catch {}
+    say();
+  };
+  $('sayLater').onclick = () => { pending.push({ at: Date.now() + 20000, run: say }); log('armed TTS: lock the phone now'); };
+
+  // ---------- C: notifications ----------
+  const channelReady = LocalNotifications.createChannel({
+    id: 'getoff', name: '下车提醒 / Get-off alerts', importance: 5, visibility: 1, vibration: true,
+  }).catch((e) => log('channel failed', e.message));
+  const notify = async () => {
+    await channelReady;
+    try {
+      await LocalNotifications.schedule({ notifications: [{ id: 2001, channelId: 'getoff', title: '下一站下车', body: 'Get off at the next stop · Bedok Interchange', smallIcon: 'ic_stat_trip' }] });
+      log('notified');
+    } catch (e) { log('notify failed', e.message); }
+    navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 400]); // WebView vibrate: may be ignored while hidden
+  };
+  $('notifLater').onclick = () => { pending.push({ at: Date.now() + 20000, run: notify }); log('armed JS notification: lock the phone now'); };
+  $('arm').onclick = () => {
+    const f = window.__lastFix; if (!f) { log('no fix yet: start the trip first'); return; }
+    Trip.armAlert({ lat: f.lat, lng: f.lng, radiusM: 200, title: '下一站下车', body: 'Get off at the next stop (native)', speak: '下一站下车', lang: 'zh-CN' });
+    log('native alert armed');
+  };
+
+  // ---------- D: Back (process §7) ----------
+  // The real app keeps its own page stack in history. Pattern: enable the native
+  // back handler only while depth > 0; at depth 0 the system handles Back, so the
+  // predictive back-to-home animation plays and the app leaves.
+  let depth = 0;
+  const sync = () => { $('depth').textContent = depth; App.toggleBackButtonHandler({ enabled: depth > 0 }).catch(() => {}); };
+  $('push').onclick = () => { depth++; history.pushState({ depth }, '', `#p${depth}`); sync(); };
+  window.addEventListener('popstate', (e) => { depth = (e.state && e.state.depth) || 0; sync(); log('popstate → depth', depth); });
+  App.addListener('backButton', () => { log('backButton'); if (depth > 0) history.back(); });
+  sync();
+  log('ready');
+})();
+</script>
+</body>
+</html>
