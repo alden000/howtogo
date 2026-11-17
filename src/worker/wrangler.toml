@@ -32,7 +32,7 @@ FIXTURE_MODE = "1"
 [[kv_namespaces]]
 binding = "TOKEN_KV"
 # Create with `npx wrangler kv namespace create TOKEN_KV` and paste the id here.
-id = "0dc8a4714f234b5bb8d23ffe36cb2107"
+id = "1e514bcf1539494db863191de13f5d3c"
 
 [[durable_objects.bindings]]
 name = "TRIP_SHARE"

@@ -17,6 +17,8 @@ The team process is the owner's `app-dev-team` skill. It isn't in the repo; ask 
 
 ## Hosting: action needed first
 
+- 2026-11-17 late: `TOKEN_KV` was created on the owner's account (`howtogo-TOKEN_KV`, id `1e514bcf1539494db863191de13f5d3c`), and the id is in both wrangler configs, so step 1 below is done. The cloud session's proxy token still pointed at raus-ums, so nothing was deployed. Development now moves to the owner's local machine (nnie): deploy from there with wrangler logged in to the owner's account.
+
 - The owner wants the app **only** on their own Cloudflare account, the one that holds `wwweeeiii.com`, at **https://howtogo.wwweeeiii.com**. Don't use the old `raus-ums` account.
 - The owner saved a Cloudflare API token for that account as an environment network secret. A claude.ai Cloudflare connector bound to the old account was overriding it. The owner is reconnecting or disconnecting that connector, so a new session should pick up the right account. Check with `curl https://api.cloudflare.com/client/v4/accounts`: the account must **not** be the one whose workers.dev subdomain is `raus-ums`.
 - Steps:
