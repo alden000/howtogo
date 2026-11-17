@@ -380,6 +380,42 @@ The trip and its step still come from `store.trip` (`guidance`, `journey {segmen
 1. Build H5 from `runtime.ui` plus the store trip, and call `touch()` from a capture listener. Add H6/H6b sheets bound to `ui.alert` + `ackAlert()`, the H11 banner/notes, G1 pocket, G3 waypoint (`continueJourney`/`endAtWaypoint`), G4 (`stale`, `resumed`, `voiceUnlockNeeded`), and G5 controls.
 2. Build the H3 multi-stop builder → `planTrip()` → H4 timeline → `startJourney()`. Turn the `guide` flag on.
 3. Add Playwright replays (bus, MRT + transfer, mixed, 5-stop, offline) and the entry-point matrix, asserting through the hooks above.
+## 2026-11-17 — M3 + M4 Worker round (dev/m34-worker) · Developer (fresh)
+Scope: Worker-side ACs only (`src/worker/`). 136 tests pass (was 91), typecheck clean. Contract details in `src/worker/API.md`.
+
+**Endpoints added / changed**
+- `GET /api/bus-arrival`: each `next[]` entry gains `monitored: boolean` (LTA `Monitored` 1 → true; 0/missing → false) — M3 AC 4.
+- `GET /api/alerts`: adds `minor` (Status 1 + message, AC 24); each line adds `freeBusIslandWide`, `shuttleDirection`; station lists are now codes only (LTA `|`, `;`, `*` delimiters flattened). Tolerates `value` as array / single objects (LTA Jan 2026 revision). Cache key bumped to `alerts:v2`.
+- **New `GET /api/lifts`** from `v2/FacilitiesMaintenance` → `{fetchedAt, lifts:[{line, station, stationName, liftId|null, desc}]}`, cached 5 min, 502/503 rules, in the 60/min read bucket — M3 AC 30.
+- FIXTURE_MODE: `/api/lifts` fixture + `?fixture=` scenarios (bus `live|empty|not_configured`, alerts `normal|minor|disrupted|not_configured`, lifts `outage|none|not_configured`) — M3 AC 39. All new fixtures are labelled SYNTHETIC.
+- `POST /api/share`: optional `senderName` (≤ 40) and `senderPhone` (E.164) — AC 18/OQ3. Phone removed from storage and from the ended state when the share ends. No destination coordinates anywhere (OQ4).
+- `PUT /api/share/:id`: position now optional (status-only updates for start-before-fix, paused, help-only share; last position kept). **D-7: `help` bypasses the 3 s limit, max 1 help write/s** — AC 13.
+- Share state adds `senderName`, `senderPhone`, `positionAt`, `helpAt`.
+- Rate limits (AC 47): share create 10/h, viewer GET 1 per 5 s per share, setup create 5/h, setup GET 30/h (per IP, in-memory, hashed). `ratelimit.ts` now has named limits (`checkLimit`).
+- **New caregiver setup box** (AC 40–41): `POST /api/setup {ct}` → `{code, expiresAt}`; `GET /api/setup/:code` returns the ciphertext once (then `410 setup_used`); 24 h (`410 setup_expired`), 4096-byte cap, body must be exactly `{ct}` (a key field is refused). New DO class `SetupBox` (`src/setup.ts`).
+- OQ6: `SHARE_TEST_TTL_SECONDS` honoured only when `ENVIRONMENT="test"`; `test/config.test.ts` scans `wrangler.toml` and fails if either (or `FIXTURE_MODE`) appears outside `[env.test]`.
+- `npm run record:lta -w @howtogo/worker` (AC 40, owner-run, refuses in CI).
+
+**Contract changes the web client must follow**
+- Bus chip: use `monitored` for Live vs Timetable.
+- Alerts: `minor` → quiet Home line; `freeBusIslandWide`; `shuttleDirection`; station lists are codes.
+- Lifts: poll `/api/lifts`; "lifts OK" fact only if `fetchedAt` < 15 min; show zh name by `station` code.
+- Share create: send `senderName`, and `senderPhone` only if allowed. PUT without `lat/lng/acc` for status-only updates; `etaISO:null` on arrived. Viewer: use `helpAt`, `positionAt`, `updatedAt` (signal lost), poll GET at 15 s (5 s limit).
+- Setup: `ct` = base64url (no padding) of `iv(12) ‖ ciphertext‖tag`, ≤ 4096 bytes; key only in `#k=`; GET only when about to show the preview (it consumes the box).
+
+**wrangler.toml additions (appended block at the end, for the Director to merge with the static-assets change)**
+- `[[durable_objects.bindings]] SETUP_BOX → SetupBox` and `[[migrations]] tag "v2" new_sqlite_classes ["SetupBox"]`.
+- `[env.test]` (name `howtogo-api-test`) with vars `ENVIRONMENT="test"`, `SHARE_TEST_TTL_SECONDS="90"`, `ALLOWED_ORIGINS` (localhost 4173/5173), and repeated KV + both DO bindings (envs don't inherit bindings). If the static-assets change adds `[assets]`, repeat it under `[env.test]` too.
+
+**Assumptions to verify with a real LTA key**
+- FacilitiesMaintenance v2 reply is `{value:[…]}` with ≤ 500 rows (no `$skip` paging implemented); v2 has no dates (guide v6.11 lists none).
+- `Monitored` arrives as number 1/0 (string "1" also accepted).
+- TrainServiceAlerts after the Jan 2026 revision still matches §2.11 (defensive parsing in place; check `record:lta` diff).
+
+**Not done / next steps**
+- Web Push (AC 31, Should) not built.
+- `smoke:live` (M3 AC 45) does not exist yet in the repo; add bus-arrival/alerts/lifts when it does.
+- Arrival grace (30 min) has no test override; with the 90 s test TTL, expiry comes first in the two-browser test.
 ## 2026-11-17 — Release prep: Creative R1–R3, QA-20, D-10 one-Worker hosting, sample-routes banner (dev/m1-ui)
 - **Creative R1** (Med): app.css 150/200 % rules exactly as specified — the Settings value drops to its own line under the label, chevron stays on row 1. Re-recorded only `M1-F6-settings-light-200-zh` (the only baseline that changed; the other 33 passed untouched).
 - **R2**: `ui/ghost.ts` rewrites `:root` → `.groot` in the adopted sheet and wraps the ghost copy in a `.groot` div carrying `<html>`'s classes, `data-theme`, `data-text-size`. **R3**: zh `not_set` = "还没设置".
@@ -494,3 +530,26 @@ The trip and its step still come from `store.trip` (`guidance`, `journey {segmen
 **Gate (`npm run gate`, once):** 7 PASS, 4 FAIL. Passed: typecheck, unit 334, i18n, build (app JS 93.2 KB gz, budget 150), static-pwa, dev-e2e 103/103 on the release build, artifact.
 - `secrets`: the known wrangler.toml KV id flag.
 - `deps`, `qa-e2e`, `lighthouse`: `qa/node_modules` is not installed in this worktree (`@axe-core/playwright`, `@playwright/test`, `lighthouse` are missing). These are environment failures, not code failures. Run `npm ci --prefix qa` before the QA gate.
+## 2026-11-17 — Preview deploy without Workers Static Assets (dev/deploy-embed)
+- **Why:** the agent HTTPS proxy injects our Cloudflare API token on every api.cloudflare.com request, overwriting the short-lived JWT of wrangler's `/workers/assets/upload` → 401. Script, KV and DO uploads work, so the preview embeds the PWA in the Worker.
+- `src/worker/scripts/embed-assets.mjs` walks `src/web/dist` → `src/worker/src/generated/assets.ts` (gitignored): path → `{body (utf-8 text or base64), contentType, etag (sha-256)}` plus `_headers` parsed into a rules table; `_headers`/`_redirects` never embedded. Fails if dist is missing or > 5 MB (today 16 files, 1.3 MB raw / 408 KiB gzip bundle). `--if-missing` (pretest/pretypecheck) writes an empty map + `public/_headers` rules on a fresh checkout.
+- `src/static.ts`: exact match, `/` → index.html, SPA fallback for extensionless paths, 404 for missing files with an extension and `/_headers`, `_headers` rules applied (same CSP/cache values; no rule → `public, max-age=0, must-revalidate` like Cloudflare), ETag/If-None-Match 304, HEAD, 405 otherwise. `index.ts`: non-`/api` paths → `env.ASSETS` if bound, else the embedded map (no origin check); `/api/*` unchanged.
+- `wrangler.preview.toml` = `wrangler.toml` minus `[assets]` (kept for later). vitest now runs on the preview config. `deploy:preview` = build:release → `npm run embed -w @howtogo/worker` → `wrangler deploy -c wrangler.preview.toml`. `npm run dev:preview -w @howtogo/worker` for local.
+- Tests: 99 pass (7 new in `test/static.test.ts`; `/nope` API-404 test now `/api/nope`, since `/nope` is a PWA route). Typecheck clean. Dry run OK (TRIP_SHARE DO, TOKEN_KV, 3 vars, no ASSETS). `wrangler dev -c wrangler.preview.toml` smoke: `/`, `/settings`, hashed JS, `/sw.js` headers as `_headers`; `/api/health` → `{"ok":true,"fixtureMode":true}`; `/_headers` 404; 304 works.
+- Note: `qa/scripts/secret-scan.mjs` flags the real KV id in wrangler.toml (pre-existing, since d97ce71; it does not check the preview config).
+
+## 2026-11-17 — Merge main into dev/m34-worker + M4 family viewer page `/t/:id` (dev/m34-worker)
+**Merge (main → dev/m34-worker).** Kept both sides. `src/worker/src/index.ts`: lifts + `handleAlerts(url, env, ctx)` (this branch) and `/api/health` `{ok, fixtureMode}` + embedded static serving (main). `package.json`: both `dev:preview` and `record:lta`. `wrangler.preview.toml` gains the `SETUP_BOX` DO binding + `v2` migration (it is also the vitest config); `[env.test]` stays only in `wrangler.toml`. `test/config.test.ts` conflicted with D-10 (`FIXTURE_MODE="1"` in the preview `[vars]`): it now allows FIXTURE_MODE only in the top-level `[vars]`. Fixed a broken worktree `node_modules` (symlinks into the main checkout) by reinstalling.
+
+**Viewer module map** (separate Vite entry, vanilla TS, no Preact, no SW, no analytics, no cookies; only `localStorage howtogo.viewer.lang`):
+- `src/web/viewer.html` — static shell: noindex/no-referrer metas, generic OG (§6e.2), icon sprite, header, loading skeleton (text before JS), live regions.
+- `src/web/src/viewer/state.ts` — pure: wire type, `applyShare` (history: help→cleared, arrived time, phone memory), `deriveView` → the 15 `data-state`s, `terminalFromHttp`, `stepKindOf`, `pickLang`, backoff.
+- `copy.ts` (exact §6e.2 zh/en, pronoun-neutral defaults), `render.ts` (escaped HTML per state), `live.ts` (GET → WebSocket; reconnect 1/2/5/10/30 s; GET poll 15 s while down; honours 429 `Retry-After`; offline = socket down + GET network error), `viewerMap.ts` (lazy MapLibre + OneMap raster, puck/accuracy > 30 m/heading cone, grey on no-signal, follow until the viewer pans → locate button), `main.ts` (wiring, title, polite/assertive announcements on state change only, vibrate on help/arrived, 15 s tick), `viewer.css` (prototype values; `@import` of tokens.css so no JS chunk is shared with the app).
+- Build: `vite.viewer.ts` (input + `/t/*` → viewer.html rewrite for dev/preview; viewer files kept out of the SW precache). `scripts/size-viewer.mjs`: viewer JS 10.3 KB gz (budget 60, excl. MapLibre).
+- Worker: `src/worker/src/viewer.ts` serves viewer.html for `/t/*` on both paths (ASSETS `/viewer`, or embedded) with `X-Robots-Tag noindex, nofollow`, `Referrer-Policy no-referrer`, `Cache-Control no-cache` and a viewer CSP (self + own ws/wss + OneMap; no Google Fonts). `wrangler.toml` `run_worker_first` += `/t/*`.
+
+**Contract assumptions.** No destination coordinates (OQ4) → no destination dot, map centres on the puck. `stepText` is free text in the sharer's language: shown verbatim; the pill icon is inferred from it (等/wait → clock, 走路/walk, 巴士/bus, 地铁/train). No pronoun field → zh repeats `{me}`, en uses "they" (an optional `pronoun: 'f'|'m'` is read if the Worker adds it, 6e.9). A 410 on first load has no name → `{me}` default "你的家人 / your family member". "Near {place}" uses `/api/revgeocode` (help / no-signal only; hidden on failure). Times shown in the viewer's own time zone. Fonts: system stack only (no third-party requests from the family page).
+
+**Tests.** Web vitest +17 (`test/viewer-state.test.ts`); Worker +7 (`test/viewer.test.ts`), 151 total. `npm run e2e:viewer` (`playwright.viewer.config.ts`, 44 tests): `e2e-viewer/live.spec.ts` two contexts against `wrangler dev --env test` (TTL 25 s via `--var`) behind `vite preview` with an `/api` + ws proxy — waiting → bus → help (≤ 2 s, assertive) → arrived → second viewer → DELETE → endedArrived; ended while travelling; expiry; invalid/malformed ids; generic OG. `e2e-viewer/states.spec.ts` mocked API: all 15 states at 390 and 1440 (`e2e-viewer/baselines/M4-V-*`, map canvas masked), 200 % + dark no-clipping (6 states, 3 baselines), lang toggle, no-phone. App e2e (64) and typecheck still green.
+
+**Next steps.** AC 30 chime + Notification "到了通知我" and AC 31 Web Push (not built). AC 25 "看的人太多了" copy for `429 too_many_viewers` (now silently falls back to polling). AC 26 "Open in Maps". Add `npm run e2e:viewer` to `qa/gate.sh`. Creative review of the 1440 baselines (map pane) and the `pronoun` API ask. `og:image` is relative (`/icons/icon-512.png`); some unfurlers want an absolute URL.

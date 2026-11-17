@@ -124,6 +124,8 @@ export interface NextBus {
   load: Load;
   wheelchair: boolean;
   deck: Deck;
+  /** M3 AC 4: true = LTA tracks this bus by GPS ("Live"); false = from the timetable. Missing → false. */
+  monitored: boolean;
   lat?: number;
   lng?: number;
 }
@@ -141,6 +143,7 @@ interface LtaNextBus {
   Load?: string;
   Feature?: string;
   Type?: string;
+  Monitored?: number | string;
 }
 
 interface LtaService {
@@ -169,6 +172,7 @@ function normaliseNext(nb: LtaNextBus | undefined, now: number): NextBus | null 
     load,
     wheelchair: nb.Feature === "WAB",
     deck: DECKS[nb.Type ?? ""] ?? "single",
+    monitored: Number(nb.Monitored) === 1,
   };
   const lat = num(nb.Latitude);
   const lng = num(nb.Longitude);
@@ -210,9 +214,26 @@ export function normaliseBusArrival(
   return { stop: opts.stop, fetchedAt: new Date(opts.fetchedAt).toISOString(), services: out };
 }
 
+export interface TrainAlertLine {
+  line: string;
+  direction: string;
+  /** Affected station codes (e.g. "NE1"). */
+  stations: string[];
+  /** Station codes with free public buses. */
+  freePublicBus: string[];
+  /** LTA said "Free bus service island wide" instead of a station list. */
+  freeBusIslandWide: boolean;
+  /** Station codes served by the free MRT shuttle ("|" interchange and ";" area delimiters flattened). */
+  freeShuttle: string[];
+  /** "Both" or the station the shuttle runs towards; "" when not given. */
+  shuttleDirection: string;
+}
+
 export interface TrainAlerts {
   status: "normal" | "disrupted";
-  lines: { line: string; direction: string; stations: string[]; freePublicBus: string[]; freeShuttle: string[] }[];
+  /** M3 AC 24: true when service is normal (LTA Status 1) but LTA published a message (minor delay / planned works). */
+  minor: boolean;
+  lines: TrainAlertLine[];
   messages: { text: string; createdAt: string | null }[];
 }
 
@@ -222,40 +243,95 @@ interface LtaSegment {
   Stations?: string;
   FreePublicBus?: string;
   FreeMRTShuttle?: string;
+  MRTShuttleDirection?: string;
 }
 
-const csv = (s: unknown) =>
-  clean(s)
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
+const STATION_CODE = /\b[A-Z]{1,3}\d{1,3}\b/g;
 
-/** ASSUMPTION: payload is {value:{Status:1|2, AffectedSegments:[...], Message:[{Content,CreatedDate}]}} (LTA DataMall user guide). */
+/** Extracts station codes from LTA lists like "NE1,NE3", "EW21|CC22,EW23;NS1|EW24,BP1*". Deduped, in order. */
+export function stationCodes(s: unknown): string[] {
+  const out: string[] = [];
+  for (const m of clean(s).toUpperCase().matchAll(STATION_CODE)) if (!out.includes(m[0])) out.push(m[0]);
+  return out;
+}
+
+/** Accepts a single object where LTA documents an array (defensive against response revisions). */
+function list<T>(v: unknown): T[] {
+  if (Array.isArray(v)) return v as T[];
+  if (v && typeof v === "object") return [v as T];
+  return [];
+}
+
+/**
+ * Shape per LTA DataMall API User Guide v6.11 §2.11: {value:{Status:1|2, AffectedSegments:[...], Message:[{Content,CreatedDate}]}}.
+ * ASSUMPTION (verify with a real key, LTA "minor revisions" Jan 2026): `value` may also arrive as a one-element
+ * array, and AffectedSegments / Message as a single object; both are accepted.
+ */
 export function normaliseTrainAlerts(data: unknown): TrainAlerts {
-  const v = ((data as { value?: unknown })?.value ?? {}) as {
+  const raw = (data as { value?: unknown })?.value;
+  const v = ((Array.isArray(raw) ? raw[0] : raw) ?? {}) as {
     Status?: number | string;
-    AffectedSegments?: LtaSegment[];
-    Message?: { Content?: string; CreatedDate?: string }[];
+    AffectedSegments?: unknown;
+    Message?: unknown;
   };
-  const segs = Array.isArray(v.AffectedSegments) ? v.AffectedSegments : [];
-  const msgs = Array.isArray(v.Message) ? v.Message : [];
-  const lines = segs
+  const segs = list<LtaSegment>(v.AffectedSegments);
+  const msgs = list<{ Content?: string; CreatedDate?: string }>(v.Message);
+  const lines: TrainAlertLine[] = segs
     .filter((s) => clean(s.Line))
     .map((s) => ({
-      line: clean(s.Line),
+      line: clean(s.Line).toUpperCase(),
       direction: clean(s.Direction),
-      stations: csv(s.Stations),
-      freePublicBus: csv(s.FreePublicBus),
-      freeShuttle: csv(s.FreeMRTShuttle),
+      stations: stationCodes(s.Stations),
+      freePublicBus: stationCodes(s.FreePublicBus),
+      freeBusIslandWide: /island\s*-?\s*wide/i.test(clean(s.FreePublicBus)),
+      freeShuttle: stationCodes(s.FreeMRTShuttle),
+      shuttleDirection: clean(s.MRTShuttleDirection),
     }));
   const messages = msgs
     .filter((m) => clean(m.Content))
     .map((m) => {
       const created = clean(m.CreatedDate);
       // CreatedDate is SGT "YYYY-MM-DD HH:mm:ss"
-      const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(created) ? created.replace(" ", "T") + "+08:00" : null;
+      const iso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/.test(created) ? created.replace(" ", "T") + "+08:00" : null;
       return { text: clean(m.Content), createdAt: iso };
     });
   const status = Number(v.Status) === 2 || lines.length > 0 ? "disrupted" : "normal";
-  return { status, lines, messages };
+  return { status, minor: status === "normal" && messages.length > 0, lines, messages };
+}
+
+// ---------- Lift maintenance (M3 AC 30) ----------
+export interface LiftOutage {
+  line: string;
+  /** Station code, e.g. "NE12". */
+  station: string;
+  /** LTA's English station name (the PWA shows the zh name from its own table by code). */
+  stationName: string;
+  /** Optional in LTA's data, e.g. "B1L01"; null when absent. */
+  liftId: string | null;
+  /** Where the lift is, e.g. "Exit B Street level - Concourse". */
+  desc: string;
+}
+
+/**
+ * LTA DataMall API User Guide v6.11 §2.23 `v2/FacilitiesMaintenance`: {value:[{Line,StationCode,StationName,LiftID?,LiftDesc}]}.
+ * The v2 API has no start/end dates (only the v1 API had them); an entry means "under maintenance now".
+ * Entries without a station code are dropped; duplicates removed; sorted by station then lift id.
+ */
+export function normaliseLifts(data: unknown): { lifts: LiftOutage[] } {
+  const rows = list<Record<string, unknown>>((data as { value?: unknown })?.value);
+  const seen = new Set<string>();
+  const lifts: LiftOutage[] = [];
+  for (const r of rows) {
+    if (!r || typeof r !== "object") continue;
+    const station = clean(r.StationCode).toUpperCase().replace(/\s+/g, "");
+    if (!/^[A-Z]{1,3}\d{1,3}$/.test(station)) continue;
+    const liftId = clean(r.LiftID) || null;
+    const desc = clean(r.LiftDesc);
+    const key = `${station}|${liftId ?? ""}|${desc}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lifts.push({ line: clean(r.Line).toUpperCase(), station, stationName: clean(r.StationName), liftId, desc });
+  }
+  lifts.sort((a, b) => a.station.localeCompare(b.station, "en", { numeric: true }) || (a.liftId ?? "").localeCompare(b.liftId ?? ""));
+  return { lifts };
 }

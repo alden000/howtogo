@@ -1,4 +1,6 @@
 # 怎么去? — ONE Worker serves the PWA (Workers Static Assets) and the API (D-10).
+# NOTE: the preview currently deploys with wrangler.preview.toml (no [assets]; the build is embedded
+# into the Worker) because the agent proxy breaks wrangler's assets-upload JWT. Keep both in sync.
 # Placeholders only — no secrets in this file.
 # Secrets (set with `wrangler secret put <NAME>`): ONEMAP_EMAIL, ONEMAP_PASSWORD, LTA_ACCOUNT_KEY
 #   (none are needed while FIXTURE_MODE = "1").
@@ -13,8 +15,9 @@ directory = "../web/dist"
 binding = "ASSETS"
 # Unknown paths (e.g. /settings, /routes) get index.html; the PWA router takes over.
 not_found_handling = "single-page-application"
-# Only the API runs Worker code; every other request is served straight from the assets.
-run_worker_first = ["/api/*"]
+# Only the API and the family viewer page (/t/*, own headers: src/viewer.ts) run Worker code;
+# every other request is served straight from the assets.
+run_worker_first = ["/api/*", "/t/*"]
 
 [vars]
 # Same-origin PWA on workers.dev, plus local dev (vite dev 5173, vite preview 4173, wrangler dev 8787).
@@ -41,3 +44,40 @@ new_sqlite_classes = ["TripShare"]
 
 [observability]
 enabled = false
+
+# ---------------------------------------------------------------------------
+# M3/M4 Worker round (dev/m34-worker) — additions only, appended so they merge cleanly with
+# the static-assets change. Director: keep this block at the end when merging.
+# ---------------------------------------------------------------------------
+# M4 AC 41: one-time caregiver setup box (ciphertext only, 24 h).
+[[durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["SetupBox"]
+
+# M4 OQ6: test-only environment for the two-browser e2e (`wrangler dev --local --env test`).
+# SHARE_TEST_TTL_SECONDS is honoured ONLY when ENVIRONMENT = "test"; test/config.test.ts fails if
+# either appears outside this block. Bindings are not inherited by environments, so they are repeated.
+[env.test]
+name = "howtogo-api-test"
+
+[env.test.vars]
+ENVIRONMENT = "test"
+SHARE_TEST_TTL_SECONDS = "90"
+SHARE_TTL_HOURS = "4"
+ALLOWED_ORIGINS = "http://localhost:4173,http://localhost:5173"
+
+[[env.test.kv_namespaces]]
+binding = "TOKEN_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[env.test.durable_objects.bindings]]
+name = "TRIP_SHARE"
+class_name = "TripShare"
+
+[[env.test.durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"

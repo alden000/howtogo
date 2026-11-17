@@ -15,6 +15,6 @@
     "skipLibCheck": true,
     "types": ["vite/client", "geojson"]
   },
-  "include": ["src", "test", "e2e", "vite.config.ts", "playwright.config.ts"],
+  "include": ["src", "test", "e2e", "e2e-viewer", "vite.config.ts", "vite.viewer-e2e.config.ts", "playwright.config.ts", "playwright.viewer.config.ts"],
   "exclude": ["src/sw"]
 }

@@ -1,0 +1,9 @@
+{
+  "_synthetic": "SYNTHETIC fixture in the LTA DataMall v2/FacilitiesMaintenance shape (API guide v6.11 §2.23). Not real lift data.",
+  "odata.metadata": "https://datamall2.mytransport.sg/ltaodataservice/v2/$metadata#FacilitiesMaintenance",
+  "value": [
+    { "Line": "NSL", "StationCode": "NS17", "StationName": "Bishan", "LiftID": "B1L01", "LiftDesc": "Exit A Street level - Concourse" },
+    { "Line": "CCL", "StationCode": "CC22", "StationName": "Buona Vista", "LiftID": "B2L02", "LiftDesc": "Concourse - Platform B" },
+    { "Line": "NEL", "StationCode": "NE12", "StationName": "Serangoon", "LiftDesc": "Exit B Street level - Concourse" }
+  ]
+}
