@@ -192,6 +192,11 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 .toast svg{width:28px;height:28px;flex:none}
 .note{display:flex;gap:10px;align-items:center;margin:0 var(--s-4) var(--s-2);padding:10px 16px;border-radius:var(--r-m);background:var(--c-surface-2);font-size:.9rem;font-weight:700;color:var(--c-ink)}
 .note .btn-quiet{min-height:var(--tap);margin-left:auto}
+/* D-10 sample-routes banner: calm surface-2 note with the info icon, under the top bar; never shrinks, so it stays whole at 200 %. */
+.note.sample{flex-shrink:0;align-items:flex-start;font-weight:400;text-wrap:pretty}
+.note.sample .i{flex:none;margin-top:1px}
+.note.sample span{flex:1;min-width:0}
+.screen:has(> .note.sample) > .bar{order:-1}
 @keyframes dropIn{from{transform:translateY(-30px);opacity:0}}
 
 /* ============ REDUCE MOTION (§2: 120ms cross-fades, no pulses) ============ */
@@ -227,6 +232,10 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 /* #7 a label next to a value keeps its words; the value takes the rest (labels without a value still wrap). */
 .row .tx:has(+ .val){flex:0 0 auto;word-break:keep-all;max-width:60%}
 .row .val{flex:1 1 0;color:var(--c-ink-2);font-weight:400;overflow-wrap:anywhere;text-align:right;min-width:0}
+/* Creative R1: at 150/200 % the value drops to its own line under the label (no mid-word breaks); the chevron stays on row 1. */
+:root[data-text-size="xlarge"] .row:has(.val),:root[data-text-size="xxlarge"] .row:has(.val){flex-wrap:wrap}
+:root[data-text-size="xlarge"] .row .tx:has(+ .val),:root[data-text-size="xxlarge"] .row .tx:has(+ .val){flex:1 1 auto;max-width:none}
+:root[data-text-size="xlarge"] .row .val,:root[data-text-size="xxlarge"] .row .val{order:3;flex:1 0 100%;text-align:left;overflow-wrap:normal;padding-left:38px}
 .row[aria-disabled=true]{opacity:.7;cursor:default}
 .grp{margin:var(--s-6) 0 var(--s-3);font-size:1.05rem;font-weight:700;color:var(--c-ink-2)}
 .radiocard{display:flex;align-items:center;gap:var(--s-3);min-height:var(--tap-hero);padding:12px 18px;border-radius:var(--r-l);background:var(--c-surface);border:3px solid var(--c-line);font-weight:700;text-align:left}
