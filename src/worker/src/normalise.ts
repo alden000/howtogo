@@ -322,6 +322,7 @@ export function normaliseLifts(data: unknown): { lifts: LiftOutage[] } {
   const seen = new Set<string>();
   const lifts: LiftOutage[] = [];
   for (const r of rows) {
+    if (!r || typeof r !== "object") continue;
     const station = clean(r.StationCode).toUpperCase().replace(/\s+/g, "");
     if (!/^[A-Z]{1,3}\d{1,3}$/.test(station)) continue;
     const liftId = clean(r.LiftID) || null;
