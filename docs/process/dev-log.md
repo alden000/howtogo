@@ -830,3 +830,102 @@ Fixes in the follow-up commit; gate not re-run (one-run budget).
 **Deploy note.** The binding only resolves when `howtogo` is deployed to the **same account** as `whereisthebus-lta-proxy`; `wrangler deploy` errors if that Worker does not exist in the target account (e.g. the current preview account) — remove the `[[services]]` block there or deploy to the owner's account. `FIXTURE_MODE` still overrides everything; set it to `"0"` for the proxy to be used. Local tests: `vitest.config.ts` stands in a dead `LTA_PROXY` service (miniflare refuses an undefined one); tests pass their own fake Fetcher.
 
 **Tests** worker 170/170 (+8 `test/lta-proxy.test.ts`: multi-stop body, own cache, missing code, proxy 502, stale PolledAt, key wins, alerts/lifts 503 with proxy, health key/proxy/none); two health assertions loosened to `toMatchObject`. Typecheck green. No push/deploy.
+
+## 2026-11-18 — Developer A: M3/M4 fix round
+
+Branch `dev/m34-fix-a` (worktree `howtogo-dev-a`), started from 75cbcda. Scope: M3 QA-29…35, QA-47/48/49, and the gate's Docker dev-e2e. Not pushed.
+
+**Per QA id**
+- **QA-29 (AC 11/1):**
+  - H4 `present.ts timeline(it, dest, t, lang)` now names rail stops from the zh table in zh. It uses the sign label H5 already uses (`碧山 Bishan (NS17)`). `lang` is now a required parameter.
+  - Bus stops stay English.
+  - New shared helpers `zhRailStopName()`, `reportZhNameMissing()` and `onZhNameMissing()` in `shared/data/network.ts`. `steps.ts` uses them too.
+- **QA-34 (AC 42):**
+  - `zh_name_missing:<code>` is logged once per code per session, on H4, H5 and in the voice. `log.ts` adds `logOnce` and wires it to the shared hook when it loads.
+  - `exit:hidden` is logged when the exit table has no hint: on the alight `ride_train` step and on H4 (`ExitHidden`, `lastRailLeg()`).
+  - `exit` is now a per-key change-only log key.
+- **QA-30 (AC 33):**
+  - H3 has a new button **选项 / Options**. It opens the sheet `route-prefs`, titled **路线选项 / Route options**.
+  - The sheet holds a radio row **先给我看 / Show first** with 最少走路 · 最少换车 · 最快 (`Seg` on `settings.preference`; least walking is the default). Under it is the existing Lift-friendly switch (`family.prefs.liftFriendly`).
+  - The same radio row is first in Settings → 出行.
+  - Options ranked for a different preference are not reused (`Plan.pref`), so changing the preference re-ranks at once.
+  - Recents and Take me home already plan with `settings.preference`.
+  - The Lift-friendly **ranking** stays in M5 (AC 28 deferral).
+- **QA-31/32/35 (AC 34/35):**
+  - New store `howtogo.recents.v2`, rows `{to, from?, date: 'YYYY-MM-DD' (Singapore), done, lines?}`. No time of day and no GPS track.
+  - A trip started from "my location" stores no `from`.
+  - A row is recorded on Start (`done:false`) and set to `done:true` on arrival. Picking a search result no longer records anything.
+  - Rows are deduped on from+to, with at most 10 stored. Home shows 5 (`HOME_RECENTS`). H2 lists distinct destinations, at most 5.
+  - On load, a 0.1/0.2 `howtogo.recents` list (full `at` timestamps) is merged into v2 and then removed (AC 36 upgrade).
+- **QA-33 (AC 41):** on About, "Singapore Open Data Licence version 1.0" links to `https://data.gov.sg/open-data-licence`. It opens in a new tab with `noopener` and uses the `.inlink` style.
+- **QA-35 (AC 44):** About has a caption `data: 2026-11-17`, and the problem report has a `data: …` line. Both use `DATA_AS_OF`.
+- **QA-47:** version 0.3.0 in `src/web/package.json`, the lockfile and `version.ts`. A unit test checks that `APP_VERSION` matches package.json.
+- **QA-49:** the `runtime-m2` test "waypoint arrival…" now has a 30 s timeout.
+- **QA-48 fonts (decision):** self-host **Atkinson Hyperlegible** only, the §1.2 Latin and numeral face.
+  - Files: Latin subset, woff2, weights 400 and 700, about 17 KB each. Source: `@fontsource/atkinson-hyperlegible` 5.3.0. Licence: SIL OFL, in `src/web/src/fonts/OFL-Atkinson-Hyperlegible.txt`.
+  - Loading: `font-display: swap`, Google's latin `unicode-range`, and `<link rel=preload>` for the 700 face. Titles, buttons, tiles and numerals use 700.
+  - **CJK glyphs come from the device fonts.** The rest of the §1.2 stack (Noto Sans SC / PingFang SC / Hiragino Sans GB / Microsoft YaHei / system-ui) is unchanged. A self-hosted Noto Sans SC would be about 700 KB even when subset.
+  - No link to Google is left. The CSP (`public/_headers` and the worker static test) no longer lists fonts.googleapis.com or fonts.gstatic.com.
+  - The SW precache now includes the two woff2 files, 11 files in all.
+- **Layout fix:** at 150 % and 200 % text size, a long CJK Settings label next to a value can now wrap. `keep-all` used to clip "清除最近去过的地方 · 没有记录". The bug showed up because browsing no longer adds recents, so the row shows "没有记录".
+
+**Visual baselines / Docker**
+- `qa/scripts/dev-e2e-docker.sh [playwright args]` runs `src/web/e2e` inside `mcr.microsoft.com/playwright:v<@playwright/test version>-noble` (currently v1.63.0), with the repo mounted.
+  - It uses `qa/playwright.dev.docker.config.mjs`: the normal dev config, but served by `qa/scripts/serve-dist.mjs`. Vite can't run in the container because the mounted node_modules are Windows builds.
+  - It runs 2 workers by default.
+- `qa/gate.sh` uses this script on MINGW/MSYS/Cygwin when `docker info` succeeds. Otherwise it runs on the host as before.
+- **Result of one full run on the 0.3.0 build:** 147 tests, 108 passed, 39 failed.
+  - **35 failures are screenshot diffs** (2–15 % of pixels).
+  - 4 are functional. One was real and is fixed (the xxlarge clip above).
+  - The other three fail only in the container, and they fail **on the base 75cbcda build too**: `demo.spec:14`, `guide.spec:153` (base 1/3, this branch 3/3) and `guide.spec:456` (AC 50). They are timing problems under the Docker VM, and all three pass on the Windows host.
+- **Are the diffs only fonts?** No.
+  - The base build fails **41** baselines in the same container. So the cloud host that recorded the baselines already rendered differently from this image.
+  - The 35 diffs on this branch come from the fonts plus the intended visible changes:
+    - the H3 Options button (H3-*, F3-close, T3 h3);
+    - 5 recent trips on Home (T3/T9 home);
+    - the Settings preference row (F6-settings);
+    - the About link and data line (F6-about);
+    - 最少换车 on the card tags.
+  - **Re-record all baselines once, after both fix branches merge**, inside the container:
+    `cd src/web && npx vite build --outDir ../../qa/.out/dist --emptyOutDir && cd ../.. && bash qa/scripts/dev-e2e-docker.sh --update-snapshots e2e/baselines.spec.ts e2e/baselines-m2.spec.ts e2e/baselines-m34.spec.ts`
+  - Review the PNG diffs before committing them.
+
+**Tests**
+- Typecheck is green.
+- Unit tests, first full run: shared 139, web 189, worker 170, all passing.
+- New `web/test/fixa.test.ts` (10 tests). The `store` and `present` tests are updated.
+- Later re-runs on this busy host had 5–13 web tests hit the 5 s timeout (runtime, native and share replays; all `Test timed out`). They pass alone. These are load flakes, the same kind as QA-49.
+- Dev e2e:
+  - New `e2e/fixa.spec.ts` (6 tests), passing on the host and in Docker.
+  - The `ui.spec` check "recent destination on Home" now asserts that browsing records nothing.
+  - `ui.spec` passes 19/19.
+- QA `tests/m3.spec.ts`: **42/42** on the host.
+- Lighthouse, one run of `qa/scripts/lighthouse.sh`:
+  - perf (median): `/` 91, `/about` 85, `/settings` 90;
+  - a11y 100;
+  - best practices 100 / 96 / 100.
+  - The script printed FAIL for `/` and `/about` because one of their 3 runs didn't start under host load, so they have only 2 runs each. Every median is ≥ 80.
+
+**Visible changes (for Creative review)**
+1. H3 Route options: below the From line (after 加一个地方 when the guide flag is on), a new `btn btn-secondary small` button with the `sliders` icon: **选项 / Options** (`data-testid=route-prefs`).
+2. Route options sheet (`Sheet`, `sheet-route-prefs`):
+   - Title: **路线选项 / Route options**.
+   - A `.setrow` + `.seg` radio row labelled **先给我看 / Show first**, with **最少走路 / Least walking** · **最少换车 / Fewest changes** · **最快 / Fastest**. The selected option shows a check, as in Settings.
+   - Then a `.opts` switch row **少走楼梯，用电梯 / Lift-friendly** (开/关).
+   - New copy not in the guide: 选项, 路线选项, 先给我看, and their English strings.
+3. Settings → 出行 / Travel: the same **先给我看 / Show first** row is first in the group.
+4. Card tag: zh `label_fewest` changes from **最少转车** to **最少换车** (AC 33 wording; 换车 is used elsewhere in the app).
+5. H4 step list (zh): rail stops read **走到 碧山 Bishan (NS17)** and **在 莱佛士坊 Raffles Place (NS26) 下车**. This is the shared sign label from H5, not the full T7 layout (bold zh name + line tag + English caption). Creative to decide whether H4 needs the full T7 layout.
+6. Home: up to **5** recent-trip rows. §6d.9 says 3, AC 34 says 5. H2 Recent: distinct destinations, at most 5.
+7. About:
+   - "Singapore Open Data Licence version 1.0" is now an inline link inside the `caption` line (`.inlink`: `c-primary-text`, weight 700, underlined, `lang=en`).
+   - New caption line under it: **data: 2026-11-17**, the same in both languages because that is the literal text in the AC. Creative may want zh wording.
+8. Report text: new line `data: 2026-11-17`.
+9. Type: Latin letters and numerals now always use the self-hosted Atkinson Hyperlegible. CJK uses the device font, so CJK glyphs change on devices without Noto Sans SC. Pixels change on every screen.
+10. About, Settings and the Report show version **0.3.0**.
+
+**Next steps**
+1. QA: re-check QA-29…35 and QA-47–49 (re-run `tests/m3.spec.ts` and the Upgrade test; Lighthouse runs in the gate).
+2. Creative: review the new copy in items 1–2, and items 5, 6 and 7. Decide whether §1.2 should say "Atkinson self-hosted; CJK from the device".
+3. After A and B merge: rebuild, then re-record the dev baselines in Docker with the command above. Then decide whether the 3 container-only timing failures need longer waits in those specs, or `QA_DEV_WORKERS=1` in the gate.
+4. M5: remove `RecentTrips` from `views/transit.tsx`. It is unused because Home renders its own list.
