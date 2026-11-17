@@ -170,12 +170,13 @@
 .stoplist .nm{flex:1;min-width:0}
 .stoplist .nm b{display:block;font-size:1.2rem;font-weight:700;overflow-wrap:anywhere}
 .stoplist .nm span{display:block;font-size:.85rem;color:var(--c-ink-2);overflow-wrap:anywhere}
-.stoplist .ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.stoplist .ctl .dwell{flex:1 1 8rem;min-height:var(--tap);display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:var(--r-m);background:var(--c-surface-2);font-weight:700}
+.stoplist .ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.stoplist .ctl .dwell{flex:1 1 auto;white-space:nowrap;min-height:var(--tap);display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:var(--r-m);background:var(--c-surface-2);font-weight:700}
 .stoplist .ctl .iconbtn{width:var(--tap);padding:0}
+.stoplist .ctl .mv{display:flex;gap:6px;flex:none;margin-left:auto}
 .stoplist .ctl [aria-disabled=true]{opacity:.4}
 .stoplist .origin{background:var(--c-surface-2);box-shadow:none;font-weight:700}
-:root[data-text-size="xxlarge"] .stoplist .ctl .dwell{flex-basis:100%}
+:root[data-text-size="xxlarge"] .stoplist .ctl .dwell{flex-basis:100%;white-space:normal}
 .addrow{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:var(--tap-hero);border:3px dashed var(--c-line);border-radius:var(--r-m);font-weight:700;font-size:1.1rem;margin-top:var(--s-3);color:var(--c-primary-text)}
 .seghead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;margin:var(--s-4) 0 var(--s-2)}
 .seghead b{font-size:1.2rem}
