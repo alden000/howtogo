@@ -107,3 +107,7 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - STYLE-GUIDE §6d/§6e; family viewer prototype (15 states); prototype v1.3 republished with viewer.html.
 - Approved: 11 new icons (seat, stand, full, wheelchair, wheelchair-no, deck2, train-off, card, copy, edit, qr) and the new components. CCL copy = "往 {next interchange} 方向" + next stop (never clockwise/anticlockwise) → data round's loop keys to be replaced in the M3 UI round.
 - Note for build: sample phone numbers in the prototype must not ship; production uses only the user's own contacts.
+
+## 2026-11-17 — Family viewer built (dev/m34-worker) + Creative review
+- Viewer: 15 states, 10.3 KB gz, 44 e2e. Creative: APPROVED WITH FIXES (2 P1 at 200%: ETA overflow, help disc crescent; zh keep-all; 1440 map offset; footer on ended/expired).
+- Ruling: share contract gains a structured step (`step: {k, ...fields}`) sent by the sharer; the viewer renders §6e.2 templates; until then no keyword-guessed icons (no match → no icon). Fixes batched into the M4 web round.
