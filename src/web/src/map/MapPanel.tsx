@@ -31,7 +31,7 @@ export function MapPanel({ steps, puck, stepIndex }: MapPanelProps) {
   useEffect(() => {
     let c: MapController | null = null;
     let dead = false;
-    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = document.documentElement.classList.contains('rm'); // OS setting or H13 override (main.tsx)
     import('./map')
       .then((m) => m.createMapController(el.current!, { dark, reducedMotion: reduced }))
       .then((m) => {
@@ -60,17 +60,16 @@ export function MapPanel({ steps, puck, stepIndex }: MapPanelProps) {
   }, [ctl, stepIndex]);
 
   return (
-    <section>
-      {/* TODO-creative: map height, collapsed 30% / "bigger map" toggle (M1 AC 41) */}
-      <div ref={el} data-testid="map" style={{ height: '40vh' }} />
-      {failed && <p>{t('error_generic')}</p>}
+    <section class="mapbox" data-testid="map-box">
+      <div ref={el} data-testid="map" aria-hidden="true" style={{ position: 'absolute', inset: 0 }} />
+      {failed && <p class="t-caption" style={{ position: 'absolute', inset: 'auto var(--s-4) var(--s-4)' }}>{t('error_generic')}</p>}
       {ctl && puck && ctl.follow.value === 'free' && (
-        <button type="button" data-testid="map-recentre" onClick={() => ctl.recentre()}>
+        <button type="button" class="iconbtn" style={{ position: 'absolute', top: 'var(--s-3)', right: 'var(--s-3)' }} data-testid="map-recentre" onClick={() => ctl.recentre()}>
           {t('recentre')}
         </button>
       )}
-      {ctl && (
-        <button type="button" data-testid="map-overview" onClick={() => ctl.fitRoute()}>
+      {ctl && puck && (
+        <button type="button" class="iconbtn" style={{ position: 'absolute', top: 'var(--s-3)', left: 'var(--s-3)' }} data-testid="map-overview" onClick={() => ctl.fitRoute()}>
           {t('overview')}
         </button>
       )}

@@ -8,6 +8,7 @@ import {
   type LocationFix,
   type Platform,
   type PlatformError,
+  type RecognitionApi,
   type SpeechApi,
   type WakeLockApi,
 } from './types';
@@ -198,6 +199,48 @@ function createBattery(): BatteryApi | undefined {
   };
 }
 
+type SR = {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+};
+
+/** Web Speech recognition (Chrome/Android: webkitSpeechRecognition). Undefined when unsupported. */
+function createRecognition(): RecognitionApi | undefined {
+  const w = g as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  if (!Ctor) return undefined;
+  let cur: SR | null = null;
+  return {
+    listen(lang) {
+      cur?.stop();
+      return new Promise((resolve, reject) => {
+        const r = new Ctor();
+        cur = r;
+        r.lang = lang;
+        r.interimResults = false;
+        r.maxAlternatives = 1;
+        let text = '';
+        r.onresult = (e) => (text = e.results[0]?.[0]?.transcript ?? '');
+        r.onerror = (e) => (e.error === 'no-speech' || e.error === 'aborted' ? undefined : reject(new Error(e.error)));
+        r.onend = () => {
+          if (cur === r) cur = null;
+          resolve(text.trim());
+        };
+        r.start();
+      });
+    },
+    stop() {
+      cur?.stop();
+    },
+  };
+}
+
 export function createWebPlatform(): Platform {
   const battery = createBattery();
   const p: Platform = {
@@ -244,5 +287,7 @@ export function createWebPlatform(): Platform {
     },
   };
   if (battery) p.battery = battery;
+  const recognition = createRecognition();
+  if (recognition) p.recognition = recognition;
   return p;
 }

@@ -9,7 +9,12 @@ import type { GuidanceState, Itinerary, Lang, Place, RankedItinerary, RoutePrefe
 import { local, readJSON, session, writeJSON, type KV } from './storage';
 
 export type UiLang = 'zh' | 'en';
-export type TextSize = 'standard' | 'large' | 'xlarge';
+/** 100 / 125 / 150 / 200 % (STYLE-GUIDE §1.2 `--ts`). */
+export type TextSize = 'standard' | 'large' | 'xlarge' | 'xxlarge';
+export const TEXT_SCALE: Record<TextSize, number> = { standard: 1, large: 1.25, xlarge: 1.5, xxlarge: 2 };
+export const TEXT_SIZES = Object.keys(TEXT_SCALE) as TextSize[];
+/** Reduce motion: follow the OS, or force on/off (H13). */
+export type MotionPref = 'auto' | 'on' | 'off';
 export type Theme = 'auto' | 'light' | 'dark';
 
 export interface Settings {
@@ -18,6 +23,10 @@ export interface Settings {
   theme: Theme;
   muted: boolean;
   preference: RoutePreference;
+  /** H13 减少动画. */
+  motion: MotionPref;
+  /** Optional name for the greeting (asked once at first use, D-8). Empty = plain greeting. */
+  name: string;
   /** First-run language/size choice done (H1). */
   onboarded: boolean;
 }
@@ -28,6 +37,8 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'auto',
   muted: false,
   preference: 'least_walk',
+  motion: 'auto',
+  name: '',
   onboarded: false,
 };
 

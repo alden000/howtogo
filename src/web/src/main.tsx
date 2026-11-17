@@ -6,6 +6,8 @@
  *    (`simulateFixes`) along the chosen itinerary; `&demoMs=<n>` sets ms per fix.
  * The mode sticks for the tab (sessionStorage) so in-app navigation and reloads keep it.
  */
+import './styles/tokens.css';
+import './styles/app.css';
 import { render } from 'preact';
 import { effect } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
@@ -33,6 +35,11 @@ async function boot() {
   if (q.get('demo') === '0') session.remove('mode.demo');
   if (q.get('mock') === '1') session.set('mode.mock', '1');
   if (q.get('demoMs')) session.set('mode.demoMs', q.get('demoMs')!);
+  // Feature flags per tab: `?ff=guide` (comma-separated; `?ff=` clears). OQ5: `guide` is off in the M1 release.
+  if (q.has('ff')) session.set('mode.ff', q.get('ff')!);
+  const flags = new Set(
+    [...(session.get('mode.ff') ?? '').split(','), ...String(import.meta.env.VITE_FLAGS ?? '').split(',')].map((f) => f.trim()).filter(Boolean),
+  );
   const demo = session.get('mode.demo') === '1';
   const mock = demo || session.get('mode.mock') === '1' || import.meta.env.VITE_API_MOCK === '1';
   log(`mode:${demo ? 'demo' : mock ? 'mock' : 'live'}`);
@@ -84,6 +91,17 @@ async function boot() {
     root.dataset.textSize = s.textSize;
     root.dataset.theme = s.theme;
   });
+  // Reduce motion (§2): the OS setting, or the H13 override.
+  const rmQuery = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const applyMotion = () => {
+    const m = store.settings.peek().motion;
+    document.documentElement.classList.toggle('rm', m === 'on' || (m === 'auto' && !!rmQuery?.matches));
+  };
+  effect(() => {
+    void store.settings.value.motion;
+    applyMotion();
+  });
+  rmQuery?.addEventListener?.('change', applyMotion);
   effect(() => {
     const tr = store.trip.value;
     log(`trip:${tr ? (tr.guidance.status === 'arrived' ? 'arrived' : 'active') : 'none'}`);
@@ -103,7 +121,7 @@ async function boot() {
   addEventListener('pagehide', flush);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flush());
 
-  const services: Services = { store, router, api, platform, runtime, mode: { demo, mock } };
+  const services: Services = { store, router, api, platform, runtime, mode: { demo, mock }, flags };
   render(
     <ServicesContext.Provider value={services}>
       <App />

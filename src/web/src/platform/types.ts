@@ -85,6 +85,13 @@ export interface BatteryApi {
   onLow(cb: (level: number) => void, threshold?: number): Promise<Unsubscribe>;
 }
 
+/** Speech-to-text for the search mic (H2). Absent when the platform cannot do it (the mic is hidden). */
+export interface RecognitionApi {
+  /** Resolves with the best transcript ('' when nothing was heard); rejects on denial/error. */
+  listen(lang: 'zh-CN' | 'en-SG'): Promise<string>;
+  stop(): void;
+}
+
 export interface Platform {
   readonly kind: 'web' | 'fake' | 'demo' | 'native';
   location: LocationApi;
@@ -96,6 +103,7 @@ export interface Platform {
   notify(cue: NotifyCue): Promise<void>;
   share(url: string, text: string): Promise<ShareOutcome>;
   battery?: BatteryApi;
+  recognition?: RecognitionApi;
 }
 
 /** Vibration patterns (ms on/off). Kept here so web and native agree. */

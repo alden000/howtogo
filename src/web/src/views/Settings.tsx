@@ -1,84 +1,80 @@
-import { Header } from '../app';
+/**
+ * H13 Settings sheet (STYLE-GUIDE §6 H13): language, text size, colours, reduce motion.
+ * Voice/vibration rows land with M2 guidance. The block below the rows (Home, recents, install,
+ * update, Report, About) keeps the shell's functions until Creative's §6b settings additions arrive.
+ */
 import { useServices, useT } from '../context';
 import { canInstall, promptInstall } from '../pwa/install';
 import { applyUpdate, updateReady } from '../pwa/register';
 import { buildReport } from '../report';
-import type { Settings as S } from '../state/store';
+import { TEXT_SCALE, TEXT_SIZES, type Settings } from '../state/store';
+import { Sheet } from '../ui/kit';
 
-function Radio<K extends keyof S>(props: { name: K; value: S[K]; label: string }) {
+function Seg<K extends keyof Settings>(props: { name: K; label: string; opts: [Settings[K], string][] }) {
   const { store } = useServices();
+  const cur = store.settings.value[props.name];
+  const id = `set-${String(props.name)}`;
   return (
-    <label>
-      <input
-        type="radio"
-        name={props.name}
-        data-testid={`setting-${props.name}-${String(props.value)}`}
-        checked={store.settings.value[props.name] === props.value}
-        onChange={() => store.updateSettings({ [props.name]: props.value } as Partial<S>)}
-      />
-      {props.label}
-    </label>
+    <div class="setrow">
+      <h3 id={id}>{props.label}</h3>
+      <div class="seg" role="group" aria-labelledby={id}>
+        {props.opts.map(([v, l]) => (
+          <button
+            type="button"
+            aria-pressed={cur === v}
+            data-testid={`setting-${String(props.name)}-${String(v)}`}
+            onClick={() => store.updateSettings({ [props.name]: v } as Partial<Settings>)}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
-export function Settings() {
+export function SettingsSheet() {
   const { store, platform } = useServices();
   const t = useT();
   const s = store.settings.value;
   return (
-    <main>
-      <Header title={t('settings')} />
-      <fieldset>
-        <legend>{t('language')}</legend>
-        <Radio name="lang" value="zh" label="简体中文" /> <Radio name="lang" value="en" label="English" />
-      </fieldset>
-      <fieldset>
-        <legend>{t('text_size')}</legend>
-        <Radio name="textSize" value="standard" label={t('size_standard')} /> <Radio name="textSize" value="large" label={t('size_large')} />{' '}
-        <Radio name="textSize" value="xlarge" label={t('size_xlarge')} />
-      </fieldset>
-      <fieldset>
-        <legend>{t('theme')}</legend>
-        <Radio name="theme" value="auto" label={t('theme_auto')} /> <Radio name="theme" value="light" label={t('theme_light')} />{' '}
-        <Radio name="theme" value="dark" label={t('theme_dark')} />
-      </fieldset>
-      <fieldset>
-        <legend>{t('voice')}</legend>
-        <label>
-          <input type="checkbox" data-testid="setting-muted" checked={s.muted} onChange={() => store.updateSettings({ muted: !s.muted })} />
-          {t('mute')}
-        </label>
-      </fieldset>
-      <p>
+    <Sheet id="settings" title={t('settings')}>
+      <Seg name="lang" label={t('set_lang')} opts={[['zh', '中文'], ['en', 'English']]} />
+      <Seg name="textSize" label={t('set_text')} opts={TEXT_SIZES.map((v) => [v, `${Math.round(TEXT_SCALE[v] * 100)}%`])} />
+      <Seg name="theme" label={t('set_theme')} opts={[['auto', t('theme_auto')], ['light', t('theme_light')], ['dark', t('theme_dark')]]} />
+      <Seg name="motion" label={t('set_motion')} opts={[['auto', t('theme_auto')], ['on', t('on')], ['off', t('off')]]} />
+      <div class="opts" style={{ marginTop: 'var(--s-6)' }}>
         {store.places.value.home && (
-          <button type="button" data-testid="clear-home" onClick={() => store.setHome(undefined)}>
+          <button type="button" class="btn btn-secondary small" data-testid="clear-home" onClick={() => store.setHome(undefined)}>
             {t('clear_home')}
           </button>
-        )}{' '}
-        <button type="button" data-testid="clear-recent" onClick={() => store.clearRecents()}>
-          {t('clear_recent')}
-        </button>
-      </p>
-      <p>
+        )}
+        {store.recents.value.length > 0 && (
+          <button type="button" class="btn btn-secondary small" data-testid="clear-recent" onClick={() => store.clearRecents()}>
+            {t('clear_recent')}
+          </button>
+        )}
         {canInstall.value && (
-          <button type="button" data-testid="install" onClick={() => promptInstall()}>
+          <button type="button" class="btn btn-secondary small" data-testid="install" onClick={() => promptInstall()}>
             {t('install')}
           </button>
-        )}{' '}
+        )}
         {updateReady.value && (
-          <button type="button" data-testid="settings-update" onClick={applyUpdate}>
+          <button type="button" class="btn btn-secondary small" data-testid="settings-update" onClick={applyUpdate}>
             {t('update_now')}
           </button>
-        )}{' '}
-        <button type="button" data-testid="report" onClick={() => platform.share('', buildReport(s))}>
+        )}
+        <button type="button" class="btn btn-secondary small" data-testid="report" onClick={() => platform.share('', buildReport(s))}>
           {t('report')}
         </button>
-      </p>
-      <section>
-        <h2>{t('about')}</h2>
-        <p>{t('attribution')}</p>
-        <p>{t('privacy')}</p>
+      </div>
+      <section style={{ marginTop: 'var(--s-6)' }}>
+        <h3 class="t-label" style={{ color: 'var(--c-ink-2)', margin: '0 0 8px' }}>
+          {t('about')}
+        </h3>
+        <p class="t-caption">{t('attribution')}</p>
+        <p class="t-caption">{t('privacy')}</p>
       </section>
-    </main>
+    </Sheet>
   );
 }
