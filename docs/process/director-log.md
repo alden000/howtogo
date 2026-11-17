@@ -60,3 +60,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Logo B master + PNG exports in creative/logo/final/; M1 state frames F1–F8 in STYLE-GUIDE §6b. ~11 min, ~163k tokens.
 - Approved: 8 new icons (wifi-off, refresh, install, ios-share, info, trash, person, report). F8: the From/To swap button moves to Route options (AC 22 amended).
 - Owner question pending: privacy contact for About (default: a generic contact form/email the owner provides; until then About shows no contact line).
+
+## 2026-11-17 — M1 UI round done (dev/m1-ui)
+- 50 unit + 52 e2e pass, app JS 58 KB gz, 36 baselines. ~? min (report arrived while Creative round 3 ran).
+- Rulings: (1) bus-times "live" note is hidden in M1 (live bus data is M3). (2) The 8 §6b icons are approved (same set as Creative's list). (3) Build the Swap button on Route options in the fix round (F8). (4) H2 From-mode title: Creative supplies exact copy in its review. (5) Logo B icons go into the PWA manifest in the fix round (copy from creative/logo/final/).
+- Next: Creative review of built screens (read-only) + QA gate in parallel → one batched fix round.
