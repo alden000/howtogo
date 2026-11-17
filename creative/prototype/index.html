@@ -1,0 +1,1352 @@
+<!doctype html>
+<html lang="zh-Hans" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>怎么去? Prototype</title>
+<meta name="description" content="怎么去? — interactive creative prototype v1.0. Elderly-friendly public transport guide for Singapore.">
+<meta name="theme-color" content="#9A3412">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='116' fill='%239A3412'/%3E%3Cpath d='M168 206C168 146 210 104 262 104C318 104 352 142 352 190C352 238 312 256 284 276C266 289 258 304 258 330' fill='none' stroke='%23FBF5EC' stroke-width='58' stroke-linecap='round'/%3E%3Ccircle cx='168' cy='206' r='40' fill='%239A3412' stroke='%23FBF5EC' stroke-width='22'/%3E%3Ccircle cx='258' cy='408' r='42' fill='%23FFD23F'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS (mirror creative/STYLE-GUIDE.md §1) ============ */
+:root{
+  --ts:1;
+  --font:"Atkinson Hyperlegible","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  /* colour — light */
+  --c-canvas:#FBF5EC; --c-surface:#FFFFFF; --c-surface-2:#F3EADC; --c-line:#D9CBB6;
+  --c-ink:#1D1915; --c-ink-2:#4A4038; --c-ink-inv:#FBF5EC;
+  --c-primary:#9A3412; --c-on-primary:#FFFFFF; --c-primary-soft:#FBE3D3; --c-on-primary-soft:#6E2409; --c-primary-text:#8A2E0B;
+  --c-jade:#0E5B49; --c-on-jade:#FFFFFF; --c-jade-soft:#D6EDE4; --c-on-jade-soft:#0A3F33;
+  --c-saffron:#FFD23F; --c-on-saffron:#1D1915; --c-saffron-soft:#FFF1C2;
+  --c-danger:#A4161A; --c-on-danger:#FFFFFF;
+  --c-scrim:rgba(29,25,21,.55); --c-focus:#1D1915;
+  --tint-home:#FBE3D3; --tint-clinic:#D6EDE4; --tint-market:#FFF1C2; --tint-family:#EADFF3;
+  --ink-home:#8A2E0B; --ink-clinic:#0A3F33; --ink-market:#5C4300; --ink-family:#4B2A63;
+  --line-ns:#D42E12; --line-ew:#009645; --line-ne:#9900AA; --line-cc:#FA9E0D; --line-dt:#005EC4; --line-te:#9D5B25; --line-lrt:#748477;
+  /* map */
+  --m-land:#F1E9DC; --m-block:#E3D6C2; --m-park:#CFE3C2; --m-water:#B9D9E4; --m-road:#FFFFFF; --m-casing:#D8C8B0; --m-exp:#F6D7A4; --m-label:#4A4038; --m-halo:#F1E9DC; --m-done:#B5A792;
+  /* elevation */
+  --e-1:0 1px 2px rgba(60,40,20,.08),0 2px 8px rgba(60,40,20,.06);
+  --e-2:0 2px 4px rgba(60,40,20,.08),0 8px 24px rgba(60,40,20,.10);
+  --e-3:0 8px 16px rgba(60,40,20,.12),0 24px 56px rgba(60,40,20,.18);
+  /* space (4pt base) */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  /* radii */
+  --r-s:12px; --r-m:20px; --r-l:28px; --r-xl:36px; --r-pill:999px;
+  /* targets */
+  --tap:56px; --tap-hero:72px;
+  /* motion */
+  --ease-out:cubic-bezier(.2,.8,.2,1); --ease-spring:cubic-bezier(.34,1.36,.64,1); --ease-in:cubic-bezier(.4,0,1,1);
+  --d-fast:160ms; --d-base:280ms; --d-slow:420ms; --d-sheet:460ms;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --c-canvas:#14110E; --c-surface:#1F1A16; --c-surface-2:#2A231D; --c-line:#43392F;
+  --c-ink:#F6EEE4; --c-ink-2:#CFC3B5; --c-ink-inv:#14110E;
+  --c-primary:#FF9466; --c-on-primary:#1D1915; --c-primary-soft:#4A2414; --c-on-primary-soft:#FFD9C6; --c-primary-text:#FFA77F;
+  --c-jade:#5FD3B0; --c-on-jade:#0A1F19; --c-jade-soft:#123A30; --c-on-jade-soft:#BDEFDF;
+  --c-saffron:#FFD23F; --c-on-saffron:#1D1915; --c-saffron-soft:#3D3212;
+  --c-danger:#FF8A80; --c-on-danger:#1D1915;
+  --c-scrim:rgba(0,0,0,.66); --c-focus:#F6EEE4;
+  --tint-home:#4A2414; --tint-clinic:#123A30; --tint-market:#3D3212; --tint-family:#33224A;
+  --ink-home:#FFD9C6; --ink-clinic:#BDEFDF; --ink-market:#FFE9A3; --ink-family:#E6D4F7;
+  --m-land:#1C1815; --m-block:#2B241E; --m-park:#1E2B20; --m-water:#162A33; --m-road:#3B332C; --m-casing:#2B241E; --m-exp:#4A3A22; --m-label:#CFC3B5; --m-halo:#1C1815; --m-done:#5E544A;
+  --e-1:0 1px 2px rgba(0,0,0,.4); --e-2:0 4px 16px rgba(0,0,0,.45); --e-3:0 16px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){
+  :root[data-theme="auto"]{
+    --c-canvas:#14110E; --c-surface:#1F1A16; --c-surface-2:#2A231D; --c-line:#43392F;
+    --c-ink:#F6EEE4; --c-ink-2:#CFC3B5; --c-ink-inv:#14110E;
+    --c-primary:#FF9466; --c-on-primary:#1D1915; --c-primary-soft:#4A2414; --c-on-primary-soft:#FFD9C6; --c-primary-text:#FFA77F;
+    --c-jade:#5FD3B0; --c-on-jade:#0A1F19; --c-jade-soft:#123A30; --c-on-jade-soft:#BDEFDF;
+    --c-saffron:#FFD23F; --c-on-saffron:#1D1915; --c-saffron-soft:#3D3212;
+    --c-danger:#FF8A80; --c-on-danger:#1D1915;
+    --c-scrim:rgba(0,0,0,.66); --c-focus:#F6EEE4;
+    --tint-home:#4A2414; --tint-clinic:#123A30; --tint-market:#3D3212; --tint-family:#33224A;
+    --ink-home:#FFD9C6; --ink-clinic:#BDEFDF; --ink-market:#FFE9A3; --ink-family:#E6D4F7;
+    --m-land:#1C1815; --m-block:#2B241E; --m-park:#1E2B20; --m-water:#162A33; --m-road:#3B332C; --m-casing:#2B241E; --m-exp:#4A3A22; --m-label:#CFC3B5; --m-halo:#1C1815; --m-done:#5E544A;
+    --e-1:0 1px 2px rgba(0,0,0,.4); --e-2:0 4px 16px rgba(0,0,0,.45); --e-3:0 16px 48px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+/* ============ BASE ============ */
+*{box-sizing:border-box}
+html{font-size:calc(20px * var(--ts));-webkit-text-size-adjust:100%;background:var(--c-canvas)}
+body{margin:0;font-family:var(--font);color:var(--c-ink);background:var(--c-canvas);line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden;height:100dvh}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--c-focus);outline-offset:3px;border-radius:var(--r-s)}
+svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.en-sub{display:block;font-size:.8rem;font-weight:400;color:var(--c-ink-2);margin-top:2px}
+/* type roles */
+.t-display{font-size:2.1rem;line-height:1.15;font-weight:900;letter-spacing:-.01em}
+.t-title{font-size:1.5rem;line-height:1.2;font-weight:700}
+.t-headline{font-size:1.2rem;line-height:1.3;font-weight:700}
+.t-body{font-size:1rem}
+.t-label{font-size:.9rem;font-weight:700}
+.t-caption{font-size:.9rem;color:var(--c-ink-2)}
+.num{font-variant-numeric:tabular-nums;font-family:"Atkinson Hyperlegible",var(--font)}
+
+/* ============ STAGE ============ */
+.stage{height:100dvh;display:flex;justify-content:center;align-items:stretch}
+.side{display:none}
+.phone{position:relative;width:100%;max-width:440px;height:100dvh;background:var(--c-canvas);overflow:hidden;isolation:isolate}
+@media (min-width:600px){ .phone{box-shadow:var(--e-3)} }
+@media (min-width:1000px) and (min-height:760px){
+  body{background:radial-gradient(1200px 700px at 70% 10%,var(--c-primary-soft),transparent 60%),var(--c-surface-2)}
+  html{background:var(--c-surface-2)}
+  .stage{align-items:center;gap:72px;padding:24px}
+  .phone{width:390px;height:min(844px,calc(100dvh - 48px));border-radius:48px;border:10px solid #1D1915;box-shadow:0 0 0 2px #3a322b, var(--e-3)}
+  .side{display:flex;flex-direction:column;gap:20px;width:400px;max-height:calc(100dvh - 48px);overflow:auto;font-size:16px;padding:8px}
+}
+.side .brand{display:flex;align-items:center;gap:14px}
+.side .brand svg{width:64px;height:64px}
+.side h1{font-size:28px;margin:0;line-height:1.1}
+.side h1 small{display:block;font-size:15px;font-weight:400;color:var(--c-ink-2);margin-top:4px}
+.side p{margin:0;color:var(--c-ink-2);font-size:15px}
+.side h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--c-ink-2);margin:6px 0 0}
+.side .frames{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.side .frames button,.side .ctl button{min-height:44px;text-align:left;padding:8px 12px;border-radius:12px;background:var(--c-surface);box-shadow:var(--e-1);font-size:14px;line-height:1.25}
+.side .frames button b{display:block;font-size:12px;color:var(--c-primary-text)}
+.side .frames button:hover,.side .ctl button:hover{box-shadow:var(--e-2)}
+.side .ctl{display:flex;flex-wrap:wrap;gap:8px}
+.side .note{font-size:13px}
+
+/* ============ SCREENS ============ */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--c-canvas);will-change:transform,opacity}
+.screen[hidden]{display:none}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:0 var(--s-5) var(--s-6)}
+.enter-push{animation:pushIn var(--d-base) var(--ease-out) both}
+.exit-push{animation:pushOut var(--d-base) var(--ease-out) both}
+.enter-pop{animation:popIn var(--d-base) var(--ease-out) both}
+.exit-pop{animation:popOut var(--d-base) var(--ease-out) both}
+@keyframes pushIn{from{transform:translateX(12%);opacity:0}to{transform:none;opacity:1}}
+@keyframes pushOut{to{transform:translateX(-6%);opacity:0}}
+@keyframes popIn{from{transform:translateX(-6%);opacity:0}to{transform:none;opacity:1}}
+@keyframes popOut{to{transform:translateX(12%);opacity:0}}
+
+/* app bar */
+.bar{display:flex;align-items:center;gap:var(--s-2);padding:calc(env(safe-area-inset-top) + var(--s-3)) var(--s-4) var(--s-2);min-height:72px;flex-wrap:wrap}
+.bar .grow{flex:1;min-width:0}
+.wordmark{display:flex;align-items:center;gap:10px;font-weight:900;font-size:1.25rem;letter-spacing:.01em}
+.wordmark svg{width:44px;height:44px;flex:none}
+.iconbtn{min-width:var(--tap);min-height:var(--tap);border-radius:var(--r-pill);display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;background:var(--c-surface);box-shadow:var(--e-1);font-weight:700;font-size:.95rem;transition:transform var(--d-fast) var(--ease-out)}
+.iconbtn:active,.btn:active,.tile:active,.card:active{transform:scale(.97)}
+.backbtn{min-height:var(--tap);padding:0 18px 0 10px;border-radius:var(--r-pill);display:inline-flex;align-items:center;gap:4px;background:var(--c-surface);box-shadow:var(--e-1);font-weight:700;font-size:1rem}
+.backbtn svg{width:1.3em;height:1.3em}
+
+/* buttons */
+.btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:var(--tap-hero);padding:12px 24px;border-radius:var(--r-l);font-weight:700;font-size:1.15rem;line-height:1.2;text-align:center;transition:transform var(--d-fast) var(--ease-out),box-shadow var(--d-fast)}
+.btn svg.i{width:1.5em;height:1.5em}
+.btn-primary{background:var(--c-primary);color:var(--c-on-primary);box-shadow:0 6px 18px rgba(154,52,18,.28)}
+.btn-jade{background:var(--c-jade);color:var(--c-on-jade)}
+.btn-secondary{background:var(--c-surface);color:var(--c-ink);box-shadow:var(--e-1);border:2px solid var(--c-line)}
+.btn-quiet{min-height:var(--tap);background:transparent;color:var(--c-primary-text);text-decoration:underline;text-underline-offset:4px;font-size:1rem}
+.btn-danger-outline{min-height:var(--tap);border:2px solid var(--c-danger);color:var(--c-danger);background:transparent;font-size:1rem}
+.btn small{display:block;font-weight:400;font-size:.8rem;opacity:.9}
+.dock{padding:var(--s-3) var(--s-5) calc(env(safe-area-inset-bottom) + var(--s-4));background:linear-gradient(to top,var(--c-canvas) 70%,transparent);display:flex;gap:var(--s-3);flex-wrap:wrap}
+.dock>*{flex:1 1 9rem}
+
+/* ============ HOME (H1) ============ */
+.greet{margin:var(--s-4) 0 var(--s-5)}
+.greet .t-display{margin:0}
+.greet p{margin:6px 0 0;font-size:1.1rem;color:var(--c-ink-2)}
+.where{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:6px 14px 6px 8px;border-radius:var(--r-pill);background:var(--c-jade-soft);color:var(--c-on-jade-soft);font-weight:700;font-size:.9rem}
+.where .dot{width:14px;height:14px;border-radius:50%;background:var(--c-jade);box-shadow:0 0 0 4px color-mix(in srgb,var(--c-jade) 25%,transparent)}
+.searchbtn{display:flex;align-items:center;gap:14px;width:100%;min-height:76px;padding:10px 10px 10px 20px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-2);border:2px solid var(--c-line);text-align:left;font-size:1.05rem;color:var(--c-ink-2)}
+.searchbtn .grow{flex:1}
+.searchbtn .mic{width:56px;height:56px;border-radius:50%;background:var(--c-primary);color:var(--c-on-primary);display:grid;place-items:center;flex:none}
+.sect{display:flex;align-items:baseline;justify-content:space-between;margin:var(--s-6) 0 var(--s-3)}
+.sect h2{margin:0;font-size:1.05rem;font-weight:700;color:var(--c-ink-2)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr));gap:var(--s-3)}
+.tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:148px;padding:18px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-1);text-align:left;transition:transform var(--d-fast) var(--ease-out),box-shadow var(--d-fast)}
+.tile .ic{width:60px;height:60px;border-radius:20px;display:grid;place-items:center}
+.tile .ic svg{width:34px;height:34px;stroke-width:2.2}
+.tile .nm{font-size:1.45rem;font-weight:900;line-height:1.15}
+.tile .sub{font-size:.85rem;color:var(--c-ink-2);line-height:1.3}
+.tile[data-k=home] .ic{background:var(--tint-home);color:var(--ink-home)}
+.tile[data-k=clinic] .ic{background:var(--tint-clinic);color:var(--ink-clinic)}
+.tile[data-k=market] .ic{background:var(--tint-market);color:var(--ink-market)}
+.tile[data-k=daughter] .ic{background:var(--tint-family);color:var(--ink-family)}
+.helprow{display:flex;align-items:center;gap:14px;width:100%;min-height:76px;margin-top:var(--s-3);padding:12px 18px;border-radius:var(--r-l);background:var(--c-surface-2);text-align:left}
+.helprow .ic{width:52px;height:52px;border-radius:50%;background:var(--c-ink);color:var(--c-ink-inv);display:grid;place-items:center;flex:none}
+.helprow b{display:block;font-size:1.05rem}
+.helprow span{font-size:.85rem;color:var(--c-ink-2)}
+
+/* ============ SEARCH (H2) ============ */
+.field{display:flex;align-items:center;gap:10px;margin:var(--s-2) 0 var(--s-4);padding:6px 6px 6px 18px;border-radius:var(--r-l);background:var(--c-surface);border:3px solid var(--c-primary);box-shadow:var(--e-2)}
+.field input{flex:1;min-width:0;min-height:60px;border:0;outline:0;background:transparent;font:inherit;font-size:1.2rem;color:var(--c-ink)}
+.field input::placeholder{color:var(--c-ink-2);opacity:1}
+.field .mic{width:60px;height:60px;border-radius:50%;background:var(--c-primary);color:var(--c-on-primary);display:grid;place-items:center;flex:none;position:relative}
+.field .mic.listening::before,.field .mic.listening::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid var(--c-primary);animation:ripple 1.4s var(--ease-out) infinite}
+.field .mic.listening::after{animation-delay:.7s}
+@keyframes ripple{from{transform:scale(1);opacity:.8}to{transform:scale(1.8);opacity:0}}
+.listenhint{display:flex;align-items:center;gap:10px;margin:-6px 0 12px;font-weight:700;color:var(--c-primary-text)}
+.rlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ritem{display:flex;align-items:center;gap:14px;width:100%;min-height:80px;padding:12px 16px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-1);text-align:left}
+.ritem .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;flex:none;background:var(--c-surface-2)}
+.ritem .tx{flex:1;min-width:0}
+.ritem b{display:block;font-size:1.1rem;line-height:1.25}
+.ritem span{display:block;font-size:.85rem;color:var(--c-ink-2);line-height:1.3}
+.empty{padding:24px 8px;text-align:center}
+.empty .bubble{width:96px;height:96px;margin:0 auto 12px;border-radius:50%;background:var(--c-saffron-soft);display:grid;place-items:center;color:var(--c-ink)}
+
+/* ============ ROUTES (H3) ============ */
+.q{margin:var(--s-2) 0 var(--s-2)}
+.q .from{display:flex;align-items:center;gap:8px;color:var(--c-ink-2);font-size:.95rem;margin-top:8px;flex-wrap:wrap}
+.cards{display:flex;flex-direction:column;gap:var(--s-4);margin-top:var(--s-4)}
+.card{position:relative;display:block;width:100%;text-align:left;padding:18px 18px 16px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-2);border:3px solid transparent;transition:transform var(--d-fast) var(--ease-out)}
+.card.best{border-color:var(--c-primary)}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px 4px 8px;border-radius:var(--r-pill);font-weight:700;font-size:.85rem;background:var(--c-surface-2);color:var(--c-ink)}
+.card.best .tag{background:var(--c-primary);color:var(--c-on-primary)}
+.tag svg.i{width:1.1em;height:1.1em;stroke-width:3}
+.dur{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:10px 0 12px}
+.dur b{font-size:2.2rem;font-weight:900;line-height:1}
+.dur b small{font-size:1.1rem;font-weight:700;margin-left:4px}
+.dur span{font-size:1rem;color:var(--c-ink-2);font-weight:700}
+.chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chain .sep{color:var(--c-ink-2)}
+.chain .sep svg{width:1em;height:1em}
+.walkchip{display:inline-flex;align-items:center;gap:2px;font-weight:700;font-size:.95rem;color:var(--c-ink-2)}
+.walkchip svg{width:1.3em;height:1.3em}
+.busbadge{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:4px 12px 4px 8px;border-radius:12px;background:var(--c-ink);color:var(--c-ink-inv);font-weight:700;font-size:1.05rem}
+.busbadge svg{width:1.2em;height:1.2em}
+.linetag{display:inline-flex;align-items:stretch;min-height:40px;border-radius:12px;overflow:hidden;background:var(--c-surface);border:2px solid var(--c-line);font-weight:700;font-size:1rem}
+.linetag .sw{width:12px;flex:none}
+.linetag .cd{display:flex;align-items:center;padding:0 10px;gap:6px}
+.facts{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px;padding-top:12px;border-top:2px dashed var(--c-line);font-size:.9rem;color:var(--c-ink-2);font-weight:700}
+.facts span{display:inline-flex;align-items:center;gap:6px}
+.facts svg{width:1.2em;height:1.2em}
+.choose{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-top:10px;font-weight:700;color:var(--c-primary-text);font-size:1rem}
+.honest{display:flex;gap:10px;align-items:flex-start;margin-top:var(--s-4);padding:14px 16px;border-radius:var(--r-m);background:var(--c-surface-2);font-size:.9rem;color:var(--c-ink-2)}
+
+/* ============ OVERVIEW (H4) ============ */
+.mapbox{position:relative;height:34vh;min-height:220px;margin:0 var(--s-4);border-radius:var(--r-l);overflow:hidden;box-shadow:var(--e-1);background:var(--m-land)}
+.mapbox svg.map,.guide svg.map{width:100%;height:100%;display:block}
+.attrib{position:absolute;right:8px;bottom:6px;font-size:11px;color:var(--m-label);background:color-mix(in srgb,var(--m-land) 80%,transparent);padding:1px 6px;border-radius:6px}
+.timeline{list-style:none;margin:var(--s-4) 0 0;padding:0}
+.timeline li{position:relative;display:flex;gap:14px;padding:0 0 18px}
+.timeline li:not(:last-child)::before{content:"";position:absolute;left:25px;top:52px;bottom:4px;width:4px;border-radius:2px;background:var(--c-line)}
+.timeline li.ride:not(:last-child)::before{background:var(--c-primary)}
+.timeline .ic{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--c-surface);box-shadow:var(--e-1)}
+.timeline .ic.dest{background:var(--c-saffron);color:var(--c-on-saffron)}
+.timeline b{display:block;font-size:1.1rem;line-height:1.3;padding-top:4px}
+.timeline span{display:block;font-size:.9rem;color:var(--c-ink-2)}
+
+/* ============ GUIDE (H5) ============ */
+.guide{position:absolute;inset:0;background:var(--m-land)}
+.guide .top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 12px) 14px 30px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;background:linear-gradient(to bottom,color-mix(in srgb,var(--m-land) 92%,transparent) 50%,transparent);z-index:3}
+.guide .top .grow{flex:1}
+.helppill{min-height:var(--tap);padding:0 18px 0 12px;border-radius:var(--r-pill);background:var(--c-ink);color:var(--c-ink-inv);display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;box-shadow:var(--e-2)}
+.sharepill{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 84px);z-index:3;display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 16px 6px 12px;border-radius:var(--r-pill);background:var(--c-jade);color:var(--c-on-jade);font-weight:700;font-size:.85rem;box-shadow:var(--e-2);white-space:nowrap;max-width:calc(100% - 28px)}
+.sharepill .live{width:10px;height:10px;border-radius:50%;background:currentColor;animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.mapctl{position:absolute;right:14px;z-index:3;display:flex;flex-direction:column;gap:10px;transition:bottom var(--d-base) var(--ease-out)}
+.mapctl .iconbtn{width:var(--tap);padding:0;height:var(--tap)}
+.mapctl .iconbtn.on{background:var(--c-primary);color:var(--c-on-primary)}
+.stepcard{position:absolute;left:0;right:0;bottom:0;z-index:4;background:var(--c-surface);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.18);padding:14px var(--s-5) calc(env(safe-area-inset-bottom) + 18px);max-height:62%;overflow-y:auto}
+.stepcard .grab{width:44px;height:5px;border-radius:3px;background:var(--c-line);margin:0 auto 10px}
+.stepmeta{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:.85rem;font-weight:700;color:var(--c-ink-2)}
+.steprow{display:flex;gap:14px;align-items:flex-start;margin-top:10px}
+.stepicon{width:72px;height:72px;border-radius:22px;display:grid;place-items:center;flex:none;background:var(--c-primary-soft);color:var(--c-on-primary-soft)}
+.stepicon svg{width:44px;height:44px;stroke-width:2}
+.stepicon.wait{background:var(--c-ink);color:var(--c-ink-inv)}
+.stepicon.arrive{background:var(--c-saffron);color:var(--c-on-saffron)}
+.steptx{flex:1;min-width:0}
+.steptx h2{margin:0;font-size:1.55rem;line-height:1.2;font-weight:900}
+.steptx .sign{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:8px;background:var(--c-surface-2);font-weight:700;font-size:1rem}
+.steptx p{margin:6px 0 0;font-size:1rem;color:var(--c-ink-2)}
+.prog{height:10px;border-radius:5px;background:var(--c-surface-2);margin:14px 0 4px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;border-radius:5px;background:var(--c-primary);transition:width .3s linear}
+.steprow2{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.steprow2>*{flex:1 1 8rem}
+.arrchip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;border-radius:var(--r-m);background:var(--c-surface-2)}
+.arrchip .busbadge{font-size:1.2rem}
+.arrchip .big{font-size:1.6rem;font-weight:900;line-height:1}
+.arrchip .lv{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:var(--c-ink-2)}
+.arrchip .lv i{width:9px;height:9px;border-radius:50%;background:var(--c-jade);animation:blink 1.6s infinite}
+.arrchip .next{font-size:.85rem;color:var(--c-ink-2);font-weight:700}
+.arrchip.here{background:var(--c-saffron);color:var(--c-on-saffron)}
+.arrchip.here .next,.arrchip.here .lv{color:var(--c-on-saffron)}
+.stops{display:flex;gap:6px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.stops i{width:22px;height:22px;border-radius:50%;border:3px solid var(--c-primary);background:var(--c-surface)}
+.stops i.done{background:var(--c-primary)}
+.stops i.goal{border-color:var(--c-on-saffron);background:var(--c-saffron);width:28px;height:28px}
+/* get-off alert (H6) */
+.alert{position:absolute;left:0;right:0;bottom:0;z-index:6;padding:22px var(--s-5) calc(env(safe-area-inset-bottom) + 20px);background:var(--c-saffron);color:var(--c-on-saffron);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:0 -10px 50px rgba(0,0,0,.3);animation:sheetUp var(--d-sheet) var(--ease-spring) both}
+.alert .bellwrap{position:relative;width:84px;height:84px;border-radius:50%;background:var(--c-on-saffron);color:var(--c-saffron);display:grid;place-items:center;margin-bottom:12px}
+.alert .bellwrap svg{width:48px;height:48px;animation:ring 1.2s var(--ease-out) infinite}
+.alert .bellwrap::before,.alert .bellwrap::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:4px solid var(--c-on-saffron);animation:ripple 1.6s var(--ease-out) infinite}
+.alert .bellwrap::after{animation-delay:.8s}
+@keyframes ring{0%,60%,100%{transform:rotate(0)}10%{transform:rotate(16deg)}20%{transform:rotate(-14deg)}30%{transform:rotate(10deg)}40%{transform:rotate(-6deg)}}
+.alert h2{margin:0;font-size:2.4rem;line-height:1.1;font-weight:900}
+.alert p{margin:8px 0 0;font-size:1.2rem;font-weight:700}
+.alert .sign{display:inline-block;margin-top:12px;padding:6px 14px;border-radius:10px;background:var(--c-on-saffron);color:var(--c-saffron);font-weight:700;font-size:1.1rem}
+.alert .btn{margin-top:18px;background:var(--c-on-saffron);color:var(--c-saffron)}
+.edgeglow{position:absolute;inset:0;z-index:5;pointer-events:none;box-shadow:inset 0 0 0 10px var(--c-saffron);animation:glow 1.2s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:inset 0 0 0 4px var(--c-saffron)}}
+/* off-route banner (H10) */
+.banner{position:absolute;left:14px;right:14px;top:calc(env(safe-area-inset-top) + 84px);z-index:5;display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-3);border-left:8px solid var(--c-jade);animation:dropIn var(--d-slow) var(--ease-spring) both}
+.banner b{display:block;font-size:1.05rem}
+.banner span{font-size:.9rem;color:var(--c-ink-2)}
+.spinner{width:36px;height:36px;border-radius:50%;border:4px solid var(--c-jade-soft);border-top-color:var(--c-jade);animation:spin .9s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes dropIn{from{transform:translateY(-30px);opacity:0}}
+
+/* map marks */
+.m-land{fill:var(--m-land)} .m-block{fill:var(--m-block)} .m-park{fill:var(--m-park)} .m-water{fill:var(--m-water)}
+.m-casing{stroke:var(--m-casing);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-road{stroke:var(--m-road);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-exp{stroke:var(--m-exp);fill:none;stroke-linecap:round}
+.m-rail{stroke:var(--line-ns);fill:none;stroke-width:5;stroke-dasharray:14 10;opacity:.55}
+.m-lbl{fill:var(--m-label);font-family:var(--font);font-weight:700;paint-order:stroke;stroke:var(--m-halo);stroke-width:5px;stroke-linejoin:round}
+.m-route-walk{stroke:var(--c-ink-2);stroke-width:9;stroke-dasharray:0 18;stroke-linecap:round;fill:none}
+.m-route-bus{stroke:var(--c-primary);stroke-width:16;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-route-mrt{stroke:var(--line-ns);stroke-width:16;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-route-case{stroke:var(--c-surface);stroke-width:26;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-done{stroke:var(--m-done);stroke-width:17;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-stop{fill:var(--c-surface);stroke:var(--c-primary);stroke-width:5}
+.m-dest{fill:var(--c-saffron);stroke:var(--c-on-saffron);stroke-width:5}
+.m-me-halo{fill:var(--c-primary);opacity:.18}
+.m-me-cone{fill:var(--c-primary);opacity:.35}
+.m-me{fill:var(--c-primary);stroke:#fff;stroke-width:6}
+.m-pulse{fill:none;stroke:var(--c-primary);stroke-width:4;transform-box:fill-box;transform-origin:center;animation:mpulse 2s var(--ease-out) infinite}
+@keyframes mpulse{from{transform:scale(.6);opacity:.9}to{transform:scale(2.2);opacity:0}}
+.m-hosp{fill:var(--c-jade)}
+
+/* ============ SHEETS ============ */
+.sheetwrap{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:flex-end}
+.scrim{position:absolute;inset:0;background:var(--c-scrim);animation:fadeIn var(--d-base) var(--ease-out) both}
+.sheet{position:relative;max-height:92%;overflow-y:auto;background:var(--c-canvas);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:12px var(--s-5) calc(env(safe-area-inset-bottom) + 22px);box-shadow:var(--e-3);animation:sheetUp var(--d-sheet) var(--ease-spring) both}
+.sheetwrap.closing .scrim{animation:fadeOut var(--d-base) var(--ease-in) both}
+.sheetwrap.closing .sheet{animation:sheetDown var(--d-base) var(--ease-in) both}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes sheetDown{to{transform:translateY(100%)}}
+@keyframes fadeIn{from{opacity:0}} @keyframes fadeOut{to{opacity:0}}
+.sheethead{display:flex;align-items:flex-start;gap:12px;margin:4px 0 14px}
+.sheethead h2{flex:1;margin:0;font-size:1.45rem;line-height:1.25;font-weight:900;padding-top:8px}
+.sheethead .iconbtn{width:var(--tap);padding:0}
+.sheet p.lead{margin:0 0 16px;font-size:1rem;color:var(--c-ink-2)}
+.opts{display:flex;flex-direction:column;gap:12px}
+.opt{display:flex;align-items:center;gap:14px;width:100%;min-height:84px;padding:14px 16px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-1);text-align:left;border:3px solid transparent}
+.opt .ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex:none}
+.opt b{display:block;font-size:1.15rem;line-height:1.25}
+.opt span{display:block;font-size:.85rem;color:var(--c-ink-2)}
+.opt .tx{flex:1;min-width:0}
+.opt.sel{border-color:var(--c-jade)}
+.opt .radio{width:32px;height:32px;border-radius:50%;border:3px solid var(--c-line);display:grid;place-items:center;flex:none}
+.opt.sel .radio{border-color:var(--c-jade);background:var(--c-jade);color:var(--c-on-jade)}
+.opt.sel .radio svg{width:20px;height:20px;stroke-width:3.5}
+.avatar{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:1.3rem;flex:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 4rem;min-height:var(--tap);border-radius:var(--r-m);background:var(--c-surface);border:3px solid var(--c-line);font-weight:700;font-size:1rem;padding:6px 10px}
+.seg button[aria-pressed=true]{border-color:var(--c-primary);background:var(--c-primary-soft);color:var(--c-on-primary-soft)}
+.setrow{margin:0 0 18px}
+.setrow h3{margin:0 0 8px;font-size:1rem;color:var(--c-ink-2)}
+.proto{margin-top:8px;padding:14px;border-radius:var(--r-m);border:2px dashed var(--c-line)}
+.proto h3{margin:0 0 4px;font-size:.9rem}
+.proto p{margin:0 0 10px;font-size:.85rem;color:var(--c-ink-2)}
+
+/* address (H9a) */
+.addr{flex:1;display:flex;flex-direction:column;padding:0 var(--s-5) var(--s-5);overflow-y:auto}
+.addr .card2{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:28px 22px;border-radius:var(--r-xl);background:#FFFFFF;color:#1D1915;border:4px solid #1D1915}
+.addr .please{font-size:1.4rem;font-weight:700}
+.addr .please small{display:block;font-size:1.1rem;font-weight:400}
+.addr .lines{font-size:2.1rem;font-weight:900;line-height:1.2;overflow-wrap:anywhere}
+.addr .postal{display:inline-block;margin-top:6px;padding:4px 14px;border-radius:10px;background:#FFD23F;font-size:2.1rem;font-weight:900}
+.addr .zh{font-size:1.3rem;font-weight:700;color:#4A4038}
+
+/* family (H8) */
+.fam{flex:1;overflow-y:auto;padding:0 var(--s-5) var(--s-6)}
+.browser{display:flex;align-items:center;gap:8px;margin:0 var(--s-4) 10px;padding:10px 14px;border-radius:var(--r-pill);background:var(--c-surface-2);font-size:.8rem;color:var(--c-ink-2);overflow:hidden;white-space:nowrap}
+.browser svg{width:16px;height:16px}
+.fam .hero{padding:18px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-2)}
+.fam .who{display:flex;gap:12px;align-items:center}
+.fam .eta{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:12px}
+.fam .eta b{font-size:2.3rem;font-weight:900;line-height:1}
+.fam .eta span{font-weight:700;color:var(--c-ink-2)}
+.fam .status{display:flex;gap:10px;align-items:center;margin-top:12px;padding:10px 12px;border-radius:var(--r-m);background:var(--c-jade-soft);color:var(--c-on-jade-soft);font-weight:700}
+.fam .mapbox{margin:14px 0 0;height:30vh}
+.fam .upd{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.85rem;color:var(--c-ink-2)}
+
+/* arrival (H11) */
+.arrive{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px var(--s-5);overflow-y:auto;position:relative}
+.arrive .mark{width:180px;height:180px;margin-bottom:8px}
+.arrive h1{margin:0;font-size:3rem;font-weight:900;line-height:1.05}
+.arrive .dest{margin-top:10px;font-size:1.3rem;font-weight:700}
+.arrive .stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.arrive .stats span{padding:8px 16px;border-radius:var(--r-pill);background:var(--c-surface);box-shadow:var(--e-1);font-weight:700;font-size:.95rem}
+.arrive .told{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:18px;padding:10px 16px;border-radius:var(--r-m);background:var(--c-jade-soft);color:var(--c-on-jade-soft);font-weight:700}
+.draw{stroke-dasharray:420;stroke-dashoffset:420;animation:draw 1.1s var(--ease-out) .2s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.drop{transform-box:fill-box;transform-origin:center bottom;animation:drop .7s var(--ease-spring) 1.1s both}
+@keyframes drop{from{transform:translateY(-120px) scale(.6);opacity:0}to{transform:none;opacity:1}}
+.ringout{transform-box:fill-box;transform-origin:center;animation:ringout 1.2s var(--ease-out) 1.6s both}
+@keyframes ringout{from{transform:scale(.4);opacity:.9}to{transform:scale(3);opacity:0}}
+.rise{animation:rise .6s var(--ease-out) both}
+@keyframes rise{from{transform:translateY(16px);opacity:0}}
+.petal{position:absolute;width:14px;height:14px;border-radius:50% 0 50% 0;pointer-events:none;animation:petal var(--dur) var(--ease-out) var(--del) both}
+@keyframes petal{from{transform:translate(0,0) rotate(0) scale(.4);opacity:0}15%{opacity:1}to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(1);opacity:0}}
+
+/* call overlay */
+.call{position:absolute;inset:0;z-index:30;background:var(--c-jade);color:var(--c-on-jade);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px;animation:fadeIn var(--d-base) both}
+.call .avatar{width:120px;height:120px;font-size:2.6rem;background:var(--c-on-jade);color:var(--c-jade);position:relative}
+.call .avatar::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:4px solid var(--c-on-jade);animation:ripple 1.6s var(--ease-out) infinite}
+.call h2{margin:0;font-size:1.8rem}
+.call .btn{max-width:320px;background:var(--c-danger);color:var(--c-on-danger)}
+.call small{font-size:.8rem;opacity:.9}
+
+/* toast */
+.toast{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 110px);z-index:40;display:flex;gap:12px;align-items:center;padding:14px 18px;border-radius:var(--r-m);background:var(--c-ink);color:var(--c-ink-inv);font-weight:700;box-shadow:var(--e-3);animation:dropIn var(--d-slow) var(--ease-spring) both}
+.toast svg{width:28px;height:28px;flex:none}
+
+/* ============ REDUCE MOTION ============ */
+:root.rm *,:root.rm *::before,:root.rm *::after{animation-duration:1ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+:root.rm .enter-push,:root.rm .enter-pop{animation:fadeIn 120ms linear both!important}
+:root.rm .exit-push,:root.rm .exit-pop{animation:fadeOut 120ms linear both!important}
+:root.rm .petal,:root.rm .m-pulse,:root.rm .ringout{display:none}
+:root.rm .edgeglow{animation:none}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="2"/><path d="M9.5 21l2.5-7.5 3 3V21M7 11.5L10.5 8h3l2.5 3 2.5.5M12.5 8l-1 5.5"/></symbol>
+  <symbol id="i-bus" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3M9 6.5h6"/><circle cx="8" cy="14.5" r=".9"/><circle cx="16" cy="14.5" r=".9"/></symbol>
+  <symbol id="i-train" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="14" rx="4"/><path d="M5 10h14M8.5 21l2-4M15.5 21l-2-4"/><circle cx="9" cy="13.5" r=".9"/><circle cx="15" cy="13.5" r=".9"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-clinic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M12 9v7M8.5 12.5h7M9 5V3.5h6V5"/></symbol>
+  <symbol id="i-market" viewBox="0 0 24 24"><path d="M3.5 10h17l-1.6 8.6a2 2 0 0 1-2 1.6H7.1a2 2 0 0 1-2-1.6zM8 10l3-6M16 10l-3-6M9 14v3M15 14v3M12 14v3"/></symbol>
+  <symbol id="i-family" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9.5" r="2.3"/><path d="M3.5 20c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M14.5 14.6c.8-.4 1.6-.6 2.5-.6 2.5 0 4 2 4 5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M6 6l3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.3"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 8a5.7 5.7 0 0 1 0 8M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h3.5l1.5 4.5-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5C10.6 20 4 13.4 3.5 5.6A1.5 1.5 0 0 1 5 4z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-nav" viewBox="0 0 24 24"><path d="M12 3l7 17-7-4-7 4z"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18h6.3a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7h6.3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M4.5 16.5v-4.5l2-5.5h11l2 5.5v4.5zM4.5 16.5V19h3v-2.5M16.5 16.5V19h3v-2.5M4.5 12h15"/><circle cx="8" cy="14.3" r=".9"/><circle cx="16" cy="14.3" r=".9"/></symbol>
+  <symbol id="i-loc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/></symbol>
+  <symbol id="i-lift" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9.5 9.5L12 7l2.5 2.5M9.5 14.5L12 17l2.5-2.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4L4 7l3 3M4 7h12M17 14l3 3-3 3M20 17H8"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-steps" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+</svg>
+
+<div class="stage">
+  <aside class="side" aria-label="Prototype guide">
+    <div class="brand">
+      <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="116" fill="#9A3412"/><path d="M168 206C168 146 210 104 262 104C318 104 352 142 352 190C352 238 312 256 284 276C266 289 258 304 258 330" fill="none" stroke="#FBF5EC" stroke-width="58" stroke-linecap="round"/><circle cx="168" cy="206" r="40" fill="#9A3412" stroke="#FBF5EC" stroke-width="22"/><circle cx="258" cy="408" r="42" fill="#FFD23F"/></svg>
+      <h1>怎么去?<small>Creative prototype v1.0 · Every question has a way.</small></h1>
+    </div>
+    <p>Tap through the phone like a user would. The trip simulates movement from Toa Payoh to Tan Tock Seng Hospital. Turn your sound on to hear the voice. Browser Back follows the in-app steps.</p>
+    <h2>Frames</h2>
+    <div class="frames" id="frames"></div>
+    <h2>Prototype controls</h2>
+    <div class="ctl" id="sidectl"></div>
+    <p class="note">Sample data only. Map is an illustrated, simplified Toa Payoh–Novena area, not to scale. Bus arrival times are simulated.</p>
+  </aside>
+  <main class="phone" id="phone" aria-label="怎么去? app">
+    <div id="screens"></div>
+    <div id="sheets"></div>
+    <div id="overlay"></div>
+    <div class="sr" aria-live="polite" id="live"></div>
+    <div class="sr" aria-live="assertive" id="live2"></div>
+  </main>
+</div>
+
+<script>
+'use strict';
+/* ================= STATE ================= */
+const LS = (()=>{try{return window.localStorage}catch(e){return null}})();
+const saved = (()=>{try{return JSON.parse(LS&&LS.getItem('zmq-proto')||'{}')}catch(e){return {}}})();
+const S = {
+  lang: saved.lang||'zh', ts: saved.ts||1, theme: saved.theme||'auto', muted: !!saved.muted, haptics: saved.haptics!==false,
+  speed: saved.speed||1, here:'home', sharing:null, shareTo:'meiling', rmForce: saved.rm||'auto'
+};
+function persist(){try{LS&&LS.setItem('zmq-proto',JSON.stringify({lang:S.lang,ts:S.ts,theme:S.theme,muted:S.muted,haptics:S.haptics,speed:S.speed,rm:S.rmForce}))}catch(e){}}
+const mqRM = matchMedia('(prefers-reduced-motion: reduce)');
+const rm = ()=> S.rmForce==='on' || (S.rmForce==='auto' && mqRM.matches);
+function applyPrefs(){
+  const r=document.documentElement;
+  r.style.setProperty('--ts',S.ts);
+  r.dataset.theme=S.theme;
+  r.lang = S.lang==='zh'?'zh-Hans':'en-SG';
+  r.classList.toggle('rm',rm());
+  persist();
+}
+/* ================= COPY ================= */
+const C = {
+  appName:{zh:'怎么去?',en:'怎么去?'},
+  morning:{zh:'早上好，林阿姨',en:'Good morning, Auntie Lin'},
+  afternoon:{zh:'下午好，林阿姨',en:'Good afternoon, Auntie Lin'},
+  evening:{zh:'晚上好，林阿姨',en:'Good evening, Auntie Lin'},
+  whereToday:{zh:'今天想去哪里？',en:'Where would you like to go today?'},
+  youAreNear:{zh:'你在：{p}附近',en:'You are near: {p}'},
+  searchPh:{zh:'说出或打出地方名字',en:'Say or type a place'},
+  myPlaces:{zh:'常去的地方',en:'My places'},
+  takeHome:{zh:'带我回家',en:'Take me home'},
+  help:{zh:'帮忙',en:'Help'},
+  helpRowT:{zh:'需要帮忙？',en:'Need help?'},
+  helpRowS:{zh:'打电话给家人，或给司机看地址',en:'Call family, or show a driver your address'},
+  langBtn:{zh:'EN',en:'中'},
+  langLabel:{zh:'Switch to English',en:'切换到中文'},
+  textBtnLabel:{zh:'字体大小：{n}%',en:'Text size: {n}%'},
+  settings:{zh:'设置',en:'Settings'},
+  back:{zh:'返回',en:'Back'},
+  close:{zh:'关闭',en:'Close'},
+  alreadyHome:{zh:'你现在就在家附近，不用找路啦。',en:"You're already near home. No trip needed."},
+  /* search */
+  searchTitle:{zh:'去哪里？',en:'Where to?'},
+  searchFieldLabel:{zh:'地方名字',en:'Place name'},
+  micLabel:{zh:'用说的',en:'Speak'},
+  listening:{zh:'我在听…请说地方名字',en:"I'm listening… say the place"},
+  recent:{zh:'最近去过',en:'Recent'},
+  results:{zh:'找到这些地方',en:'Places found'},
+  noneT:{zh:'没找到“{q}”',en:'Couldn’t find “{q}”'},
+  noneS:{zh:'换个说法试试，比如“医院”“巴刹”或地址。',en:'Try other words, like “hospital”, “market” or an address.'},
+  /* routes */
+  howTo:{zh:'怎么去 {p}？',en:'How do I get to {p}?'},
+  fromHere:{zh:'从：{p}',en:'From: {p}'},
+  leastWalk:{zh:'最少走路',en:'Least walking'},
+  fastest:{zh:'最快',en:'Fastest'},
+  walkOnly:{zh:'走路就到',en:'Walk there'},
+  fewest:{zh:'最少转车',en:'Fewest changes'},
+  best:{zh:'推荐',en:'Best for you'},
+  min:{zh:'分钟',en:'min'},
+  arriveAt:{zh:'{t} 到达',en:'Arrive {t}'},
+  walkMin:{zh:'走路 {n} 分钟',en:'Walk {n} min'},
+  noChange:{zh:'不用转车',en:'No changes'},
+  noStairs:{zh:'没有楼梯',en:'No stairs'},
+  lifts:{zh:'有电梯',en:'Lifts all the way'},
+  stopsN:{zh:'{n} 站',en:'{n} stops'},
+  stop1:{zh:'1 站',en:'1 stop'},
+  choose:{zh:'选这条路',en:'Choose this way'},
+  onlyOne:{zh:'这里很近，只有一条好走的路。',en:"It's close by. There's one easy way."},
+  honest:{zh:'巴士时间来自实时信息，可能会有几分钟变化。',en:'Bus times are live but can change by a few minutes.'},
+  /* overview */
+  goTo:{zh:'去 {p}',en:'To {p}'},
+  start:{zh:'开始出发',en:'Start'},
+  tellFirst:{zh:'出发前，告诉家人',en:'Tell family before I go'},
+  stWalk:{zh:'走到 {p}',en:'Walk to {p}'},
+  stWalkS:{zh:'大约 {n} 分钟',en:'About {n} min'},
+  stBus:{zh:'坐 {s} 号巴士，坐 {n}',en:'Take bus {s}, ride {n}'},
+  stMrt:{zh:'坐地铁 {l} 线，坐 {n}',en:'Take the {l} line train, ride {n}'},
+  stRideS:{zh:'在 {p} 下车',en:'Get off at {p}'},
+  stArrive:{zh:'到达 {p}',en:'Arrive at {p}'},
+  towards:{zh:'往 {p} 方向',en:'Towards {p}'},
+  /* guide */
+  endTrip:{zh:'结束',en:'End'},
+  endTripL:{zh:'结束行程',en:'End trip'},
+  muteL:{zh:'关掉声音',en:'Turn voice off'},
+  unmuteL:{zh:'打开声音',en:'Turn voice on'},
+  followL:{zh:'跟着我走（地图转向）',en:'Follow me (map turns with you)'},
+  overviewL:{zh:'看全程',en:'See whole trip'},
+  shareL:{zh:'分享我的行程',en:'Share my trip'},
+  stepOf:{zh:'第 {a} 步，共 {b} 步',en:'Step {a} of {b}'},
+  arriveLeft:{zh:'{t} 到达 · 还有 {n} 分钟',en:'Arrive {t} · {n} min left'},
+  gWalkT:{zh:'走到 {p}',en:'Walk to {p}'},
+  gWalkS:{zh:'还有 {m} 米，大约 {n} 分钟',en:'{m} m to go, about {n} min'},
+  gWaitT:{zh:'在这里等 {s} 号巴士',en:'Wait here for bus {s}'},
+  gWaitMrtT:{zh:'在月台等地铁',en:'Wait on the platform for the train'},
+  gWaitMrtS:{zh:'{l} 线 · {d}',en:'{l} line · {d}'},
+  gWaitS:{zh:'站名牌上写着：',en:'The stop sign says:'},
+  comesIn:{zh:'{n} 分钟',en:'{n} min'},
+  arriving:{zh:'快到了',en:'Arriving'},
+  nextBus:{zh:'下一班 {n} 分钟',en:'Next one {n} min'},
+  live:{zh:'实时',en:'Live'},
+  busHereT:{zh:'{s} 号巴士来了！',en:'Bus {s} is here!'},
+  busHereS:{zh:'看清楚车头的号码，再上车。',en:'Check the number on the front, then get on.'},
+  trainHereT:{zh:'地铁来了！',en:'The train is here!'},
+  trainHereS:{zh:'等人下车后，再慢慢上车。',en:'Let people get off first, then step in slowly.'},
+  gRideT:{zh:'坐着就好，还有 {n}',en:'Sit back. {n} to go'},
+  gRideS:{zh:'下一站：{p}',en:'Next stop: {p}'},
+  gRideTell:{zh:'下车前我会提醒你。',en:"I'll tell you before your stop."},
+  alightT:{zh:'到站了，请下车',en:'This is your stop. Get off now'},
+  alightS:{zh:'慢慢来，扶好扶手。',en:'Take your time. Hold the handrail.'},
+  getOffT:{zh:'下一站下车',en:'Get off at the next stop'},
+  getOffBell:{zh:'请现在按铃',en:'Press the bell now'},
+  getOffTrain:{zh:'车门开了就下车',en:'Get off when the doors open'},
+  ok:{zh:'知道了',en:'OK, got it'},
+  sayAgain:{zh:'再说一遍',en:'Say it again'},
+  allSteps:{zh:'全部步骤',en:'All steps'},
+  sharingWith:{zh:'{n} 看得到你',en:'{n} can see you'},
+  offT:{zh:'没关系，你走了另一条路',en:"That's okay — you took another way"},
+  offS:{zh:'我在帮你找新的路…',en:"I'm finding a new way for you…"},
+  offDoneT:{zh:'找到了新的路',en:'Found a new way'},
+  offDoneS:{zh:'跟着地图上的点走就好。',en:'Just follow the dots on the map.'},
+  endQ:{zh:'要结束这次行程吗？',en:'End this trip?'},
+  endLead:{zh:'结束后，语音和地图提示会停止。',en:'Voice and map guidance will stop.'},
+  keepGoing:{zh:'继续行程',en:'Keep going'},
+  endYes:{zh:'结束行程',en:'End trip'},
+  /* share */
+  shareT:{zh:'让家人知道你在哪里',en:'Let family see where you are'},
+  shareLead:{zh:'他们会看到你的位置和到达时间。你到达后，分享会自动停止。',en:"They'll see where you are and when you'll arrive. Sharing stops by itself when you arrive."},
+  shareWho:{zh:'告诉谁？',en:'Tell who?'},
+  meiling:{zh:'美玲',en:'Mei Ling'},
+  meilingR:{zh:'女儿',en:'Daughter'},
+  zhiming:{zh:'志明',en:'Zhi Ming'},
+  zhimingR:{zh:'儿子',en:'Son'},
+  sendWA:{zh:'用 WhatsApp 发送',en:'Send by WhatsApp'},
+  sendSMS:{zh:'发短信',en:'Send a text message'},
+  preview:{zh:'看看家人会看到什么',en:'See what they will see'},
+  shared:{zh:'已分享给 {n}。她现在看得到你。',en:'Shared with {n}. They can see you now.'},
+  sharingNow:{zh:'正在分享给 {n}',en:'Sharing with {n}'},
+  sharingUntil:{zh:'到达后自动停止',en:'Stops by itself when you arrive'},
+  stopShare:{zh:'停止分享',en:'Stop sharing'},
+  stopped:{zh:'已停止分享。',en:'Sharing stopped.'},
+  privacy:{zh:'只分享这一次的行程，不会保存你的位置。',en:'Only this trip is shared. Your location is not stored.'},
+  /* family view */
+  famBar:{zh:'家人看到的画面',en:'What your family sees'},
+  famHead:{zh:'妈妈正在去 {p}',en:'Mum is on her way to {p}'},
+  famNot:{zh:'妈妈还没出发',en:"Mum hasn't started yet"},
+  famArrived:{zh:'妈妈已经到达 {p}',en:'Mum has arrived at {p}'},
+  famEta:{zh:'约 {t} 到达',en:'Arrives about {t}'},
+  famLeft:{zh:'还有 {n} 分钟',en:'{n} min to go'},
+  famUpd:{zh:'刚刚更新 · 每 15 秒更新一次',en:'Updated just now · every 15 seconds'},
+  famCall:{zh:'打电话给妈妈',en:'Call Mum'},
+  famExpire:{zh:'这个链接在妈妈到达后会失效。',en:'This link stops working once Mum arrives.'},
+  famWalking:{zh:'正在走路去 {p}',en:'Walking to {p}'},
+  famWaiting:{zh:'在 {p} 等 {s} 号巴士',en:'Waiting for bus {s} at {p}'},
+  famWaitingT:{zh:'在 {p} 等地铁',en:'Waiting for the train at {p}'},
+  famRiding:{zh:'在 {s} 号巴士上，还有 {n}',en:'On bus {s}, {n} to go'},
+  famRidingT:{zh:'在地铁上，还有 {n}',en:'On the train, {n} to go'},
+  /* help */
+  helpT:{zh:'别担心，我来帮你',en:"Don't worry, I'm here to help"},
+  callMei:{zh:'打电话给美玲',en:'Call Mei Ling'},
+  callMeiS:{zh:'女儿 · 一按就打',en:'Daughter · one tap to call'},
+  showAddr:{zh:'给司机看地址',en:'Show my address to a driver'},
+  showAddrS:{zh:'大字显示，方便叫德士',en:'Big and clear, for a taxi'},
+  whereAmI:{zh:'我在哪里？',en:'Where am I?'},
+  whereAmIS:{zh:'显示你现在的位置',en:'Show where you are now'},
+  reroute:{zh:'帮我重新找路',en:'Find my way again'},
+  rerouteS:{zh:'从你现在的地方开始',en:'Starting from where you are'},
+  emergency:{zh:'紧急情况 · 拨打 995',en:'Emergency · Call 995'},
+  calling:{zh:'正在打电话给 {n}…',en:'Calling {n}…'},
+  hangUp:{zh:'挂断',en:'Hang up'},
+  protoCall:{zh:'原型演示：不会真的打电话',en:'Prototype: no real call is made'},
+  /* address */
+  addrTitle:{zh:'给司机看',en:'Show the driver'},
+  pleaseTake:{zh:'Please take me to',en:'Please take me to'},
+  pleaseTakeZh:{zh:'请送我去',en:'请送我去'},
+  iAmAt:{zh:'I am here',en:'I am here'},
+  iAmAtZh:{zh:'我现在在这里',en:'我现在在这里'},
+  toDest:{zh:'去目的地',en:'Where I’m going'},
+  toHome:{zh:'我的家',en:'My home'},
+  hereNow:{zh:'我在哪里',en:'Where I am'},
+  /* arrival */
+  arrivedT:{zh:'到了！',en:"You're here!"},
+  tookMin:{zh:'用了 {n} 分钟',en:'Took {n} min'},
+  wellDone:{zh:'你做得很好',en:'Well done'},
+  famKnows:{zh:'美玲已经知道你到了',en:'Mei Ling knows you have arrived'},
+  tellMei:{zh:'告诉美玲我到了',en:"Tell Mei Ling I've arrived"},
+  told:{zh:'已经告诉美玲了。',en:'Mei Ling has been told.'},
+  done:{zh:'完成',en:'Done'},
+  routeHome:{zh:'回家的路',en:'Route home'},
+  /* settings */
+  setT:{zh:'设置',en:'Settings'},
+  setLang:{zh:'语言 Language',en:'Language 语言'},
+  setText:{zh:'字体大小',en:'Text size'},
+  setTheme:{zh:'颜色',en:'Colours'},
+  auto:{zh:'跟手机',en:'Same as phone'},
+  light:{zh:'白天',en:'Light'},
+  dark:{zh:'夜间',en:'Dark'},
+  setVoice:{zh:'语音提示',en:'Voice guidance'},
+  setVib:{zh:'震动提示',en:'Vibration'},
+  on:{zh:'开',en:'On'}, off:{zh:'关',en:'Off'},
+  setMotion:{zh:'减少动画',en:'Reduce motion'},
+  protoT:{zh:'原型演示控制',en:'Prototype controls'},
+  protoS:{zh:'只在原型里有，正式版没有。',en:'Only in this prototype, not in the app.'},
+  demoSpeed:{zh:'演示速度',en:'Demo speed'},
+  slow:{zh:'慢',en:'Slow'}, normal:{zh:'正常',en:'Normal'}, fast:{zh:'快',en:'Fast'},
+  demoOff:{zh:'模拟走错路',en:'Simulate going off route'},
+  demoGetOff:{zh:'跳到“下一站下车”',en:'Jump to “Get off next stop”'},
+  demoOffNeed:{zh:'请在走路的步骤时再试。',en:'Try this during a walking step.'},
+  speaking:{zh:'正在说话',en:'Speaking'}
+};
+const T=(k,v)=>{let s=(C[k]||{})[S.lang]; if(s==null) s=k; if(v) for(const x in v) s=s.split('{'+x+'}').join(v[x]); return s;};
+const L=o=>o?(typeof o==='string'?o:o[S.lang]):'';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ic=(n,cls='')=>`<svg class="i ${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+
+/* ================= DATA (sample) ================= */
+const PL = {
+  home:{zh:'家',en:'Home',sign:'Blk 79 Toa Payoh Lor 4',sub:{zh:'大巴窑4巷 第79座',en:'Blk 79 Toa Payoh Lor 4'},addr:['Blk 79 Toa Payoh Lorong 4','#08-123'],postal:'310079',addrZh:'大巴窑4巷 第79座'},
+  stop79:{zh:'Blk 79 巴士站',en:'Blk 79 bus stop',sign:'Blk 79'},
+  stopTTSH:{zh:'陈笃生医院 巴士站',en:'Tan Tock Seng Hosp bus stop',sign:'Tan Tock Seng Hosp'},
+  ttsh:{zh:'陈笃生医院',en:'Tan Tock Seng Hospital',sign:'Tan Tock Seng Hospital',sub:{zh:'正门 · Jalan Tan Tock Seng',en:'Main entrance · Jalan Tan Tock Seng'},addr:['Tan Tock Seng Hospital','11 Jalan Tan Tock Seng'],postal:'308433',addrZh:'陈笃生医院 正门'},
+  tpMRT:{zh:'大巴窑 地铁站',en:'Toa Payoh MRT',sign:'Toa Payoh',code:'NS19'},
+  novena:{zh:'诺维娜 地铁站',en:'Novena MRT',sign:'Novena',code:'NS20'},
+  bishan:{zh:'碧山 地铁站',en:'Bishan MRT',sign:'Bishan',code:'NS17'},
+  market:{zh:'巴刹',en:'Market',sign:'Toa Payoh Lor 8 Market',full:{zh:'大巴窑8巷 巴刹',en:'Toa Payoh Lor 8 Market'},sub:{zh:'大巴窑8巷 第210座',en:'Blk 210 Toa Payoh Lor 8'},addr:['Blk 210 Toa Payoh Lorong 8','Market & Food Centre'],postal:'310210',addrZh:'大巴窑8巷 巴刹'},
+  daughter:{zh:'女儿家',en:"Daughter's home",sign:'Blk 150 Bishan St 11',full:{zh:'美玲家（碧山）',en:"Mei Ling's home (Bishan)"},sub:{zh:'美玲家 · 碧山11街',en:"Mei Ling's · Bishan St 11"},addr:['Blk 150 Bishan Street 11','#05-210'],postal:'570150',addrZh:'碧山11街 第150座'}
+};
+PL.clinic=PL.ttsh;
+const fullName=p=>L(p.full||p);
+const ROUTES = {
+  ttsh:[
+    {id:'bus',tag:'leastWalk',best:true,legs:[
+      {t:'walk',from:'home',to:'stop79',min:3,pts:[[800,470],[800,500],[700,500]]},
+      {t:'bus',svc:'139',from:'stop79',to:'stopTTSH',min:14,wait:4,next:12,stops:['Blk 108','Toa Payoh Rise','Opp Shaw Plaza','Balestier Plaza','Novena Stn','Tan Tock Seng Hosp'],pts:[[700,500],[660,500],[660,1262],[380,1206],[330,1255]]},
+      {t:'walk',from:'stopTTSH',to:'ttsh',min:2,pts:[[330,1255],[262,1306]]}],facts:['noStairs']},
+    {id:'mrt',tag:'fastest',legs:[
+      {t:'walk',from:'home',to:'tpMRT',min:6,pts:[[800,470],[800,500],[560,500],[525,530]]},
+      {t:'mrt',line:'NS',towards:'Marina South Pier',from:'tpMRT',to:'novena',min:3,wait:2,next:5,stops:['Novena'],pts:[[525,530],[450,860],[385,1175]]},
+      {t:'walk',from:'novena',to:'ttsh',min:5,pts:[[385,1175],[340,1250],[262,1306]]}],facts:['lifts']}
+  ],
+  market:[
+    {id:'walk',tag:'walkOnly',best:true,legs:[{t:'walk',from:'home',to:'market',min:9,pts:[[800,470],[800,500],[900,500],[900,700],[860,712]]}],facts:['noStairs']}
+  ],
+  daughter:[
+    {id:'mrt',tag:'fewest',best:true,legs:[
+      {t:'walk',from:'home',to:'tpMRT',min:6,pts:[[800,470],[800,500],[560,500],[525,530]]},
+      {t:'mrt',line:'NS',towards:'Jurong East',from:'tpMRT',to:'bishan',min:5,wait:3,next:6,stops:['Braddell','Bishan'],pts:[[525,530],[420,300],[300,95]]},
+      {t:'walk',from:'bishan',to:'daughter',min:4,pts:[[300,95],[250,110],[205,140]]}],facts:['lifts']}
+  ]
+};
+// Route home from TTSH = reverse of TTSH routes
+function reverseRoute(r){
+  const legs=r.legs.slice().reverse().map(l=>{
+    const n={...l,from:l.to,to:l.from,pts:l.pts.slice().reverse()};
+    if(l.t==='walk' && l.from==='home') n.to='home';
+    if(l.stops){ n.stops=l.stops.slice(0,-1).reverse().concat([PL[l.from].sign]); }
+    if(l.t==='mrt') n.towards = l.towards==='Marina South Pier'?'Jurong East':'Marina South Pier';
+    return n;});
+  return {...r,legs};
+}
+ROUTES.home = ROUTES.ttsh.map(reverseRoute);
+const tripMin=r=>r.legs.reduce((a,l)=>a+l.min+(l.wait||0),0);
+const walkMin=r=>r.legs.filter(l=>l.t==='walk').reduce((a,l)=>a+l.min,0);
+const clock=d=>{const h=d.getHours(),m=d.getMinutes();return (S.lang==='zh'?'':'')+((h%12)||12)+':'+String(m).padStart(2,'0')+(S.lang==='zh'?(h<12?' 上午':' 下午'):(h<12?' am':' pm'));};
+const clockZh=d=>{const h=d.getHours(),m=d.getMinutes();return S.lang==='zh'?`${h<12?'上午':'下午'} ${((h%12)||12)}:${String(m).padStart(2,'0')}`:clock(d)};
+const at=min=>clockZh(new Date(Date.now()+min*60000));
+const destPlace=k=>PL[k];
+
+/* ================= NAV (history-backed stack, §7) ================= */
+let gen=Date.now()%100000;
+const NAV={stack:[]};
+const SHEETS=new Set(['share','help','settings','endq']);
+let uid=0;
+function topScreenIdx(st=NAV.stack){for(let i=st.length-1;i>=0;i--) if(!SHEETS.has(st[i].v)) return i; return 0;}
+function push(v,p={}){
+  if(v!=='endq') tick();
+  const prev=NAV.stack.slice();
+  NAV.stack.push({v,p,id:++uid});
+  history.pushState({d:NAV.stack.length-1,g:gen},'');
+  sync(prev,'push');
+}
+function back(){history.back();}
+function resetTo(list){
+  const prev=NAV.stack.slice();
+  gen++;
+  NAV.stack=list.map(([v,p])=>({v,p:p||{},id:++uid}));
+  history.replaceState({d:0,g:gen},'');
+  for(let i=1;i<NAV.stack.length;i++) history.pushState({d:i,g:gen},'');
+  sync(prev,'push');
+}
+addEventListener('popstate',e=>{
+  const st=e.state; const d=(st&&st.g===gen)?st.d:0;
+  if(d>=NAV.stack.length-1) return;
+  const prev=NAV.stack.slice();
+  const target=NAV.stack.slice(0,d+1);
+  // Guard: leaving live guidance during a trip asks first (Back must not silently end a trip)
+  const gi=NAV.stack.findIndex(x=>x.v==='guide');
+  if(TRIP.running && gi>=0 && d<gi){
+    NAV.stack=NAV.stack.slice(0,gi+1);
+    history.pushState({d:gi,g:gen},'');
+    sync(prev,'pop');
+    push('endq');
+    return;
+  }
+  NAV.stack=target;
+  sync(prev,'pop');
+});
+/* render a view into an element */
+const VIEWS={};
+function sync(prev,dir){
+  const scr=document.getElementById('screens'), sh=document.getElementById('sheets');
+  const oldTop=prev[topScreenIdx(prev)], ti=topScreenIdx(), newTop=NAV.stack[ti];
+  const ids=new Set(NAV.stack.map(x=>x.id));
+  // screens
+  NAV.stack.forEach((en,i)=>{
+    if(SHEETS.has(en.v)) return;
+    let el=document.getElementById('s'+en.id);
+    if(!el){el=document.createElement('section');el.className='screen';el.id='s'+en.id;el.dataset.view=en.v;el.hidden=true;scr.appendChild(el);renderEntry(en,el);}
+  });
+  [...scr.children].forEach(el=>{
+    const id=+el.id.slice(1);
+    if(!ids.has(id)){
+      if(oldTop && id===oldTop.id && newTop.id!==id){el.hidden=false;el.className='screen exit-'+dir;el.inert=true;setTimeout(()=>{destroyMaps(el);el.remove()},rm()?130:300);}
+      else {destroyMaps(el);el.remove();}
+    }
+  });
+  NAV.stack.forEach((en,i)=>{
+    if(SHEETS.has(en.v)) return;
+    const el=document.getElementById('s'+en.id);
+    if(i===ti){
+      const was=el.hidden; el.hidden=false; el.inert=false;
+      if(oldTop && oldTop.id!==en.id){el.className='screen enter-'+dir;}
+      if(was) setTimeout(()=>focusFirst(el),40);
+    } else if(!(oldTop&&en.id===oldTop.id&&dir==='push')) {el.hidden=true;}
+    else {el.className='screen exit-push';el.inert=true;setTimeout(()=>{if(NAV.stack[topScreenIdx()].id!==en.id)el.hidden=true;},rm()?130:300);}
+  });
+  // sheets
+  const want=NAV.stack.slice(ti+1).filter(x=>SHEETS.has(x.v));
+  [...sh.children].forEach(el=>{const id=+el.id.slice(1); if(!want.find(w=>w.id===id) && !el.classList.contains('closing')){el.classList.add('closing');setTimeout(()=>el.remove(),rm()?130:300);}});
+  want.forEach(en=>{
+    if(!document.getElementById('s'+en.id)){const el=document.createElement('div');el.className='sheetwrap';el.id='s'+en.id;sh.appendChild(el);renderEntry(en,el);setTimeout(()=>focusFirst(el),60);}
+  });
+  if(newTop.v==='guide') GUIDE.relayout();
+}
+function focusFirst(el){const h=el.querySelector('h1,h2,[data-focus]');if(h){h.tabIndex=-1;h.focus({preventScroll:true});}}
+function renderEntry(en,el){
+  destroyMaps(el);
+  if(SHEETS.has(en.v)){
+    el.innerHTML=`<div class="scrim" data-act="back"></div><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="h${en.id}">${VIEWS[en.v](en)}</div>`;
+    const h=el.querySelector('h2'); if(h) h.id='h'+en.id;
+  } else el.innerHTML=VIEWS[en.v](en);
+  bind(el,en); if(VIEWS[en.v+'_after']) VIEWS[en.v+'_after'](el,en);
+}
+function rerenderAll(){
+  NAV.stack.forEach(en=>{const el=document.getElementById('s'+en.id); if(el) renderEntry(en,el);});
+  renderSide();
+  if(TRIP.running) GUIDE.forceStep();
+}
+/* ================= FEEDBACK: haptics, voice, toast ================= */
+const HAPTIC={tick:12,confirm:[20,40,20],attention:[60,80,60],getoff:[300,150,300,150,600],arrive:[40,60,40,60,160],gentle:[30,60,30]};
+function buzz(k){try{if(S.haptics&&navigator.vibrate) navigator.vibrate(HAPTIC[k]);}catch(e){}}
+function tick(){buzz('tick');}
+let voices=[];try{speechSynthesis.onvoiceschanged=()=>{voices=speechSynthesis.getVoices()};voices=speechSynthesis.getVoices();}catch(e){}
+let lastSpoken=null;
+function say(key,v,force){
+  const txt={zh:'',en:''}; for(const l of ['zh','en']){let s=(C[key]||{})[l]||key; if(v) for(const x in v){const val=v[x]; s=s.split('{'+x+'}').join(typeof val==='object'?val[l]:val);} txt[l]=s;}
+  lastSpoken={key,v};
+  announce(txt[S.lang]);
+  if(S.muted && !force) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt[S.lang].replace(/[“”]/g,''));
+    u.lang=S.lang==='zh'?'zh-CN':'en-GB'; u.rate=S.lang==='zh'?.9:.92; u.pitch=1;
+    const vv=voices.find(x=>x.lang&&x.lang.replace('_','-').startsWith(S.lang==='zh'?'zh-CN':'en-')); if(vv) u.voice=vv;
+    u.onstart=()=>document.querySelectorAll('[data-speak]').forEach(b=>b.classList.add('on'));
+    u.onend=()=>document.querySelectorAll('[data-speak]').forEach(b=>b.classList.remove('on'));
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function sayText(t){ announce(t); }
+function announce(t,assertive){const el=document.getElementById(assertive?'live2':'live'); el.textContent=''; setTimeout(()=>el.textContent=t,30);}
+let toastT;
+function toast(msg,icon='check'){
+  const o=document.getElementById('overlay'); o.querySelectorAll('.toast').forEach(x=>x.remove());
+  const d=document.createElement('div'); d.className='toast'; d.setAttribute('role','status'); d.innerHTML=ic(icon)+`<span>${esc(msg)}</span>`; o.appendChild(d);
+  clearTimeout(toastT); toastT=setTimeout(()=>d.remove(),3600);
+}
+/* ================= EVENT BINDING ================= */
+function bind(root,en){
+  root.querySelectorAll('[data-act]').forEach(b=>{
+    b.addEventListener('click',ev=>{const a=b.dataset.act, arg=b.dataset.arg; ACT[a]&&ACT[a](arg,b,en,ev);});
+  });
+}
+const ACT={
+  back:()=>back(),
+  lang:()=>{S.lang=S.lang==='zh'?'en':'zh';tick();applyPrefs();rerenderAll();toast(S.lang==='zh'?'已换成中文':'Now in English','check');},
+  text:()=>{const seq=[1,1.25,1.5];const i=seq.indexOf(S.ts);S.ts=seq[(i+1)%seq.length]||1;tick();applyPrefs();rerenderAll();toast(T('textBtnLabel',{n:Math.round(S.ts*100)}),'check');},
+  set:(arg)=>{const [k,v]=arg.split(':');S[k]=isNaN(+v)?(v==='true'?true:v==='false'?false:v):+v;tick();applyPrefs();rerenderAll();if(k==='muted'&&TRIP.running&&!S.muted) replay();},
+  go:(arg)=>{const [v,p]=arg.split('|');push(v,p?JSON.parse(p):{});},
+  place:(k)=>{
+    if(k==='home'){ if(S.here==='home'){tick();toast(T('alreadyHome'),'home');return;} push('routes',{dest:'home'}); return;}
+    push('routes',{dest:k==='clinic'?'ttsh':k});},
+  route:(i,b,en)=>{push('overview',{dest:en.p.dest,ri:+i});},
+  start:(a,b,en)=>{TRIP.begin(en.p.dest,en.p.ri);push('guide',{dest:en.p.dest,ri:en.p.ri});},
+  mute:()=>{S.muted=!S.muted;applyPrefs();tick();if(S.muted){try{speechSynthesis.cancel()}catch(e){};toast(T('muteL'),'mute');}else{replay();}GUIDE.paintControls();},
+  replay:()=>{tick();replay(true);},
+  follow:()=>{GUIDE.follow=!GUIDE.follow;tick();GUIDE.paintControls();announce(GUIDE.follow?T('followL'):T('overviewL'));},
+  ackAlert:()=>{GUIDE.alertAck=true;buzz('confirm');GUIDE.paintAlert();},
+  endTrip:()=>{tick();push('endq');},
+  endYes:()=>{TRIP.stop();buzz('confirm');resetTo([['home']]);},
+  pickShare:(k)=>{S.shareTo=k;tick();const el=document.querySelector('.sheetwrap:last-child');const en=NAV.stack[NAV.stack.length-1];if(el&&en) renderEntry(en,el);},
+  send:()=>{S.sharing=S.shareTo;buzz('confirm');back();setTimeout(()=>{toast(T('shared',{n:T(S.sharing)}),'share');GUIDE.paintControls();},200);},
+  stopShare:()=>{S.sharing=null;buzz('confirm');back();setTimeout(()=>{toast(T('stopped'),'check');GUIDE.paintControls();},200);},
+  call:(who)=>{buzz('confirm');openCall(who||'meiling');},
+  hang:()=>{document.querySelector('.call')?.remove();tick();},
+  addr:(m)=>{push('address',{mode:m||(TRIP.running?'dest':'home')});},
+  addrMode:(m,b,en)=>{en.p.mode=m;tick();renderEntry(en,document.getElementById('s'+en.id));},
+  rerouteHelp:()=>{back();setTimeout(()=>{if(TRIP.running&&TRIP.step().k==='walk') DEMO.offRoute(); else toast(T('offDoneT'),'route');},350);},
+  e995:()=>{toast(S.lang==='zh'?'原型演示：会拨打 995':'Prototype: this would call 995','phone');},
+  tell:()=>{buzz('confirm');S.toldArrive=true;const en=NAV.stack[topScreenIdx()];renderEntry(en,document.getElementById('s'+en.id));toast(T('told'),'check');},
+  done:()=>{tick();resetTo([['home']]);},
+  routeHome:()=>{tick();resetTo([['home'],['routes',{dest:'home'}]]);},
+  mic:(a,b)=>{tick();const i=document.getElementById('q');b.classList.add('listening');document.getElementById('lh').hidden=false;announce(T('listening'));
+    setTimeout(()=>{b.classList.remove('listening');document.getElementById('lh').hidden=true;i.value=S.lang==='zh'?'陈笃生医院':'Tan Tock Seng';i.dispatchEvent(new Event('input'));buzz('confirm');},1800);},
+  demoOff:()=>DEMO.offRoute(),
+  demoGetOff:()=>DEMO.getOff(),
+  frame:(f)=>FRAMES[f]&&FRAMES[f].go()
+};
+/* ================= MAP ================= */
+const MAPS=new Set();
+function destroyMaps(el){MAPS.forEach(m=>{if(el.contains(m.svg)) MAPS.delete(m);});}
+function seeded(n){let s=n;return()=>((s=Math.imul(s^s>>>15,1|s)+0x6D2B79F5|0,(s>>>0)%1000)/1000);}
+const BLOCKS=(()=>{const r=seeded(7),out=[];
+  const zones=[[700,380,960,480],[690,530,880,690],[700,720,960,900],[470,560,630,640],[470,760,640,900],[160,160,380,300],[100,330,380,480],[60,520,400,700],[420,1040,640,1160],[700,1050,980,1180],[440,1290,700,1440],[80,860,300,990]];
+  zones.forEach(([x0,y0,x1,y1])=>{for(let x=x0;x<x1;x+=56)for(let y=y0;y<y1;y+=46){if(r()<.75) out.push([x+r()*10,y+r()*8,26+r()*20,14+r()*10,r()<.5?0:1]);}});return out;})();
+function mapBase(){
+  const roads=[
+    ['M480 500H990',30],['M660 480V1265',30],['M900 500V920',22],['M455 0L330 1500',36],['M250 1180L1000 1330',32],['M340 1250L180 1335',24],
+    ['M120 120H560',22],['M300 0V330',18],['M540 300C640 300 700 340 760 420',20],['M520 520L380 640L120 640',18],['M700 820H980',18],['M380 1206',0]
+  ];
+  let s=`<rect class="m-land" x="-600" y="-600" width="2200" height="2700"/>`;
+  s+=`<path class="m-park" d="M480 640C520 600 610 610 640 660C660 720 650 820 600 850C540 880 470 840 460 780C450 720 450 670 480 640Z"/>`;
+  s+=`<ellipse class="m-water" cx="560" cy="740" rx="52" ry="36"/>`;
+  s+=`<path class="m-park" d="M60 240C120 200 220 210 250 260C270 300 200 330 130 320C70 310 30 280 60 240Z"/>`;
+  s+=`<path class="m-water" d="M-200 1460C100 1420 300 1500 600 1470S1000 1440 1200 1480V1600H-200Z"/>`;
+  BLOCKS.forEach(([x,y,w,h,o])=>{s+=`<rect class="m-block" x="${x}" y="${y}" width="${o?h:w}" height="${o?w:h}" rx="3"/>`;});
+  s+=`<rect class="m-block" x="120" y="1290" width="180" height="120" rx="10"/><rect class="m-hosp" x="196" y="1330" width="28" height="28" rx="6"/><path d="M204 1336v16M216 1336v16M204 1344h12" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`;
+  s+=`<path class="m-exp" d="M-100 1030L1100 920" stroke-width="54"/><path class="m-exp" d="M-100 1030L1100 920" stroke-width="2" stroke="var(--m-land)" stroke-dasharray="20 18" style="opacity:.7"/>`;
+  roads.forEach(([d,w])=>{if(w) s+=`<path class="m-casing" d="${d}" stroke-width="${w+8}"/>`;});
+  roads.forEach(([d,w])=>{if(w) s+=`<path class="m-road" d="${d}" stroke-width="${w}"/>`;});
+  s+=`<path class="m-rail" d="M300 95L420 300L525 530L450 860L385 1175L330 1500"/>`;
+  [[300,95,'NS17'],[420,300,'NS18'],[525,530,'NS19'],[385,1175,'NS20']].forEach(([x,y])=>{s+=`<circle cx="${x}" cy="${y}" r="13" fill="var(--c-surface)" stroke="var(--line-ns)" stroke-width="6"/>`;});
+  return s;
+}
+const LABELS=[
+  [600,488,'Toa Payoh Lor 4',22],[672,880,'Toa Payoh Rise',20,90],[912,610,'Lor 8',20,90],[520,980,'PIE',26],[760,1268,'Balestier Rd',22,11],[418,420,'Thomson Rd',20,-85],
+  [555,800,'Toa Payoh Town Park',20],[300,1440,'Tan Tock Seng Hospital',22],[525,560,'Toa Payoh NS19',20],[388,1140,'Novena NS20',20],[300,70,'Bishan NS17',20],[420,272,'Braddell NS18',20],[150,190,'Bishan Park',20]
+];
+class MapView{
+  constructor(holder,route,opts={}){
+    this.route=route; this.follow=!!opts.follow; this.live=!!opts.live;
+    this.cam={x:600,y:800,z:.5,r:0}; this.tgt={...this.cam};
+    holder.innerHTML=`<svg class="map" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(opts.label||'')}"><g class="world">${mapBase()}<g class="rt"></g><g class="lbls"></g><g class="me" style="display:none"><circle class="m-me-halo" r="44"/><circle class="m-pulse" r="30"/><path class="m-me-cone" d="M0 0L-30 -70A76 76 0 0 1 30 -70Z"/><circle class="m-me" r="20"/></g></g></svg><span class="attrib">${S.lang==='zh'?'示意地图 · 地图数据 © OneMap / SLA（正式版）':'Illustrative map · Map data © OneMap / SLA (in the app)'}</span>`;
+    this.svg=holder.querySelector('svg'); this.world=this.svg.querySelector('.world'); this.me=this.svg.querySelector('.me');
+    this.lbls=this.svg.querySelector('.lbls');
+    this.lbls.innerHTML=LABELS.map(([x,y,t,fs,rot])=>`<g transform="translate(${x} ${y})"><g class="lr"><text class="m-lbl" text-anchor="middle" font-size="${fs}" ${rot?`data-rot="${rot}"`:''}>${t}</text></g></g>`).join('');
+    this.lblEls=[...this.lbls.querySelectorAll('.lr')];
+    this.drawRoute(); this.fit(true); MAPS.add(this); this.apply();
+  }
+  drawRoute(){
+    const r=this.route; let s='';
+    const P=pts=>'M'+pts.map(p=>p.join(' ')).join('L');
+    r.legs.forEach(l=>{if(l.t!=='walk') s+=`<path class="m-route-case" d="${P(l.pts)}"/>`;});
+    r.legs.forEach(l=>{s+=`<path class="${l.t==='walk'?'m-route-walk':l.t==='bus'?'m-route-bus':'m-route-mrt'}" d="${P(l.pts)}"/>`;});
+    s+=`<path class="m-done" d="" style="display:none"/>`;
+    r.legs.forEach(l=>{if(l.stops){const st=stopPts(l);st.forEach((p,i)=>{if(i<st.length-1) s+=`<circle class="m-stop" cx="${p[0]}" cy="${p[1]}" r="10"/>`;});}});
+    r.legs.forEach(l=>{if(l.t!=='walk'){const p=l.pts[0];s+=`<circle class="m-stop" cx="${p[0]}" cy="${p[1]}" r="14" style="stroke-width:7"/>`;const q=l.pts[l.pts.length-1];s+=`<circle class="m-dest" cx="${q[0]}" cy="${q[1]}" r="15"/>`;}});
+    const e=r.legs[r.legs.length-1].pts.slice(-1)[0], b=r.legs[0].pts[0];
+    s+=`<circle cx="${b[0]}" cy="${b[1]}" r="16" fill="var(--c-surface)" stroke="var(--c-ink)" stroke-width="7"/>`;
+    s+=`<circle class="m-dest" cx="${e[0]}" cy="${e[1]}" r="28" style="stroke-width:7"/>`;
+    this.svg.querySelector('.rt').innerHTML=s; this.done=this.svg.querySelector('.m-done');
+  }
+  fit(snap){
+    const pts=this.route.legs.flatMap(l=>l.pts); const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+    const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+    const box=this.svg.getBoundingClientRect(); const W=box.width||390,H=box.height||300;
+    const k=Math.max(W,H)/1000; // svg units per css px (slice)
+    const visW=W/k, visH=H/k; // in viewBox units
+    const pad=this.live?0.62:0.78;
+    const z=Math.min(visW*pad/Math.max(x1-x0,60), visH*(this.live?0.42:pad)/Math.max(y1-y0,60));
+    this.tgt={x:(x0+x1)/2,y:(y0+y1)/2,z:Math.min(z,1.4),r:0,oy:this.live?0.36:0.5};
+    if(snap) this.cam={...this.tgt};
+  }
+  setMe(p,hd){this.mePos=p;this.meHd=hd;this.me.style.display='';}
+  frame(dt){
+    if(this.follow && this.mePos){ this.tgt={x:this.mePos[0],y:this.mePos[1],z:1.25,r:-90-this.meHd*180/Math.PI,oy:0.62}; }
+    else if(this.live && !this.follow){ this.fit(false); }
+    const k=rm()?1:Math.min(1,dt*3.2), c=this.cam, t=this.tgt;
+    c.x+=(t.x-c.x)*k; c.y+=(t.y-c.y)*k; c.z+=(t.z-c.z)*k; c.oy=(c.oy||.5)+((t.oy||.5)-(c.oy||.5))*k;
+    let dr=((t.r-c.r)%360+540)%360-180; c.r+=dr*k;
+    this.apply();
+  }
+  apply(){
+    const c=this.cam, box=this.svg.getBoundingClientRect(); const W=box.width||390,H=box.height||300,k=Math.max(W,H)/1000;
+    const vx=500, vy=500-(H/k)/2+(H/k)*(c.oy||.5);
+    this.world.setAttribute('transform',`translate(${vx} ${vy}) scale(${c.z}) rotate(${c.r}) translate(${-c.x} ${-c.y})`);
+    const inv=1/c.z/k*0.9; // keep labels ~constant on screen
+    const ls=Math.max(.6,Math.min(1.6,1/c.z))*Math.min(1.4,S.ts);
+    this.lblEls.forEach(g=>{const t=g.firstChild;const rot=+(t.dataset.rot||0);const show=Math.abs(rot)>0&&!this.follow?rot:0;g.setAttribute('transform',`rotate(${-c.r+(this.follow?0:show)}) scale(${ls})`);});
+    if(this.mePos){this.me.setAttribute('transform',`translate(${this.mePos[0]} ${this.mePos[1]}) scale(${Math.max(.7,1/c.z)})`);
+      this.me.querySelector('.m-me-cone').setAttribute('transform',`rotate(${this.meHd*180/Math.PI+90})`);}
+  }
+  setDone(pts){ if(!pts||pts.length<2){this.done.style.display='none';return;} this.done.style.display='';this.done.setAttribute('d','M'+pts.map(p=>p.join(' ')).join('L')); }
+}
+function segLen(pts){let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);return L;}
+function along(pts,d){ // returns {p,hd,done:[...]}
+  let acc=0;const done=[pts[0]];
+  for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    if(acc+l>=d){const t=(d-acc)/l;const p=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];done.push(p);return{p,hd:Math.atan2(b[1]-a[1],b[0]-a[0]),done};}
+    acc+=l;done.push(b);}
+  const a=pts[pts.length-2],b=pts[pts.length-1];return{p:b.slice(),hd:Math.atan2(b[1]-a[1],b[0]-a[0]),done};
+}
+function stopPts(l){const L=segLen(l.pts),n=l.stops.length;return l.stops.map((_,i)=>along(l.pts,L*(i+1)/n).p);}
+
+/* ================= TRIP SIMULATION ================= */
+const TRIP={
+  running:false,
+  begin(dest,ri){
+    this.dest=dest; this.ri=ri; this.route=JSON.parse(JSON.stringify(ROUTES[dest][ri]));
+    this.steps=[]; this.route.legs.forEach((l,li)=>{ if(l.t==='walk') this.steps.push({k:'walk',li}); else {this.steps.push({k:'wait',li});this.steps.push({k:'ride',li});} });
+    this.si=0; this.d=0; this.waitLeft=0; this.phase=''; this.running=true; this.t0=Date.now(); this.total=tripMin(this.route);
+    this.doneLegs=[]; this.alerted=false; this.off=null; S.toldArrive=false;
+    GUIDE.alertAck=false; GUIDE.follow=true; GUIDE.lastKey='';
+    this.enterStep();
+  },
+  stop(){this.running=false; try{speechSynthesis.cancel()}catch(e){}},
+  step(){return this.steps[this.si];},
+  leg(){return this.route.legs[this.step().li];},
+  enterStep(){
+    const st=this.step(), l=this.leg(); this.d=0; this.phase='';
+    if(st.k==='wait'){this.waitLeft=l.wait; this.phase='wait';}
+    if(st.k==='ride'){this.passed=0; this.alerted=false; GUIDE.alertAck=false;}
+    GUIDE.onStep();
+  },
+  next(){
+    const st=this.step(); if(st.k!=='wait') this.doneLegs.push(this.leg().pts);
+    this.si++;
+    if(this.si>=this.steps.length){this.finish();return;}
+    buzz('confirm'); this.enterStep();
+  },
+  finish(){
+    this.running=false; buzz('arrive'); const mins=Math.max(1,Math.round(this.total));
+    S.here=this.dest==='home'?'home':this.dest; const wasSharing=S.sharing; S.sharing=null;
+    resetTo([['home'],['arrive',{dest:this.dest,mins,shared:wasSharing}]]);
+  },
+  remainingMin(){
+    let m=0; this.steps.forEach((s,i)=>{const l=this.route.legs[s.li]; const full=s.k==='walk'?l.min:s.k==='wait'?l.wait:l.min;
+      if(i>this.si) m+=full; else if(i===this.si){ if(s.k==='wait') m+=Math.max(0,this.waitLeft); else m+=full*(1-this.d/segLen(l.pts)); }});
+    return Math.max(1,Math.ceil(m));
+  },
+  pos(){const st=this.step(),l=this.leg(); if(st.k==='wait') {const p=l.pts[0];const n=l.pts[1];return{p:p.slice(),hd:Math.atan2(n[1]-p[1],n[0]-p[0]),done:[p]};}
+    const r=along(l.pts,this.d); if(this.off){r.p=[r.p[0]+this.off.v[0]*this.off.a,r.p[1]+this.off.v[1]*this.off.a];} return r;},
+  update(dt){
+    if(!this.running) return;
+    const blocked=NAV.stack.some(x=>x.v==='endq');
+    if(blocked) return;
+    const st=this.step(), l=this.leg(), sp=S.speed;
+    if(this.off){ // off-route drama
+      this.off.t+=dt;
+      if(this.off.stage===0){this.off.a=Math.min(1,this.off.t/2); if(this.off.t>2.6){this.off.stage=1;this.reroute();}}
+      return;
+    }
+    if(st.k==='walk'){ this.d+=dt*24*sp; if(this.d>=segLen(l.pts)) this.next(); }
+    else if(st.k==='wait'){
+      if(this.phase==='wait'){ this.waitLeft-=dt*sp*(l.t==='bus'?0.62:0.7); if(this.waitLeft<=0){this.waitLeft=0;this.phase='here';this.hereT=0;buzz('attention');GUIDE.onPhase();} }
+      else if(this.phase==='here'){ this.hereT+=dt*sp; if(this.hereT>3.6) this.next(); }
+    }
+    else if(st.k==='ride'){
+      if(this.phase==='alight'){ this.hereT+=dt*sp; if(this.hereT>3.4) this.next(); return; }
+      const L=segLen(l.pts); const v=(l.t==='bus'?62:58)*sp;
+      if(this.alerted && !GUIDE.alertAck && this.d>L*0.97){ /* hold just before the stop until acknowledged or 6s */ this.hold=(this.hold||0)+dt; if(this.hold<6) return; }
+      this.d=Math.min(L,this.d+dt*v);
+      const n=l.stops.length; const passed=Math.floor(this.d/L*n+1e-6); if(passed!==this.passed){this.passed=passed; GUIDE.onPhase();}
+      const left=n-Math.min(n,passed);
+      if(left===1 && !this.alerted && this.d> L*(n-1)/n + (L/n)*0.15){this.alerted=true;this.hold=0;GUIDE.onGetOff();}
+      if(n===1 && !this.alerted && this.d>L*0.25){this.alerted=true;this.hold=0;GUIDE.onGetOff();}
+      if(this.d>=L){this.phase='alight';this.hereT=0;GUIDE.alertAck=true;buzz('attention');GUIDE.onPhase();}
+    }
+  },
+  reroute(){
+    const l=this.leg(); const cur=this.pos().p; const rest=along(l.pts,this.d);
+    const remaining=[cur,[ (cur[0]+rest.p[0])/2+this.off.v[1]*0.3, (cur[1]+rest.p[1])/2 ]];
+    // remaining original points after current distance
+    let acc=0; const after=[]; for(let i=1;i<l.pts.length;i++){acc+=Math.hypot(l.pts[i][0]-l.pts[i-1][0],l.pts[i][1]-l.pts[i-1][1]); if(acc>this.d+4) after.push(l.pts[i]);}
+    const tgt=after.length?after:[l.pts[l.pts.length-1]];
+    l.pts=[cur].concat([[cur[0]+(tgt[0][0]-cur[0])*.5+this.off.v[0]*.3,cur[1]+(tgt[0][1]-cur[1])*.5+this.off.v[1]*.3]],tgt);
+    this.d=0; this.off=null; GUIDE.onReroute();
+  }
+};
+const DEMO={
+  offRoute(){
+    if(!TRIP.running || TRIP.step().k!=='walk'){ toast(T('demoOffNeed'),'walk'); return; }
+    const r=TRIP.pos(); const hd=r.hd; TRIP.off={v:[Math.cos(hd+Math.PI/2)*70,Math.sin(hd+Math.PI/2)*70],a:0,t:0,stage:0};
+    buzz('gentle'); GUIDE.onOff();
+  },
+  getOff(){
+    const go=()=>{ const i=TRIP.steps.findIndex(s=>s.k==='ride'); if(i<0)return; TRIP.si=i; TRIP.enterStep(); const l=TRIP.leg(),L=segLen(l.pts),n=l.stops.length; TRIP.d=n>1?L*(n-2)/n+L/n*0.9:L*0.2; TRIP.passed=Math.floor(TRIP.d/L*n); TRIP.doneLegs=TRIP.route.legs.slice(0,l===TRIP.route.legs[1]?1:0).map(x=>x.pts); GUIDE.onPhase(); };
+    if(TRIP.running && NAV.stack.some(x=>x.v==='guide')){ while(NAV.stack[NAV.stack.length-1].v!=='guide'){ /* close sheets */ NAV.stack.pop(); } resetTo(NAV.stack.map(x=>[x.v,x.p])); go(); }
+    else { TRIP.begin('ttsh',0); resetTo([['home'],['routes',{dest:'ttsh'}],['overview',{dest:'ttsh',ri:0}],['guide',{dest:'ttsh',ri:0}]]); go(); }
+  }
+};
+/* ================= GUIDE CONTROLLER ================= */
+const GUIDE={
+  follow:true, alertAck:false, lastKey:'',
+  el(){const en=NAV.stack.find(x=>x.v==='guide');return en?document.getElementById('s'+en.id):null;},
+  map(){const e=this.el();if(!e)return null;for(const m of MAPS) if(e.contains(m.svg)) return m;return null;},
+  relayout(){const m=this.map(); if(m){m.fit(false);} this.paintControls();},
+  forceStep(){this.lastKey='';this.paintStep();},
+  onStep(){ this.lastKey=''; this.paintStep(); const st=TRIP.step(), l=TRIP.leg();
+    if(st.k==='walk') say('gWalkT',{p:PL[l.to].full||PL[l.to]});
+    else if(st.k==='wait') l.t==='bus'?say('gWaitT',{s:l.svc}):say('gWaitMrtT');
+    else if(st.k==='ride') say('gRideT',{n:l.stops.length>1?{zh:l.stops.length+' 站',en:l.stops.length+' stops'}:{zh:'1 站',en:'1 stop'}});
+    const m=this.map(); if(m){m.route=TRIP.route;m.drawRoute();}
+  },
+  onPhase(){ this.lastKey=''; this.paintStep(); const st=TRIP.step(),l=TRIP.leg();
+    if(st.k==='wait'&&TRIP.phase==='here') l.t==='bus'?say('busHereT',{s:l.svc}):say('trainHereT');
+    if(st.k==='ride'&&TRIP.phase==='alight') say('alightT');
+  },
+  onGetOff(){ buzz('getoff'); const l=TRIP.leg(); say(l.t==='bus'?'getOffT':'getOffT'); setTimeout(()=>{ if(TRIP.running&&!this.alertAck) say(l.t==='bus'?'getOffBell':'getOffTrain'); },2200); announce(T('getOffT')+' '+(l.t==='bus'?T('getOffBell'):T('getOffTrain')),true); this.paintAlert(); },
+  onOff(){ const e=this.el(); if(!e)return; say('offT'); this.banner(true); },
+  onReroute(){ const m=this.map(); if(m){m.route=TRIP.route;m.drawRoute();} buzz('confirm'); say('offDoneT'); this.banner(false); this.lastKey='';this.paintStep(); },
+  banner(searching){ const e=this.el(); if(!e)return; e.querySelector('.banner')?.remove(); const b=document.createElement('div'); b.className='banner'; b.setAttribute('role','status');
+    b.innerHTML=searching?`<div class="spinner" aria-hidden="true"></div><div><b>${T('offT')}</b><span>${T('offS')}</span></div>`:`<div class="avatar" style="width:44px;height:44px;background:var(--c-jade);color:var(--c-on-jade)">${ic('check')}</div><div><b>${T('offDoneT')}</b><span>${T('offDoneS')}</span></div>`;
+    e.querySelector('.guide').appendChild(b); if(!searching) setTimeout(()=>b.remove(),4200); },
+  paintAlert(){ const e=this.el(); if(!e)return; const g=e.querySelector('.guide'); g.querySelector('.alert')?.remove(); g.querySelector('.edgeglow')?.remove();
+    if(!TRIP.running) return; const st=TRIP.step(); if(st.k!=='ride'||!TRIP.alerted||this.alertAck||TRIP.phase==='alight') return;
+    const l=TRIP.leg(); const goal=PL[l.to];
+    g.insertAdjacentHTML('beforeend',`<div class="edgeglow" aria-hidden="true"></div><div class="alert" role="alertdialog" aria-labelledby="ga"><div class="bellwrap" aria-hidden="true">${ic(l.t==='bus'?'bell':'train')}</div><h2 id="ga">${T('getOffT')}</h2><p>${l.t==='bus'?T('getOffBell'):T('getOffTrain')}</p><span class="sign">${esc(goal.sign)}${S.lang==='zh'?' · '+esc(goal.zh):''}</span><button class="btn" data-act="ackAlert">${ic('check')}${T('ok')}</button></div>`);
+    bind(g.querySelector('.alert')); setTimeout(()=>g.querySelector('.alert h2')?.focus?.(),50); g.querySelector('.alert h2').tabIndex=-1;
+  },
+  paintControls(){ const e=this.el(); if(!e)return;
+    const mb=e.querySelector('[data-act=mute]'); if(mb){mb.innerHTML=ic(S.muted?'mute':'speaker');mb.setAttribute('aria-label',S.muted?T('unmuteL'):T('muteL'));mb.setAttribute('aria-pressed',String(S.muted));}
+    const fb=e.querySelector('[data-act=follow]'); if(fb){fb.classList.toggle('on',this.follow);fb.innerHTML=ic(this.follow?'nav':'route');fb.setAttribute('aria-label',this.follow?T('overviewL'):T('followL'));}
+    const m=this.map(); if(m){m.follow=this.follow;}
+    const sp=e.querySelector('.sharepill'); if(sp){sp.hidden=!S.sharing; if(S.sharing) sp.querySelector('span').textContent=T('sharingWith',{n:T(S.sharing)});}
+    const card=e.querySelector('.stepcard'), ctl=e.querySelector('.mapctl'); if(card&&ctl){ctl.style.bottom=(card.offsetHeight+14)+'px';}
+  },
+  paintStep(){
+    const e=this.el(); if(!e||!TRIP.running) return; const st=TRIP.step(), l=TRIP.leg(), card=e.querySelector('.stepcard'); if(!card) return;
+    const L0=segLen(l.pts); const metersLeft=Math.max(0,Math.round((L0-TRIP.d)*0.9/10)*10); const minLeft=Math.max(1,Math.ceil(l.min*(1-TRIP.d/L0)));
+    const key=[st.k,TRIP.si,TRIP.phase,TRIP.passed,S.lang,Math.ceil(TRIP.waitLeft),st.k==='walk'?metersLeft:''].join('|');
+    // progress + eta always
+    const pr=card.querySelector('.prog i'); if(pr){const f=st.k==='wait'?(1-TRIP.waitLeft/(l.wait||1)):TRIP.d/L0; pr.style.width=Math.round(Math.min(1,f)*100)+'%';}
+    const eta=card.querySelector('[data-eta]'); const rem=TRIP.remainingMin(); if(eta) eta.textContent=T('arriveLeft',{t:at(rem),n:rem});
+    if(key===this.lastKey) return; this.lastKey=key;
+    let icon='walk',cls='',title='',sub='',extra='';
+    const to=PL[l.to];
+    if(st.k==='walk'){ const last=TRIP.si===TRIP.steps.length-1; icon='walk'; cls=last?'arrive':'';
+      title=T('gWalkT',{p:esc(fullName(to))}); sub=T('gWalkS',{m:metersLeft,n:minLeft});
+      if(to.sign && !last) extra=`<span class="sign">${esc(to.sign)}</span>`; }
+    else if(st.k==='wait'){
+      if(TRIP.phase==='here'){ icon=l.t==='bus'?'bus':'train'; cls='arrive'; title=l.t==='bus'?T('busHereT',{s:l.svc}):T('trainHereT'); sub=l.t==='bus'?T('busHereS'):T('trainHereS'); }
+      else if(l.t==='bus'){ icon='bus'; cls='wait'; title=T('gWaitT',{s:l.svc}); sub=T('gWaitS')+` <span class="sign">${esc(PL[l.from].sign)}</span>`; }
+      else { icon='train'; cls='wait'; title=T('gWaitMrtT'); sub=`<span class="linetag"><span class="sw" style="background:var(--line-${l.line.toLowerCase()})"></span><span class="cd">${l.line} · ${esc(PL[l.from].code)}</span></span> ${T('towards',{p:l.towards})}`; }
+      const n=Math.ceil(TRIP.waitLeft);
+      extra=`<div class="arrchip ${TRIP.phase==='here'?'here':''}" role="status">${l.t==='bus'?`<span class="busbadge">${ic('bus')}${l.svc}</span>`:`<span class="linetag"><span class="sw" style="background:var(--line-ns)"></span><span class="cd">${ic('train')}NS</span></span>`}<span class="big num">${TRIP.phase==='here'?T('arriving'):T('comesIn',{n:Math.max(1,n)})}</span><span class="lv"><i></i>${T('live')}</span><span class="next">${T('nextBus',{n:l.next})}</span></div>`; }
+    else if(st.k==='ride'){
+      const n=l.stops.length, passed=Math.min(n,TRIP.passed||0), left=n-passed;
+      if(TRIP.phase==='alight'){ icon='check'; cls='arrive'; title=T('alightT'); sub=T('alightS')+` <span class="sign">${esc(to.sign)}</span>`; }
+      else { icon=l.t==='bus'?'bus':'train'; title=T('gRideT',{n:left===1?T('stop1'):T('stopsN',{n:left})}); sub=T('gRideS',{p:`<b>${esc(l.stops[passed]||to.sign)}</b>`})+'<br>'+T('gRideTell'); }
+      extra=`<div class="stops" aria-hidden="true">${l.stops.map((s,i)=>`<i class="${i<passed?'done':''} ${i===n-1?'goal':''}"></i>`).join('')}</div>`; }
+    const total=TRIP.steps.length;
+    card.querySelector('.stepbody').innerHTML=`<div class="stepmeta"><span>${T('stepOf',{a:TRIP.si+1,b:total})}</span><span data-eta class="num">${T('arriveLeft',{t:at(rem),n:rem})}</span></div>
+      <div class="steprow"><div class="stepicon ${cls}" aria-hidden="true">${ic(icon)}</div><div class="steptx"><h2 aria-live="polite">${title}</h2>${st.k==='walk'?extra:''}<p>${sub}</p></div></div>
+      ${st.k!=='walk'?extra:''}<div class="prog" aria-hidden="true"><i></i></div>`;
+    this.paintAlert(); this.paintControls();
+  },
+  frame(dt){
+    if(!TRIP.running) return; const m=this.map(); const r=TRIP.pos();
+    if(m){ m.setMe(r.p,r.hd); const done=[...TRIP.doneLegs.flat()].length?TRIP.doneLegs:[]; const pts=[]; done.forEach(x=>pts.push(...x)); if(TRIP.step().k!=='wait') pts.push(...r.done); else pts.push(r.p); m.setDone(pts); }
+    this.paintStep();
+    FAM.frame(r);
+  }
+};
+function replay(force){ if(!TRIP.running){ if(lastSpoken) say(lastSpoken.key,lastSpoken.v,force); return;} const st=TRIP.step(),l=TRIP.leg();
+  if(st.k==='ride'&&TRIP.alerted&&!GUIDE.alertAck) {say('getOffT',null,force);return;}
+  if(lastSpoken) say(lastSpoken.key,lastSpoken.v,force); }
+/* family view live updates */
+const FAM={frame(r){const en=NAV.stack[topScreenIdx()]; if(!en||en.v!=='family')return; const el=document.getElementById('s'+en.id); const m=[...MAPS].find(x=>el.contains(x.svg)); if(m) m.setMe(r.p,r.hd);
+  const s=el.querySelector('[data-famstatus]'); if(s){const t=famStatus(); if(s.textContent!==t) s.textContent=t;}
+  const e=el.querySelector('[data-fameta]'); if(e){const rem=TRIP.remainingMin(); const t=T('famEta',{t:at(rem)}); if(e.textContent!==t){e.textContent=t; el.querySelector('[data-famleft]').textContent=T('famLeft',{n:rem});}}}};
+function famStatus(){ if(!TRIP.running) return ''; const st=TRIP.step(),l=TRIP.leg();
+  if(st.k==='walk') return T('famWalking',{p:fullName(PL[l.to])});
+  if(st.k==='wait') return l.t==='bus'?T('famWaiting',{s:l.svc,p:PL[l.from].sign}):T('famWaitingT',{p:PL[l.from].sign});
+  const left=l.stops.length-Math.min(l.stops.length,TRIP.passed||0); const n=left===1?T('stop1'):T('stopsN',{n:left});
+  return l.t==='bus'?T('famRiding',{s:l.svc,n}):T('famRidingT',{n}); }
+/* main loop */
+let lastT=performance.now();
+function loop(t){const dt=Math.min(.1,(t-lastT)/1000); lastT=t; TRIP.update(dt); GUIDE.frame(dt); MAPS.forEach(m=>{ if(m.svg.isConnected && m.svg.getClientRects().length) m.frame(dt); }); requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+
+/* ================= VIEWS ================= */
+const greeting=()=>{const h=new Date().getHours();return T(h<12?'morning':h<18?'afternoon':'evening');};
+const today=()=>new Date().toLocaleDateString(S.lang==='zh'?'zh-CN':'en-SG',{weekday:'long',month:'long',day:'numeric'});
+const wordmark=()=>`<div class="wordmark"><svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="116" fill="#9A3412"/><path d="M168 206C168 146 210 104 262 104C318 104 352 142 352 190C352 238 312 256 284 276C266 289 258 304 258 330" fill="none" stroke="#FBF5EC" stroke-width="58" stroke-linecap="round"/><circle cx="168" cy="206" r="40" fill="#9A3412" stroke="#FBF5EC" stroke-width="22"/><circle cx="258" cy="408" r="42" fill="#FFD23F"/></svg><span>怎么去?</span></div>`;
+const backBtn=()=>`<button class="backbtn" data-act="back" aria-label="${T('back')}">${ic('back')}<span>${T('back')}</span></button>`;
+VIEWS.home=()=>{
+  const hereP=S.here==='home'?PL.home:PL[S.here]||PL.home;
+  return `<header class="bar">${wordmark()}<span class="grow"></span>
+    <button class="iconbtn" data-act="lang" aria-label="${T('langLabel')}" lang="${S.lang==='zh'?'en':'zh'}">${T('langBtn')}</button>
+    <button class="iconbtn" data-act="text" aria-label="${T('textBtnLabel',{n:Math.round(S.ts*100)})}"><span style="font-size:.8em">A</span><span style="font-size:1.15em">A</span></button>
+    <button class="iconbtn" data-act="go" data-arg="settings" aria-label="${T('settings')}" style="width:56px;padding:0">${ic('sliders')}</button></header>
+  <div class="scroll">
+    <div class="greet"><h1 class="t-display">${greeting()}</h1><p>${T('whereToday')}</p>
+      <div class="where"><span class="dot" aria-hidden="true"></span>${T('youAreNear',{p:esc(L(hereP.full||hereP)==='家'||L(hereP)==='Home'?L(hereP)+' · '+hereP.sign:fullName(hereP))})}</div></div>
+    <button class="searchbtn" data-act="go" data-arg="search"><span class="mic" aria-hidden="true">${ic('mic')}</span><span class="grow">${T('searchPh')}</span>${ic('search')}</button>
+    <div class="sect"><h2>${T('myPlaces')}</h2><span class="t-caption">${today()}</span></div>
+    <div class="tiles">
+      ${[['home','home'],['clinic','clinic'],['market','market'],['daughter','family']].map(([k,i])=>{const p=PL[k];const nm=k==='clinic'?{zh:'诊所',en:'Clinic'}:p;return `<button class="tile" data-k="${k}" data-act="place" data-arg="${k}" aria-label="${esc(L(nm))}，${esc(L(p.sub||p))}"><span class="ic">${ic(i)}</span><span class="nm">${L(nm)}</span><span class="sub">${esc(k==='clinic'?L(PL.ttsh):L(p.sub))}</span></button>`;}).join('')}
+    </div>
+    <button class="helprow" data-act="go" data-arg="help"><span class="ic" aria-hidden="true">${ic('help')}</span><span><b>${T('helpRowT')}</b><span>${T('helpRowS')}</span></span></button>
+  </div>
+  <div class="dock"><button class="btn btn-primary" data-act="place" data-arg="home">${ic('home')}${T('takeHome')}</button></div>`;
+};
+const SEARCHABLE=[
+  {k:'ttsh',icon:'clinic',kw:'陈笃生 医院 诊所 ttsh tan tock seng hospital clinic novena 看医生'},
+  {k:'market',icon:'market',kw:'巴刹 市场 菜市 market lor 8 food centre 熟食 210'},
+  {k:'daughter',icon:'family',kw:'女儿 美玲 碧山 bishan daughter mei ling'},
+  {k:'home',icon:'home',kw:'家 home 回家 toa payoh 79 大巴窑'}
+];
+VIEWS.search=()=>`<header class="bar">${backBtn()}<span class="grow"></span></header>
+  <div class="scroll"><h1 class="t-title" style="margin:0 0 4px">${T('searchTitle')}</h1>
+    <div class="field"><label for="q" class="sr">${T('searchFieldLabel')}</label>${ic('search')}<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${T('searchPh')}"><button class="mic" data-act="mic" aria-label="${T('micLabel')}">${ic('mic')}</button></div>
+    <div class="listenhint" id="lh" hidden aria-hidden="true">${ic('mic')}${T('listening')}</div>
+    <div class="sect" style="margin-top:6px"><h2 id="rh">${T('recent')}</h2></div><ul class="rlist" id="rl"></ul></div>`;
+VIEWS.search_after=(el)=>{
+  const q=el.querySelector('#q'), rl=el.querySelector('#rl'), rh=el.querySelector('#rh');
+  const draw=()=>{const v=q.value.trim().toLowerCase();
+    let items=SEARCHABLE.filter(x=>x.k!=='home'||S.here!=='home'); if(v) items=items.filter(x=>(x.kw+' '+L(PL[x.k])).toLowerCase().split(/\s+/).some(w=>w.includes(v)||v.includes(w))||x.kw.includes(v)||L(PL[x.k]).toLowerCase().includes(v));
+    rh.textContent=v?T('results'):T('recent');
+    rl.innerHTML=items.length?items.map(x=>{const p=PL[x.k];return `<li><button class="ritem" data-act="place" data-arg="${x.k}"><span class="ic" aria-hidden="true">${ic(x.icon)}</span><span class="tx"><b>${esc(fullName(p))}</b><span>${esc(L(p.sub)||p.sign)}</span></span>${ic('chev')}</button></li>`;}).join('')
+      :`<li class="empty"><div class="bubble" aria-hidden="true">${ic('search')}</div><b class="t-headline">${T('noneT',{q:esc(q.value)})}</b><p class="t-caption">${T('noneS')}</p></li>`;
+    bind(rl);};
+  q.addEventListener('input',draw); draw();
+};
+function legChips(r){return r.legs.map((l,i)=>{const sep=i?`<span class="sep" aria-hidden="true">${ic('chev')}</span>`:'';
+  if(l.t==='walk') return sep+`<span class="walkchip">${ic('walk')}<span class="num">${l.min}</span></span>`;
+  if(l.t==='bus') return sep+`<span class="busbadge">${ic('bus')}<span class="num">${l.svc}</span></span>`;
+  return sep+`<span class="linetag"><span class="sw" style="background:var(--line-${l.line.toLowerCase()})"></span><span class="cd">${ic('train')}${l.line}</span></span>`;}).join('');}
+function chainLabel(r){return r.legs.map(l=>l.t==='walk'?T('walkMin',{n:l.min}):l.t==='bus'?(S.lang==='zh'?`巴士 ${l.svc}`:`bus ${l.svc}`):(S.lang==='zh'?`地铁 ${l.line} 线`:`${l.line} line train`)).join(S.lang==='zh'?'，然后':', then ');}
+VIEWS.routes=(en)=>{const dest=en.p.dest, list=ROUTES[dest], p=PL[dest], fromP=dest==='home'?PL.ttsh:PL.home;
+  return `<header class="bar">${backBtn()}<span class="grow"></span><button class="iconbtn" data-act="go" data-arg="help">${ic('help')}${T('help')}</button></header>
+  <div class="scroll"><div class="q"><h1 class="t-title" style="margin:0">${T('howTo',{p:`<span style="color:var(--c-primary-text)">${esc(fullName(p))}</span>`})}</h1>
+    <div class="from">${ic('loc')}${T('fromHere',{p:esc(fullName(fromP))+(fromP===PL.home?' · '+PL.home.sign:'')})}</div></div>
+    <div class="cards">${list.map((r,i)=>{const m=tripMin(r);const rides=r.legs.filter(l=>l.t!=='walk');
+      return `<button class="card ${r.best?'best':''}" data-act="route" data-arg="${i}" aria-label="${esc((r.best?T('best')+'，':'')+T(r.tag)+'，'+m+' '+T('min')+'，'+T('arriveAt',{t:at(m)})+'。'+chainLabel(r))}">
+      <span class="tag">${r.best?ic('check'):''}${r.best&&list.length>1?T('best')+' · ':''}${T(r.tag)}</span>
+      <span class="dur"><b class="num">${m}<small>${T('min')}</small></b><span class="num">${T('arriveAt',{t:at(m)})}</span></span>
+      <span class="chain">${legChips(r)}</span>
+      <span class="facts"><span>${ic('walk')}${T('walkMin',{n:walkMin(r)})}</span>${rides.length<=1?`<span>${ic('check')}${T('noChange')}</span>`:''}${r.facts.map(f=>`<span>${ic(f==='lifts'?'lift':'check')}${T(f)}</span>`).join('')}${rides.map(l=>`<span>${ic(l.t==='bus'?'bus':'train')}${l.stops.length===1?T('stop1'):T('stopsN',{n:l.stops.length})}</span>`).join('')}</span>
+      <span class="choose">${T('choose')}${ic('chev')}</span></button>`;}).join('')}</div>
+    ${list.length===1?`<div class="honest">${ic('check')}<span>${T('onlyOne')}</span></div>`:''}
+    ${list.some(r=>r.legs.some(l=>l.t==='bus'))?`<div class="honest">${ic('clock')}<span>${T('honest')}</span></div>`:''}
+  </div>`;};
+function timeline(r){let s='';r.legs.forEach(l=>{
+  if(l.t==='walk') s+=`<li><span class="ic" aria-hidden="true">${ic('walk')}</span><div><b>${T('stWalk',{p:esc(fullName(PL[l.to]))})}</b><span>${T('stWalkS',{n:l.min})}</span></div></li>`;
+  else { const n=l.stops.length===1?T('stop1'):T('stopsN',{n:l.stops.length});
+    s+=`<li class="ride"><span class="ic" aria-hidden="true" style="${l.t==='bus'?'background:var(--c-ink);color:var(--c-ink-inv)':''}">${ic(l.t==='bus'?'bus':'train')}</span><div><b>${l.t==='bus'?T('stBus',{s:l.svc,n}):T('stMrt',{l:l.line,n})}</b><span>${T('stRideS',{p:esc(PL[l.to].sign)})}${l.towards?' · '+T('towards',{p:l.towards}):''}</span></div></li>`; }});
+  const d=PL[r.legs[r.legs.length-1].to]; s+=`<li><span class="ic dest" aria-hidden="true">${ic('check')}</span><div><b>${T('stArrive',{p:esc(fullName(d))})}</b><span>${esc(L(d.sub)||d.sign)}</span></div></li>`; return `<ol class="timeline">${s}</ol>`;}
+VIEWS.overview=(en)=>{const r=ROUTES[en.p.dest][en.p.ri], m=tripMin(r), p=PL[en.p.dest];
+  return `<header class="bar">${backBtn()}<span class="grow"></span><button class="iconbtn" data-act="go" data-arg="help">${ic('help')}${T('help')}</button></header>
+  <div class="scroll" style="padding:0"><div style="padding:0 20px 12px"><h1 class="t-title" style="margin:0">${T('goTo',{p:esc(fullName(p))})}</h1><p class="t-headline num" style="margin:6px 0 0;color:var(--c-ink-2)">${m} ${T('min')} · ${T('arriveAt',{t:at(m)})}</p></div>
+    <div class="mapbox" data-map></div>
+    <div style="padding:0 20px">${timeline(r)}</div></div>
+  <div class="dock"><button class="btn btn-primary" data-act="start" data-focus>${ic('nav')}${T('start')}</button><button class="btn btn-quiet" data-act="go" data-arg="share">${ic('share')}${T('tellFirst')}</button></div>`;};
+VIEWS.overview_after=(el,en)=>{new MapView(el.querySelector('[data-map]'),ROUTES[en.p.dest][en.p.ri],{label:T('goTo',{p:fullName(PL[en.p.dest])})});};
+VIEWS.guide=()=>`<div class="guide"><div data-map style="position:absolute;inset:0"></div>
+  <div class="top"><button class="iconbtn" data-act="endTrip" aria-label="${T('endTripL')}">${ic('close')}${T('endTrip')}</button><span class="grow"></span>
+    <button class="iconbtn" data-act="mute" data-speak style="width:56px;padding:0"></button>
+    <button class="helppill" data-act="go" data-arg="help">${ic('help')}${T('help')}</button></div>
+  <button class="sharepill" data-act="go" data-arg="share" hidden><span class="live" aria-hidden="true"></span><span></span></button>
+  <div class="mapctl"><button class="iconbtn" data-act="follow"></button><button class="iconbtn" data-act="go" data-arg="share" aria-label="${T('shareL')}">${ic('share')}</button></div>
+  <section class="stepcard" aria-label="${T('stepOf',{a:'',b:''}).replace(/\s+/g,' ')}"><div class="grab" aria-hidden="true"></div><div class="stepbody"></div>
+    <div class="steprow2"><button class="btn btn-secondary" data-act="replay" style="min-height:56px;font-size:1rem">${ic('speaker')}${T('sayAgain')}</button></div></section></div>`;
+VIEWS.guide_after=(el)=>{new MapView(el.querySelector('[data-map]'),TRIP.route||ROUTES.ttsh[0],{follow:GUIDE.follow,live:true,label:S.lang==='zh'?'跟随地图':'Follow-me map'}); GUIDE.lastKey=''; requestAnimationFrame(()=>{GUIDE.paintStep();GUIDE.paintControls();});};
+VIEWS.share=()=>{
+  if(S.sharing) return `<div class="sheethead"><h2>${T('sharingNow',{n:T(S.sharing)})}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div>
+    <p class="lead">${T('sharingUntil')}</p><div class="opts">
+    <button class="btn btn-secondary" data-act="go" data-arg="family">${ic('eye')}${T('preview')}</button>
+    <button class="btn btn-secondary" data-act="stopShare">${ic('close')}${T('stopShare')}</button></div>`;
+  const who=[['meiling','meilingR','#FBE3D3','#6E2409'],['zhiming','zhimingR','#D6EDE4','#0A3F33']];
+  return `<div class="sheethead"><h2>${T('shareT')}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div>
+  <p class="lead">${T('shareLead')}</p><h3 class="t-label" style="margin:0 0 8px;color:var(--c-ink-2)">${T('shareWho')}</h3>
+  <div class="opts" role="radiogroup" aria-label="${T('shareWho')}">${who.map(([k,r,bg,fg])=>`<button class="opt ${S.shareTo===k?'sel':''}" role="radio" aria-checked="${S.shareTo===k}" data-act="pickShare" data-arg="${k}"><span class="avatar" style="background:${bg};color:${fg}" aria-hidden="true">${T(k).slice(0,1)}</span><span class="tx"><b>${T(k)}</b><span>${T(r)}</span></span><span class="radio" aria-hidden="true">${S.shareTo===k?ic('check'):''}</span></button>`).join('')}</div>
+  <div class="opts" style="margin-top:16px"><button class="btn btn-jade" data-act="send">${ic('msg')}${T('sendWA')}</button><button class="btn btn-secondary" data-act="send" style="min-height:64px">${ic('msg')}${T('sendSMS')}</button>
+  <button class="btn btn-quiet" data-act="go" data-arg="family">${ic('eye')}${T('preview')}</button></div>
+  <p class="t-caption" style="display:flex;gap:8px;align-items:flex-start;margin:12px 0 0">${ic('lock')}<span>${T('privacy')}</span></p>`;};
+VIEWS.family=()=>{const running=TRIP.running; const dest=running?PL[TRIP.dest]:PL.ttsh; const rem=running?TRIP.remainingMin():0;
+  return `<header class="bar">${backBtn()}<span class="grow"></span><span class="t-label" style="color:var(--c-ink-2)">${T('famBar')}</span></header>
+  <div class="browser" aria-hidden="true">${ic('lock')}<span>zenmequ.sg/t/7KQ2-family</span></div>
+  <div class="fam"><div class="hero"><div class="who"><span class="avatar" style="background:var(--tint-home);color:var(--ink-home)" aria-hidden="true">林</span><h1 class="t-headline" style="margin:0">${running?T('famHead',{p:esc(fullName(dest))}):T('famNot')}</h1></div>
+    ${running?`<div class="eta"><b class="num" data-fameta>${T('famEta',{t:at(rem)})}</b><span data-famleft>${T('famLeft',{n:rem})}</span></div><div class="status" role="status">${ic(TRIP.step().k==='walk'?'walk':TRIP.leg().t==='bus'?'bus':'train')}<span data-famstatus>${famStatus()}</span></div>`:''}
+    <div class="mapbox" data-map></div><div class="upd"><span class="live" style="width:10px;height:10px;border-radius:50%;background:var(--c-jade);animation:blink 1.6s infinite" aria-hidden="true"></span>${T('famUpd')}</div></div>
+    <div style="margin-top:16px"><button class="btn btn-jade" data-act="call" data-arg="mum">${ic('phone')}${T('famCall')}</button></div>
+    <p class="t-caption" style="text-align:center">${T('famExpire')}</p></div>`;};
+VIEWS.family_after=(el)=>{const m=new MapView(el.querySelector('[data-map]'),TRIP.running?TRIP.route:ROUTES.ttsh[0],{label:T('famBar')}); if(TRIP.running){const r=TRIP.pos();m.setMe(r.p,r.hd);} else {const p=ROUTES.ttsh[0].legs[0].pts[0];m.setMe(p,-Math.PI/2);} };
+VIEWS.help=()=>`<div class="sheethead"><h2>${T('helpT')}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div>
+  <div class="opts">
+   <button class="opt" data-act="call" data-arg="meiling"><span class="ic" style="background:var(--c-jade);color:var(--c-on-jade)" aria-hidden="true">${ic('phone')}</span><span class="tx"><b>${T('callMei')}</b><span>${T('callMeiS')}</span></span>${ic('chev')}</button>
+   <button class="opt" data-act="addr" data-arg="${TRIP.running?'dest':'home'}"><span class="ic" style="background:var(--c-saffron);color:var(--c-on-saffron)" aria-hidden="true">${ic('car')}</span><span class="tx"><b>${T('showAddr')}</b><span>${T('showAddrS')}</span></span>${ic('chev')}</button>
+   <button class="opt" data-act="addr" data-arg="here"><span class="ic" style="background:var(--c-primary-soft);color:var(--c-on-primary-soft)" aria-hidden="true">${ic('loc')}</span><span class="tx"><b>${T('whereAmI')}</b><span>${T('whereAmIS')}</span></span>${ic('chev')}</button>
+   ${TRIP.running?`<button class="opt" data-act="rerouteHelp"><span class="ic" style="background:var(--c-surface-2)" aria-hidden="true">${ic('route')}</span><span class="tx"><b>${T('reroute')}</b><span>${T('rerouteS')}</span></span>${ic('chev')}</button>`:''}
+   <button class="btn btn-danger-outline" data-act="e995">${ic('phone')}${T('emergency')}</button></div>`;
+VIEWS.address=(en)=>{const mode=en.p.mode; let p,head,headZh;
+  if(mode==='here'){ const loc=TRIP.running?(TRIP.step().k==='walk'?PL[TRIP.leg().from]:PL[TRIP.leg().from]):(S.here==='home'?PL.home:PL[S.here]); p=loc.addr?loc:{addr:[loc.sign,'Toa Payoh'],postal:'',addrZh:loc.zh}; head=T('iAmAt'); headZh=T('iAmAtZh'); }
+  else { p=mode==='home'?PL.home:PL[TRIP.running?TRIP.dest:'ttsh']; head=T('pleaseTake'); headZh=T('pleaseTakeZh'); }
+  const tabs=[['dest','toDest'],['home','toHome'],['here','hereNow']].filter(t=>t[0]!=='dest'||TRIP.running);
+  return `<header class="bar">${backBtn()}<span class="grow"></span><h1 class="t-label" style="margin:0">${T('addrTitle')}</h1></header>
+  <div class="addr"><div class="seg" role="group" style="margin-bottom:14px">${tabs.map(([m,k])=>`<button aria-pressed="${mode===m}" data-act="addrMode" data-arg="${m}">${T(k)}</button>`).join('')}</div>
+  <div class="card2" lang="en"><div class="please">${head}<small lang="zh">${headZh}</small></div>
+  <div class="lines">${p.addr.map(esc).join('<br>')}</div>${p.postal?`<div><span class="postal num">Singapore ${p.postal}</span></div>`:''}<div class="zh" lang="zh">${esc(p.addrZh||'')}</div></div></div>`;};
+VIEWS.arrive=(en)=>{const p=PL[en.p.dest]; const shared=en.p.shared; const petals=rm()?'':Array.from({length:18},(_,i)=>{const a=(i/18)*Math.PI*2, R=120+((i*37)%90);const col=['var(--c-primary)','var(--c-saffron)','var(--c-jade)'][i%3];return `<span class="petal" style="left:50%;top:30%;background:${col};--dx:${Math.cos(a)*R}px;--dy:${Math.sin(a)*R-40}px;--rot:${(i*67)%360}deg;--dur:${1.6+(i%5)*.2}s;--del:${1.5+(i%6)*.05}s"></span>`;}).join('');
+  return `<div class="arrive" role="region" aria-label="${T('arrivedT')}">${petals}
+   <svg class="mark" viewBox="0 0 512 512" aria-hidden="true"><circle cx="256" cy="256" r="236" fill="var(--c-primary-soft)"/><path class="draw" d="M168 206C168 146 210 104 262 104C318 104 352 142 352 190C352 238 312 256 284 276C266 289 258 304 258 330" fill="none" stroke="var(--c-primary)" stroke-width="54" stroke-linecap="round"/><circle cx="168" cy="206" r="36" fill="var(--c-primary-soft)" stroke="var(--c-primary)" stroke-width="20"/><circle class="ringout" cx="258" cy="408" r="44" fill="none" stroke="var(--c-saffron)" stroke-width="10"/><circle class="drop" cx="258" cy="408" r="44" fill="var(--c-saffron)" stroke="var(--c-on-saffron)" stroke-width="6"/></svg>
+   <h1 class="rise" style="animation-delay:1.3s">${T('arrivedT')}</h1>
+   <div class="dest rise" style="animation-delay:1.45s">${esc(fullName(p))}</div>
+   <div class="stats rise" style="animation-delay:1.6s"><span class="num">${T('tookMin',{n:en.p.mins})}</span><span>${T('wellDone')}</span></div>
+   ${shared||S.toldArrive?`<div class="told rise" style="animation-delay:1.75s" role="status">${ic('check')}${shared?T('famKnows'):T('told')}</div>`:''}
+  </div>
+  <div class="dock"><button class="btn btn-primary" data-act="done">${ic('check')}${T('done')}</button>
+   ${!shared&&!S.toldArrive?`<button class="btn btn-secondary" data-act="tell">${ic('msg')}${T('tellMei')}</button>`:''}
+   ${en.p.dest!=='home'?`<button class="btn btn-quiet" data-act="routeHome">${ic('home')}${T('routeHome')}</button>`:''}</div>`;};
+VIEWS.arrive_after=()=>{say('arrivedT');};
+VIEWS.settings=()=>{const sg=(k,opts)=>`<div class="seg" role="group">${opts.map(([v,l])=>`<button aria-pressed="${String(S[k])===String(v)}" data-act="set" data-arg="${k}:${v}">${l}</button>`).join('')}</div>`;
+  return `<div class="sheethead"><h2>${T('setT')}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div>
+  <div class="setrow"><h3>${T('setLang')}</h3>${sg('lang',[['zh','中文'],['en','English']])}</div>
+  <div class="setrow"><h3>${T('setText')}</h3>${sg('ts',[[1,'<span style="font-size:.9em">A</span> 100%'],[1.25,'<span style="font-size:1.05em">A</span> 125%'],[1.5,'<span style="font-size:1.2em">A</span> 150%'],[2,'<span style="font-size:1.35em">A</span> 200%']])}</div>
+  <div class="setrow"><h3>${T('setTheme')}</h3>${sg('theme',[['auto',T('auto')],['light',T('light')],['dark',T('dark')]])}</div>
+  <div class="setrow"><h3>${T('setVoice')}</h3>${sg('muted',[[false,T('on')],[true,T('off')]])}</div>
+  <div class="setrow"><h3>${T('setVib')}</h3>${sg('haptics',[[true,T('on')],[false,T('off')]])}</div>
+  <div class="setrow"><h3>${T('setMotion')}</h3>${sg('rmForce',[['auto',T('auto')],['on',T('on')],['off',T('off')]])}</div>
+  <div class="proto"><h3>${T('protoT')}</h3><p>${T('protoS')}</p><div class="setrow" style="margin-bottom:10px"><h3>${T('demoSpeed')}</h3>${sg('speed',[[0.6,T('slow')],[1,T('normal')],[2,T('fast')]])}</div>
+   <div class="opts"><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoGetOff">${ic('bell')}${T('demoGetOff')}</button><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoOff">${ic('route')}${T('demoOff')}</button></div></div>`;};
+VIEWS.endq=()=>`<div class="sheethead"><h2>${T('endQ')}</h2></div><p class="lead">${T('endLead')}</p>
+  <div class="opts"><button class="btn btn-primary" data-act="back">${ic('nav')}${T('keepGoing')}</button><button class="btn btn-secondary" data-act="endYes">${ic('close')}${T('endYes')}</button></div>`;
+function openCall(who){const o=document.getElementById('overlay');o.querySelector('.call')?.remove();const name=who==='mum'?(S.lang==='zh'?'妈妈':'Mum'):T('meiling');
+  const d=document.createElement('div');d.className='call';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-label',T('calling',{n:name}));
+  d.innerHTML=`<div class="avatar" aria-hidden="true">${name.slice(0,1)}</div><h2>${T('calling',{n:name})}</h2><small>${T('protoCall')}</small><button class="btn" data-act="hang">${ic('phone')}${T('hangUp')}</button>`;
+  o.appendChild(d);bind(d);d.querySelector('button').focus();announce(T('calling',{n:name}));}
+
+/* ================= SIDE PANEL (desktop) ================= */
+const FRAMES={
+  H1:{n:'Home',go:()=>{TRIP.stop();resetTo([['home']]);}},
+  H2:{n:'Search',go:()=>{TRIP.stop();resetTo([['home'],['search']]);}},
+  H3:{n:'Route options',go:()=>{TRIP.stop();resetTo([['home'],['routes',{dest:'ttsh'}]]);}},
+  H4:{n:'Trip overview',go:()=>{TRIP.stop();resetTo([['home'],['routes',{dest:'ttsh'}],['overview',{dest:'ttsh',ri:0}]]);}},
+  H5:{n:'Live guidance',go:()=>{TRIP.begin('ttsh',0);resetTo([['home'],['routes',{dest:'ttsh'}],['overview',{dest:'ttsh',ri:0}],['guide',{dest:'ttsh',ri:0}]]);}},
+  H6:{n:'Get off next stop',go:()=>DEMO.getOff()},
+  H7:{n:'Share my trip',go:()=>{if(!TRIP.running)FRAMES.H5.go();S.sharing=null;push('share');}},
+  H8:{n:'What family sees',go:()=>{if(!TRIP.running)FRAMES.H5.go();push('family');}},
+  H9:{n:'Help',go:()=>{if(!TRIP.running)FRAMES.H5.go();push('help');}},
+  H10:{n:'Show the driver',go:()=>{if(!TRIP.running)FRAMES.H5.go();push('address',{mode:'dest'});}},
+  H11:{n:'Off-route re-route',go:()=>{FRAMES.H5.go();setTimeout(()=>DEMO.offRoute(),900);}},
+  H12:{n:'Arrival',go:()=>{TRIP.stop();S.here='ttsh';resetTo([['home'],['arrive',{dest:'ttsh',mins:23,shared:'meiling'}]]);}},
+  H13:{n:'Settings',go:()=>{TRIP.stop();resetTo([['home'],['settings']]);}}
+};
+function renderSide(){
+  const f=document.getElementById('frames'); f.innerHTML=Object.entries(FRAMES).map(([k,v])=>`<button data-act="frame" data-arg="${k}"><b>${k}</b>${v.n}</button>`).join(''); bind(f);
+  const c=document.getElementById('sidectl');
+  c.innerHTML=`<button data-act="lang">中 / EN</button><button data-act="set" data-arg="ts:${S.ts>=2?1:2}">Text ${S.ts>=2?'100%':'200%'}</button><button data-act="set" data-arg="theme:${S.theme==='dark'?'light':'dark'}">${S.theme==='dark'?'Light':'Dark'} mode</button><button data-act="set" data-arg="speed:${S.speed>1?1:2}">Speed ${S.speed>1?'normal':'fast'}</button><button data-act="demoOff">Go off route</button><button data-act="demoGetOff">Get off alert</button>`; bind(c);
+}
+/* ================= BOOT ================= */
+applyPrefs(); mqRM.addEventListener?.('change',applyPrefs);
+renderSide();
+NAV.stack=[{v:'home',p:{},id:++uid}]; history.replaceState({d:0,g:gen},''); sync([], 'push');
+const qs=new URLSearchParams(location.search); const fr=qs.get('frame'); if(fr&&FRAMES[fr]) setTimeout(()=>FRAMES[fr].go(),50);
+addEventListener('resize',()=>GUIDE.relayout());
+</script>
+</body>
+</html>
