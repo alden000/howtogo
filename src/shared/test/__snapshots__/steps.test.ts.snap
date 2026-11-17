@@ -20,9 +20,9 @@ exports[`buildSteps > angMoKioToNovena — zh-CN 1`] = `
     "walk_to_stop: 步行到巴士站 Blk 215（54261） — 约 1 分钟 · 80 米",
     "board_bus: 在 Blk 215 等候 73 号巴士 — 约等 5 分钟",
     "ride_bus: 坐 3 站，在 Ang Mo Kio Int 下车 — 约 2 分钟 [3 stops]",
-    "walk_transfer: 步行到 Ang Mo Kio 地铁站，换乘南北线 — 约 2 分钟 · 150 米",
+    "walk_transfer: 步行到 宏茂桥 Ang Mo Kio (NS16) 地铁站，换乘南北线 — 约 2 分钟 · 150 米",
     "board_train: 换乘南北线，往滨海南码头方向 — 约等 2 分钟",
-    "ride_train: 坐 4 站，在 Novena 下车 — 约 8 分钟 [4 stops]",
+    "ride_train: 坐 4 站，在 诺维娜 Novena (NS20) 下车 — 约 8 分钟 [4 stops]",
     "walk_to_destination: 步行到 陈笃生医院 — 约 5 分钟 · 340 米",
   ],
 ]
@@ -50,17 +50,17 @@ exports[`buildSteps > bishanToRafflesPlace — en 1`] = `
 exports[`buildSteps > bishanToRafflesPlace — zh-CN 1`] = `
 [
   [
-    "walk_to_stop: 步行到 Bishan 地铁站 — 约 4 分钟 · 310 米",
+    "walk_to_stop: 步行到 碧山 Bishan (NS17) 地铁站 — 约 4 分钟 · 310 米",
     "board_train: 搭乘南北线，往滨海南码头方向 — 约等 3 分钟",
-    "ride_train: 坐 9 站，在 Raffles Place 下车 — 约 14 分钟 [9 stops]",
+    "ride_train: 坐 9 站，在 莱佛士坊 Raffles Place (NS26) 下车 — 约 14 分钟 [9 stops]",
     "walk_to_destination: 步行到 莱佛士码头一号 — 约 4 分钟 · 320 米",
   ],
   [
-    "walk_to_stop: 步行到 Bishan 地铁站 — 约 4 分钟 · 310 米",
+    "walk_to_stop: 步行到 碧山 Bishan (NS17) 地铁站 — 约 4 分钟 · 310 米",
     "board_train: 搭乘南北线，往滨海南码头方向 — 约等 3 分钟",
-    "ride_train: 坐 7 站，在 Dhoby Ghaut 下车 — 约 11 分钟 [7 stops]",
+    "ride_train: 坐 7 站，在 多美歌 Dhoby Ghaut (NS24) 下车 — 约 11 分钟 [7 stops]",
     "board_train: 换乘东北线，往港湾方向 — 约等 3 分钟",
-    "ride_train: 坐 1 站，在 Clarke Quay 下车 — 约 2 分钟 [1 stops]",
+    "ride_train: 坐 1 站，在 克拉码头 Clarke Quay (NE5) 下车 — 约 2 分钟 [1 stops]",
     "walk_to_destination: 步行到 莱佛士码头一号 — 约 14 分钟 · 1010 米",
   ],
 ]
@@ -92,9 +92,9 @@ exports[`buildSteps > toaPayohToTTSH — zh-CN 1`] = `
     "walk_to_destination: 步行到 陈笃生医院 — 约 1 分钟 · 80 米",
   ],
   [
-    "walk_to_stop: 步行到 Toa Payoh 地铁站 — 约 4 分钟 · 300 米",
+    "walk_to_stop: 步行到 大巴窑 Toa Payoh (NS19) 地铁站 — 约 4 分钟 · 300 米",
     "board_train: 搭乘南北线，往滨海南码头方向 — 约等 3 分钟",
-    "ride_train: 坐 1 站，在 Novena 下车 — 约 2 分钟 [1 stops]",
+    "ride_train: 坐 1 站，在 诺维娜 Novena (NS20) 下车 — 约 2 分钟 [1 stops]",
     "walk_to_destination: 步行到 陈笃生医院 — 约 5 分钟 · 340 米",
   ],
 ]
