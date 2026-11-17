@@ -173,9 +173,16 @@ function enterStep(s: GuidanceState, idx: number, manual: boolean): void {
   emit(s, 'step_changed', { text: step.text }, undefined, manual);
 }
 
+/**
+ * The last step is done. A segment of a multi-stop journey guided on its own
+ * (its final walk built with `isWaypoint`) ends with `arrived_waypoint` instead
+ * of `arrived_destination`; the runtime then waits for the user's "continue".
+ */
 function arrive(s: GuidanceState): void {
   s.status = 'arrived';
-  emit(s, 'arrived_destination', {});
+  const step = s.steps[s.stepIndex];
+  if (step?.kind === 'walk_to_destination' && step.isFinal === false) emit(s, 'arrived_waypoint', { dest: String(step.params.dest ?? '') });
+  else emit(s, 'arrived_destination', {});
 }
 
 function turnKey(direction: string): string {

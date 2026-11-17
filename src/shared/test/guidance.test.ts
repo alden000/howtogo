@@ -88,8 +88,8 @@ describe('guidance over simulated trips (all fixtures, several seeds)', () => {
       '3:arrived_destination',
     ]);
     const nextStop = cues.find((c) => c.type === 'get_off_next_stop')!;
-    expect(cueToSpeech(nextStop, 'zh-CN')).toBe('下一站下车，请按铃。');
-    expect(cueToSpeech(nextStop, 'en')).toBe('Get off at the next stop. Press the bell now.');
+    expect(cueToSpeech(nextStop, 'zh-CN')).toBe('下一站下车。');
+    expect(cueToSpeech(nextStop, 'en')).toBe('Get off at the next stop.');
     expect(cues.find((c) => c.type === 'get_off_now')!.priority).toBe('high');
   });
 
@@ -198,7 +198,7 @@ describe('GPS weak handling', () => {
     expect(toSharePayload(r.states[30]!)!.status).toBe('gps_weak');
     expect(r.states[45]!.gpsWeak).toBe(false);
     expect(r.state.status).toBe('arrived');
-    expect(cueToSpeech(weak[0]!, 'zh-CN')).toBe('定位信号弱，请看屏幕上的步骤。');
+    expect(cueToSpeech(weak[0]!, 'zh-CN')).toBe('位置不太准，跟着站牌走。');
   });
 
   it('NaN coordinates are treated as weak, not as a position', () => {

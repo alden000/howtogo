@@ -8,6 +8,7 @@ export * from './journey';
 export * from './guidance';
 export * from './speech';
 export * from './share';
+export * from './trip';
 export * from './simulate';
 export { STRINGS, SPEECH_LANG_TAG, t, normalizeLang, hasKey } from './i18n/steps';
 export type { StringTable } from './i18n/steps';
