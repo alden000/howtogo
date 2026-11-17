@@ -269,7 +269,7 @@ test.describe('states', () => {
     await page.getByTestId('loc-ok').click(); // headless without a grant → denied
     await expect(page.getByTestId('sheet-loc-denied')).toContainText('手机没有让我看你的位置');
     await page.getByTestId('loc-how').click();
-    await expect(page.getByTestId('loc-how-steps')).toContainText('回到这里，按"再试一次"。');
+    await expect(page.getByTestId('loc-how-steps')).toContainText('回到这里，按“再试一次”。');
     await page.goBack();
     await expect(page.getByTestId('sheet-loc-denied')).toHaveCount(0);
     await expect(page).toHaveURL(/\/routes$/);

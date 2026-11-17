@@ -330,7 +330,7 @@ export function Routes() {
                   <span class="dur">
                     <b class="num">
                       {minutes(o.itinerary.durationS)}
-                      <small>{t('min')}</small>
+                      <small>{' '}{t('min')}</small>
                     </b>
                     <span class="num">{t('arrive_at', { t: clock(o.itinerary.endTime, lang) })}</span>
                   </span>

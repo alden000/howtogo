@@ -144,7 +144,14 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     pitchWithRotate: false,
   });
   const attribution = new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION });
-  if (opts.attributionHost) opts.attributionHost.appendChild(attribution.onAdd(map));
+  const host = opts.attributionHost;
+  if (host) {
+    host.appendChild(attribution.onAdd(map));
+    // AC 44: every visible control has a test id. MapLibre sanitises the attribution HTML, so tag its links here.
+    const tag = () => host.querySelectorAll('a').forEach((a, i) => a.getAttribute('data-testid') || a.setAttribute('data-testid', `attrib-link-${i}`));
+    new MutationObserver(tag).observe(host, { subtree: true, childList: true });
+    tag();
+  }
   else map.addControl(attribution, 'bottom-left');
   container.setAttribute('aria-hidden', 'true'); // the step list is the accessible source of truth (M1 AC 40)
   map.getCanvas().setAttribute('tabindex', '-1'); // QA-7: nothing focusable inside the aria-hidden map

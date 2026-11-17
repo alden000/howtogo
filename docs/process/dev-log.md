@@ -252,3 +252,22 @@ Bundle: app JS **42 KB gz**, against a budget of 150 KB. MapLibre is 265 KB gz a
 3. Swap in the logo B master: favicon, apple-touch-icon, manifest icons 192/512/maskable.
 4. Write the gate script and the two-build update e2e.
 5. M2: turn on `guide`, build H5/H6/H11/H12 on the same kit (`ui/kit.tsx`, `views/present.ts`), and align the shared step strings.
+
+## 2026-11-17 — M1 batched fix round (dev/m1-ui) · Developer (fresh)
+
+### Visible changes (exact strings, where)
+| Where | Change |
+|---|---|
+| Every bar, About, F3 loading seal | Logo B master geometry (favicon.svg): `#9A3412` tile rx 96, `#FBF5EC` 去 strokes w 64, `#FFD23F` dot (`seal-dot` pulse kept) |
+| Browser tab / home screen | favicon.svg + favicon-32.png, apple-touch-icon (180), manifest icons 192/512 + maskable 192/512 |
+| H1 Home | "需要帮忙？ / Need help?" row hidden (flag `help`, QA-1); at 150/200 % the wordmark text is visually hidden (seal stays, h1 text for SR) and the search button's trailing magnifier is hidden |
+| H3 bars, H4 bar | "帮忙 / Help" pill hidden (flag `help`) |
+| H3 Route options | New bar button **对调 / Swap** (route icon rotated 90°, SR "对调出发地和目的地 / Swap start and destination"); "巴士时间来自实时信息… / Bus times are live…" note hidden (flag `live`); single option note: < 1 km "这里很近，只有一条好走的路。" else **只找到这一条路。/ This is the only way I found.**; card fact **走路 {m} 米 / Walk {m} m** (was minutes; rounded to 10); duration reads "13 分钟" (a space instead of a 4 px margin); From line keeps the icon beside the text |
+| F3 close | metres rounded to 10 (min 10); < 30 m: **你已经在这附近了，走几步就到。/ You're already nearby, just a few steps away.** |
+| H2 Search | From-mode title **从哪里出发？ / Where are you starting from?**; no-result uses the §6b state panel (tile → headline → body, left-aligned); titles in rows are ink; at 150/200 % row icon tiles hidden |
+| H4 Route detail | MRT step: **坐地铁 [NS]，往 {dir} 方向，坐 {n} 站 / Take the [NS] train towards {dir}, {n} stops** with the line tag inline; train disc is ink like bus; step text unchanged colour; map: OneMap attribution pinned top-left; my-location dot + accuracy circle and a 56 px recentre button (icon, SR "回到我的位置"); **放大地图 / Bigger map** ↔ **缩小地图 / Smaller map** toggle under the map |
+| F1 / F6 | Selected radio card / segment shows a check icon; F6 rows: label keeps its words next to a value; 中文/English buttons carry `lang` |
+| F2 explainer | 72 px tile above the title |
+| Copy (zh + en) | All straight `"…"` quotes → `“…”` |
+| Motion | Outgoing screen slides −6 % (pop +12 %) and fades over 280 ms; sheets drop + scrim fades on close; under reduce motion 120 ms fades (incl. sheets, toasts, banner) |
+| Misc | "帮忙"/pill text 20 px (iconbtn 1rem); dock content fades under the dock; dark primary button uses black elevation; progress dots scale with text; `text-wrap: balance/pretty` on state headlines, sheet titles, bodies |

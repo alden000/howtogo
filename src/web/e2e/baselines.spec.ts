@@ -34,7 +34,17 @@ async function open(page: Page, v: Variant, places: unknown = AT_HOME, recents: 
   );
 }
 
-const shot = (page: Page, name: string) => expect(page).toHaveScreenshot(`${name}.png`, { mask: [page.locator('[data-testid=map], img')] });
+/**
+ * QA-13 root cause: the capture could land inside the new screen's enter cross-fade (a compositor-run opacity
+ * animation that `animations: 'disabled'` does not always reach in time), giving a washed-out / shifted frame.
+ * Capture only once the app's own finite animations (screen enter, sheet rise, exit ghosts) have ended.
+ */
+const settled = (page: Page) =>
+  page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
+const shot = async (page: Page, name: string) => {
+  await settled(page);
+  await expect(page).toHaveScreenshot(`${name}.png`, { mask: [page.locator('[data-testid=map], img')] });
+};
 /** Open a sheet over Home through the app's router (the same call the screens make). */
 const openSheet = async (p: Page, name: string) => {
   await p.waitForFunction(() => '__howtogo' in window);
