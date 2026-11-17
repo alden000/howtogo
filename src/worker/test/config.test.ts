@@ -40,8 +40,10 @@ describe("wrangler.toml production safety (OQ6, AC 21)", () => {
     expect(leaks).toEqual([]);
   });
 
-  it("FIXTURE_MODE is not set anywhere in wrangler.toml", () => {
-    expect(all.filter(([, k]) => k.endsWith("FIXTURE_MODE"))).toEqual([]);
+  // D-10 (Director, after the AC 21 ruling): the preview deploy runs FIXTURE_MODE="1" in the top-level
+  // [vars] with the visible "Sample routes" banner until the owner's keys are in. It must appear nowhere else.
+  it("FIXTURE_MODE is set only in the top-level [vars] (D-10 preview)", () => {
+    expect(all.filter(([t, k]) => k.endsWith("FIXTURE_MODE") && t !== "vars")).toEqual([]);
   });
 
   it("the scanner catches a leak (self-test)", () => {

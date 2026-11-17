@@ -19,6 +19,17 @@ interface Plan {
 afterEach(() => vi.restoreAllMocks());
 
 describe("AC 21 fixture mode (FIXTURE_MODE=1)", () => {
+  it("GET /api/health reports fixtureMode (D-10 sample-routes banner)", async () => {
+    const on = await get("/api/health");
+    expect(on.status).toBe(200);
+    expect(on.headers.get("Cache-Control")).toBe("no-store");
+    expect(await on.json()).toEqual({ ok: true, fixtureMode: true });
+    const off = await get("/api/health", { ...fxEnv, FIXTURE_MODE: "0" });
+    expect(await off.json()).toEqual({ ok: true, fixtureMode: false });
+    const unset = await get("/api/health", { ...fxEnv, FIXTURE_MODE: undefined });
+    expect(await unset.json()).toEqual({ ok: true, fixtureMode: false });
+  });
+
   it("is off by default: without credentials /api/route is not_configured", async () => {
     const res = await get("/api/route?start=1.3347,103.8491&end=1.3214,103.8465", { ...fxEnv, FIXTURE_MODE: undefined });
     expect(res.status).toBe(503);

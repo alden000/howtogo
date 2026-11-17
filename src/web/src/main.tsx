@@ -24,6 +24,7 @@ import { corridorTiles, styleForTheme } from './map/onemap';
 import { isDark } from './map/MapPanel';
 import { createRouter } from './router/router';
 import { parseRouteLink } from './router/deeplink';
+import { checkSampleMode, sampleMode } from './state/sample';
 import { session } from './state/storage';
 import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
@@ -53,7 +54,12 @@ async function boot() {
     start = m.DEMO_START;
   } else {
     api = createHttpApi({ base: import.meta.env.VITE_API_BASE ?? '' });
+    // D-10: the preview Worker answers from fixtures → show the sample-routes banner.
+    void checkSampleMode(import.meta.env.VITE_API_BASE ?? '');
   }
+  if (q.get('sample') === '1') session.set('mode.sample', '1');
+  if (q.get('sample') === '0') session.remove('mode.sample');
+  if (session.get('mode.sample') === '1') sampleMode.value = true;
   api = offlineAware(api);
   watchOnline();
 

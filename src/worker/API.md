@@ -1,6 +1,6 @@
 # 怎么去? Worker API (v1, M3/M4 additions)
 
-Base: same origin as the PWA (`/api/*`, via a Worker route or Pages Function), or the Worker's own domain.
+Base: same origin as the PWA. D-10: ONE Worker (`howtogo`) serves the PWA from Workers Static Assets (`src/web/dist`, SPA fallback, headers from `src/web/public/_headers`) and runs Worker code only for `/api/*` (`run_worker_first`). The PWA calls relative `/api/...` (`VITE_API_BASE` empty).
 All responses are JSON (`application/json; charset=utf-8`) unless noted.
 
 ## Common rules
@@ -21,6 +21,9 @@ All responses are JSON (`application/json; charset=utf-8`) unless noted.
   | `GET /api/setup/:code` (counted for unknown codes too) | 30 / hour |
   | `PUT`/`DELETE /api/share/:id`, `/live` WebSocket, `/api/health` | not IP-limited (owner writes have the per-share 3 s limit; `help` bypasses it, D-7) |
 - Other codes: `400 invalid_*` / `missing_query`, `404 not_found`, `405 method_not_allowed`, `413 payload_too_large` (bodies > 4 KB; `POST /api/setup` allows the 4096-byte ciphertext in base64url, ≈ 5.5 KB), `500 internal_error`.
+
+## GET /api/health
+`{"ok":true,"fixtureMode":true|false}`, `Cache-Control: no-store`, not rate-limited. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
 
 ## GET /api/search?q=
 OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 24 h per lower-cased, whitespace-collapsed query (`Cache-Control: private, max-age=86400`).

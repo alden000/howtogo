@@ -1,9 +1,12 @@
 import type { Env } from "./env";
 import { handleAlerts, handleBusArrival, handleLifts, handleRevGeocode, handleRoute, handleSearch } from "./api";
-import { HttpError, errorResponse, finalize, originAllowed, preflight } from "./http";
+import { fixtureMode } from "./fixtures";
+import { HttpError, errorResponse, finalize, json, originAllowed, preflight } from "./http";
+import { ASSET_MAP, HEADER_RULES } from "./generated/assets";
 import { checkRateLimit } from "./ratelimit";
 import { handleCreateSetup, handleSetupByCode } from "./setup";
 import { handleCreateShare, handleShareById } from "./share";
+import { serveEmbedded } from "./static";
 
 export { TripShare } from "./share";
 export { SetupBox } from "./setup";
@@ -30,7 +33,8 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     "/api/bus-arrival": () => handleBusArrival(url, env, ctx),
     "/api/alerts": () => handleAlerts(url, env, ctx),
     "/api/lifts": () => handleLifts(url, env, ctx),
-    "/api/health": async () => new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }),
+    // D-10: the PWA shows the "Sample routes" banner when fixtureMode is true.
+    "/api/health": async () => json({ ok: true, fixtureMode: fixtureMode(env) }, 200, { "Cache-Control": "no-store" }),
   };
   const h = getRoutes[path];
   if (h) {
@@ -53,6 +57,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const { pathname } = new URL(request.url);
+    if (pathname !== "/api" && !pathname.startsWith("/api/")) {
+      // Static PWA. With [assets] (wrangler.toml) only /api/* reaches the Worker, but delegate anyway;
+      // the preview deploy (wrangler.preview.toml) has no ASSETS and serves the embedded build.
+      return env.ASSETS ? env.ASSETS.fetch(request) : serveEmbedded(request, ASSET_MAP, HEADER_RULES);
+    }
     if (request.method === "OPTIONS") return preflight(request, env);
     if (!originAllowed(request, env)) {
       return finalize(errorResponse(403, "origin_not_allowed", "This website is not allowed to use the service."), request, env);

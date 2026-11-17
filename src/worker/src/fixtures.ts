@@ -1,7 +1,8 @@
 /**
  * AC 21 fixture mode: with FIXTURE_MODE=1 the read endpoints answer from bundled SYNTHETIC
  * fixtures instead of OneMap / LTA, so dev and QA can run before credentials exist.
- * Off unless the variable is exactly "1"; never set it in the production wrangler.toml.
+ * Off unless the variable is exactly "1". D-10: on for the workers.dev preview only (wrangler.toml), with the
+ * PWA's "Sample routes" banner; turn it off once the real OneMap/LTA secrets are in.
  *
  * The fixture data is loaded with a dynamic import, so it is not evaluated when the mode is off.
  */
