@@ -231,3 +231,6 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 /* F7 info banner (§5.7 .banner, in flow on Home) */
 .banner{display:flex;gap:12px;align-items:center;margin:0 0 var(--s-3);padding:4px 4px 4px 16px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-3);border-left:8px solid var(--c-jade);animation:dropIn var(--d-slow) var(--ease-spring) both}
 .banner>button:first-child{flex:1;display:flex;gap:12px;align-items:center;min-height:var(--tap);text-align:left;font-weight:700;font-size:1.05rem}
+/* Targets ≥ 56px (§1.3) for controls whose prototype element was not interactive or text-sized */
+button.where{min-height:var(--tap);text-align:left}
+.btn-quiet{min-width:var(--tap)}
