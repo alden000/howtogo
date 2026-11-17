@@ -293,3 +293,11 @@ H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-144
 2. Director assigns QA-8 (root `gate` script).
 3. Creative reviews the 35 re-recorded baselines, the #7 deviation and the exit motion on a device. Unstub fonts for one 100 % zh baseline per frame if wanted.
 4. Worker developer: QA-15…18, then a smoke test with credentials.
+## 2026-11-17 — M1 Worker fix round (dev/m1-worker-fix): QA-15…QA-18
+- **QA-15 / AC 15:** token renews when < 12 h are left (`RENEW_BEFORE_MS`). 401 renew-once-retry-once unchanged. Tests at 11.5 h (renews) and 12.5 h (keeps).
+- **QA-16 / AC 17–18:** TTLs search 24 h, route 2 min, revgeocode 1 h keyed on 5 dp (was 4 dp). `Cache-Control` matches. New `test/logs.test.ts` captures every console call through token failure, 401, upstream 5xx and rate-limit paths and asserts no coordinates, query text, tokens, credentials or IPs. A deliberately leaked IP fails it.
+- **QA-17 / AC 20:** 60 req/min/IP sliding window in isolate memory on search/route/revgeocode/bus-arrival/alerts → `429 rate_limited` + `Retry-After`. Share and health are not counted (D-7). IPs are SHA-256 hashed with a per-isolate random salt and pruned after the window. No `CF-Connecting-IP` → not limited.
+- **QA-18 / AC 21:** `FIXTURE_MODE=1` (`npm run dev:fixtures -w @howtogo/worker`). The 5 synthetic trips are the 3 from `@howtogo/shared/fixtures` (imported cleanly) + 2 in `src/worker/fixtures/trips.ts` (Jurong East→NUH, Bedok→CGH). They are re-timed to the request. Also 9 search places, nearest revgeocode, re-timed bus arrival and normal alerts. `X-Fixture: 1`. Off by default.
+- **Deviation from AC 21 wording:** the AC reads "no credentials → fixtures". The task asked for an explicit flag, so production without secrets answers `503 not_configured` instead of fake routes. Director to confirm. `@howtogo/shared` is resolved via the workspace and not declared in the worker's package.json (that would need a root lockfile change). The fixtures are lazily imported.
+- Also: AC 19 upstream timeout 10 s → 8 s (QA missed it).
+- 91 tests pass; typecheck clean.

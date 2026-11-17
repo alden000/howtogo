@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { handleAlerts, handleBusArrival, handleRevGeocode, handleRoute, handleSearch } from "./api";
 import { HttpError, errorResponse, finalize, originAllowed, preflight } from "./http";
+import { checkRateLimit } from "./ratelimit";
 import { handleCreateShare, handleShareById } from "./share";
 
 export { TripShare } from "./share";
@@ -25,6 +26,15 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   const h = getRoutes[path];
   if (h) {
     if (method !== "GET" && method !== "HEAD") return errorResponse(405, "method_not_allowed", "Method not allowed.");
+    if (path !== "/api/health") {
+      // AC 20. Share endpoints are excluded: they have their own write limit, and "help" must never be blocked (D-7).
+      const wait = await checkRateLimit(request.headers.get("CF-Connecting-IP"));
+      if (wait !== null) {
+        return errorResponse(429, "rate_limited", "Too many requests. Please wait a moment and try again.", {
+          "Retry-After": String(wait),
+        });
+      }
+    }
     return h();
   }
   if (path === "/api/share") return errorResponse(405, "method_not_allowed", "Method not allowed.");

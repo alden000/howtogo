@@ -2,6 +2,7 @@ import type { Env } from "./env";
 import { cached } from "./cache";
 import { inSingapore, parseLatLng, round } from "./geo";
 import { HttpError, UpstreamError, json, rawJson } from "./http";
+import { fixtureAlerts, fixtureBusArrival, fixtureMode, fixtureRevGeocode, fixtureRoute, fixtureSearch } from "./fixtures";
 import { ltaGet } from "./lta";
 import { normaliseBusArrival, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
 import { oneMapGet } from "./onemap";
@@ -20,6 +21,9 @@ function bad(code: string, message: string): never {
   throw new HttpError(400, code, message);
 }
 
+/** AC 17 cache lifetimes (seconds). */
+export const TTL = { search: 86_400, route: 120, revgeocode: 3_600 } as const;
+
 const cacheHeaders = (maxAge: number, hit: boolean) => ({
   "Cache-Control": `private, max-age=${maxAge}`,
   "X-Cache": hit ? "HIT" : "MISS",
@@ -30,10 +34,11 @@ export async function handleSearch(url: URL, env: Env, ctx?: Ctx): Promise<Respo
   const q = (url.searchParams.get("q") ?? "").trim().replace(/\s+/g, " ");
   if (q.length < 1) bad("missing_query", "Please type a place name or postal code.");
   if (q.length > 100) bad("query_too_long", "The search text is too long.");
+  if (fixtureMode(env)) return fixtureSearch(q);
   const key = `search:v1:${q.toLowerCase()}`;
   const { body, hit } = await cached(
     key,
-    86_400,
+    TTL.search,
     async () => {
       const res = await oneMapGet(
         env,
@@ -44,7 +49,7 @@ export async function handleSearch(url: URL, env: Env, ctx?: Ctx): Promise<Respo
     },
     ctx,
   );
-  return rawJson(body, 200, cacheHeaders(300, hit));
+  return rawJson(body, 200, cacheHeaders(TTL.search, hit));
 }
 
 // ---------- /api/route ----------
@@ -130,16 +135,17 @@ export function oneMapRoutePath(p: RouteParams): string {
 
 export async function handleRoute(url: URL, env: Env, ctx?: Ctx): Promise<Response> {
   const p = parseRouteParams(url.searchParams);
+  if (fixtureMode(env)) return fixtureRoute(p);
   const { body, hit } = await cached(
     routeCacheKey(p),
-    60,
+    TTL.route,
     async () => {
       const res = await oneMapGet(env, oneMapRoutePath(p), { requireToken: true });
       return res.text(); // raw OneMap JSON, passed through unchanged
     },
     ctx,
   );
-  return rawJson(body, 200, cacheHeaders(60, hit));
+  return rawJson(body, 200, cacheHeaders(TTL.route, hit));
 }
 
 // ---------- /api/revgeocode ----------
@@ -150,11 +156,12 @@ export async function handleRevGeocode(url: URL, env: Env, ctx?: Ctx): Promise<R
     bad("invalid_coordinates", "lat and lng are required.");
   }
   if (!inSingapore(lat, lng)) bad("out_of_bounds", "The location must be in Singapore.");
-  // ~11 m rounding keeps the cache useful and avoids keying on precise positions.
-  const loc = `${round(lat, 4)},${round(lng, 4)}`;
+  if (fixtureMode(env)) return fixtureRevGeocode(lat, lng);
+  // AC 17: keyed on coordinates rounded to 5 dp (~1 m).
+  const loc = `${round(lat, 5)},${round(lng, 5)}`;
   const { body, hit } = await cached(
     `revgeo:v1:${loc}`,
-    86_400,
+    TTL.revgeocode,
     async () => {
       const res = await oneMapGet(env, `/api/public/revgeocode?location=${loc}&buffer=50&addressType=All`, {
         requireToken: true,
@@ -165,7 +172,7 @@ export async function handleRevGeocode(url: URL, env: Env, ctx?: Ctx): Promise<R
   );
   const value = JSON.parse(body) as ReturnType<typeof normaliseRevGeocode>;
   if (!value) throw new HttpError(404, "not_found", "No address was found near this spot.");
-  return json(value, 200, cacheHeaders(3600, hit));
+  return json(value, 200, cacheHeaders(TTL.revgeocode, hit));
 }
 
 // ---------- /api/bus-arrival ----------
@@ -174,6 +181,7 @@ export async function handleBusArrival(url: URL, env: Env, ctx?: Ctx): Promise<R
   if (!/^\d{5}$/.test(stop)) bad("invalid_stop", "The bus stop number must have 5 digits.");
   const service = url.searchParams.get("service") ?? undefined;
   if (service !== undefined && !/^[0-9A-Za-z]{1,5}$/.test(service)) bad("invalid_service", "The bus number is not valid.");
+  if (fixtureMode(env)) return fixtureBusArrival(stop, service);
   const { body, storedAt, hit } = await cached(
     `bus:v1:${stop}`,
     20,
@@ -186,6 +194,7 @@ export async function handleBusArrival(url: URL, env: Env, ctx?: Ctx): Promise<R
 
 // ---------- /api/alerts ----------
 export async function handleAlerts(env: Env, ctx?: Ctx): Promise<Response> {
+  if (fixtureMode(env)) return fixtureAlerts();
   const { body, hit } = await cached(
     "alerts:v1",
     60,
