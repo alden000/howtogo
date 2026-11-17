@@ -86,3 +86,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - QA re-check (qa/reports/0.1.1-m1-recheck.md): 42/42 Must ACs pass, QA-1…19 fixed. QA-20 (S4): approved — gate Lighthouse uses the median of 3 runs.
 - Hosting ruling (D-10): the Cloudflare token can manage Workers/KV/DO but not Pages → serve the PWA and API from ONE Worker using Workers Static Assets (`assets` = src/web/dist, SPA fallback, `/api/*` → Worker code). Preview runs with FIXTURE_MODE=1 and a clear "示范路线 / Sample routes" banner until the owner's OneMap/LTA keys are in, so nobody mistakes sample routes for real ones.
 - Release-prep round: Creative R1–R3, QA-20, Worker static-assets deploy config, sample-mode banner (Creative copy below).
+
+## 2026-11-17 — M3 + M4 requirements (PM)
+- M3: 45 ACs, 6–7 h. Lift data source found (LTA v2/FacilitiesMaintenance) → lift warnings + "no repairs reported" fact in; "No stairs" stays hidden (D-8). M4: 52 ACs, 8–10 h. Roadmap total now ~41–50 h.
+- Rulings: M3 OQ1–OQ9 and M4 OQ1–OQ11 accepted at PM defaults (owner's standing D-6 instruction). M4 OQ3 (send the senior's own number with a share, only if set, off switch) and OQ4 (destination name only, no coordinates) are privacy calls → accepted at the privacy-protective defaults and flagged to the owner as FYI.
+- Conflict M4 AC 14 vs M2 AC 41: **sharing continues in pocket view** (safety over battery) at the OQ7 cadence (15 s moving / 60 s still).
+- Bugs found by PM: share status enum mismatch → folded into the running M2 engine round (small, specified). D-7 help write-limit bypass not built → M4 Worker round.
