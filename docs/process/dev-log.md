@@ -271,3 +271,25 @@ Bundle: app JS **42 KB gz**, against a budget of 150 KB. MapLibre is 265 KB gz a
 | Copy (zh + en) | All straight `"…"` quotes → `“…”` |
 | Motion | Outgoing screen slides −6 % (pop +12 %) and fades over 280 ms; sheets drop + scrim fades on close; under reduce motion 120 ms fades (incl. sheets, toasts, banner) |
 | Misc | "帮忙"/pill text 20 px (iconbtn 1rem); dock content fades under the dock; dark primary button uses black elevation; progress dots scale with text; `text-wrap: balance/pretty` on state headlines, sheet titles, bodies |
+
+### Fixed
+- **Director rulings / known items:** ruling 1 (live note behind flag `live`), QA-1 (Help row/pill behind flag `help`), ruling 3 / K-2 (Swap on Route options, `routes-swap`), ruling 4 / K-3 (H2 From title, new key `from_title`), ruling 5 / K-1 (logo B icons + favicon + apple-touch-icon in the manifest/index.html; `x_todo_creative` removed; Seal/Wordmark use the favicon geometry). AC 38: the map module logs `map:ready`, `map:route walk=n transit=n stops=n dest=1`, `map:me acc=circle|none`, `map:centre-me` (no coordinates) and `e2e/fixround.spec.ts` asserts on them.
+- **Creative:** #1–#13 (all High and Medium), plus Lows #14–#22. Deviations: #7 uses `.row .tx:has(+ .val){flex:0 0 auto;word-break:keep-all;max-width:60%}` and `.tx{flex:1}` otherwise. Creative's rule as given made a long label with no value ("清除最近去过的地方") overflow at 200 % (QA matrix). #10 is played by an inert "ghost": a copy of the old screen or sheet in a closed shadow root (`ui/ghost.ts`). The router stays instant, and tests and screen readers never see duplicate testids or text.
+- **QA:** QA-2, QA-3 (`router/deeplink.ts`: names come from revgeocode, with the coordinates as fallback; Back lands on Home), QA-4 (fact "走路 {m} 米"), QA-5 (dot + accuracy circle + 56 px recentre on Route detail), QA-6 (focus moves to the new screen's h1; Search keeps its input focus), QA-7 (canvas `tabindex=-1`; attribution moved out of the aria-hidden node, links tagged with testids), QA-9, QA-10 (`toggle-map`), QA-11, QA-12 (attribution pinned top-left; About `main` is focusable), QA-13 (root cause: the capture could land inside the new screen's enter cross-fade, a compositor-run opacity animation that `animations:'disabled'` does not always reach. `shot()` now waits until the app's finite animations have finished. No retries. 18/18 identical captures in a repro), QA-14 (passes; step text 7:1 in light and dark), QA-19 (`mock-*.js` is excluded from the precache and is still loaded on demand and runtime-cached in demo/mock mode).
+
+### Not fixed (why)
+- **QA-8 `npm run gate`:** it needs the root `package.json`, which is outside this round's scope (src/web, src/shared). It is a one-line change: `"gate": "bash qa/gate.sh"`. Director or owner to assign.
+- **QA-15…18:** Worker (another developer's branch).
+- **Test for QA:** `qa/tests/ac.spec.ts:553` ("需要帮忙？ leads to a useful Help screen") expects the Help row. Director ruling QA-1 hides it in M1, so QA should change the test to assert that `nav-help`/`bar-help` are absent (as `e2e/fixround.spec.ts` does). I did not edit it.
+
+### Baselines re-recorded (35, all intentional; DPR 1, stubbed fonts)
+H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-1440, H2-recent, H2-results (×4), H2-empty, H3-two (×4), H3-desktop-1440, H4-bus (×4), H4-mrt, H4-desktop-1440, M1-F1-lang, M1-F1-name, M1-F2-denied-android, M1-F2-explainer, M1-F3-close, M1-F4-offline, M1-F6-about, M1-F6-report, M1-F6-settings (×4). Causes: seal, hidden help row, dock background, Swap/notes/metres, map toggle/attribution, line tag, check icons, quotes, state panel.
+
+### Gate (`bash qa/gate.sh`, 7c4e2c3)
+10/11 PASS: deps, typecheck, unit 212, i18n, build 60.1 KB gz, static-pwa (no warnings), secrets, dev-e2e 60/60, lighthouse (perf 85, a11y 100), artifact. qa-e2e 60/61: the only failure is the Help test above, which is wrong against the ruling. Still deferred: live OneMap/LTA, deploy/HTTPS, and real-device install/TalkBack/VoiceOver.
+
+### Next steps
+1. QA updates `ac.spec.ts:553` to the QA-1 ruling and re-checks QA-1…14 and QA-19. The gate should then be green.
+2. Director assigns QA-8 (root `gate` script).
+3. Creative reviews the 35 re-recorded baselines, the #7 deviation and the exit motion on a device. Unstub fonts for one 100 % zh baseline per frame if wanted.
+4. Worker developer: QA-15…18, then a smoke test with credentials.
