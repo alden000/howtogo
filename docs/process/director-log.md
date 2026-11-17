@@ -40,3 +40,10 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Creative done (~28 min, ~222k tokens). Prototype published privately for the owner: https://claude.ai/artifact/AkPm6sk5pu2bw5GbWRFcEj
 - Director review: H1 and H5 look strong. One small issue: on H5, the map station label is half-hidden under the End button (S4, fix in the UI round).
 - Awaiting owner: logo A, palette, greeting name at first run, WhatsApp/SMS/link sharing, lift/no-stairs data source (recommend: hide the "No stairs/Lifts" facts until M3 has data).
+
+## 2026-11-17 — Owner design sign-off (D-8)
+- Logo: **B, 去 seal** (owner's pick, not the recommended A). Creative to refine B into the master mark: app icon, maskable, mono, favicon, wordmark; update the prototype/style guide.
+- Palette and type approved as is.
+- Greeting: optional name asked once at first use; skip → plain greeting.
+- "No stairs"/"Lifts all the way" facts hidden until a data source exists (research in M3).
+- Design signed off → production UI work may start.
