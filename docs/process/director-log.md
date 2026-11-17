@@ -31,3 +31,7 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Dev-A Worker merged to the session branch (76 tests pass, ~3 s). Took ~11 min wall clock, ~156k tokens.
 - Ruling D-7: status "help" bypasses the 3 s share write limit (safety beats rate-limit). Rate-limit on POST /api/share → M4 scope.
 - Open until real credentials: OneMap "Bearer" prefix, expiry format, revgeocode fields, BusArrival v3 fields, TrainServiceAlerts path.
+
+## 2026-11-17 — Engine round merged
+- Dev-B shared engine merged (82 tests, <1 s). ~17 min wall clock, ~214k tokens. Real OneMap response (Nov 2025, public GitHub) confirms the OTP shape.
+- Gaps carried to M1/M3: Chinese station-name table (zh steps currently show English station names), MRT exit table, line-terminus table maintenance.
