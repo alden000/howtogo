@@ -1,23 +1,27 @@
-# 怎么去? — Style guide v1.0
+# 怎么去? — Style guide v1.1
 
 Source of truth for the build. **Build strictly to these tokens and frames:** no raw values outside the token sheet, and no improvised UI. New tokens need Director approval. The prototype `creative/prototype/index.html` implements every token below in its `:root` block. Brand rationale lives in `docs/02-creative-direction.md`.
 
 ---
 
-## 0. Logo
+## 0. Logo — B · 去 Seal (owner pick, D-8 / D17)
 
-| File | Concept | Verdict |
-|---|---|---|
-| `logo/a-question-path.svg` | **A · Question Path.** A "?" drawn as a route: start ring → winding path → saffron destination dot. | **Recommended.** Reads at 16px (the ? silhouette plus the yellow dot survives). Ownable, and literally the app name. Not a pin, arrow, roundel or train. |
-| `logo/a-question-path-maskable.svg` | A, full-bleed square with the mark scaled to 72% inside the 80% safe circle. | PWA `purpose: maskable` (192/512). Checked under a circle mask. |
-| `logo/a-question-path-mono.svg` | A, single colour. | Android notification and badge icon (white on transparent at build). |
-| `logo/b-qu-seal.svg` | B · 去 Seal. The character 去 as a chop seal, the last stroke ending in the dot. | Strong for Chinese readers, but it turns to mush at 16px and reads "official stamp". |
-| `logo/c-lantern.svg` | C · Lantern lighting a winding path. | Warm and festive, but seasonal (CNY/Mid-Autumn) and busy small. |
-| `logo/d-walk-with.svg` | D · Two companions walking a path. | Lovely story, but abstract. At 48px the dots read as a weather or sun icon. |
+**The mark:** the character 去 ("go") cut as a white-on-persimmon chop seal. Its last stroke, 厶's turn, is drawn as a path that rises toward a **saffron dot**: the 点 of 去 doubles as the destination, "arrived". The dot is the signature and is always saffron `#FFD23F` (never recoloured, except in mono). Seal `#9A3412` (`c-primary` light), glyph `#FBF5EC` (`c-canvas` light). The same colours in dark mode: the seal is a solid object.
 
-`logo/logo-sizes.png` shows every concept rendered at 192, 48 and 16px (DPR 1), plus the maskable variant under a circle mask.
-Clear space = the dot's diameter. Minimum size is 16px (favicon). Below 24px, use the mono version on non-persimmon backgrounds.
-Wordmark: "怎么去?" in Noto Sans SC 900 next to the mark. The "?" is ASCII, so it matches the mark.
+| File (`logo/final/`) | Use |
+|---|---|
+| `icon.svg` → `icon-192.png`, `icon-512.png` | Manifest `purpose: any`. Rounded square (rx 112/512) with an inner chop frame line (12/512); glyph at 84%. |
+| `maskable.svg` → `maskable-192.png`, `maskable-512.png` | Manifest `purpose: maskable`. Full bleed, no frame; glyph at 74%, wholly inside the central 80% circle. Checked under circle and squircle masks. |
+| `apple-touch-icon-180.png` | From the maskable art (iOS applies its own corners). |
+| `favicon.svg` → `favicon-32.png`, `favicon-16.png` | Pixel geometry: every bar on a 32/512 grid (1px at 16, 2px at 32), equal 64/512 strokes, no frame line. Use this geometry for every rendering ≤ 48px (top-bar wordmark too). |
+| `mono.svg` | One colour (`currentColor`), glyph and dot knocked out. Android notification/badge, print, embossing. |
+| `wordmark.svg` | Mark + "怎么去?" in Noto Sans SC 900, gap = 0.17 × mark. In the app the text is live HTML, not the SVG text. |
+| `check.png` | Check sheet: 16/32/48/192 on paper, dark and white; circle and squircle masks; mono 48/24; 8× pixel zoom of 16/32. |
+| `build.js` | Generates all of the above from one geometry (`node creative/logo/build.js`, Playwright). Edit the geometry there, never the SVGs by hand. |
+
+Geometry (master, 512 grid): 土 = vertical `M256 96V204` (w 56), short bar `M196 128H316` and long bar `M100 216H412` (w 50: horizontals 6 units lighter so they read optically equal), 厶 path `M262 292L178 408L304 396` (w 56, the last arm rises 12 units toward the dot), dot `c(388,392) r44`. Optical centre is 6 units below the geometric centre.
+Clear space = the dot's diameter on every side. Minimum size 16px. Don't rotate, outline, recolour the dot, put the glyph on a non-persimmon seal, or set the seal on `c-primary` dark (`#FF9466`); on persimmon or busy backgrounds use mono.
+Earlier concepts (A, C, D and the B sketch) stay in `logo/` for the record only; `logo/a-*` are retired.
 
 ## 1. Tokens
 
@@ -110,10 +114,10 @@ Icons always come with a text label, except close, mute and follow-map, which ha
 - **Map camera:** exponential ease (k = 3.2/s) of x, y, zoom and rotation along the shortest arc. It is never instant, except under reduce motion.
 - **Signature moments:**
   1. **Get off now (H6):** the saffron panel springs up. The bell swings (1.2s loop). Two ripple rings expand (1.6s). The screen edge glows saffron (1.2s breathe). Haptic `getoff`. Voice speaks the line, then repeats the second line after 2.2s.
-  2. **Arrival (H12):** the Question Path stroke draws (1.1s) → saffron dot drops with the spring (0.7s) → ring ripples out → 18 petals in persimmon, saffron and jade drift outward (1.6–2.4s) → text rises (staggered 150ms). Haptic `arrive`. Voice: 到了！
+  2. **Arrival (H12) — "the seal stamps, the dot lands":** the seal stamps down (from scale 1.35, −6°, `ease-spring` 0.5s at 0.15s) with a persimmon ink ring spreading from its edge (0.7s) → 厶's path draws (0.5s at 0.6s) → the saffron dot drops onto the end of the path with the spring (0.7s at 1.1s) → a saffron ring ripples out of the dot (1.2s at 1.6s) → 18 petals in persimmon, saffron and jade drift outward (1.6–2.4s) → text rises (staggered 150ms). Haptic `arrive`. Voice: 到了！
   3. **Bus is here:** the arrival chip flips to saffron, plus haptic `attention`.
   4. **Live:** the user-dot pulse (2s) and the "live" dot blink (1.6s) show that data is fresh.
-- **Reduce motion** (OS setting, or Settings → 减少动画): all transitions become a 120ms cross-fade. Pulses, petals and ripples are removed. The alert appears without bounce and the edge glow is static. The map camera snaps. The arrival mark is shown complete. Haptics and voice are unchanged.
+- **Reduce motion** (OS setting, or Settings → 减少动画): all transitions become a 120ms cross-fade. Pulses, petals and ripples are removed. The alert appears without bounce and the edge glow is static. The map camera snaps. The arrival seal is shown complete (stamped, path drawn, dot in place). Haptics and voice are unchanged.
 
 ## 3. Haptics (`navigator.vibrate`; iOS Safari ignores it, so voice and visual must carry the moment)
 | Name | Pattern (ms) | Use |
@@ -142,7 +146,7 @@ Saved places v1: 家 Home (tint-home), 诊所 Clinic (tint-clinic), 巴刹 Marke
 
 ### 5.2 Route option card (`.card`)
 `r-l`, `e-2`, padding 18, full width. The whole card is one button.
-Contents: tag pill (best = primary fill with a check: "推荐 · 最少走路") → duration (`duration` + unit) and "上午 10:39 到达" → leg chain (walk chip `walk-icon + min`, bus badge, line tag, chevrons between) → dashed divider → facts row (walk total, no changes, no stairs / lifts, stops) → "选这条路 ›" in primary-text.
+Contents: tag pill (best = primary fill with a check: "推荐 · 最少走路") → duration (`duration` + unit) and "上午 10:39 到达" → leg chain (walk chip `walk-icon + min`, bus badge, line tag, chevrons between) → dashed divider → facts row (walk total, changes, stops; stairs/lift facts hidden until M3 data, D-8) → "选这条路 ›" in primary-text.
 The best card has a 3px primary border. Max 3 cards. A single option adds the "only one easy way" note. A bus route adds the honest note about times.
 SR label: the whole sentence, e.g. "推荐，最少走路，23 分钟，上午 10:39 到达。走路 3 分钟，然后巴士 139，然后走路 2 分钟".
 
@@ -207,17 +211,18 @@ Shared rules for every frame:
 
 ### H3 Route options
 - Title: 怎么去 **陈笃生医院**？/ How do I get to **Tan Tock Seng Hospital**? · From: 从：家 · Blk 79 Toa Payoh Lor 4 / From: Home · Blk 79 Toa Payoh Lor 4.
-- Cards (sample): ① 推荐 · 最少走路 / Best for you · Least walking — 23 分钟, walk 3 › bus 139 › walk 2; 走路 5 分钟 · 不用转车 · 没有楼梯 · 6 站. ② 最快 / Fastest — 16 分钟, walk 6 › NS › walk 5; 走路 11 分钟 · 不用转车 · 有电梯 · 1 站.
+- Cards (sample): ① 推荐 · 最少走路 / Best for you · Least walking — 23 分钟, walk 3 › bus 139 › walk 2; 走路 5 分钟 · 不用转车 · 6 站. ② 最快 / Fastest — 16 分钟, walk 6 › NS › walk 5; 走路 11 分钟 · 不用转车 · 1 站.
+- **Stairs/lift facts hidden (owner decision D-8):** "没有楼梯 / No stairs" and "有电梯 / Lifts all the way" are not shown until a data source exists (M3 research). The facts row is walk total · changes · stops.
 - Notes: 巴士时间来自实时信息，可能会有几分钟变化。/ Bus times are live but can change by a few minutes. Single option: 这里很近，只有一条好走的路。/ It's close by. There's one easy way.
 - Top right: 帮忙 Help.
-- Loading (build): 我在帮你找路… / Finding the way for you… with the Question Path drawing loop.
-- No route (build): 现在没有合适的公共交通。要给司机看地址吗？/ No good bus or train right now. Show a driver the address? → H10.
+- Loading, no route, too close, outside SG, error, busy, offline: see **6b F3**.
+- No route (build): see 6b F3 `none` (M4 adds the "show a driver" option → H10).
 - **Back goes to:** H2 (or H1 if opened from a tile). Baselines: `H3-two`, `H3-one`, `H3-loading`, `H3-none`.
 
 ### H4 Trip overview
 - Title 去 陈笃生医院 / To Tan Tock Seng Hospital · 23 分钟 · 上午 10:39 到达.
 - Fitted north-up map with the route. Timeline steps: 走到 Blk 79 巴士站 · 大约 3 分钟 → 坐 139 号巴士，坐 6 站 · 在 Tan Tock Seng Hosp 下车 → 走到 陈笃生医院 · 大约 2 分钟 → 到达 陈笃生医院 · 正门.
-- Dock: **开始出发 / Start** · quiet link 出发前，告诉家人 / Tell family before I go (→ H7).
+- Dock: **开始出发 / Start** (only when feature flag `guide` is on; OQ5, see 6b F3) · quiet link 出发前，告诉家人 / Tell family before I go (→ H7, M4).
 - **Back goes to:** H3. Baselines: `H4-bus`, `H4-mrt`.
 
 ### H5 Live guidance (follow-me)
@@ -283,6 +288,146 @@ Shared rules for every frame:
 - **Back goes to:** H1. Baselines: `H13-*`.
 
 **End-trip sheet (from Back or ✕ in H5):** 要结束这次行程吗？/ End this trip? · 结束后，语音和地图提示会停止。· **继续行程 / Keep going** (primary) · 结束行程 / End trip → H1.
+
+## 6b. M1 states
+
+Frames for the M1 build (`docs/requirements/M1-foundation.md`). They reuse the §1 tokens and §5 components only. **No new colour, type, space, radius or motion tokens.** The only additions are eight icons, listed at the end for Director approval.
+
+Shared rules (as §6, plus):
+- Frame IDs are `F1`–`F8` so they don't clash with H1–H13. Baselines: `M1-F{n}-{state}-{light|dark}-{100|200}-{zh|en}.png` at 390×844 DPR 2. QA also runs 150% × browser zoom 200% (AC 9).
+- **State panel (`.state`)** is the one layout for every empty, error and offline state: a 72px `c-surface-2` icon tile (`r-m`, 40px `c-ink` icon) → `headline` → `body` in `c-ink-2` → button stack (primary `tap-hero` 72px, secondary 56px, `s-3` apart). Left-aligned, `s-5` gutters. At 200% it simply grows taller and the page scrolls. The headline is announced once via a polite live region. Focus does not move.
+- No red anywhere in these states. `c-danger` stays 995-only (D-rule §1.1). Errors are calm: ink icons, "try again", never "failed" or "error".
+- Exact copy below is final. `{x}` = variable.
+
+### F1 First run (one time, 3 pages, skippable)
+- Shown once, before Home, on first launch (flag in localStorage, try/catch; if storage throws, show it once per session). Never shown again after Skip or Done.
+- Every page: progress dots top-left (SR "第 {n} 步，共 3 步" / "Step {n} of 3") and **跳过 / Skip** top-right (quiet text button, 56px; SR "跳过，以后可以在设置里改" / "Skip. You can change this later in Settings"). Skip → Home with defaults (中文, 100%, no name, no Home).
+- **Page 1: language and text size.**
+  - Title (always bilingual on this page, both lines `title`): 你好！/ Hello!
+  - 语言 / Language: two big radio cards (`r-l`, 72px), each written in its own language with a matching `lang` attribute: **中文** · **English**. Tapping re-renders the page at once.
+  - 字体大小 / Text size: 4 radio cards: 标准 100% / Standard · 大 125% / Large · 特大 150% / Extra large · 最大 200% / Largest. The whole page re-renders at the chosen size; that **is** the live preview. A preview card under it reads 早上好！今天想去哪里？/ Good morning! Where would you like to go today? (`display` role).
+  - At 200% the radio grid becomes 1 column (same `auto-fit` rule as `.tile`).
+  - Primary: **下一步 / Next**.
+- **Page 2: name (optional).**
+  - Title: 怎么称呼你？/ What should we call you?
+  - Body: 我们会用它跟你打招呼，比如"早上好，林阿姨"。只保存在这部手机里。/ We'll use it to greet you, like "Good morning, Auntie Lin". It stays on this phone only.
+  - Field label 称呼 / Name · placeholder 例如：林阿姨 / e.g. Auntie Lin · max 20 characters, trimmed.
+  - Primary **下一步 / Next** (an empty field counts as skip) · secondary **不用了 / No thanks**.
+  - Fallback: with no name the H1 greeting is just 早上好 / Good morning (下午好 / 晚上好 by hour), with no comma.
+- **Page 3: Home (optional).**
+  - Title: 你的家在哪里？/ Where do you live?
+  - Body: 设好了，以后一按就带你回家。/ Set it once, and one tap takes you home.
+  - Three choices, as stacked 72px rows with icons: **搜索地址或邮区编号 / Search an address or postcode** (search) → H2 in set-home mode (title 找你的家 / Find your home) · **用我现在的位置 / Use where I am now** (locate) → F2 if permission is not yet granted, then reverse geocode · **以后再说 / Later** (quiet).
+  - Confirm card (surface, `r-l`, home tint icon): 家：{label} / Home: {label} · **对，就是这里 / Yes, that's it** (primary) · **不对，重新找 / No, search again**. If reverse geocode fails the label is 我现在的位置 / Where I am now.
+  - Done → Home with toast 设好了！/ All set!
+- **Back goes to:** page n−1; from page 1 it leaves the app (first run is the root). From set-home search → page 3.
+- Baselines: `F1-lang`, `F1-lang-200` (live preview at 200%), `F1-name`, `F1-name-filled`, `F1-home`, `F1-home-confirm`.
+
+### F2 Location permission
+- **Explainer (sheet, `role=dialog`)** appears on the first tap of 我的位置 / Use where I am now, **before** the browser prompt. Never at launch.
+  - 72px `c-primary-soft` tile with the locate icon.
+  - Title: 让我知道你在哪里 / Let me know where you are
+  - Body: 这样我才能从你身边开始找路。手机接下来会问你，请按"允许"。/ Then I can find the way from where you are. Your phone will ask next. Please tap "Allow".
+  - Lock line (lock icon, `caption`): 你的位置只用来找路，不会保存，也不会给别人。/ Your location is only used to find the way. It isn't saved or shared.
+  - **好的 / OK** (primary → calls geolocation) · **不用，我打地方名字 / No, I'll type the place** (secondary → H2).
+- **Denied (sheet)** when the permission is `denied` or the error code is 1:
+  - Title: 手机没有让我看你的位置 / Your phone isn't sharing your location
+  - Body: 没关系，你还是可以打出地方名字找路。/ That's okay. You can still type a place name.
+  - Disclosure **怎么打开？/ How do I turn it on?** Tabs **安卓手机 / Android** · **iPhone**, pre-selected from the user agent. Steps are an `<ol>`, `body` size, number in a 32px `c-primary-soft` disc:
+    - Android (Chrome): 1. 按网址左边的小图标（像两条横线或一把锁）。/ Tap the small icon left of the web address (it looks like two lines or a lock). 2. 按"权限"或"网站设置"。/ Tap "Permissions" or "Site settings". 3. 按"位置"，选"允许"。/ Tap "Location" and choose "Allow". 4. 回到这里，按"再试一次"。/ Come back here and tap "Try again".
+    - Android, installed app: 1. 长按主屏幕上的 怎么去? 图标。/ Press and hold the 怎么去? icon on your home screen. 2. 按"应用信息"→"权限"→"位置"。/ Tap "App info" → "Permissions" → "Location". 3. 选"使用应用时允许"。/ Choose "Allow only while using the app". 4. 回到这里，按"再试一次"。
+    - iPhone (Safari): 1. 在 Safari 地址栏按"aA"按钮。/ In Safari, tap the "aA" button in the address bar. 2. 按"网站设置"。/ Tap "Website Settings". 3. 按"位置"，选"允许"。/ Tap "Location" and choose "Allow". 4. 回到这里，按"再试一次"。 Fallback line: 还是不行？打开手机"设置"→"隐私与安全性"→"定位服务"，打开它，再把"Safari 网站"设为"使用 App 期间"。/ Still not working? Open the phone's Settings → "Privacy & Security" → "Location Services", turn it on, then set "Safari Websites" to "While Using the App".
+  - **再试一次 / Try again** (primary) · **打地方名字 / Type a place** (secondary → H2).
+- **Unavailable or timeout** (not denied): inline note under the From field: 现在找不到你的位置。请再试一次，或打出地方名字。/ Can't find your location right now. Try again, or type a place. The From field falls back to "我的位置 / My location" (AC 26).
+- **Back goes to:** closes the sheet → the screen underneath.
+- Baselines: `F2-explainer`, `F2-denied-android`, `F2-denied-ios`.
+
+### F3 Route options states (H3)
+Title and From line stay as in H3 in every state. **Back goes to** the same place as H3.
+| State | Icon | Headline | Body | Buttons |
+|---|---|---|---|---|
+| `loading` | — | 我在帮你找路… / Finding the way for you… | After 6 s add: 还在找，请稍等一下。/ Still looking, just a moment. | none |
+| `none` | route | 现在没有合适的巴士或地铁 / No good bus or train right now | 可以晚一点再试，或者换个地方。/ Try again a bit later, or choose another place. | 再试一次 / Try again · 换个地方 / Choose another place (→ H2). M4 adds 给司机看地址 / Show a driver the address (→ H10). |
+| `close` (< 200 m) | walk | 很近了，走路就到 / It's very close, you can walk | 大约 {m} 米，走路大约 {min} 分钟。/ About {m} m, about {min} min on foot. | 看走路的路线 / Show the walking way (→ route detail with one walk step) · 换个地方 / Choose another place |
+| `outside` (destination) | locate | 这个地方不在新加坡 / That place isn't in Singapore | 怎么去? 只能在新加坡找路。请换一个地方。/ 怎么去? can only find ways in Singapore. Please choose another place. | 换个地方 / Choose another place |
+| `outside` (my location) | locate | 你现在好像不在新加坡 / You seem to be outside Singapore | 请打出你出发的地方。/ Please type where you're starting from. | 打出发的地方 / Type where I'm starting |
+| `error` (upstream / timeout, AC 19) | refresh | 现在找不到路 / Can't find the way right now | 可能是网络慢了，请再试一次。/ The connection may be slow. Please try again. | 再试一次 / Try again · 换个地方 / Choose another place |
+| `busy` (429, AC 20) | clock | 现在用的人很多 / Lots of people are using it right now | 请等一会儿，再试一次。/ Please wait a moment, then try again. | 再试一次 / Try again |
+| `offline` | wifi-off | 没有网络 / No internet | 连上网络后，我会自动再找一次。/ When you're back online, I'll look again by myself. | 再试一次 / Try again. Auto-retries on the `online` event. |
+- **Loading skeleton:** 2 card-shaped blocks (`r-l`, `c-surface-2`, the height of a real card at the current text size) under the line. They breathe opacity 1 → .55 → 1 over 1.6 s ease-in-out (the live-dot timing). Reduce motion: static. A small seal mark sits beside the line, and its saffron dot pulses on the same 1.6 s cycle (this replaces the old Question Path loop). The `aria-busy` list carries SR "正在找路" / "Finding routes"; the skeleton is `aria-hidden`.
+- **Route facts (owner decision D-8):** cards show walk total · changes · stops only. **"没有楼梯 / No stairs" and "有电梯 / Lifts all the way" are hidden** until M3 has a data source. See H3.
+- **Start (OQ5):** H4's **开始出发 / Start** is rendered only when feature flag `guide` is on (off in M1, on in M2). With the flag off there is no dock button, no badge and no placeholder; the step list simply ends with the arrival step.
+- Baselines: `F3-loading`, `F3-none`, `F3-close`, `F3-outside`, `F3-error`, `F3-busy`, `F3-offline`.
+
+### F4 Search states (H2)
+- `error`: state panel under the field, icon refresh. 现在找不到，请再试一次 / Can't search right now. Please try again. · **再试一次 / Try again**. What was typed stays in the field.
+- `offline`: icon wifi-off. 没有网络，暂时找不到新的地方。/ No internet, so I can't look up new places right now. · 连上网络后会自动再找。/ I'll look again once you're back online. The Recent list stays visible below it under 最近去过 / Recent.
+- `busy` (429): same panel as F3 `busy`.
+- **Back goes to:** as H2. Baselines: `F4-error`, `F4-offline`.
+
+### F5 Toasts
+Component §5.7 toast (ink card, `role=status`, 3.6 s, 110px above the bottom, wraps at 200%). One at a time; a newer toast replaces the older one. If offline → online happens within 3 s, show neither.
+| Name | Icon | zh | en | When |
+|---|---|---|---|---|
+| `updated` | check | 已更新到新版本 | Updated to the new version | First launch after a service-worker update (AC 4) |
+| `offline` | wifi-off | 没有网络了。已经打开的内容还能看。 | You're offline. What's already open still works. | `offline` event |
+| `online` | check | 网络恢复了 | Back online | `online` event after `offline` |
+| `busy` | clock | 现在用的人很多，请等一会儿再试。 | Lots of people are using it. Please try again in a moment. | Any 429 not shown as a state panel |
+| `home-set` | check | 设好了！ | All set! | Home saved |
+| `cleared` | check | 已经清除了 | Cleared | Recent places cleared |
+| `installed` | check | 已经放到主屏幕了 | Added to your home screen | `appinstalled` |
+| `copied` | check | 已经复制了。可以贴到 WhatsApp 发给我们。 | Copied. You can paste it into WhatsApp to send it. | Report fallback |
+| `report` | check | 谢谢你的报告！ | Thanks for the report! | Web Share resolved |
+While offline, H1 also shows its persistent note (H1 states). Baselines: `F5-updated`, `F5-offline`, `F5-online`, `F5-busy`.
+
+### F6 Settings (H13 extended to a full screen for M1)
+Groups in this order; each row is 56px+ with label, current value in `c-ink-2`, chevron.
+1. **我 / Me:** 称呼 / Name (value or 没有设 / Not set) → sheet like F1 page 2, buttons **保存 / Save** · **删除称呼 / Remove name** · 家 / Home (value = label or 没有设 / Not set) → H2 set-home mode; when set, a sheet with **换个地址 / Change address** · **删除 / Remove**.
+2. **看和听 / Display:** 语言 · 字体大小 · 颜色 · 减少动画 (as H13). 语音提示 and 震动提示 are hidden while flag `guide` is off.
+3. **记录 / History:** 清除最近去过的地方 / Clear recent places → confirm sheet 要清除最近去过的地方吗？/ Clear your recent places? · 只会清除这部手机上的记录。/ This only clears them on this phone. · **清除 / Clear** (primary) · **不用了 / Cancel**. With nothing to clear the row shows 没有记录 / Nothing to clear and is `aria-disabled` (still 56px).
+4. **这个应用 / This app:** 安装到主屏幕 / Add to Home screen (hidden when running standalone) · 报告问题 / Report a problem · 关于和隐私 / About & privacy. Under the groups: `caption` 版本 {v} / Version {v}.
+
+**Install sheet** (title 把 怎么去? 放到主屏幕 / Put 怎么去? on your home screen · body 以后一按图标就能打开，像普通应用一样。/ Then one tap on the icon opens it, like any other app. · 72px app icon preview labelled 怎么去?):
+- Chrome with a captured `beforeinstallprompt`: **安装 / Install** → native prompt. Dismissed → nothing else, no nagging.
+- Android without the prompt: 1. 按右上角的 ⋮（三个点）。/ Tap ⋮ (three dots) at the top right. 2. 按"添加到主屏幕"或"安装应用"。/ Tap "Add to Home screen" or "Install app". 3. 按"安装"或"添加"。/ Tap "Install" or "Add".
+- iPhone (Safari): 1. 按分享按钮（一个方框，上面有箭头）。/ Tap the Share button (a square with an arrow pointing up). Inline glyph `ios-share`. If you can't see it: 先按右下角的"⋯"。/ First tap "⋯" at the bottom right. 2. 往下滑，按"添加到主屏幕"。/ Scroll down and tap "Add to Home Screen". 3. 按右上角的"添加"。/ Tap "Add" at the top right.
+- Steps use the same numbered `<ol>` as F2.
+
+**Report a problem sheet:**
+- Title 报告问题 / Report a problem · body 按一下就能把问题报告发给我们。里面没有你的位置、地址或搜索内容。/ One tap sends us a problem report. It never contains your location, addresses or searches.
+- **发送报告 / Send report** (primary, one tap) → Web Share (text) → toast `report`. No Web Share → copy to clipboard → toast `copied`.
+- **看看会发送什么 / See what's sent** (quiet) → expands a `c-surface-2`, `r-m` box (max-height 40vh, scrolls, `caption` size) with the exact redacted text (AC 42).
+- **About & privacy screen** (title 关于和隐私 / About & privacy):
+  - Wordmark + 版本 {v}.
+  - 地图和数据 / Maps and data: 地图和地址来自 OneMap，新加坡土地管理局。/ Maps and addresses come from OneMap, Singapore Land Authority. OneMap logo + `Map data © OneMap / Singapore Land Authority`. 交通资料：Contains information from LTA DataMall which is made available under the terms of the Singapore Open Data Licence version 1.0. (Licence line stays in English in both languages.)
+  - 你的隐私 / Your privacy (bullets):
+    - 不用注册，也不用账号。/ No sign-up, no account.
+    - 你的称呼、家和最近去过的地方只存在这部手机里。/ Your name, Home and recent places stay on this phone only.
+    - 找路时，起点和终点会发给 OneMap 算路线，我们不保存。/ To find a route, the start and end are sent to OneMap to work it out. We don't keep them.
+    - 我们的记录里没有你的位置、地址或搜索内容。/ Our logs never contain your location, addresses or searches.
+    - 报告问题时，发不发、发给谁，由你决定。/ If you report a problem, you decide whether to send it and to whom.
+    - 没有广告，不追踪你。/ No ads, no tracking.
+    - 你随时可以在设置里删除称呼、家和最近去过的地方。/ You can remove your name, Home and recent places in Settings at any time.
+    - 有问题请联系：{contact} / Questions? Contact {contact}. (**Owner to supply** the contact, the PDPA contact point.)
+  - **No open-source licences screen** (owner preference).
+- **Back goes to:** sub-sheets → Settings; Settings → H1; About → Settings.
+- Baselines: `F6-settings`, `F6-name`, `F6-clear`, `F6-install-android`, `F6-install-ios`, `F6-report`, `F6-about`.
+
+### F7 Update notice
+- When a new service worker is waiting, Home (and only Home) shows the §5.7 info banner (jade rule, refresh icon, no spinner): **有新版本 · 更新** / **New version ready · Update**. The whole banner minus ✕ is one 56px button (SR "有新版本，按一下更新" / "New version ready. Tap to update"). ✕ is 56px (SR 以后再说 / Later).
+- Tap → activate + reload → toast `updated`. Ignored or ✕ → it applies on the next launch anyway (AC 4). It never auto-dismisses and never appears mid-search or during a trip.
+- Announced once, polite. Baseline: `F7-update`.
+
+### F8 M1 Home mapping (H1 → AC 22, Creative recommendation for Director)
+- **From** = the H1 location pill: 从：我的位置 / From: My location (or the reverse-geocoded label). Tap → H2 in from mode (SR "出发地：{label}，按一下更改" / "Starting from {label}. Tap to change").
+- **To** = the H1 search button. **Find route** happens on picking a result, so there is no extra button press.
+- **Swap** (AC 22) moves to H3's header as a 56px **对调 / Swap** button (route icon rotated 90°), where it means something. *This deviates from AC 22 wording; Director to rule.*
+- **Take me home** dock: shown only when Home is set. With no Home, the dock is **设好你的家 / Set your Home** (→ set-home mode).
+- **Recent destinations:** up to 5 rows under 最近去过 / Recent, beneath My places.
+- Font size control: M1 AC 9 asks for 100/125/150; we keep 200% too (§1.2), and QA covers 150% × zoom 200%.
+
+### Icons needing Director approval (same grid and stroke as §1.4; no other new tokens)
+`wifi-off` (offline) · `refresh` (error, update) · `install` (arrow into tray) · `ios-share` (square with up arrow, only to mirror the iOS button in instructions) · `info` (About) · `trash` (clear recent) · `person` (name) · `report` (speech bubble with "!"; or reuse `message`).
 
 ## 7. Parity checklist (prototype ↔ build)
 - [ ] Tokens identical: colour, type, space, radii, motion, haptics.
