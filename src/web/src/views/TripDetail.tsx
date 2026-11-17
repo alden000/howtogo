@@ -145,6 +145,21 @@ function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
             ))}
           </ol>
           <ExitForTrip itinerary={it} />
+          {guide && (
+          <button
+              type="button"
+              class="btn btn-quiet"
+              data-testid="share-before"
+              onClick={() => {
+                // AC 8 (deviation): sharing needs a running trip on this phone, so Start opens the share sheet on H5.
+                shareOnStart.value = true;
+                void onStart();
+              }}
+            >
+              <Icon name="share" />
+              {t('sh_before')}
+            </button>
+          )}
         </div>
       </main>
       {guide && (
@@ -153,19 +168,7 @@ function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
             <Icon name="nav" />
             {t('start')}
           </button>
-          <button
-            type="button"
-            class="btn btn-quiet"
-            data-testid="share-before"
-            onClick={() => {
-              // AC 8 (deviation): sharing needs a running trip on this phone, so Start opens the share sheet on H5.
-              shareOnStart.value = true;
-              void onStart();
-            }}
-          >
-            <Icon name="share" />
-            {t('sh_before')}
-          </button>
+
         </div>
       )}
       <EndFirst />
@@ -188,13 +191,12 @@ function H4Extras({ it }: { it: Itinerary }) {
     <div data-testid="h4-extras">
       <DisruptionBanner where="h4" itinerary={it} />
       {bus && <ArrivalChip stop={bus.from.code} svc={bus.route!} active compact />}
-      <p class="facts" style={{ borderTop: 0 }}>
-        {fare && (
-          <span data-testid="fare-h4">
-            <Icon name="card" />
-            {t(family.prefs.value.concession ? 'fare_h4_conc' : 'fare_h4', { f: fare })}
-          </span>
-        )}
+      {fare && (
+        <p class="xline" data-testid="fare-h4">
+          <Icon name="card" /> {t(family.prefs.value.concession ? 'fare_h4_conc' : 'fare_h4', { f: fare })}
+        </p>
+      )}
+      <p class="xline">
         <LiftFacts itinerary={it} detail />
       </p>
     </div>

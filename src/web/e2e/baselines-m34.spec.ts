@@ -45,6 +45,7 @@ async function toStep(page: Page, line: string) {
 const name = (f: string, v: V) => `${f}-${v.theme}-${v.size}-${v.lang}`;
 async function shot(page: Page, n: string, el?: string) {
   await page.waitForTimeout(200);
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
   await page.addStyleTag({ content: '.mapcanvas canvas, .attribhost, .mapbox .maplibregl-canvas { visibility: hidden !important } .arrchip .dot{animation:none!important}' });
   if (el) await expect(page.locator(el).first()).toHaveScreenshot(`${n}.png`);
   else await expect(page).toHaveScreenshot(`${n}.png`);

@@ -382,6 +382,8 @@ function M4Rows() {
   const [phone, setPhone] = useState(p.myPhone.replace(/^\+65/, ''));
   const [bad, setBad] = useState(false);
   return (
+    <>
+    <h2 class="grp">{t('fam_row')}</h2>
     <div class="opts">
       <Row icon="family" label={t('fam_row')} value={n ? String(n) : t('not_set')} testid="row-family" onClick={() => router.navigate('/family')} />
       <Row icon="qr" label={t('fam_setup')} testid="row-setup" onClick={() => router.navigate('/setup/start')} />
@@ -410,5 +412,6 @@ function M4Rows() {
       </div>
       {p.myPhone && <Switch label={t('set_sendphone')} sub={t('set_sendphone_s')} on={p.sendPhone} testid="set-sendphone" onChange={(v) => family.setPrefs({ sendPhone: v })} />}
     </div>
+    </>
   );
 }

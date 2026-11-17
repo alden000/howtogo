@@ -203,7 +203,7 @@ export function Home() {
                   <button
                     type="button"
                     class="iconbtn sq"
-                    data-testid={`recent-remove-${i}`}
+                    data-testid={`rtrip-remove-${i}`}
                     aria-label={`${t('recent_remove')} ${r.to.name}`}
                     onClick={() => (store.recents.value = store.recents.value.filter((_, k) => k !== i))}
                   >

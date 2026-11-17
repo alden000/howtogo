@@ -26,7 +26,7 @@
 .warnfact{color:var(--c-ink);font-weight:700}
 .linetag[aria-hidden]{min-height:0;vertical-align:middle;font-size:.9rem}
 .xline{margin:8px 0 0;font-size:1rem;color:var(--c-ink);overflow-wrap:anywhere}
-.xline .sub{display:block;color:var(--c-ink-2);font-size:.9rem;margin-top:4px}
+.xline .sub{display:block;color:var(--c-ink-2);font-size:1rem;margin-top:4px}
 .exittag{display:inline-grid;place-items:center;min-width:40px;min-height:40px;margin:0 .3em;padding:0 6px;border-radius:var(--r-s);background:var(--c-saffron);color:var(--c-on-saffron);font-weight:900;vertical-align:middle}
 .recenttrips{margin:var(--s-3) 0}
 .recenttrips h2{margin:0 0 8px;color:var(--c-ink-2)}
