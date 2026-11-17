@@ -1,14 +1,19 @@
 /**
- * H13 Settings sheet (STYLE-GUIDE §6 H13): language, text size, colours, reduce motion.
- * Voice/vibration rows land with M2 guidance. The block below the rows (Home, recents, install,
- * update, Report, About) keeps the shell's functions until Creative's §6b settings additions arrive.
+ * F6 Settings (H13 extended to a full screen for M1) + its sheets (name, home, clear, install, report)
+ * and the About & privacy screen. Voice/vibration rows stay hidden while flag `guide` is off.
  */
+import { useState } from 'preact/hooks';
 import { useServices, useT } from '../context';
 import { canInstall, promptInstall } from '../pwa/install';
-import { applyUpdate, updateReady } from '../pwa/register';
 import { buildReport } from '../report';
 import { TEXT_SCALE, TEXT_SIZES, type Settings } from '../state/store';
-import { Sheet } from '../ui/kit';
+import { APP_VERSION } from '../version';
+import { Bar, Icon, NumSteps, Sheet, showToast, Wordmark, type IconName } from '../ui/kit';
+import { HomeConfirm } from './HomeConfirm';
+
+const NAME_MAX = 20;
+export const isStandalone = () => typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
 
 function Seg<K extends keyof Settings>(props: { name: K; label: string; opts: [Settings[K], string][] }) {
   const { store } = useServices();
@@ -33,48 +38,267 @@ function Seg<K extends keyof Settings>(props: { name: K; label: string; opts: [S
   );
 }
 
-export function SettingsSheet() {
-  const { store, platform } = useServices();
-  const t = useT();
-  const s = store.settings.value;
+function Row(props: { icon: IconName; label: string; value?: string; testid: string; onClick?: () => void; disabled?: boolean }) {
   return (
-    <Sheet id="settings" title={t('settings')}>
+    <button
+      type="button"
+      class="row"
+      data-testid={props.testid}
+      aria-disabled={props.disabled ? 'true' : undefined}
+      onClick={() => !props.disabled && props.onClick?.()}
+    >
+      <Icon name={props.icon} />
+      <span class="tx">{props.label}</span>
+      {props.value && <span class="val">{props.value}</span>}
+      {!props.disabled && <Icon name="chev" />}
+    </button>
+  );
+}
+
+/** H13 display rows (language, text size, colours, reduce motion). */
+export function DisplayRows() {
+  const t = useT();
+  return (
+    <>
       <Seg name="lang" label={t('set_lang')} opts={[['zh', '中文'], ['en', 'English']]} />
       <Seg name="textSize" label={t('set_text')} opts={TEXT_SIZES.map((v) => [v, `${Math.round(TEXT_SCALE[v] * 100)}%`])} />
       <Seg name="theme" label={t('set_theme')} opts={[['auto', t('theme_auto')], ['light', t('theme_light')], ['dark', t('theme_dark')]]} />
       <Seg name="motion" label={t('set_motion')} opts={[['auto', t('theme_auto')], ['on', t('on')], ['off', t('off')]]} />
-      <div class="opts" style={{ marginTop: 'var(--s-6)' }}>
-        {store.places.value.home && (
-          <button type="button" class="btn btn-secondary small" data-testid="clear-home" onClick={() => store.setHome(undefined)}>
-            {t('clear_home')}
+    </>
+  );
+}
+
+export function SettingsScreen() {
+  const { store, router } = useServices();
+  const t = useT();
+  const s = store.settings.value;
+  const home = store.places.value.home;
+  const nothing = store.recents.value.length === 0;
+  return (
+    <>
+      <Bar />
+      <main class="scroll">
+        <h1 class="t-title" style={{ margin: '0 0 var(--s-2)' }}>
+          {t('settings')}
+        </h1>
+        <HomeConfirm />
+        <h2 class="grp">{t('grp_me')}</h2>
+        <div class="opts">
+          <Row icon="person" label={t('name_label')} value={s.name || t('not_set')} testid="row-name" onClick={() => router.openSheet('name')} />
+          <Row
+            icon="home"
+            label={t('home_tile')}
+            value={home?.name ?? t('not_set')}
+            testid="row-home"
+            onClick={() => (home ? router.openSheet('home') : router.navigate('/search?mode=home'))}
+          />
+        </div>
+        <h2 class="grp">{t('grp_display')}</h2>
+        <DisplayRows />
+        <h2 class="grp">{t('grp_history')}</h2>
+        <Row icon="trash" label={t('clear_recent_row')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
+        <h2 class="grp">{t('grp_app')}</h2>
+        <div class="opts">
+          {!isStandalone() && <Row icon="install" label={t('install')} testid="row-install" onClick={() => router.openSheet('install')} />}
+          <Row icon="report" label={t('report')} testid="report" onClick={() => router.openSheet('report')} />
+          <Row icon="info" label={t('about_row')} testid="row-about" onClick={() => router.navigate('/about')} />
+        </div>
+        <p class="t-caption" data-testid="version">
+          {t('version', { v: APP_VERSION })}
+        </p>
+      </main>
+    </>
+  );
+}
+
+export function NameSheet() {
+  const { store, router } = useServices();
+  const t = useT();
+  const [v, setV] = useState(store.settings.value.name);
+  return (
+    <Sheet id="name" title={t('fr_name_t')}>
+      <p class="lead">{t('fr_name_b')}</p>
+      <label class="t-label" for="name-in">
+        {t('name_label')}
+      </label>
+      <input
+        id="name-in"
+        class="textin"
+        data-testid="name-input"
+        maxLength={NAME_MAX}
+        placeholder={t('name_ph')}
+        value={v}
+        onInput={(e) => setV((e.target as HTMLInputElement).value)}
+      />
+      <div class="opts" style={{ marginTop: 'var(--s-4)' }}>
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-testid="name-save"
+          onClick={() => {
+            store.updateSettings({ name: v.trim().slice(0, NAME_MAX) });
+            router.closeSheet();
+          }}
+        >
+          {t('save')}
+        </button>
+        {store.settings.value.name && (
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-testid="name-remove"
+            onClick={() => {
+              store.updateSettings({ name: '' });
+              router.closeSheet();
+            }}
+          >
+            {t('remove_name')}
           </button>
         )}
-        {store.recents.value.length > 0 && (
-          <button type="button" class="btn btn-secondary small" data-testid="clear-recent" onClick={() => store.clearRecents()}>
-            {t('clear_recent')}
-          </button>
-        )}
-        {canInstall.value && (
-          <button type="button" class="btn btn-secondary small" data-testid="install" onClick={() => promptInstall()}>
-            {t('install')}
-          </button>
-        )}
-        {updateReady.value && (
-          <button type="button" class="btn btn-secondary small" data-testid="settings-update" onClick={applyUpdate}>
-            {t('update_now')}
-          </button>
-        )}
-        <button type="button" class="btn btn-secondary small" data-testid="report" onClick={() => platform.share('', buildReport(s))}>
-          {t('report')}
+      </div>
+    </Sheet>
+  );
+}
+
+export function HomeSheet() {
+  const { store, router } = useServices();
+  const t = useT();
+  const home = store.places.value.home;
+  return (
+    <Sheet id="home" title={home ? t('home_label', { p: home.name }) : t('home_tile')}>
+      <div class="opts">
+        <button type="button" class="btn btn-primary" data-testid="home-change" onClick={() => router.navigate('/search?mode=home')}>
+          {t('change_addr')}
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-testid="clear-home"
+          onClick={() => {
+            store.setHome(undefined);
+            router.closeSheet();
+          }}
+        >
+          {t('remove')}
         </button>
       </div>
-      <section style={{ marginTop: 'var(--s-6)' }}>
-        <h3 class="t-label" style={{ color: 'var(--c-ink-2)', margin: '0 0 8px' }}>
-          {t('about')}
-        </h3>
-        <p class="t-caption">{t('attribution')}</p>
-        <p class="t-caption">{t('privacy')}</p>
-      </section>
     </Sheet>
+  );
+}
+
+export function ClearSheet() {
+  const { store, router } = useServices();
+  const t = useT();
+  return (
+    <Sheet id="clear" title={t('clear_q')}>
+      <p class="lead">{t('clear_b')}</p>
+      <div class="opts">
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-testid="clear-recent"
+          onClick={() => {
+            store.clearRecents();
+            router.closeSheet();
+            showToast('cleared', t('toast_cleared'));
+          }}
+        >
+          {t('clear')}
+        </button>
+        <button type="button" class="btn btn-secondary" data-testid="clear-cancel" onClick={() => router.closeSheet()}>
+          {t('cancel')}
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+export function InstallSheet() {
+  const t = useT();
+  return (
+    <Sheet id="install" title={t('inst_t')}>
+      <p class="lead">{t('inst_b')}</p>
+      <Wordmark name={t('app_name')} />
+      {canInstall.value ? (
+        <button type="button" class="btn btn-primary" style={{ marginTop: 'var(--s-4)' }} data-testid="install" onClick={() => void promptInstall()}>
+          <Icon name="install" />
+          {t('inst_btn')}
+        </button>
+      ) : isIOS() ? (
+        <>
+          <NumSteps items={[t('inst_ios_1'), t('inst_ios_2'), t('inst_ios_3')]} />
+          <p class="t-caption">{t('inst_ios_more')}</p>
+        </>
+      ) : (
+        <NumSteps items={[t('inst_and_1'), t('inst_and_2'), t('inst_and_3')]} />
+      )}
+    </Sheet>
+  );
+}
+
+export function ReportSheet() {
+  const { store, platform, router } = useServices();
+  const t = useT();
+  const [show, setShow] = useState(false);
+  const text = buildReport(store.settings.value);
+  return (
+    <Sheet id="report" title={t('report')}>
+      <p class="lead">{t('rep_b')}</p>
+      <div class="opts">
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-testid="report-send"
+          onClick={async () => {
+            const r = await platform.share('', text);
+            if (r === 'shared' || r === 'copied') {
+              router.closeSheet();
+              showToast(r === 'shared' ? 'report' : 'copied', t(r === 'shared' ? 'toast_report' : 'toast_copied'));
+            }
+          }}
+        >
+          {t('rep_send')}
+        </button>
+        <button type="button" class="btn btn-quiet" aria-expanded={show} data-testid="report-see" onClick={() => setShow(!show)}>
+          {t('rep_see')}
+        </button>
+      </div>
+      {show && (
+        <pre class="reportbox" data-testid="report-text">
+          {text}
+        </pre>
+      )}
+    </Sheet>
+  );
+}
+
+export function About() {
+  const t = useT();
+  return (
+    <>
+      <Bar />
+      <main class="scroll">
+        <h1 class="t-title" style={{ margin: '0 0 var(--s-3)' }}>
+          {t('about_row')}
+        </h1>
+        <Wordmark name={t('app_name')} />
+        <p class="t-caption">{t('version', { v: APP_VERSION })}</p>
+        <h2 class="grp">{t('ab_maps_h')}</h2>
+        <p>{t('ab_maps')}</p>
+        <p class="t-caption" style={{ display: 'flex', gap: 'var(--s-2)', alignItems: 'center' }}>
+          <img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" alt="OneMap" width={28} height={28} />
+          <span>{t('ab_mapdata')}</span>
+        </p>
+        <p class="t-caption">
+          {t('ab_lta')}
+        </p>
+        <h2 class="grp">{t('ab_priv_h')}</h2>
+        <ul class="bullets" data-testid="privacy">
+          {(['priv_1', 'priv_2', 'priv_3', 'priv_4', 'priv_5', 'priv_6', 'priv_7'] as const).map((k) => (
+            <li>{t(k)}</li>
+          ))}
+        </ul>
+      </main>
+    </>
   );
 }

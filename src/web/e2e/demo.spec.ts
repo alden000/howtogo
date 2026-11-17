@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { onboarded } from './util';
+
+test.beforeEach(({ page }) => onboarded(page));
 
 /** Lines from the app's change-only test log (window.__howtogoLog). */
 const logOf = (page: Page) => page.evaluate(() => [...(window.__howtogoLog ?? [])]);
@@ -9,7 +12,7 @@ test.describe('demo mode', () => {
   test.use({ serviceWorkers: 'block' });
 
   test('search → route → guide: cues in order, Back steps one page, reload resumes', async ({ page }) => {
-    await page.goto('/?demo=1&demoMs=30');
+    await page.goto('/?demo=1&demoMs=30&ff=guide');
     await expect(page.getByTestId('to-field')).toBeVisible();
 
     await page.getByTestId('to-field').click();
@@ -55,7 +58,7 @@ test.describe('demo mode', () => {
   });
 
   test('a sheet consumes one Back; in-app Back button works', async ({ page }) => {
-    await page.goto('/?demo=1&demoMs=100000');
+    await page.goto('/?demo=1&demoMs=100000&ff=guide');
     await page.getByTestId('to-field').click();
     await page.getByTestId('search-input').fill('raffles');
     await page.getByTestId('search-result-0').click();
@@ -75,9 +78,9 @@ test.describe('demo mode', () => {
 
 test('mock mode uses the (mocked) device geolocation', async ({ page }) => {
   await page.goto('/?mock=1');
-  await page.getByTestId('use-my-location').click();
+  // Permission is already granted, so Home reverse-geocodes without prompting (F8 pill).
   await expect.poll(() => logOf(page)).toContain('loc:ok');
-  await expect(page.getByTestId('from-field')).toHaveText('Toa Payoh Central');
+  await expect(page.getByTestId('from-field')).toContainText('Toa Payoh Central');
 });
 
 test('service worker precaches the shell: offline reload shows Home', async ({ page, context }) => {
@@ -100,12 +103,11 @@ test('map lazy-loads MapLibre with OneMap attribution', async ({ page }) => {
   page.on('pageerror', (e) => errors.push(e.message));
   // Keep the test hermetic: tiles answer 204.
   await page.route('https://www.onemap.gov.sg/**', (r) => r.fulfill({ status: 204 }));
-  await page.goto('/?demo=1&demoMs=100000');
+  await page.goto('/?demo=1&demoMs=100000&ff=guide');
   await page.getByTestId('to-field').click();
   await page.getByTestId('search-input').fill('tan tock');
   await page.getByTestId('search-result-0').click();
   await page.getByTestId('route-option-0').click();
-  await page.getByTestId('toggle-map').click();
   await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('Singapore Land Authority', { timeout: 15_000 });
   await expect(page.getByTestId('map')).toHaveAttribute('aria-hidden', 'true');
   expect(errors).toEqual([]);

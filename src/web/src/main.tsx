@@ -65,6 +65,10 @@ async function boot() {
   }
 
   const store = createStore();
+  // F1: first launch opens the first run (root of the stack) instead of Home; never again after Skip or Done.
+  if (!store.settings.peek().onboarded && location.pathname === '/' && !(history.state as { howtogo?: number } | null)?.howtogo) {
+    history.replaceState(null, '', '/welcome?p=1');
+  }
   const router = createRouter();
   const demoMs = Number(session.get('mode.demoMs')) || DEMO_DEFAULT_MS;
   const runtime = createTripRuntime({

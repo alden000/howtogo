@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'preact/hooks';
 import { haversine, type Place } from '@howtogo/shared';
 import { useServices, useT } from '../context';
-import { log } from '../log';
+import { applyUpdate, updateReady } from '../pwa/register';
+import { here, locate } from '../state/location';
 import { TEXT_SCALE, TEXT_SIZES } from '../state/store';
+import { HomeConfirm } from './HomeConfirm';
 import { Icon, showToast, useStateHook, Wordmark } from '../ui/kit';
 
 /** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
@@ -17,48 +19,40 @@ export function greetingKey(hour: number): 'greet_morning' | 'greet_afternoon' |
 export const sgHour = (d = new Date()) =>
   Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Singapore' }).format(d));
 
-/** Last known "where am I" for this tab: reverse-geocoded once, only if location permission is already granted. */
-let here: { label: string; lat: number; lng: number } | null = null;
-
 export function Home() {
   const { store, router, platform, api } = useServices();
   const t = useT();
   const s = store.settings.value;
   const home = store.places.value.home;
   const trip = store.trip.value;
-  const [near, setNear] = useState(here);
+  const recents = store.recents.value;
+  const near = here.value;
+  const plan = store.plan.value;
+  const [bannerOff, setBannerOff] = useState(false);
 
-  // "你在：…附近" — we never prompt for location from Home (AC 25: only on a user tap, after the explainer).
+  // "你在：…附近" — reverse-geocode only if permission is already granted; never prompt from Home (AC 25, F2).
   useEffect(() => {
-    if (here) return;
-    let dead = false;
-    (async () => {
-      try {
-        if ((await platform.location.permission()) !== 'granted') return;
-        const f = await platform.location.current();
-        log('loc:ok');
-        const label = await api
-          .revgeocode(f)
-          .then((r) => r.name)
-          .catch(() => null);
-        if (!label || dead) return;
-        here = { label, lat: f.lat, lng: f.lng };
-        setNear(here);
-      } catch {
-        log('loc:fail');
-      }
-    })();
-    return () => {
-      dead = true;
-    };
+    if (here.value) return;
+    platform.location
+      .permission()
+      .then((p) => (p === 'granted' ? locate(platform, api) : null))
+      .catch(() => null);
   }, []);
 
   const nearHome = !!(home && near && haversine(home, near) < NEAR_HOME_M);
-  const nearLabel = nearHome ? t('home_tile') : near?.label;
+  // F8: the location pill is the From field. Typed origin > "near {label}" > "From: My location".
+  const pillText = plan.from
+    ? t('from_here', { p: plan.from.name })
+    : nearHome
+      ? t('you_are_near', { p: t('home_tile') })
+      : near?.label
+        ? t('you_are_near', { p: near.label })
+        : t('from_here', { p: t('my_location') });
+  const fromLabel = plan.from?.name ?? (nearHome ? t('home_tile') : near?.label ?? t('my_location'));
   useStateHook(nearHome ? 'home-at-home' : near ? 'home-away' : 'home-default');
 
   const go = (to: Place) => {
-    store.setPlan({ from: null, to, options: [] });
+    store.setPlan({ to, options: [] });
     router.navigate('/routes');
   };
   const takeMeHome = () => {
@@ -105,22 +99,32 @@ export function Home() {
             A
           </span>
         </button>
-        <button type="button" class="iconbtn sq" data-testid="nav-settings" aria-label={t('settings')} onClick={() => router.openSheet('settings')}>
+        <button type="button" class="iconbtn sq" data-testid="nav-settings" aria-label={t('settings')} onClick={() => router.navigate('/settings')}>
           <Icon name="sliders" />
         </button>
       </header>
       <main class="scroll">
+        {updateReady.value && !bannerOff && (
+          <div class="banner" data-testid="update-banner">
+            <button type="button" data-testid="sw-update" aria-label={t('upd_sr')} onClick={applyUpdate}>
+              <Icon name="refresh" />
+              <span>{t('upd_banner')}</span>
+            </button>
+            <button type="button" class="iconbtn sq" data-testid="update-later" aria-label={t('upd_later')} onClick={() => setBannerOff(true)}>
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
+        <HomeConfirm />
         <div class="greet">
           <h2 class="t-display" data-testid="greeting">
             {s.name ? t('greet_named', { g: greet, n: s.name }) : greet}
           </h2>
           <p>{t('where_today')}</p>
-          {nearLabel && (
-            <div class="where" data-testid="where">
-              <span class="dot" aria-hidden="true" />
-              {t('you_are_near', { p: nearLabel })}
-            </div>
-          )}
+          <button type="button" class="where" data-testid="from-field" aria-label={t('from_sr', { p: fromLabel })} onClick={() => router.navigate('/search?field=from')}>
+            <span class="dot" aria-hidden="true" />
+            {pillText}
+          </button>
         </div>
         {trip && trip.guidance.status !== 'arrived' && (
           <button
@@ -165,6 +169,29 @@ export function Home() {
             </div>
           </>
         )}
+        {recents.length > 0 && (
+          <>
+            <div class="sect">
+              <h2>{t('recent')}</h2>
+            </div>
+            <ul class="rlist" data-testid="home-recent">
+              {recents.map((r, i) => (
+                <li key={`${r.to.name}-${i}`}>
+                  <button type="button" class="ritem" data-testid={`recent-${i}`} onClick={() => go(r.to)}>
+                    <span class="ic" aria-hidden="true">
+                      <Icon name="clock" />
+                    </span>
+                    <span class="tx">
+                      <b>{r.to.name}</b>
+                      {r.to.address && <span>{r.to.address}</span>}
+                    </span>
+                    <Icon name="chev" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <button type="button" class="helprow" data-testid="nav-help" onClick={() => router.navigate('/help')}>
           <span class="ic" aria-hidden="true">
             <Icon name="help" />
@@ -175,14 +202,19 @@ export function Home() {
           </span>
         </button>
       </main>
-      {home && (
-        <div class="dock">
+      <div class="dock">
+        {home ? (
           <button type="button" class="btn btn-primary" data-testid="take-me-home" onClick={takeMeHome}>
             <Icon name="home" />
             {t('take_me_home')}
           </button>
-        </div>
-      )}
+        ) : (
+          <button type="button" class="btn btn-primary" data-testid="set-your-home" onClick={() => router.navigate('/search?mode=home')}>
+            <Icon name="home" />
+            {t('set_your_home')}
+          </button>
+        )}
+      </div>
     </>
   );
 }

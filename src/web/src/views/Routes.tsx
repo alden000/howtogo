@@ -1,10 +1,12 @@
 /** H3 Route options (STYLE-GUIDE §6 H3, §5.2 cards). Ranking: shared engine, least walking by default. */
 import { useEffect, useState } from 'preact/hooks';
-import { normalizeOneMapPlan, rankItineraries, type Place } from '@howtogo/shared';
+import { haversine, normalizeOneMapPlan, rankItineraries, summarize, type Itinerary, type Leg, type Place, type RankedItinerary } from '@howtogo/shared';
+import { online } from '../api/offline';
+import { here, inSingapore, locate } from '../state/location';
 import { isApiError } from '../api/errors';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
-import { Bar, HelpButton, Icon, useStateHook } from '../ui/kit';
+import { Bar, HelpButton, Icon, Seal, StatePanel, useStateHook } from '../ui/kit';
 import { cardLabel, chips, clock, facts, hasBus, minutes, tagText } from './present';
 
 /** OQ6: least-walk asks OneMap for ≤ 500 m walks first, widening to 1000 m if nothing is found. */
@@ -60,7 +62,23 @@ export function Chips({ it }: { it: Parameters<typeof chips>[0] }) {
   );
 }
 
-type Phase = 'idle' | 'loading' | 'error' | 'offline' | 'no_route';
+type Phase = 'idle' | 'loading' | 'need_loc' | 'loc_unavailable' | 'none' | 'close' | 'out_dest' | 'out_me' | 'error' | 'busy' | 'offline';
+
+/** F3 `close`: closer than this, offer walking (AC 34). */
+export const TOO_CLOSE_M = 200;
+/** Assumed walking pace for the too-close estimate (straight line, unhurried ~1 m/s). */
+const WALK_MPS = 1;
+const SLOW_MS = 6000;
+
+/** A one-leg walking itinerary for "Show the walking way" (F3 close). */
+export function walkOnly(start: Place, end: Place, now = Date.now()): RankedItinerary {
+  const distanceM = Math.round(haversine(start, end));
+  const durationS = Math.max(60, Math.round(distanceM / WALK_MPS));
+  const stop = (p: Place) => ({ name: p.name, displayName: p.name, lat: p.lat, lng: p.lng });
+  const leg: Leg = { mode: 'walk', from: stop(start), to: stop(end), startTime: now, endTime: now + durationS * 1000, durationS, distanceM, geometry: [start, end], intermediateStops: [], turns: [] };
+  const itinerary: Itinerary = { id: 'walk-only', startTime: now, endTime: leg.endTime, durationS, walkTimeS: durationS, transitTimeS: 0, waitingTimeS: 0, walkDistanceM: distanceM, transfers: 0, legs: [leg] };
+  return { itinerary, score: 0, labels: [], summary: summarize(itinerary) };
+}
 
 export function Routes() {
   const { store, router, api, platform } = useServices();
@@ -68,8 +86,11 @@ export function Routes() {
   const plan = store.plan.value;
   const settings = store.settings.value;
   const lang = settings.lang;
+  const me = here.value;
   const [phase, setPhase] = useState<Phase>(plan.options.length ? 'idle' : 'loading');
   const [attempt, setAttempt] = useState(0);
+  const [slow, setSlow] = useState(false);
+  const [closeM, setCloseM] = useState(0);
 
   useEffect(() => {
     if (!plan.to) return;
@@ -77,17 +98,34 @@ export function Routes() {
     let cancelled = false;
     (async () => {
       setPhase('loading');
-      try {
-        let start: Place;
-        if (plan.from) start = plan.from;
-        else {
-          const f = await platform.location.current();
-          const label = await api
-            .revgeocode(f)
-            .then((r) => r.name)
-            .catch(() => t('my_location'));
-          start = { name: label, lat: f.lat, lng: f.lng };
+      if (!inSingapore(plan.to!)) return setPhase('out_dest');
+      let start: Place;
+      if (plan.from) start = plan.from;
+      else {
+        // F2: never trigger the browser prompt without the explainer (AC 25).
+        if (!me) {
+          const perm = await platform.location.permission().catch(() => 'prompt' as PermissionState);
+          if (cancelled) return;
+          if (perm !== 'granted') {
+            setPhase('need_loc');
+            if (!router.sheet.value) router.openSheet(perm === 'denied' ? 'loc-denied' : 'loc-explain');
+            return;
+          }
+          const r = await locate(platform, api);
+          if (cancelled) return;
+          if (r !== 'ok') return setPhase(r === 'denied' ? 'need_loc' : 'loc_unavailable');
+          return; // `here` changed → this effect runs again with the fix
         }
+        start = { name: me.label ?? t('my_location'), lat: me.lat, lng: me.lng };
+      }
+      if (!inSingapore(start)) return setPhase('out_me');
+      const d = haversine(start, plan.to!);
+      if (d < TOO_CLOSE_M) {
+        store.setPlan({ start });
+        setCloseM(Math.round(d));
+        return setPhase('close');
+      }
+      try {
         const pref = settings.preference;
         for (const walk of pref === 'least_walk' ? WALK_STEPS : [undefined]) {
           const body = await api.route({ start, end: plan.to!, departAt: Date.now(), numItineraries: 3, ...(walk ? { maxWalkDistance: walk } : {}) });
@@ -101,19 +139,51 @@ export function Routes() {
             return;
           }
         }
-        if (!cancelled) setPhase('no_route');
+        if (!cancelled) setPhase('none');
       } catch (e) {
-        if (!cancelled) setPhase(isApiError(e) && e.kind === 'offline' ? 'offline' : 'error');
+        if (cancelled) return;
+        if (isApiError(e) && e.kind === 'offline') setPhase('offline');
+        else if (isApiError(e) && e.status === 429) setPhase('busy');
+        else setPhase('error');
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [plan.to?.lat, plan.to?.lng, plan.from?.lat, plan.from?.lng, settings.preference, attempt]);
+  }, [plan.to?.lat, plan.to?.lng, plan.from?.lat, plan.from?.lng, me?.lat, me?.lng, settings.preference, attempt]);
+
+  // Loading: after 6 s add "still looking" (F3).
+  useEffect(() => {
+    setSlow(false);
+    if (phase !== 'loading') return;
+    const id = setTimeout(() => setSlow(true), SLOW_MS);
+    return () => clearTimeout(id);
+  }, [phase]);
+  // Offline: look again by itself when the connection comes back (F3).
+  useEffect(() => {
+    if (phase === 'offline' && online.value) setAttempt((a) => a + 1);
+  }, [online.value]);
 
   const options = phase === 'idle' ? plan.options : [];
-  useStateHook(phase === 'idle' ? `routes-${options.length === 1 ? 'one' : options.length ? 'some' : 'none'}` : `routes-${phase}`);
-  const from = plan.start ?? plan.from;
+  // State panels log their own `state:` line; here only the list and loading states.
+  useStateHook(phase === 'idle' ? `routes-${options.length === 1 ? 'one' : 'some'}` : phase === 'loading' || phase === 'need_loc' ? `routes-${phase}` : null);
+  const from = plan.from ?? (me ? { name: me.label ?? t('my_location') } : plan.start);
+  const retry = () => setAttempt((a) => a + 1);
+  const retryBtn = (
+    <button type="button" class="btn btn-primary" data-testid="routes-retry" onClick={retry}>
+      {t('try_again')}
+    </button>
+  );
+  const otherBtn = (
+    <button type="button" class="btn btn-secondary" data-testid="routes-other" onClick={() => router.navigate('/search')}>
+      {t('choose_other')}
+    </button>
+  );
+  const typeStartBtn = (key: 'type_start' | 'type_place') => (
+    <button type="button" class="btn btn-secondary" data-testid="routes-type-start" onClick={() => router.navigate('/search?field=from')}>
+      {t(key)}
+    </button>
+  );
 
   return (
     <>
@@ -133,21 +203,82 @@ export function Routes() {
           )}
         </div>
 
-        {phase === 'loading' && (
-          <div class="state" role="status" data-testid="routes-loading">
-            <span class="spinner" aria-hidden="true" />
-            <p class="t-headline">{t('routes_loading')}</p>
+        {(phase === 'loading' || phase === 'need_loc') && (
+          <div aria-busy="true" aria-label={t('r_finding_sr')} data-testid="routes-loading">
+            <div class="loadline">
+              <Seal pulse />
+              <p class="t-headline" role="status" style={{ margin: 0 }}>
+                {t('routes_loading')}
+                {slow && (
+                  <>
+                    <br />
+                    <span class="t-caption">{t('r_loading_more')}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            <div class="cards" aria-hidden="true">
+              <div class="skel cardsk" />
+              <div class="skel cardsk" />
+            </div>
           </div>
         )}
-        {(phase === 'error' || phase === 'offline' || phase === 'no_route') && (
-          <div class="state" role="alert" data-testid={`routes-${phase}`}>
-            <p class="t-headline">{t(phase === 'offline' ? 'error_offline' : phase === 'no_route' ? 'no_route' : 'error_generic')}</p>
-            <button type="button" class="btn btn-secondary small" data-testid="routes-retry" onClick={() => setAttempt((a) => a + 1)}>
-              {t('try_again')}
+        {phase === 'loc_unavailable' && (
+          <StatePanel id="routes-loc-unavailable" icon="loc" title={t('loc_unavail')}>
+            {retryBtn}
+            {typeStartBtn('type_place')}
+          </StatePanel>
+        )}
+        {phase === 'none' && (
+          <StatePanel id="routes-none" icon="route" title={t('r_none_t')} body={t('r_none_b')}>
+            {retryBtn}
+            {otherBtn}
+          </StatePanel>
+        )}
+        {phase === 'close' && (
+          <StatePanel id="routes-close" icon="walk" title={t('r_close_t')} body={t('r_close_b', { m: closeM, min: Math.max(1, Math.round(closeM / WALK_MPS / 60)) })}>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-testid="routes-show-walk"
+              onClick={() => {
+                const start = store.plan.peek().start;
+                if (!start || !plan.to) return;
+                store.setPlan({ options: [walkOnly(start, plan.to)], selected: 0, fetchedAt: Date.now() });
+                router.navigate('/trip');
+              }}
+            >
+              {t('show_walk')}
             </button>
-          </div>
+            {otherBtn}
+          </StatePanel>
         )}
-
+        {phase === 'out_dest' && (
+          <StatePanel id="routes-outside" icon="loc" title={t('r_out_dest_t')} body={t('r_out_dest_b')}>
+            {otherBtn}
+          </StatePanel>
+        )}
+        {phase === 'out_me' && (
+          <StatePanel id="routes-outside-me" icon="loc" title={t('r_out_me_t')} body={t('r_out_me_b')}>
+            {typeStartBtn('type_start')}
+          </StatePanel>
+        )}
+        {phase === 'error' && (
+          <StatePanel id="routes-error" icon="refresh" title={t('r_err_t')} body={t('r_err_b')}>
+            {retryBtn}
+            {otherBtn}
+          </StatePanel>
+        )}
+        {phase === 'busy' && (
+          <StatePanel id="routes-busy" icon="clock" title={t('busy_t')} body={t('busy_b')}>
+            {retryBtn}
+          </StatePanel>
+        )}
+        {phase === 'offline' && (
+          <StatePanel id="routes-offline" icon="wifi-off" title={t('off_t')} body={t('r_off_b')}>
+            {retryBtn}
+          </StatePanel>
+        )}
         {options.length > 0 && (
           <div class="cards">
             {options.map((o, i) => {

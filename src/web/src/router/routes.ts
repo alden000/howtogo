@@ -9,6 +9,8 @@ export type RouteName =
   | 'viewer'
   | 'help'
   | 'settings'
+  | 'about'
+  | 'welcome'
   | 'not_found';
 
 export interface RouteMatch {
@@ -28,6 +30,8 @@ const TABLE: { name: RouteName; re: RegExp; keys: string[] }[] = [
   { name: 'viewer', re: /^\/t\/([A-Za-z0-9]{6,32})\/?$/, keys: ['id'] },
   { name: 'help', re: /^\/help\/?$/, keys: [] },
   { name: 'settings', re: /^\/settings\/?$/, keys: [] },
+  { name: 'about', re: /^\/about\/?$/, keys: [] },
+  { name: 'welcome', re: /^\/welcome\/?$/, keys: [] },
 ];
 
 export function matchRoute(url: string): RouteMatch {
@@ -45,3 +49,6 @@ export function matchRoute(url: string): RouteMatch {
 
 /** Public standalone pages: Back from them leaves the app (no seeded Home entry). */
 export const STANDALONE: ReadonlySet<RouteName> = new Set(['viewer']);
+
+/** Screens that are the root of the in-app stack (no Home seeded underneath). F1 first run is a root. */
+export const ROOTS: ReadonlySet<RouteName> = new Set(['home', 'welcome']);

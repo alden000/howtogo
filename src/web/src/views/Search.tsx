@@ -4,18 +4,27 @@ import type { Place } from '@howtogo/shared';
 import type { SearchResult } from '../api/types';
 import { useServices, useT } from '../context';
 import { log } from '../log';
-import { Bar, Icon, useStateHook } from '../ui/kit';
+import { signal } from '@preact/signals';
+import { isApiError } from '../api/errors';
+import { online } from '../api/offline';
+import { here } from '../state/location';
+import { Bar, Icon, StatePanel, useStateHook } from '../ui/kit';
+
+/** A Home picked in set-home mode, waiting for the "Yes, that's it" confirm card (F1 page 3 / F6). */
+export const pendingHome = signal<Place | null>(null);
 
 export const DEBOUNCE_MS = 300;
 const MAX_RESULTS = 8;
 
-type Phase = 'recent' | 'loading' | 'results' | 'empty' | 'error';
+type Phase = 'recent' | 'loading' | 'results' | 'empty' | 'error' | 'offline' | 'busy';
 
 export function Search() {
   const { store, router, api, platform } = useServices();
   const t = useT();
   const lang = store.settings.value.lang;
-  const field = router.route.value.query.get('field') === 'from' ? 'from' : 'to';
+  const query = router.route.value.query;
+  /** to (default) · from (F8 From pill) · home (F1/F6 set-home mode). */
+  const mode = query.get('mode') === 'home' ? 'home' : query.get('field') === 'from' ? 'from' : 'to';
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [phase, setPhase] = useState<Phase>('recent');
@@ -38,25 +47,46 @@ export function Search() {
           setResults(r.slice(0, MAX_RESULTS));
           setPhase(r.length ? 'results' : 'empty');
         })
-        .catch(() => !ctrl.signal.aborted && setPhase('error'));
+        .catch((e) => {
+          if (ctrl.signal.aborted) return;
+          setPhase(isApiError(e) && e.kind === 'offline' ? 'offline' : isApiError(e) && e.status === 429 ? 'busy' : 'error');
+        });
     }, DEBOUNCE_MS);
     return () => {
       clearTimeout(timer);
       ctrl.abort();
     };
   }, [q, attempt]);
-  useStateHook(`search-${phase}`);
+  useStateHook(phase === 'error' || phase === 'offline' || phase === 'busy' ? null : `search-${phase}`);
+  // F4 offline: look again by itself once back online.
+  useEffect(() => {
+    if (phase === 'offline' && online.value) setAttempt((a) => a + 1);
+  }, [online.value]);
   useEffect(() => () => mic?.stop(), []);
 
   const pick = (p: Place) => {
-    store.setPlan({ [field]: p, options: [] });
-    // Destination picked → straight to route options (replacing Search, so Back from H3 returns to H1).
-    if (field === 'to') {
+    if (mode === 'home') {
+      pendingHome.value = p;
+      return router.back();
+    }
+    store.setPlan({ [mode]: p, options: [] });
+    if (mode === 'to') {
+      // Destination picked → straight to route options (replacing Search, so Back from H3 returns to H1).
       store.addRecent(p);
       router.navigate('/routes', { replace: true });
-    }
-    else router.back();
+    } else router.back();
   };
+  const [wantHere, setWantHere] = useState(false);
+  const useHere = () => {
+    store.setPlan({ from: null, options: [] });
+    if (here.value) return router.back();
+    setWantHere(true);
+    router.openSheet('loc-explain');
+  };
+  // Located from the explainer: the sheet has closed, now return to where From was asked.
+  useEffect(() => {
+    if (wantHere && here.value && !router.sheet.value) router.back();
+  }, [wantHere, here.value, router.sheet.value]);
   const listen = async () => {
     if (!mic) return;
     if (listening) return mic.stop();
@@ -91,7 +121,7 @@ export function Search() {
       <Bar />
       <main class="scroll">
         <h1 class="t-title" style={{ margin: '0 0 4px' }}>
-          {t('search_title')}
+          {t(mode === 'home' ? 'find_home' : mode === 'from' ? 'type_start' : 'search_title')}
         </h1>
         <div class="field">
           <label for="q" class="sr">
@@ -130,7 +160,27 @@ export function Search() {
           </div>
         )}
 
-        {phase === 'recent' && recents.length > 0 && (
+        {mode === 'from' && phase === 'recent' && (
+          <ul class="rlist" style={{ marginBottom: 'var(--s-3)' }}>
+            <li>{row({ name: t('use_here') }, 'loc', useHere, 'search-use-here')}</li>
+          </ul>
+        )}
+        {phase === 'error' && (
+          <StatePanel id="search-error" icon="refresh" title={t('search_error')}>
+            <button type="button" class="btn btn-primary" data-testid="search-retry" onClick={() => setAttempt((a) => a + 1)}>
+              {t('try_again')}
+            </button>
+          </StatePanel>
+        )}
+        {phase === 'offline' && <StatePanel id="search-offline" icon="wifi-off" title={t('s_off_t')} body={t('s_off_b')} />}
+        {phase === 'busy' && (
+          <StatePanel id="search-busy" icon="clock" title={t('busy_t')} body={t('busy_b')}>
+            <button type="button" class="btn btn-primary" data-testid="search-retry" onClick={() => setAttempt((a) => a + 1)}>
+              {t('try_again')}
+            </button>
+          </StatePanel>
+        )}
+        {(phase === 'recent' || phase === 'offline') && mode === 'to' && recents.length > 0 && (
           <>
             <div class="sect" style={{ marginTop: '6px' }}>
               <h2>{t('recent')}</h2>
@@ -167,12 +217,6 @@ export function Search() {
                 return (
                   <li key={`${r.name}-${r.postal}`}>
                     {row(r, 'loc', () => pick(place), `search-result-${i}`)}
-                    {field === 'to' && (
-                      <button type="button" class="iconbtn" data-testid={`set-home-${i}`} aria-label={`${t('set_as_home')}${t('sr_sep')}${r.name}`} onClick={() => store.setHome(place)}>
-                        <Icon name={store.places.value.home?.name === r.name ? 'check' : 'home'} />
-                        {t('set_as_home')}
-                      </button>
-                    )}
                   </li>
                 );
               })}
@@ -190,14 +234,6 @@ export function Search() {
           </div>
         )}
 
-        {phase === 'error' && (
-          <div class="state" role="alert" data-testid="search-error">
-            <p class="t-headline">{t('search_error')}</p>
-            <button type="button" class="btn btn-secondary small" data-testid="search-retry" onClick={() => setAttempt((a) => a + 1)}>
-              {t('try_again')}
-            </button>
-          </div>
-        )}
       </main>
     </>
   );

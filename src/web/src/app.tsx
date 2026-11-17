@@ -5,7 +5,6 @@
  */
 import { online } from './api/offline';
 import { useServices, useT } from './context';
-import { justUpdated, updateReady, applyUpdate } from './pwa/register';
 import { EndTripSheet } from './views/sheets';
 import { Home } from './views/Home';
 import { Search } from './views/Search';
@@ -15,9 +14,12 @@ import { Guide } from './views/Guide';
 import { ShareStart } from './views/ShareStart';
 import { Viewer } from './views/Viewer';
 import { Help } from './views/Help';
-import { SettingsSheet } from './views/Settings';
+import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, SettingsScreen } from './views/Settings';
+import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
+import { Welcome } from './views/Welcome';
 import { Bar, IconSprite, Toast } from './ui/kit';
-import { useRef } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
+import { connectivityToasts } from './ui/toasts';
 
 export function App() {
   const { router } = useServices();
@@ -25,6 +27,7 @@ export function App() {
   const r = router.route.value;
   const sheet = router.sheet.value;
   const depth = router.depth.value;
+  useEffect(() => connectivityToasts(t), [t]);
   // Screen push/pop (§2): direction from the in-app history depth; the key remounts the screen so it animates in.
   const prev = useRef({ path: r.path, depth, dir: 'push' as 'push' | 'pop' });
   if (prev.current.path !== r.path) prev.current = { path: r.path, depth, dir: depth < prev.current.depth ? 'pop' : 'push' };
@@ -32,8 +35,16 @@ export function App() {
   let view;
   switch (r.name) {
     case 'home':
-    case 'settings':
       view = <Home />;
+      break;
+    case 'settings':
+      view = <SettingsScreen />;
+      break;
+    case 'about':
+      view = <About />;
+      break;
+    case 'welcome':
+      view = <Welcome />;
       break;
     case 'search':
       view = <Search />;
@@ -70,28 +81,21 @@ export function App() {
     <div class="stage">
       <IconSprite />
       <div class={`screen enter-${prev.current.dir}`} key={r.path} data-screen={r.name}>
-        {!online.value && (
+        {!online.value && r.name === 'home' && (
           <p class="note" role="status" data-testid="offline-notice">
             {t('offline_notice')}
-          </p>
-        )}
-        {updateReady.value && (
-          <p class="note" role="status">
-            {t('update_ready')}
-            <button type="button" class="btn-quiet" data-testid="sw-update" onClick={applyUpdate}>
-              {t('update_now')}
-            </button>
-          </p>
-        )}
-        {justUpdated.value && (
-          <p class="note" role="status">
-            {t('updated')}
           </p>
         )}
         {view}
       </div>
       {sheet === 'end-trip' && <EndTripSheet />}
-      {(sheet === 'settings' || (r.name === 'settings' && !sheet)) && <SettingsSheet />}
+      {sheet === 'loc-explain' && <LocExplainSheet />}
+      {sheet === 'loc-denied' && <LocDeniedSheet />}
+      {sheet === 'name' && <NameSheet />}
+      {sheet === 'home' && <HomeSheet />}
+      {sheet === 'clear' && <ClearSheet />}
+      {sheet === 'install' && <InstallSheet />}
+      {sheet === 'report' && <ReportSheet />}
       <Toast />
     </div>
   );

@@ -10,7 +10,9 @@ import { log } from '../log';
 
 export type IconName =
   | 'walk' | 'bus' | 'train' | 'home' | 'clinic' | 'market' | 'family' | 'search' | 'mic' | 'help' | 'close'
-  | 'back' | 'chev' | 'sliders' | 'nav' | 'check' | 'loc' | 'clock' | 'share' | 'route';
+  | 'back' | 'chev' | 'sliders' | 'nav' | 'check' | 'loc' | 'clock' | 'share' | 'route' | 'lock'
+  // §6b icons pending Director approval (drawn on the same 24px grid / 2.2px stroke):
+  | 'wifi-off' | 'refresh' | 'install' | 'ios-share' | 'info' | 'trash' | 'person' | 'report';
 
 /** Icon paths copied from the prototype's <symbol>s (24px grid, 2.2px stroke). */
 const PATHS: Record<IconName, string> = {
@@ -34,6 +36,15 @@ const PATHS: Record<IconName, string> = {
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   share: '<circle cx="12" cy="12" r="2.3"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 8a5.7 5.7 0 0 1 0 8M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/>',
   route: '<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18h6.3a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7h6.3"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
+  'wifi-off': '<path d="M4 9a12 12 0 0 1 16 0M7 12.5a7.5 7.5 0 0 1 10 0M10 16a3 3 0 0 1 4 0M4 4l16 16"/><circle cx="12" cy="19.5" r=".9"/>',
+  refresh: '<path d="M19 12a7 7 0 1 1-2.05-4.95M19 4.5V8h-3.5"/>',
+  install: '<path d="M12 4v10M8 10l4 4 4-4M5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V15"/>',
+  'ios-share': '<path d="M12 3v11M8.5 6.5L12 3l3.5 3.5M8 10H6.5A1.5 1.5 0 0 0 5 11.5v7A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5H16"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".9"/>',
+  trash: '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 12.5a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5L17.5 7M10 11v6M14 11v6"/>',
+  person: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/>',
+  report: '<path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v3.5"/><circle cx="12" cy="13.6" r=".6"/>',
 };
 
 /** One hidden sprite per page; icons reference it with <use>. */
@@ -51,6 +62,50 @@ export function Icon({ name, cls = '' }: { name: IconName; cls?: string }) {
 }
 
 /** Logo B "去 seal" (owner's pick, D-8) from creative/logo/b-qu-seal.svg, next to the wordmark. Creative is refining the master mark. */
+export function Seal({ pulse = false }: { pulse?: boolean }) {
+  return (
+    <svg viewBox="0 0 512 512" aria-hidden="true" class="seal">
+      <rect width="512" height="512" rx="116" fill="#FBF5EC" />
+      <rect x="36" y="36" width="440" height="440" rx="88" fill="none" stroke="#9A3412" stroke-width="20" />
+      <g fill="none" stroke="#9A3412" stroke-width="42" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M186 160H326" />
+        <path d="M256 104V236" />
+        <path d="M136 236H376" />
+        <path d="M246 276C226 316 198 350 166 380H300" />
+      </g>
+      <circle cx="352" cy="380" r="30" fill="#E0A100" class={pulse ? 'seal-dot' : undefined} />
+    </svg>
+  );
+}
+
+/** §6b state panel: icon tile → headline (polite live region) → body → buttons. */
+export function StatePanel(props: { id: string; icon: IconName; title: string; body?: string; children?: ComponentChildren }) {
+  useStateHook(props.id);
+  return (
+    <div class="state" data-testid={`state-${props.id}`}>
+      <span class="stile" aria-hidden="true">
+        <Icon name={props.icon} />
+      </span>
+      <p class="t-headline" role="status" aria-live="polite">
+        {props.title}
+      </p>
+      {props.body && <p class="sbody">{props.body}</p>}
+      {props.children && <div class="opts">{props.children}</div>}
+    </div>
+  );
+}
+
+/** Numbered how-to steps (F2/F6): body size, number in a 32px primary-soft disc. */
+export function NumSteps({ items }: { items: string[] }) {
+  return (
+    <ol class="numsteps">
+      {items.map((x) => (
+        <li>{x}</li>
+      ))}
+    </ol>
+  );
+}
+
 export function Wordmark({ name }: { name: string }) {
   return (
     <h1 class="wordmark">

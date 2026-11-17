@@ -19,7 +19,8 @@ export function TripDetail() {
     () => (option ? buildSteps(option.itinerary, toLang(lang), plan.to?.name ? { destinationName: plan.to.name } : {}) : []),
     [option?.itinerary.id, lang],
   );
-  const kind = option?.itinerary.legs.some((l) => l.mode === 'bus') ? 'bus' : 'mrt';
+  const legs = option?.itinerary.legs ?? [];
+  const kind = legs.some((l) => l.mode === 'bus') ? 'bus' : legs.some((l) => l.mode !== 'walk') ? 'mrt' : 'walk';
   useStateHook(option ? `trip-${kind}` : 'trip-none');
   if (!option || !plan.to) {
     return (
