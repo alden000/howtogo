@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "embed": "node scripts/embed-assets.mjs",
+    "pretest": "node scripts/embed-assets.mjs --if-missing",
     "test": "vitest run",
+    "pretypecheck": "node scripts/embed-assets.mjs --if-missing",
     "typecheck": "tsc --noEmit",
     "dev": "wrangler dev",
-    "dev:fixtures": "wrangler dev --var FIXTURE_MODE:1"
+    "dev:fixtures": "wrangler dev --var FIXTURE_MODE:1",
+    "dev:preview": "node scripts/embed-assets.mjs && wrangler dev -c wrangler.preview.toml"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.8.3",

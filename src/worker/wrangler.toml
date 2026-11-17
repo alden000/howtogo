@@ -1,4 +1,6 @@
 # 怎么去? — ONE Worker serves the PWA (Workers Static Assets) and the API (D-10).
+# NOTE: the preview currently deploys with wrangler.preview.toml (no [assets]; the build is embedded
+# into the Worker) because the agent proxy breaks wrangler's assets-upload JWT. Keep both in sync.
 # Placeholders only — no secrets in this file.
 # Secrets (set with `wrangler secret put <NAME>`): ONEMAP_EMAIL, ONEMAP_PASSWORD, LTA_ACCOUNT_KEY
 #   (none are needed while FIXTURE_MODE = "1").

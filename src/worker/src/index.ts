@@ -2,8 +2,10 @@ import type { Env } from "./env";
 import { handleAlerts, handleBusArrival, handleRevGeocode, handleRoute, handleSearch } from "./api";
 import { fixtureMode } from "./fixtures";
 import { HttpError, errorResponse, finalize, json, originAllowed, preflight } from "./http";
+import { ASSET_MAP, HEADER_RULES } from "./generated/assets";
 import { checkRateLimit } from "./ratelimit";
 import { handleCreateShare, handleShareById } from "./share";
+import { serveEmbedded } from "./static";
 
 export { TripShare } from "./share";
 
@@ -45,6 +47,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const { pathname } = new URL(request.url);
+    if (pathname !== "/api" && !pathname.startsWith("/api/")) {
+      // Static PWA. With [assets] (wrangler.toml) only /api/* reaches the Worker, but delegate anyway;
+      // the preview deploy (wrangler.preview.toml) has no ASSETS and serves the embedded build.
+      return env.ASSETS ? env.ASSETS.fetch(request) : serveEmbedded(request, ASSET_MAP, HEADER_RULES);
+    }
     if (request.method === "OPTIONS") return preflight(request, env);
     if (!originAllowed(request, env)) {
       return finalize(errorResponse(403, "origin_not_allowed", "This website is not allowed to use the service."), request, env);

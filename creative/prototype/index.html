@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>怎么去? Prototype</title>
-<meta name="description" content="怎么去? — interactive creative prototype v1.1. Elderly-friendly public transport guide for Singapore.">
+<meta name="description" content="怎么去? — interactive creative prototype v1.3. Elderly-friendly public transport guide for Singapore.">
 <meta name="theme-color" content="#9A3412">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%239A3412'/%3E%3Cg %3E%3Cpath class='qu-v' d='M256 64V192' fill='none' stroke='%23FBF5EC' stroke-linecap='round' stroke-linejoin='round' stroke-width='64'/%3E%3Cpath class='qu-h1' d='M192 96H320' fill='none' stroke='%23FBF5EC' stroke-linecap='round' stroke-linejoin='round' stroke-width='64'/%3E%3Cpath class='qu-h2' d='M96 192H416' fill='none' stroke='%23FBF5EC' stroke-linecap='round' stroke-linejoin='round' stroke-width='64'/%3E%3Cpath class='qu-path' d='M256 288L160 416H288' fill='none' stroke='%23FBF5EC' stroke-linecap='round' stroke-linejoin='round' stroke-width='64'/%3E%3Ccircle class='qu-dot' cx='384' cy='408' r='48' fill='%23FFD23F'/%3E%3C/g%3E%3C/svg%3E%0A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -156,7 +156,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 
 /* ============ HOME (H1) ============ */
 .greet{margin:var(--s-4) 0 var(--s-5)}
-.greet .t-display{margin:0}
+.greet .t-display{margin:0;overflow-wrap:break-word;hyphens:auto}
 .greet p{margin:6px 0 0;font-size:1.1rem;color:var(--c-ink-2)}
 .where{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:6px 14px 6px 8px;border-radius:var(--r-pill);background:var(--c-jade-soft);color:var(--c-on-jade-soft);font-weight:700;font-size:.9rem}
 .where .dot{width:14px;height:14px;border-radius:50%;background:var(--c-jade);box-shadow:0 0 0 4px color-mix(in srgb,var(--c-jade) 25%,transparent)}
@@ -250,7 +250,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .bandrow:empty{display:none}
 .guide .top .grow{flex:1}
 .helppill{min-height:var(--tap);padding:0 18px 0 12px;border-radius:var(--r-pill);background:var(--c-ink);color:var(--c-ink-inv);display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;box-shadow:var(--e-2)}
-.sharepill{align-self:center;display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 16px 6px 12px;border-radius:var(--r-pill);background:var(--c-jade);color:var(--c-on-jade);font-weight:700;font-size:.85rem;box-shadow:var(--e-2);white-space:nowrap;max-width:calc(100% - 28px)}
+.sharepill{align-self:center;display:flex;align-items:center;gap:8px;min-height:var(--tap);padding:6px 16px 6px 12px;border-radius:var(--r-pill);background:var(--c-jade);color:var(--c-on-jade);font-weight:700;font-size:.85rem;box-shadow:var(--e-2);white-space:nowrap;max-width:calc(100% - 28px)}
 .sharepill .live{width:10px;height:10px;border-radius:50%;background:currentColor;animation:blink 1.6s ease-in-out infinite}
 @keyframes blink{50%{opacity:.25}}
 .mapctl{position:absolute;right:14px;z-index:3;display:flex;flex-direction:column;gap:10px;transition:bottom var(--d-base) var(--ease-out)}
@@ -476,6 +476,93 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 :root.rm .petal,:root.rm .m-pulse,:root.rm .ringout,:root.rm .inkring,:root.rm .dotring{display:none}
 :root.rm .edgeglow{animation:none}
 :root.rm .alert.now{animation:fadeIn 120ms linear both}
+/* ============ M3 / M4 (STYLE-GUIDE 6d, 6e) ============ */
+.demo{margin-top:var(--s-6)}
+.demoh{margin:0 0 8px;font-size:.85rem;font-weight:700;color:var(--c-ink-2)}
+.arrchip .arrtop{display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:1 1 100%}
+.arrchip .next{flex:1 1 100%}
+.arrchip .msg{flex:1 1 8rem;min-width:0;font-size:1.05rem;font-weight:700;line-height:1.3}
+.arrchip .msgi svg{width:32px;height:32px}
+.arrchip .lv.est i{background:transparent;border:2px solid var(--c-ink-2);animation:none}
+.arrchip.est{border:2px dashed var(--c-line)}
+.arrchip.warn{background:var(--c-surface);border-left:8px solid var(--c-saffron);box-shadow:var(--e-1)}
+.loadrow{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%}
+.loadtag{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:4px 10px;border-radius:var(--r-s);background:var(--c-surface);color:var(--c-ink);border:2px solid var(--c-line);font-size:.9rem;font-weight:700;line-height:1.2}
+.arrchip.here .loadtag{border-color:var(--c-on-saffron)}
+.loadtag svg{width:24px;height:24px}
+.chipacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chipacts .btn{flex:1 1 8rem;min-height:var(--tap);font-size:1rem;padding:8px 14px}
+.banner.warn{border-left-color:var(--c-saffron);box-shadow:var(--e-1);animation:none;align-items:flex-start;margin-bottom:var(--s-4)}
+.banner.warn .tx>span{display:block;margin-top:4px}
+.banner.warn b .linetag{vertical-align:middle;font-size:.85rem}
+.banner .wdisc{width:44px;height:44px;border-radius:50%;background:var(--c-saffron-soft);color:var(--c-ink);display:grid;place-items:center;flex:none}
+.honest.jade{border-left:8px solid var(--c-jade);margin:0 0 var(--s-4)}
+.exittag{display:inline-grid;place-items:center;min-width:1.7em;height:1.7em;padding:0 .3em;border-radius:var(--r-s);background:var(--c-saffron);color:var(--c-on-saffron);font-weight:900;line-height:1;vertical-align:.05em}
+.dstep{padding:16px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-1)}
+.dstep .steprow:first-child{margin-top:0}
+.stepicon.tr{position:relative}
+.stepicon .trtag{position:absolute;right:-10px;bottom:-10px;font-size:.8rem}
+.steptx h2 .linetag{font-size:.8em;vertical-align:.1em}
+.stnames{display:flex;flex-direction:column;gap:12px}
+.stn{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.stn .en{font-size:.9rem;color:var(--c-ink-2)}
+.ritem .dis{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px}
+.statusline{display:flex;align-items:center;gap:10px;margin:14px 0;font-weight:700}
+.skel{height:150px;border-radius:var(--r-l);background:var(--c-surface-2);margin-top:14px}
+:root:not(.rm) .skel{animation:blink 1.6s infinite}
+.sublead{margin:6px 0 16px;font-size:1rem;color:var(--c-ink-2)}
+.lockline{display:flex;gap:8px;align-items:flex-start;margin:14px 0 0;font-size:.9rem;color:var(--c-ink-2)}
+.lockline svg{flex:none}
+.btn-danger{background:var(--c-danger);color:var(--c-on-danger)}
+.btn-s{min-height:var(--tap);font-size:1rem}
+.dock.col{flex-direction:column}
+.dock.col>*{flex:none}
+/* contacts */
+.clist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.crow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-1)}
+.crow .tx{flex:1 1 7rem;min-width:0}
+.crow b{display:block;font-size:1.2rem;line-height:1.25}
+.crow .tx>span{display:block;font-size:.85rem;color:var(--c-ink-2)}
+.crow .tx>span.first{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:var(--r-pill);background:var(--c-jade-soft);color:var(--c-on-jade-soft);font-weight:700}
+.crow .acts{display:flex;gap:8px;margin-left:auto}
+.rbtn{width:var(--tap);height:var(--tap);border-radius:50%;display:grid;place-items:center;background:var(--c-surface-2);color:var(--c-ink);flex:none}
+.rbtn.jade{background:var(--c-jade);color:var(--c-on-jade)}
+.addrow{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:var(--tap-hero);padding:8px 16px;border-radius:var(--r-m);border:3px dashed var(--c-line);font-weight:700;font-size:1.1rem;color:var(--c-ink)}
+.f2{margin-top:18px}
+.f2>label,.f2>.lbl{display:block;font-size:.9rem;font-weight:700;margin-bottom:6px}
+.f2 input{width:100%;min-width:0;min-height:64px;padding:10px 16px;border-radius:var(--r-m);border:2px solid var(--c-line);background:var(--c-surface);color:var(--c-ink);font:inherit;font-size:1.1rem}
+.f2 input::placeholder{color:var(--c-ink-2);opacity:1}
+.f2 input:focus-visible{outline:3px solid var(--c-focus);outline-offset:2px}
+.f2 .tel{display:flex;gap:8px}
+.f2 .tel .pre{display:grid;place-items:center;min-width:72px;padding:0 10px;border-radius:var(--r-m);background:var(--c-surface-2);font-weight:700;font-size:1.1rem}
+.f2 .help{font-size:.85rem;color:var(--c-ink-2);margin-top:6px}
+.f2.bad input{border:3px solid var(--c-ink)}
+.f2 .note{display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:.95rem;font-weight:700;color:var(--c-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{min-height:var(--tap);padding:6px 16px;border-radius:var(--r-pill);border:3px solid var(--c-line);background:var(--c-surface);font-weight:700;font-size:1rem}
+.chips button[aria-checked=true]{border-color:var(--c-jade);background:var(--c-jade-soft);color:var(--c-on-jade-soft)}
+/* setup */
+.qrcard{margin:16px auto 8px;padding:16px;border-radius:var(--r-m);background:#FFFFFF;box-shadow:var(--e-2);width:min(100%,296px)}
+.qrcard svg{display:block;width:100%;height:auto}
+.statusline span:last-child{min-width:0}
+.rv{margin-top:14px;padding:16px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-1)}
+.rv h2{margin:0 0 10px;font-size:1.05rem;color:var(--c-ink-2)}
+.rv ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.rv li{display:flex;gap:12px;align-items:center}
+.rv li .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;flex:none}
+.rv .tx{min-width:0;flex:1}
+.rv b{display:block;font-size:1.1rem}
+.rv .tx span,.rv>span{display:block;font-size:.85rem;color:var(--c-ink-2)}
+.rv .repl{display:flex;gap:6px;align-items:flex-start;margin:12px 0 0;font-size:.9rem;font-weight:700;color:var(--c-ink)}
+/* pill states (6e.1) */
+.sharepill[data-st]{background:var(--c-jade-soft);color:var(--c-on-jade-soft)}
+.sharepill[data-st=help]{background:var(--c-saffron);color:var(--c-on-saffron)}
+.sharepill[data-st=paused]{background:var(--c-surface-2);color:var(--c-ink)}
+.sharepill svg{width:22px;height:22px}
+.sharepill[data-st]{white-space:normal;text-align:left}
+/* taxi (6e.6) */
+.taxi{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.taxi .btn-secondary{min-height:64px}
 </style>
 </head>
 <body>
@@ -518,13 +605,31 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
   <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
   <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <!-- 6b icons (approved) used from M3/M4 -->
+  <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18M8.5 16a5 5 0 0 1 6.3-.6M5 12.6a10 10 0 0 1 4.6-2.4M19 12.6a10 10 0 0 0-3-1.9M2 9a14.5 14.5 0 0 1 4-2.6M22 9a14.5 14.5 0 0 0-11-3.4"/><circle cx="12" cy="19.5" r=".9"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/></symbol>
+  <!-- 6d / 6e new icons (Director approval) -->
+  <symbol id="i-seat" viewBox="0 0 24 24"><path d="M8 3.5v10h8.5M8 13.5L6.5 20.5M16.5 13.5l1 7M8 9.5h6a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-stand" viewBox="0 0 24 24"><path d="M3.5 3h17M15.5 3v4.5l-3.5 2"/><circle cx="10" cy="6.5" r="2"/><path d="M10 9.5v6.5l-2 5M10 16l2.2 5M10 10.5l2 0"/></symbol>
+  <symbol id="i-full" viewBox="0 0 24 24"><circle cx="8" cy="5.5" r="2"/><circle cx="16" cy="5.5" r="2"/><path d="M8 8.5v12.5M16 8.5v12.5M4.5 12.5l3.5-3 3.5 3M12.5 12.5l3.5-3 3.5 3"/></symbol>
+  <symbol id="i-wheelchair" viewBox="0 0 24 24"><circle cx="9.5" cy="4" r="1.8"/><path d="M9.5 7.5V14h6l2.5 5.5M9.5 10.5h5"/><path d="M7 10.8a5.3 5.3 0 1 0 7.4 6.7"/></symbol>
+  <symbol id="i-wheelchair-no" viewBox="0 0 24 24"><circle cx="9.5" cy="4" r="1.8"/><path d="M9.5 7.5V14h6l2.5 5.5M9.5 10.5h5"/><path d="M7 10.8a5.3 5.3 0 1 0 7.4 6.7"/><path d="M3 3l18 18"/></symbol>
+  <symbol id="i-deck2" viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="17" rx="3"/><path d="M4.5 10.5h15M7.5 6h9M7.5 13.5h9M8 22v-2.5M16 22v-2.5"/></symbol>
+  <symbol id="i-train-off" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="14" rx="4"/><path d="M5 10h14M8.5 21l2-4M15.5 21l-2-4M3 3l18 18"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12.5" rx="2.5"/><path d="M3 10.5h18M7 15h4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V5.5a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 0 4 5.5V14a1.5 1.5 0 0 0 1.5 1.5h3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4.2L19.5 8.7l-4.2-4.2L4 15.8zM13.5 6.3l4.2 4.2"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2.5v2.5H14zM20 14v.5M20 20h-3.5M14 20v-.5"/></symbol>
 </svg>
 
 <div class="stage">
   <aside class="side" aria-label="Prototype guide">
     <div class="brand">
       <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="96" fill="#9A3412"/><g fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="64"><path d="M256 64V192M192 96H320M96 192H416M256 288L160 416H288"/></g><circle cx="384" cy="408" r="48" fill="#FFD23F"/></svg>
-      <h1>怎么去?<small>Creative prototype v1.1 · Every question has a way.</small></h1>
+      <h1>怎么去?<small>Creative prototype v1.3 · Every question has a way.</small></h1>
     </div>
     <p>Tap through the phone like a user would. The trip simulates movement from Toa Payoh to Tan Tock Seng Hospital. Turn your sound on to hear the voice. Browser Back follows the in-app steps.</p>
     <h2>Frames</h2>
@@ -1264,7 +1369,7 @@ const GUIDE={
     const mb=e.querySelector('[data-act=mute]'); if(mb){mb.innerHTML=ic(S.muted?'mute':'speaker');mb.setAttribute('aria-label',S.muted?T('unmuteL'):T('muteL'));mb.setAttribute('aria-pressed',String(S.muted));}
     const fb=e.querySelector('[data-act=follow]'); if(fb){fb.classList.toggle('on',this.follow);fb.innerHTML=ic(this.follow?'nav':'route');fb.setAttribute('aria-label',this.follow?T('overviewL'):T('followL'));}
     const m=this.map(); if(m){m.follow=this.follow;}
-    const sp=e.querySelector('.sharepill'); if(sp){sp.hidden=!S.sharing; if(S.sharing) sp.querySelector('span').textContent=T('sharingWith',{n:T(S.sharing)});}
+    const sp=e.querySelector('.sharepill'); if(sp){sp.hidden=!S.sharing; if(S.sharing) paintPill(sp);}
     this.layout();
   },
   paintActs(){ const e=this.el(); if(!e||!TRIP.running) return; const box=e.querySelector('.stepacts'), notes=e.querySelector('.tripnotes'); if(!box) return; const st=TRIP.step(), l=TRIP.leg(), man=!!S.manual;
@@ -1360,7 +1465,7 @@ VIEWS.home=()=>{
     <div class="tiles">
       ${[['home','home'],['clinic','clinic'],['market','market'],['daughter','family']].map(([k,i])=>{const p=PL[k];const nm=k==='clinic'?{zh:'诊所',en:'Clinic'}:p;return `<button class="tile" data-k="${k}" data-act="place" data-arg="${k}" aria-label="${esc(L(nm))}，${esc(L(p.sub||p))}"><span class="ic">${ic(i)}</span><span class="nm">${L(nm)}</span><span class="sub">${esc(k==='clinic'?L(PL.ttsh):L(p.sub))}</span></button>`;}).join('')}
     </div>
-    <button class="helprow" data-act="go" data-arg="help"><span class="ic" aria-hidden="true">${ic('help')}</span><span><b>${T('helpRowT')}</b><span>${T('helpRowS')}</span></span></button>
+    ${recentTrips()}<button class="helprow" data-act="go" data-arg="help"><span class="ic" aria-hidden="true">${ic('help')}</span><span><b>${T('helpRowT')}</b><span>${contacts().length?Z('打电话给'+fam()+'，或给司机看地址','Call '+fam()+', or show a driver your address'):T('helpRowS')}</span></span></button>
   </div>
   <div class="dock"><button class="btn btn-primary" data-act="place" data-arg="home">${ic('home')}${T('takeHome')}</button></div>`;
 };
@@ -1390,19 +1495,19 @@ function legChips(r){return r.legs.map((l,i)=>{const sep=i?`<span class="sep" ar
   if(l.t==='bus') return sep+`<span class="busbadge">${ic('bus')}<span class="num">${l.svc}</span></span>`;
   return sep+`<span class="linetag"><span class="sw" style="background:var(--line-${l.line.toLowerCase()})"></span><span class="cd">${ic('train')}${l.line}</span></span>`;}).join('');}
 function chainLabel(r){return r.legs.map(l=>l.t==='walk'?T('walkMin',{n:l.min}):l.t==='bus'?(S.lang==='zh'?`巴士 ${l.svc}`:`bus ${l.svc}`):(S.lang==='zh'?`地铁 ${l.line} 线`:`${l.line} line train`)).join(S.lang==='zh'?'，然后':', then ');}
-VIEWS.routes=(en)=>{const dest=en.p.dest, list=ROUTES[dest], p=PL[dest], fromP=dest==='home'?PL.ttsh:PL.home;
+VIEWS.routes=(en)=>{const dest=en.p.dest, list=en.p.alt?ROUTES[dest].filter(r=>!r.legs.some(l=>l.line)):ROUTES[dest], p=PL[dest], fromP=dest==='home'?PL.ttsh:PL.home;
   return `<header class="bar">${backBtn()}<span class="grow"></span><button class="iconbtn" data-act="go" data-arg="help">${ic('help')}${T('help')}</button></header>
-  <div class="scroll"><div class="q"><h1 class="t-title" style="margin:0">${T('howTo',{p:`<span style="color:var(--c-primary-text)">${esc(fullName(p))}</span>`})}</h1>
+  <div class="scroll"><div class="q"><h1 class="t-title" style="margin:0">${T(en.p.alt?'altTo':'howTo',{p:`<span style="color:var(--c-primary-text)">${esc(fullName(p))}</span>`})}</h1>
     <div class="from">${ic('loc')}${T('fromHere',{p:esc(fullName(fromP))+(fromP===PL.home?' · '+PL.home.sign:'')})}</div></div>
-    <div class="cards">${list.map((r,i)=>{const m=tripMin(r);const rides=r.legs.filter(l=>l.t!=='walk');
-      return `<button class="card ${r.best?'best':''}" data-act="route" data-arg="${i}" aria-label="${esc((r.best?T('best')+'，':'')+T(r.tag)+'，'+m+' '+T('min')+'，'+T('arriveAt',{t:at(m)})+'。'+chainLabel(r))}">
+    ${S.disrupt&&dest==='ttsh'&&!en.p.alt?disruptBanner():''}${en.p.alt?`<div class="honest jade">${ic('route')}<span>${Z('这些路不经过 南北线 有问题的站。','These ways avoid the affected North–South Line stations.')}</span></div>`:''}<div class="cards">${list.map((r,i)=>{const m=tripMin(r);const rides=r.legs.filter(l=>l.t!=='walk');
+      return `<button class="card ${r.best?'best':''}" data-act="route" data-arg="${i}" aria-label="${esc((r.best?T('best')+'，':'')+T(r.tag)+'，'+m+' '+T('min')+'，'+T('arriveAt',{t:at(m)})+'。'+chainLabel(r)+fareSR(r))}">
       <span class="tag">${r.best?ic('check'):''}${r.best&&list.length>1?T('best')+' · ':''}${T(r.tag)}</span>
       <span class="dur"><b class="num">${m}<small>${T('min')}</small></b><span class="num">${T('arriveAt',{t:at(m)})}</span></span>
       <span class="chain">${legChips(r)}</span>
       <span class="facts"><span>${ic('walk')}${T('walkMin',{n:walkMin(r)})}</span>${rides.length<=1?`<span>${ic('check')}${T('noChange')}</span>`:''}${rides.map(l=>`<span>${ic(l.t==='bus'?'bus':'train')}${l.stops.length===1?T('stop1'):T('stopsN',{n:l.stops.length})}</span>`).join('')}</span>
-      <span class="choose">${T('choose')}${ic('chev')}</span></button>`;}).join('')}</div>
-    ${list.length===1?`<div class="honest">${ic('check')}<span>${T('onlyOne')}</span></div>`:''}
-    ${list.some(r=>r.legs.some(l=>l.t==='bus'))?`<div class="honest">${ic('clock')}<span>${T('honest')}</span></div>`:''}
+      ${routeExtra(r)}<span class="choose">${T('choose')}${ic('chev')}</span></button>`;}).join('')}</div>
+    ${list.length===1&&!en.p.alt?`<div class="honest">${ic('check')}<span>${T('onlyOne')}</span></div>`:''}
+    ${fareNote(list)}${list.some(r=>r.legs.some(l=>l.t==='bus'))?`<div class="honest">${ic('clock')}<span>${T('honest')}</span></div>`:''}
   </div>`;};
 function timeline(r){let s='';r.legs.forEach(l=>{
   if(l.t==='walk') s+=`<li><span class="ic" aria-hidden="true">${ic('walk')}</span><div><b>${T('stWalk',{p:esc(fullName(PL[l.to]))})}</b><span>${T('stWalkS',{n:l.min})}</span></div></li>`;
@@ -1483,6 +1588,10 @@ VIEWS.settings=()=>{const sg=(k,opts)=>`<div class="seg" role="group">${opts.map
   <div class="setrow"><h3>${T('setVoice')}</h3>${sg('muted',[[false,T('on')],[true,T('off')]])}</div>
   <div class="setrow"><h3>${T('setVib')}</h3>${sg('haptics',[[true,T('on')],[false,T('off')]])}</div>
   <div class="setrow"><h3>${T('setMotion')}</h3>${sg('rmForce',[['auto',T('auto')],['on',T('on')],['off',T('off')]])}</div>
+  <div class="setrow"><h3>${Z('家人','Family')}</h3><div class="opts"><button class="btn btn-secondary btn-s" data-act="go" data-arg="contacts">${ic('family')}${Z('家人的电话','Family phone numbers')}</button><button class="btn btn-secondary btn-s" data-act="go" data-arg="setupCode">${ic('qr')}${Z('让家人帮我设置','Let family set it up for me')}</button></div></div>
+  <div class="setrow"><h3>${Z('我用轮椅或助行器','I use a wheelchair or walker')}</h3>${sg('wheel',[[true,T('on')],[false,T('off')]])}</div>
+  <div class="setrow"><h3>${Z('我有乐龄卡','I have a senior concession card')}</h3>${sg('senior',[[true,T('on')],[false,T('off')]])}</div>
+  <div class="setrow"><h3>${Z('隐私','Privacy')}</h3><button class="btn btn-secondary btn-s" data-act="clearRecent">${ic('trash')}${Z('清除最近的行程','Clear recent trips')}</button></div>
   <div class="proto"><h3>${T('protoT')}</h3><p>${T('protoS')}</p><div class="setrow" style="margin-bottom:10px"><h3>${T('demoSpeed')}</h3>${sg('speed',[[0.6,T('slow')],[1,T('normal')],[2,T('fast')]])}</div>
    <div class="opts"><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoGetOff">${ic('bell')}${T('demoGetOff')}</button><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoOff">${ic('route')}${T('demoOff')}</button>
    <button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoNow">${ic('exit')}${T('demoNow')}</button><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoPocket">${ic('moon')}${T('demoPocket')}</button>
@@ -1514,6 +1623,243 @@ const FRAMES={
   H12:{n:'Arrival',go:()=>{TRIP.stop();S.here='ttsh';resetTo([['home'],['arrive',{dest:'ttsh',mins:23,shared:'meiling'}]]);}},
   H13:{n:'Settings',go:()=>{TRIP.stop();resetTo([['home'],['settings']]);}}
 };
+/* ================= M3 + M4 (STYLE-GUIDE 6d / 6e, prototype v1.3) ================= */
+const Z=(zh,en)=>S.lang==='zh'?zh:en;
+S.wheel=false; S.senior=false;
+Object.assign(C,{
+  sharingWith:{zh:'正在分享给 {n}',en:'Sharing with {n}'},
+  shared:{zh:'链接发出去了。{n} 打开后就看得到你。',en:'Link sent. {n} can see you once they open it.'},
+  stopped:{zh:'已经停止分享。现在看不到你了。',en:"Sharing stopped. They can't see you now."},
+  shareLead:{zh:'他们会看到你在哪里、大约什么时候到。你到了 30 分钟后，分享会自己停止。',en:"They'll see where you are and about when you'll arrive. Sharing stops by itself 30 minutes after you arrive."},
+  shareWho:{zh:'告诉谁？',en:'Who should know?'},
+  privacy:{zh:'只分享这一次的行程。到了以后会自己停止，我们不会保存你的位置。',en:"Only this trip is shared. It stops by itself after you arrive, and we don't keep your location."},
+  famKnows:{zh:'美玲的页面会显示你到了',en:"Mei Ling's page shows you've arrived"},
+  told:{zh:'已经准备好给美玲的信息。',en:'Message ready for Mei Ling.'},
+  famExpire:{zh:'妈妈到了 30 分钟后，这个链接会停止（最长 4 小时）。',en:'This link stops 30 minutes after Mum arrives (4 hours at most).'},
+  showAddrS:{zh:'大字显示，也可以叫车',en:'Big address, or book a ride'},
+  altTo:{zh:'换一条路去 {p}',en:'Another way to {p}'},
+  other:{zh:'家人',en:'family'}
+});
+S.contacts=[
+  {name:{zh:'美玲',en:'Mei Ling'},rel:{zh:'女儿',en:'Daughter'},tel:'+65 9123 4567',me:{zh:'妈妈',en:'Mum'},tint:['var(--tint-home)','var(--ink-home)']},
+  {name:{zh:'志明',en:'Zhi Ming'},rel:{zh:'儿子',en:'Son'},tel:'+65 8765 4321',me:{zh:'妈妈',en:'Mum'},tint:['var(--tint-clinic)','var(--ink-clinic)']}];
+const contacts=()=>S.noContacts?[]:S.contacts;
+const fam=()=>{const c=contacts()[0];return c?L(c.name):Z('家人','family');};
+const ltag=(code,st)=>`<span class="linetag"><span class="sw" style="background:var(--line-${code.toLowerCase()})"></span><span class="cd">${st||code}</span></span>`;
+const lt=(i,t)=>`<span class="loadtag">${ic(i)}<span>${t}</span></span>`;
+const busb=svc=>`<span class="busbadge">${ic('bus')}<span class="num">${svc}</span></span>`;
+
+/* T1/T2 arrival chip */
+function chip(st){
+  const tags=lt('seat',Z('有座位','Seats free'))+lt('wheelchair',Z('轮椅可以上','Wheelchair OK'))+lt('deck2',Z('双层巴士','Double deck'));
+  const live=`<span class="lv"><i></i>${Z('实时','Live')}</span>`;
+  const acts=`<div class="chipacts"><button class="btn btn-primary" data-act="findWay">${ic('route')}${Z('找别的路','Find another way')}</button><button class="btn btn-secondary" data-act="addr" data-arg="dest">${ic('car')}${Z('给司机看地址','Show the driver')}</button></div>`;
+  const M={
+    live:{big:Z('4 分钟','4 min'),src:live,line:Z('下一班 12 分钟','Next one in 12 min'),tags,
+      sr:Z('139 号巴士，4 分钟后到，实时。有座位，轮椅可以上，双层巴士。下一班 12 分钟。','Bus 139 in 4 minutes, live. Seats free, wheelchair OK, double deck. Next one in 12 minutes.')},
+    here:{cls:'here',big:Z('快到了','Arriving'),line:Z('看清楚车头的号码，再上车。','Check the number on the front before you get on.'),tags,
+      sr:Z('139 号巴士快到了。看清楚车头的号码，再上车。','Bus 139 is arriving. Check the number on the front before you get on.')},
+    lsd:{big:Z('2 分钟','2 min'),src:live,line:Z('很挤，可以等下一班。下一班 9 分钟，有座位。','Very full — you can wait for the next one. Next one in 9 min, seats free.'),tags:lt('full',Z('很挤','Very full'))+lt('wheelchair',Z('轮椅可以上','Wheelchair OK')),
+      sr:Z('139 号巴士，2 分钟后到，实时。很挤，可以等下一班。下一班 9 分钟，有座位。','Bus 139 in 2 minutes, live. Very full, you can wait for the next one. Next one in 9 minutes, seats free.')},
+    nowab:{big:Z('6 分钟','6 min'),src:live,line:Z('下一班 14 分钟，轮椅可以上。','Next one in 14 min, wheelchair OK.'),tags:lt('stand',Z('要站着','Standing room'))+lt('wheelchair-no',Z('这班车轮椅不方便','Not wheelchair friendly')),
+      sr:Z('139 号巴士，6 分钟后到，实时。要站着，这班车轮椅不方便。下一班 14 分钟，轮椅可以上。','Bus 139 in 6 minutes, live. Standing room, not wheelchair friendly. Next one in 14 minutes, wheelchair OK.')},
+    estimated:{cls:'est',big:Z('约 4 分钟','About 4 min'),src:`<span class="lv est"><i></i>${Z('按时间表','By timetable')}</span>`,line:Z('时间可能会变，请看站牌。','Times may change. Check the stop sign.'),
+      sr:Z('139 号巴士，大约 4 分钟后到，按时间表。','Bus 139 in about 4 minutes, by timetable.')},
+    nodata:{msg:Z('暂时没有到站时间','No arrival time right now'),icon:'clock',line:Z('请看站牌上的时间。巴士还是会来的。','Check the times on the stop sign. The bus will still come.')},
+    lastgone:{cls:'warn',msg:Z('今天的末班车开走了','The last bus today has gone'),icon:'moon',line:Z('我帮你找别的路。','I’ll help you find another way.'),acts},
+    notrunning:{cls:'warn',msg:Z('139 号现在不开','Bus 139 isn’t running now'),icon:'clock',line:Z('第一班大约 早上 5:45。','First bus about 5:45 am.'),acts}
+  };
+  const m=M[st]; const sr=m.sr||(m.msg+'。'+m.line);
+  return `<div class="arrchip ${m.cls||''}" role="group" aria-label="${esc(sr)}" data-state="${st}"><div class="arrtop" aria-hidden="true">${busb(139)}${m.big?`<b class="big num">${m.big}</b>`:`<span class="msgi">${ic(m.icon)}</span><b class="msg">${m.msg}</b>`}${m.src||''}</div><div class="next" aria-hidden="true">${m.line}</div>${m.tags?`<div class="loadrow" aria-hidden="true">${m.tags}</div>`:''}</div>${m.acts||''}`;
+}
+/* T3 disruption banner */
+const disT=()=>Z('南北线 有些站暂时没有地铁','North–South Line: no trains at some stations');
+function disruptBanner(){return `<section class="banner warn" role="region" aria-label="${disT()}" data-testid="disruption"><span class="wdisc" aria-hidden="true">${ic('train-off')}</span><div class="tx"><b>${ltag('NS')} ${disT()}</b>
+  <span>${Z('大巴窑 NS19 到 纽顿 NS21，往 滨海南码头 方向','Toa Payoh NS19 to Newton NS21, towards Marina South Pier')}</span>
+  <span>${Z('这些站有免费巴士：NS19、NS20、NS21。跟着“免费接驳巴士”的牌子走。','Free buses at NS19, NS20, NS21. Follow the “Free bridging bus” signs.')}</span></div>
+  <div class="bacts"><button class="btn btn-primary" data-act="findWay">${ic('route')}${Z('找别的路','Find another way')}</button><button class="btn btn-quiet" data-act="go" data-arg="lta">${Z('看 LTA 的通知','Read the LTA notice')}</button></div></section>`;}
+function routeExtra(r){const fare=r.id==='bus'?'1.19':r.id==='mrt'?'1.28':null; const hit=S.disrupt&&r.legs.some(l=>l.line==='NS');
+  if(!fare&&!hit) return ''; return `<span class="facts">${fare?`<span>${ic('card')}<span class="num">${Z('约 $'+fare,'About $'+fare)}</span></span>`:''}${hit?`<span>${ltag('NS')}${Z('有些站没有地铁','No trains at some stations')}</span>`:''}</span>`;}
+function fareSR(r){const f=r.id==='bus'?'1.19':r.id==='mrt'?'1.28':null; return f?Z('。车费大约 '+f+' 元','. Fare about '+f+' dollars'):'';}
+function fareNote(list){if(!list.some(r=>r.id==='bus'||r.id==='mrt')) return '';
+  return `<div class="honest">${ic('card')}<span>${S.senior?Z('你用乐龄卡，车费会比这里写的便宜。','You use a senior card, so you’ll pay less than shown.'):Z('车费是成人卡的价钱。用乐龄卡（Senior Citizen concession card）会更便宜。','Fares shown are adult card fares. With a Senior Citizen concession card you pay less.')}</span></div>`;}
+/* T9 recent trips */
+function recentTrips(){const rows=[{to:'ttsh',arg:'clinic',from:Z('家','Home'),when:Z('上星期二','last Tuesday')},{to:'daughter',arg:'daughter',from:Z('家','Home'),when:Z('星期六','Saturday')}];
+  return `<div class="sect"><h2>${Z('最近的行程','Recent trips')}</h2></div><ul class="rlist" data-testid="recent-trips">${rows.map(r=>{const nm=fullName(PL[r.to]);const dis=S.disrupt&&r.to==='ttsh';
+    return `<li><button class="ritem" data-act="place" data-arg="${r.arg}" aria-label="${esc(Z('去'+nm+'，从'+r.from+'出发，'+r.when+'。','To '+nm+', from '+r.from+', '+r.when+'.')+(dis?' '+disT():''))}"><span class="ic" aria-hidden="true">${ic('clock')}</span><span class="tx"><b>${Z('去 ','To ')}${esc(nm)}</b><span>${Z('从 ','From ')}${r.from} · ${r.when}</span>${dis?`<span class="dis">${ltag('NS')} ${Z('有些站没有地铁','No trains at some stations')}</span>`:''}</span>${ic('chev')}</button></li>`;}).join('')}</ul>`;}
+
+/* M3 board (T1, T2, T5, T6, T7) */
+VIEWS.m3=()=>{const sec=(id,t,b)=>`<section class="demo"><h2 class="demoh">${id} · ${t}</h2>${b}</section>`;
+  const exitStep=`<div class="dstep"><div class="stepmeta"><span>${Z('第 4 步，共 4 步','Step 4 of 4')}</span></div><div class="steprow"><div class="stepicon" aria-hidden="true">${ic('walk')}</div><div class="steptx"><h2>${Z('从 <span class="exittag" aria-hidden="true">B</span> 出口出来','Use Exit <span class="exittag" aria-hidden="true">B</span>')}</h2><span class="sign" lang="en">B · Tan Tock Seng Hospital</span><p>${Z('出站后，往 陈笃生医院 方向走','After the gates, head towards Tan Tock Seng Hospital')}</p></div></div></div>`;
+  const alight=`<div class="dstep"><div class="steprow"><div class="stepicon arrive" aria-hidden="true">${ic('exit')}</div><div class="steptx"><h2>${Z('到站了，请下车','This is your stop. Get off now')}</h2><span class="sign">${Z('Novena NS20 · 诺维娜 站','Novena NS20 station')}</span><p>${Z('出站时走 <span class="exittag" aria-hidden="true">B</span> 出口','Use Exit <span class="exittag" aria-hidden="true">B</span> when you leave')}</p></div></div></div>`;
+  const transfer=`<div class="dstep"><div class="stepmeta"><span>${Z('换车 · 第 3 步，共 6 步','Change trains · Step 3 of 6')}</span></div><div class="steprow"><div class="stepicon tr" aria-hidden="true">${ic('walk')}<span class="trtag">${ltag('CC')}</span></div><div class="steptx"><h2>${Z('换车：走到 '+ltag('CC')+' 环线 月台','Change: walk to the '+ltag('CC')+' Circle Line platform')}</h2><span class="sign" lang="en">Circle Line · ${Z('往 HarbourFront 方向','towards HarbourFront')}</span><p>${Z('跟着 CC 的牌子走，大约 4 分钟。不用出闸门。','Follow the CC signs, about 4 min. You don’t need to go out through the gates.')}</p><p>${Z('然后坐 CC 往 港湾 HarbourFront 方向，坐 3 站','Then take CC towards HarbourFront, 3 stops')}</p></div></div></div>`;
+  const names=`<div class="dstep stnames"><div class="stn"><b class="t-headline">${Z('诺维娜','Novena')}</b> ${ltag('NS','NS20')} ${Z('<span class="en" lang="en">Novena</span>','')}</div>
+    <div class="stn">${Z('往 <b>滨海南码头</b> <span class="en" lang="en">Marina South Pier</span> 方向','towards <b>Marina South Pier</b>')}</div>
+    <div class="stn"><b class="t-headline">${Z('碧山','Bishan')}</b> ${ltag('NS','NS17')} ${ltag('CC','CC15')} ${Z('<span class="en" lang="en">Bishan</span>','')}</div>
+    <div class="stn"><b lang="en">Opp Shaw Plaza</b> <span class="en">${Z('车站编号 53009','Stop 53009')}</span></div></div>`;
+  return `<header class="bar">${backBtn()}<span class="grow"></span></header><div class="scroll"><p class="t-label" style="margin:0;color:var(--c-ink-2)">${Z('M3 状态一览（原型）','M3 states (prototype)')}</p><h1 class="t-title" style="margin:4px 0 0">${Z('实时巴士和地铁信息','Live bus and train info')}</h1>
+  ${sec('T1',Z('实时','Live'),chip('live'))}${sec('T1',Z('快到了','Arriving'),chip('here'))}${sec('T2',Z('很挤','Very full'),chip('lsd'))}${sec('T2',Z('轮椅（设置里开了）','Wheelchair (setting on)'),chip('nowab'))}
+  ${sec('T1',Z('按时间表','By timetable'),chip('estimated'))}${sec('T1',Z('没有数据','No data'),chip('nodata'))}${sec('T1',Z('末班车开走了','Last bus gone'),chip('lastgone'))}${sec('T1',Z('现在不开','Not running'),chip('notrunning'))}
+  ${sec('T3',Z('地铁有状况','Train disruption'),disruptBanner())}${sec('T5',Z('出口提示（下车）','Exit hint (alight)'),alight)}${sec('T5',Z('出口提示（走路）','Exit hint (walk)'),exitStep)}${sec('T6',Z('换车','Transfer'),transfer)}${sec('T7',Z('站名','Station names'),names)}</div>`;};
+/* T4 find another way */
+VIEWS.reroute=(en)=>{if(en.p.loaded) return VIEWS.routes({p:{dest:'ttsh',alt:true}});
+  return `<header class="bar">${backBtn()}<span class="grow"></span><button class="iconbtn" data-act="go" data-arg="help">${ic('help')}${T('help')}</button></header><div class="scroll"><h1 class="t-title" style="margin:0">${T('altTo',{p:`<span style="color:var(--c-primary-text)">${esc(fullName(PL.ttsh))}</span>`})}</h1>
+  <div class="statusline" role="status" aria-busy="true"><span class="spinner" aria-hidden="true"></span><span>${Z('我在找不坐 南北线 的路…','Finding a way without the North–South Line…')}</span></div><div class="skel"></div><div class="skel"></div></div>`;};
+VIEWS.reroute_after=(el,en)=>{if(en.p.loaded||en.p.fixed) return; setTimeout(()=>{if(!el.isConnected) return; en.p.loaded=true; renderEntry(en,el); buzz('confirm'); announce(T('altTo',{p:fullName(PL.ttsh)}));},1400);};
+VIEWS.lta=()=>`<div class="sheethead"><h2>${Z('交通管理局（LTA）的通知','Notice from LTA')}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div>
+  <div class="rv" lang="en"><p style="margin:0">NSL: No train service between Toa Payoh and Newton towards Marina South Pier. Free regular and bridging bus services are available at designated bus stops.</p><span class="num" style="margin-top:8px">${Z('下午 5:10','5:10 pm')}</span></div>
+  <p class="t-caption">${Z('原文是英文。','The notice is in English, as published.')}</p><div class="opts"><button class="btn btn-primary" data-act="findWay">${ic('route')}${Z('找别的路','Find another way')}</button></div>`;
+
+/* P1 share */
+VIEWS.share=()=>{const cs=contacts(); const x=`<button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button>`;
+  if(S.sharing&&!S.shareAlso){const st=S.shareSt||'sharing';
+    return `<div class="sheethead"><h2>${T('sharingNow',{n:T(S.sharing)})}</h2>${x}</div><p class="lead">${Z('你到了 30 分钟后会自己停止，最长 4 小时（到 '+at(240)+'）。','Stops by itself 30 minutes after you arrive, at most 4 hours (until '+at(240)+').')}</p><div class="opts">
+    ${st==='help'?`<div class="tripnote">${ic('help')}<div class="tx"><b>${Z(T(S.sharing)+' 的页面显示你需要帮忙。',T(S.sharing)+'’s page shows you need help.')}</b></div><div class="bacts"><button class="btn btn-secondary" data-act="imOk">${ic('check')}${Z('我没事了','I’m okay now')}</button></div></div>`:''}
+    <button class="btn btn-secondary" data-act="go" data-arg="family">${ic('eye')}${T('preview')}</button>
+    <button class="btn btn-secondary" data-act="sendAgain">${ic('msg')}${Z('再发一次链接','Send the link again')}</button>
+    <button class="btn btn-secondary" data-act="alsoSend">${ic('family')}${Z('也发给别人','Also send to someone else')}</button>
+    <button class="btn btn-secondary" data-act="stopShare">${ic('close')}${T('stopShare')}</button></div>`;}
+  const sel=k=>S.shareTo===k;
+  const opt=(k,name,sub,av)=>`<button class="opt ${sel(k)?'sel':''}" role="radio" aria-checked="${sel(k)}" data-act="pickShare" data-arg="${k}">${av}<span class="tx"><b>${name}</b><span>${sub}</span></span><span class="radio" aria-hidden="true">${sel(k)?ic('check'):''}</span></button>`;
+  if(!cs.length&&S.shareTo!=='other') S.shareTo='other';
+  return `<div class="sheethead"><h2>${T('shareT')}</h2>${x}</div><p class="lead">${T('shareLead')}</p><h3 class="t-label" style="margin:0 0 8px;color:var(--c-ink-2)">${T('shareWho')}</h3>
+  ${!cs.length?`<button class="addrow" style="margin-bottom:12px" data-act="go" data-arg='contactEdit|{"i":-1}'>${ic('plus')}${Z('加一个家人的电话','Add a family phone number')}</button>`:''}
+  <div class="opts" role="radiogroup" aria-label="${T('shareWho')}">${cs.map((c,i)=>opt(['meiling','zhiming'][i],L(c.name),L(c.rel),`<span class="avatar" style="background:${c.tint[0]};color:${c.tint[1]}" aria-hidden="true">${L(c.name).slice(0,1)}</span>`)).join('')}
+  ${opt('other',Z('别的人','Someone else'),Z('在 WhatsApp 或短信里选人','Choose them in WhatsApp or messages'),`<span class="avatar" style="background:var(--c-surface-2)" aria-hidden="true">${ic('person')}</span>`)}</div>
+  <div class="opts" style="margin-top:16px"><button class="btn btn-jade" data-act="send">${ic('msg')}${T('sendWA')}</button><button class="btn btn-secondary" data-act="send" style="min-height:64px">${ic('msg')}${T('sendSMS')}</button>
+  <button class="btn btn-secondary" style="min-height:56px" data-act="send">${ic('share')}${Z('用别的方式发','Send another way')}</button>
+  <button class="btn btn-quiet" data-act="copyLink">${ic('copy')}${Z('复制链接','Copy link')}</button>
+  <button class="btn btn-quiet" data-act="go" data-arg="family">${ic('eye')}${T('preview')}</button></div>
+  <p class="lockline">${ic('lock')}<span>${T('privacy')}</span></p>`;};
+function paintPill(sp){const st=S.shareSt||'sharing'; sp.dataset.st=st; const n=T(S.sharing);
+  const txt=st==='help'?Z(n+' 知道你需要帮忙',n+' knows you need help'):st==='paused'?Z('分享暂停：没有信号','Sharing paused: no signal'):T('sharingWith',{n});
+  sp.innerHTML=(st==='sharing'?'<span class="live" aria-hidden="true"></span>':ic(st==='help'?'help':'wifi-off'))+`<span>${esc(txt)}</span>`;
+  sp.setAttribute('aria-label',txt+Z('，按一下管理分享',', tap to manage sharing'));}
+
+/* P2 help (full) */
+VIEWS.help=()=>{const cs=contacts(),c=cs[0];
+  return `<div class="sheethead"><h2>${T('helpT')}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div><div class="opts">
+   ${c?`<button class="opt" data-act="call" data-arg="0"><span class="ic" style="background:var(--c-jade);color:var(--c-on-jade)" aria-hidden="true">${ic('phone')}</span><span class="tx"><b>${Z('打电话给','Call ')}${L(c.name)}</b><span>${S.sharing?Z('一按就打，她的页面也会显示你需要帮忙','One tap to call. Her page will also show you need help'):L(c.rel)+Z(' · 一按就打',' · one tap to call')}</span></span>${ic('chev')}</button>`
+     :`<button class="opt" data-act="go" data-arg='contactEdit|{"i":-1}'><span class="ic" style="background:var(--c-jade);color:var(--c-on-jade)" aria-hidden="true">${ic('plus')}</span><span class="tx"><b>${Z('加一个家人的电话','Add a family phone number')}</b><span>${Z('有事一按就打','So you can call with one tap')}</span></span>${ic('chev')}</button>`}
+   ${cs.length>1?`<button class="opt" data-act="go" data-arg="contacts"><span class="ic" style="background:var(--c-jade-soft);color:var(--c-on-jade-soft)" aria-hidden="true">${ic('family')}</span><span class="tx"><b>${Z('打给别的家人','Call someone else')}</b><span>${cs.slice(1).map(x=>L(x.name)).join('、')}</span></span>${ic('chev')}</button>`:''}
+   <button class="opt" data-act="addr" data-arg="${TRIP.running?'dest':'home'}"><span class="ic" style="background:var(--c-saffron);color:var(--c-on-saffron)" aria-hidden="true">${ic('car')}</span><span class="tx"><b>${T('showAddr')}</b><span>${T('showAddrS')}</span></span>${ic('chev')}</button>
+   <button class="opt" data-act="addr" data-arg="here"><span class="ic" style="background:var(--c-primary-soft);color:var(--c-on-primary-soft)" aria-hidden="true">${ic('loc')}</span><span class="tx"><b>${T('whereAmI')}</b><span>${T('whereAmIS')}</span></span>${ic('chev')}</button>
+   ${TRIP.running?`<button class="opt" data-act="rerouteHelp"><span class="ic" style="background:var(--c-surface-2)" aria-hidden="true">${ic('route')}</span><span class="tx"><b>${T('reroute')}</b><span>${T('rerouteS')}</span></span>${ic('chev')}</button>`
+     :`<button class="opt" data-act="helpHome"><span class="ic" style="background:var(--c-surface-2)" aria-hidden="true">${ic('home')}</span><span class="tx"><b>${T('takeHome')}</b><span>${Z('从你现在的地方开始','Starting from where you are')}</span></span>${ic('chev')}</button>`}
+   <button class="btn btn-danger-outline" data-act="go" data-arg="e995q">${ic('phone')}${T('emergency')}</button></div>`;};
+VIEWS.e995q=()=>`<div class="sheethead"><h2>${Z('要打 995 吗？','Call 995?')}</h2></div><p class="lead">${Z('995 是救护车和消防。','995 is for an ambulance or the fire service.')}</p>
+  <div class="opts"><button class="btn btn-danger" data-act="call995">${ic('phone')}${Z('拨打 995','Call 995')}</button><button class="btn btn-secondary" data-act="back">${Z('不用了','No, go back')}</button></div>`;
+
+/* P3 / P4 contacts */
+VIEWS.contacts=()=>{const cs=contacts();
+  return `<header class="bar">${backBtn()}<span class="grow"></span></header><div class="scroll"><h1 class="t-title" style="margin:0">${Z('家人的电话','Family phone numbers')}</h1><p class="sublead">${Z('有事的时候，一按就能打给他们。','So you can call them with one tap when you need to.')}</p>
+  ${cs.length?`<ul class="clist" data-testid="contacts">${cs.map((c,i)=>`<li class="crow"><span class="avatar" style="background:${c.tint[0]};color:${c.tint[1]}" aria-hidden="true">${L(c.name).slice(0,1)}</span><div class="tx"><b>${L(c.name)}</b><span class="num">${L(c.rel)} · ${c.tel}</span>${i===0?`<span class="first">${Z('最先打给 TA','Called first')}</span>`:''}</div><div class="acts"><button class="rbtn jade" data-act="call" data-arg="${i}" aria-label="${Z('打电话给 ','Call ')}${L(c.name)}">${ic('phone')}</button><button class="rbtn" data-act="go" data-arg='contactEdit|{"i":${i}}' aria-label="${Z('改 '+L(c.name)+' 的资料','Edit '+L(c.name))}">${ic('edit')}</button></div></li>`).join('')}</ul>`
+   :`<div class="empty"><div class="bubble" aria-hidden="true">${ic('family')}</div><b class="t-headline">${Z('还没有家人的电话','No family numbers yet')}</b></div>`}
+  <div style="margin-top:14px">${cs.length<5?`<button class="addrow" data-act="go" data-arg='contactEdit|{"i":-1}'>${ic('plus')}${Z('加一个家人','Add a family member')}</button>`:`<p class="t-caption">${Z('最多 5 个人','Up to 5 people')}</p>`}</div>
+  <button class="btn btn-quiet" data-act="go" data-arg="setupCode" style="margin-top:8px">${ic('qr')}${Z('让家人帮我设置','Let family set it up for me')}</button>
+  <p class="lockline">${ic('lock')}<span>${Z('家人的电话只存在这部手机里。','Family numbers stay on this phone only.')}</span></p></div>`;};
+VIEWS.contactEdit=(en)=>{const i=en.p.i, c=i>=0?contacts()[i]:null, bad=!!en.p.bad;
+  const rels=[['女儿','Daughter'],['儿子','Son'],['太太','Wife'],['丈夫','Husband'],['孙子 / 孙女','Grandchild'],['朋友','Friend'],['邻居','Neighbour'],['其他','Other']];
+  const note=(id,t)=>`<div class="note" id="${id}">${ic('info')}<span>${t}</span></div>`;
+  return `<header class="bar">${backBtn()}<span class="grow"></span></header><div class="scroll"><h1 class="t-title" style="margin:0">${c?Z('改 '+L(c.name)+' 的资料','Edit '+L(c.name)):Z('加一个家人','Add a family member')}</h1>
+  ${!c?`<button class="btn btn-secondary btn-s" style="margin-top:14px" data-act="pickContact">${ic('family')}${Z('从手机通讯录选','Pick from my contacts')}</button>`:''}
+  <div class="f2 ${bad?'bad':''}"><label for="cn">${Z('名字','Name')}</label><input id="cn" autocomplete="off" value="${c?esc(L(c.name)):''}" placeholder="${Z('比如：美玲','e.g. Mei Ling')}"${bad?' aria-invalid="true" aria-describedby="cnn"':''}>${bad?note('cnn',Z('请写一个名字','Please add a name')):''}</div>
+  <div class="f2"><span class="lbl" id="crl">${Z('TA 是你的…','They are your…')}</span><div class="chips" role="radiogroup" aria-labelledby="crl">${rels.map(([z,e])=>`<button role="radio" aria-checked="${!!c&&c.rel.en===e}" data-act="pickRel">${Z(z,e)}</button>`).join('')}</div></div>
+  <div class="f2 ${bad?'bad':''}"><label for="ct">${Z('电话号码','Phone number')}</label><div class="tel"><span class="pre num" aria-hidden="true">+65</span><input id="ct" type="tel" inputmode="tel" class="num" value="${c?c.tel.replace('+65 ',''):bad?'9123 45':''}"${bad?' aria-invalid="true" aria-describedby="ctn"':''}></div>${bad?note('ctn',Z('这个号码好像少了几个数字','This number seems to be missing some digits')):''}</div>
+  <div class="f2"><label for="cm">${Z('TA 叫你什么？','What do they call you?')}</label><input id="cm" autocomplete="off" value="${c?esc(L(c.me)):''}" placeholder="${Z('比如：妈妈','e.g. Mum')}" aria-describedby="cmh"><div class="help" id="cmh">${Z('在他们看到的页面上用。','Used on the page they see.')}</div></div>
+  <div class="f2"><span class="lbl" id="cll">${Z('发给 TA 的信息用','Messages to them in')}</span><div class="seg" role="group" aria-labelledby="cll"><button aria-pressed="true" data-act="segPick">中文</button><button aria-pressed="false" data-act="segPick" lang="en">English</button></div></div>
+  ${c?`<button class="btn btn-quiet" style="margin-top:12px" data-act="toast" data-arg="${Z('原型演示：会删掉','Prototype: would remove')}">${ic('trash')}${Z('删掉 '+L(c.name),'Remove '+L(c.name))}</button>`:''}</div>
+  <div class="dock"><button class="btn btn-primary" data-act="saveContact">${ic('check')}${Z('保存','Save')}</button></div>`;};
+
+/* P5 caregiver setup (senior side) */
+function qrSvg(){const N=25,r=seeded(42);let s='';const fin=(x,y)=>`<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x+1}" y="${y+1}" width="5" height="5" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3"/>`;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const inF=(x<8&&y<8)||(x>N-9&&y<8)||(x<8&&y>N-9); if(!inF&&r()<.48) s+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;}
+  return `<svg viewBox="-2 -2 ${N+4} ${N+4}" role="img" aria-label="${Z('设置用的二维码','Setup code')}" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${N+4}" height="${N+4}" fill="#fff"/><g fill="#1D1915">${fin(0,0)}${fin(N-7,0)}${fin(0,N-7)}${s}</g></svg>`;}
+VIEWS.setupCode=(en)=>{const st=en.p.st||'waiting';
+  return `<header class="bar">${backBtn()}<span class="grow"></span></header><div class="scroll"><h1 class="t-title" style="margin:0">${Z('让家人帮你设置','Let family set it up for you')}</h1>
+  <p class="sublead">${Z('请家人用他们的手机扫这个二维码。他们可以帮你加常去的地方和家人的电话。','Ask a family member to scan this code with their phone. They can add your places and family phone numbers.')}</p>
+  ${st==='expired'?`<div class="empty"><div class="bubble" aria-hidden="true">${ic('clock')}</div><b class="t-headline">${Z('这个二维码过期了','This code has expired')}</b><div class="opts" style="margin-top:14px"><button class="btn btn-primary" data-act="setupNew">${ic('refresh')}${Z('再做一个','Make a new one')}</button></div></div>`
+   :`<div class="qrcard">${qrSvg()}</div><div class="statusline" role="status"><span class="spinner" aria-hidden="true"></span><span>${st==='filling'?Z('家人正在填','Your family member is filling it in'):Z('等家人打开…','Waiting for your family to open it…')}</span></div>
+   <p class="t-label" style="margin:18px 0 8px;color:var(--c-ink-2)">${Z('或者把链接发给他们','Or send them the link')}</p><div class="opts"><button class="btn btn-jade" data-act="toast" data-arg="${Z('原型演示：会打开 WhatsApp','Prototype: would open WhatsApp')}">${ic('msg')}${T('sendWA')}</button><button class="btn btn-quiet" data-act="copyLink">${ic('copy')}${Z('复制链接','Copy link')}</button></div>`}
+  <p class="lockline">${ic('lock')}<span>${Z('只有你的手机能打开他们填的资料。这个二维码 30 分钟后就不能用了。','Only your phone can open what they fill in. This code stops working after 30 minutes.')}</span></p></div>`;};
+VIEWS.setupCode_after=(el,en)=>{if(en.p.fixed||en.p.st==='expired') return; const go=(st,ms)=>setTimeout(()=>{if(!el.isConnected||en.p.st==='expired')return; en.p.st=st; renderEntry(en,el); announce(st==='filling'?Z('家人正在填','Your family member is filling it in'):'');},ms);
+  if(!en.p.st){go('filling',2500); setTimeout(()=>{if(el.isConnected&&NAV.stack[NAV.stack.length-1]===en){buzz('attention');push('setupReview');}},5500);}};
+VIEWS.setupReview=()=>{const pl=[['home','home',Z('家','Home'),Z('大巴窑4巷 第79座','Blk 79 Toa Payoh Lor 4')],['clinic','clinic',Z('诊所','Clinic'),Z('陈笃生医院','Tan Tock Seng Hospital')],['market','market',Z('巴刹','Market'),Z('大巴窑8巷 第210座','Blk 210 Toa Payoh Lor 8')]];
+  const tint={home:['--tint-home','--ink-home'],clinic:['--tint-clinic','--ink-clinic'],market:['--tint-market','--ink-market']};
+  return `<header class="bar">${backBtn()}<span class="grow"></span></header><div class="scroll"><h1 class="t-title" style="margin:0">${Z('美玲 帮你设置好了','Mei Ling has set things up for you')}</h1>
+  <section class="rv"><h2>${Z('常去的地方','Places')}</h2><ul>${pl.map(([k,i,n,a])=>`<li><span class="ic" style="background:var(${tint[k][0]});color:var(${tint[k][1]})" aria-hidden="true">${ic(i)}</span><div class="tx"><b>${n}</b><span>${a}</span></div></li>`).join('')}</ul><p class="repl">${ic('info')}<span>${Z('会换掉现在的“家”','This replaces your current Home')}</span></p></section>
+  <section class="rv"><h2>${Z('家人的电话','Family phone numbers')}</h2><ul>${S.contacts.map(c=>`<li><span class="avatar" style="background:${c.tint[0]};color:${c.tint[1]};width:48px;height:48px" aria-hidden="true">${L(c.name).slice(0,1)}</span><div class="tx"><b>${L(c.name)}</b><span class="num">${L(c.rel)} · ${c.tel}</span></div></li>`).join('')}</ul></section>
+  <section class="rv"><h2>${Z('问好','Greeting')}</h2><p style="margin:0">${Z('早上好，林阿姨','Good morning, Auntie Lin')}</p></section>
+  <section class="rv"><h2>${Z('语言和字体','Language and text size')}</h2><p style="margin:0">${Z('中文 · 字体 125%','Chinese · text 125%')}</p></section>
+  <p class="t-caption" style="margin-top:14px">${Z('以后可以在“设置”里改。家人不能从远处改你的手机，每次都要你按“好”。','You can change these later in Settings. Family can’t change your phone from far away; you always tap Yes first.')}</p></div>
+  <div class="dock col"><button class="btn btn-primary" data-act="setupYes">${ic('check')}${Z('好，用这些','Yes, use these')}</button><button class="btn btn-secondary btn-s" data-act="setupNo">${Z('不用了','No thanks')}</button></div>`;};
+VIEWS.setupReview_after=()=>{announce(Z('美玲 帮你设置好了','Mei Ling has set things up for you'));};
+
+/* P6 taxi hand-off on H10 */
+const _address=VIEWS.address;
+VIEWS.address=(en)=>{const s=_address(en);
+  return s.slice(0,-6)+`<div class="taxi">${en.p.mode==='here'&&contacts().length?`<button class="btn btn-secondary" data-act="toast" data-arg="${Z('原型演示：会用 WhatsApp 发位置','Prototype: would send your location by WhatsApp')}">${ic('msg')}${Z('把我的位置发给 ','Send my location to ')}${fam()}</button>`:''}
+  <button class="btn btn-secondary" data-act="toast" data-arg="${Z('原型演示：会打开 Grab','Prototype: would open Grab')}">${ic('car')}${Z('用 Grab 叫车','Book with Grab')}</button>
+  <button class="btn btn-secondary" data-act="toast" data-arg="${Z('原型演示：会打开 CDG Zig','Prototype: would open CDG Zig')}">${ic('car')}${Z('用 CDG Zig 叫车','Book with CDG Zig')}</button>
+  <button class="btn btn-quiet" data-act="toast" data-arg="${Z('原型演示：会打电话','Prototype: would call')}">${ic('phone')}<span>${Z('打电话叫德士：','Call for a taxi: ')}<span class="num">6552 1111</span></span></button>
+  <p class="lockline">${ic('info')}<span>${Z('叫车会打开别的应用，车费由他们收。拦德士时，把上面的地址给司机看。','Booking opens another app, and they charge the fare. If you stop a taxi, show the driver the address above.')}</span></p></div></div>`;};
+
+/* actions */
+function callOverlay(name){const o=document.getElementById('overlay');o.querySelector('.call')?.remove();
+  const d=document.createElement('div');d.className='call';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-label',T('calling',{n:name}));
+  d.innerHTML=`<div class="avatar" aria-hidden="true">${esc(name.slice(0,1))}</div><h2>${T('calling',{n:name})}</h2><small>${T('protoCall')}</small><button class="btn" data-act="hang">${ic('phone')}${T('hangUp')}</button>`;
+  o.appendChild(d);bind(d);d.querySelector('button').focus();announce(T('calling',{n:name}));}
+Object.assign(ACT,{
+  call:(i)=>{buzz('confirm'); if(i==='mum'){callOverlay(Z('妈妈','Mum'));return;} const c=contacts()[+i||0]; if(S.sharing){S.shareSt='help';GUIDE.paintControls();} callOverlay(c?L(c.name):T('meiling'));},
+  findWay:()=>{push('reroute',{dest:'ttsh'});},
+  send:(a,b)=>{if(b.getAttribute('aria-busy')) return; b.setAttribute('aria-busy','true'); b.innerHTML=`<span class="spinner" aria-hidden="true" style="width:28px;height:28px;border-width:3px"></span>${Z('我在准备链接…','Getting the link ready…')}`;
+    setTimeout(()=>{const n=S.shareTo==='other'?'other':S.shareTo; const again=!!S.sharing; S.sharing=again?S.sharing:n; S.shareAlso=false; if(!again) S.shareSt='sharing'; buzz('confirm'); back();
+      setTimeout(()=>{toast(n==='other'?Z('链接发出去了。对方打开后就看得到你。','Link sent. They can see you once they open it.'):T('shared',{n:T(n)}),'share');GUIDE.paintControls();},250);},900);},
+  sendAgain:(a,b)=>ACT.send(a,b),
+  alsoSend:()=>{S.shareAlso=true;tick();const el=document.querySelector('.sheetwrap:last-child');const en=NAV.stack[NAV.stack.length-1];if(el&&en) renderEntry(en,el);},
+  copyLink:()=>{buzz('confirm');toast(Z('链接复制好了','Link copied'),'copy');},
+  stopShare:()=>{S.sharing=null;S.shareSt=null;S.shareAlso=false;buzz('confirm');back();setTimeout(()=>{toast(T('stopped'),'check');GUIDE.paintControls();},200);},
+  imOk:()=>{S.shareSt='sharing';buzz('confirm');back();setTimeout(()=>{toast(Z('好的，'+fam()+' 的页面现在显示你没事了。','Okay, '+fam()+'’s page now shows you’re okay.'),'check');GUIDE.paintControls();},200);},
+  call995:()=>{buzz('confirm');back();setTimeout(()=>toast(S.lang==='zh'?'原型演示：会拨打 995':'Prototype: this would call 995','phone'),250);},
+  helpHome:()=>{back();setTimeout(()=>ACT.place('home'),300);},
+  toast:(m)=>{tick();toast(m,'check');},
+  pickRel:(a,b)=>{b.parentNode.querySelectorAll('[role=radio]').forEach(x=>x.setAttribute('aria-checked',String(x===b)));tick();},
+  segPick:(a,b)=>{b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));tick();},
+  pickContact:()=>{tick();const el=document.querySelector('.screen:not([hidden])');if(!el)return;el.querySelector('#cn').value=Z('美玲','Mei Ling');el.querySelector('#ct').value='9123 4567';toast(Z('原型演示：从通讯录选了一个人','Prototype: picked a contact'),'family');},
+  saveContact:(a,b,en)=>{const el=document.getElementById('s'+en.id); const nm=el.querySelector('#cn').value.trim(), tel=el.querySelector('#ct').value.replace(/\D/g,'');
+    if(!nm||tel.length<8){en.p.bad=true;renderEntry(en,el);const f=el.querySelector('[aria-invalid=true]');if(f)f.focus();announce(!nm?Z('请写一个名字','Please add a name'):Z('这个号码好像少了几个数字','This number seems to be missing some digits'));return;}
+    buzz('confirm');back();setTimeout(()=>toast(Z('存好了','Saved'),'check'),250);},
+  setupNew:(a,b,en)=>{en.p.st=null;en.p.fixed=false;renderEntry(en,document.getElementById('s'+en.id));},
+  setupYes:()=>{buzz('confirm');S.noContacts=false;resetTo([['home']]);setTimeout(()=>toast(Z('设置好了！','All set!'),'check'),300);},
+  setupNo:()=>{tick();back();setTimeout(()=>toast(Z('没有改动','Nothing changed'),'check'),250);},
+  clearRecent:()=>{tick();toast(Z('原型演示：会先问你，再清除','Prototype: would ask first, then clear'),'trash');}
+});
+/* frames */
+const H5raw=FRAMES.H5.go;
+Object.values(FRAMES).forEach(f=>{const g=f.go;f.go=()=>{S.disrupt=false;S.noContacts=false;S.shareSt=null;S.shareAlso=false;g();};});
+const fr2=(fn)=>()=>{S.disrupt=false;S.noContacts=false;S.shareSt=null;S.shareAlso=false;fn();};
+const onTrip=(fn)=>{H5raw();setTimeout(fn,120);};
+Object.assign(FRAMES,{
+  T1:{n:'M3 live bus + MRT states',go:fr2(()=>{TRIP.stop();resetTo([['home'],['m3']]);})},
+  T3:{n:'Disruption on routes + fare',go:fr2(()=>{TRIP.stop();S.disrupt=true;resetTo([['home'],['routes',{dest:'ttsh'}]]);})},
+  T4:{n:'Find another way',go:fr2(()=>{TRIP.stop();S.disrupt=true;resetTo([['home'],['routes',{dest:'ttsh'}],['reroute',{dest:'ttsh'}]]);})},
+  T9:{n:'Home: recent trips',go:fr2(()=>{TRIP.stop();S.disrupt=true;resetTo([['home']]);})},
+  P1:{n:'Share: who + how',go:fr2(()=>{onTrip(()=>{S.sharing=null;S.shareTo='meiling';push('share');});})},
+  P1n:{n:'Share: no contacts',go:fr2(()=>{S.noContacts=true;onTrip(()=>{S.sharing=null;push('share');});})},
+  P1s:{n:'Sharing: help pill + sheet',go:fr2(()=>{S.sharing='meiling';S.shareSt='help';onTrip(()=>{GUIDE.paintControls();push('share');});})},
+  P1p:{n:'Sharing pill: paused',go:fr2(()=>{S.sharing='meiling';S.shareSt='paused';onTrip(()=>GUIDE.paintControls());})},
+  P2:{n:'Help (full, M4)',go:fr2(()=>{S.sharing='meiling';onTrip(()=>{GUIDE.paintControls();push('help');});})},
+  P2b:{n:'995 confirm',go:fr2(()=>{TRIP.stop();resetTo([['home'],['help'],['e995q']]);})},
+  P3:{n:'Family contacts',go:fr2(()=>{TRIP.stop();resetTo([['home'],['contacts']]);})},
+  P4:{n:'Add a family member',go:fr2(()=>{TRIP.stop();resetTo([['home'],['contacts'],['contactEdit',{i:-1}]]);})},
+  P4i:{n:'Add: calm validation',go:fr2(()=>{TRIP.stop();resetTo([['home'],['contacts'],['contactEdit',{i:-1,bad:true}]]);})},
+  P5a:{n:'Caregiver setup: code',go:fr2(()=>{TRIP.stop();resetTo([['home'],['setupCode',{st:'waiting',fixed:true}]]);})},
+  P5:{n:'Caregiver setup: live flow',go:fr2(()=>{TRIP.stop();resetTo([['home'],['setupCode',{}]]);})},
+  P5b:{n:'Caregiver setup: confirm',go:fr2(()=>{TRIP.stop();resetTo([['home'],['setupCode',{st:'filling',fixed:true}],['setupReview']]);})},
+  P6:{n:'Taxi hand-off',go:fr2(()=>{onTrip(()=>push('address',{mode:'dest'}));})},
+  V:{n:'Family viewer page (opens)',go:()=>{window.open('viewer.html'+(S.lang==='en'?'?lang=en':''),'_blank');}}
+});
+['lta','e995q'].forEach(x=>SHEETS.add(x));
 function renderSide(){
   const f=document.getElementById('frames'); f.innerHTML=Object.entries(FRAMES).map(([k,v])=>`<button data-act="frame" data-arg="${k}"><b>${k}</b>${v.n}</button>`).join(''); bind(f);
   const c=document.getElementById('sidectl');

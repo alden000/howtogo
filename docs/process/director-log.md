@@ -97,3 +97,26 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Capacitor 8.6.2 debug APK builds here (5.1 MB, minSdk 24, target 36). Custom TripPlugin/TripService (location FGS + Stop action, per-leg interval, native backup get-off alert), zh-CN TTS, lock-screen alert channel. No ACCESS_BACKGROUND_LOCATION needed (trip starts with the app open). Locked-screen behaviour unproven until a real device.
 - Rulings: keep the custom plugin approach. Back fix (toggleBackButtonHandler by depth) goes into M6 proper. Guidance cues must be driven by location fixes, not JS timers (hidden-WebView throttling) — note for M2/M6.
 - appId: owner to confirm (placeholder `sg.howtogo.app`; permanent once installed by users). Spike stays on dev/m6-spike until M6.
+
+## 2026-11-17 — M1 0.1.0 preview LIVE (fixture mode)
+- Deployed Worker `howtogo` (embedded assets, wrangler.preview.toml) → https://howtogo.raus-ums.workers.dev. Version e880916c. KV TOKEN_KV created on the owner's account. First minute after deploy returned mixed 404/500 while the version propagated; stable 200 since. Phone-width smoke (Pixel 7, Playwright): first-run renders, no console errors.
+- The KV namespace id is not a secret (it's useless without the account token) → QA to allow-list it in the secret scan.
+- M1 actual duration: ~5.5 h wall clock from kickoff of the UI round to preview (incl. parallel creative/QA rounds). M3/M4 Worker round done on dev/m34-worker (136 tests), merges after M2.
+
+## 2026-11-17 — Creative round 4 (M3/M4 frames + family viewer) merged
+- STYLE-GUIDE §6d/§6e; family viewer prototype (15 states); prototype v1.3 republished with viewer.html.
+- Approved: 11 new icons (seat, stand, full, wheelchair, wheelchair-no, deck2, train-off, card, copy, edit, qr) and the new components. CCL copy = "往 {next interchange} 方向" + next stop (never clockwise/anticlockwise) → data round's loop keys to be replaced in the M3 UI round.
+- Note for build: sample phone numbers in the prototype must not ship; production uses only the user's own contacts.
+
+## 2026-11-17 — Family viewer built (dev/m34-worker) + Creative review
+- Viewer: 15 states, 10.3 KB gz, 44 e2e. Creative: APPROVED WITH FIXES (2 P1 at 200%: ETA overflow, help disc crescent; zh keep-all; 1440 map offset; footer on ended/expired).
+- Ruling: share contract gains a structured step (`step: {k, ...fields}`) sent by the sharer; the viewer renders §6e.2 templates; until then no keyword-guessed icons (no match → no icon). Fixes batched into the M4 web round.
+
+## 2026-11-17 — M2 Creative review: APPROVED WITH FIXES
+- Rulings on deviations accepted as Creative ruled: headline = spoken line (principle) with Creative's F1 wording; sign chip = sign text only (train chip adds code); End sheet over pocket in normal theme with a scrim fade; AC 12 All-steps sheet built in the M2 fix round (before the owner phone test). AC 50 demo controls also in the fix round.
+- P1: F1 copy, F2 walk sub-line minutes, F3 H6b at 200%. Batched with QA findings into ONE M2 fix round.
+
+## 2026-11-17 — M2 QA gate 1: PASS WITH FIXES (qa/reports/0.2.0-m2.md on dev/m2-engine)
+- 41/46 Must pass; bugs QA-21…27 (1 S2, 4 S3, 2 S4). AC 36/41 blocked on a real phone (owner test).
+- Rulings: QA-25 S2 "route home" must plan from the current position. QA-21: request notification permission at Start, with a one-line explainer, only once; if denied, the in-app alerts still work and a note says alerts need the app open. QA-22: AC wins — H5 headline ≥ 32 px (2rem at 100%); Creative's 200% wrap rules apply. QA-23: the wake-lock note shows once per trip. QA-27: version 0.2.0.
+- ONE M2 fix round now: all QA bugs + Creative F1–F6 + AC 12 All-steps sheet + AC 50 demo controls.
