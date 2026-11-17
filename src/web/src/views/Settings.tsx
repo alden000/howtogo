@@ -134,8 +134,10 @@ export function SettingsScreen() {
         <TravelRows />
         {flags.has('guide') && <VoiceRows />}
         <h2 class="grp">{t('grp_history')}</h2>
-        <Row icon="trash" label={t('clear_recent_row')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
-        <Row icon="trash" label={t('set_delete_all')} testid="row-delete-all" onClick={() => router.openSheet('delete-all')} />
+        <div class="opts">
+          <Row icon="trash" label={t('clear_recent_row')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
+          <Row icon="trash" label={t('set_delete_all')} testid="row-delete-all" onClick={() => router.openSheet('delete-all')} />
+        </div>
         <h2 class="grp">{t('grp_app')}</h2>
         <div class="opts">
           {!isStandalone() && <Row icon="install" label={t('install')} testid="row-install" onClick={() => router.openSheet('install')} />}
