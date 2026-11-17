@@ -18,7 +18,7 @@ export default defineConfig({
     timezoneId: 'Asia/Singapore',
     // Mocked device location (Toa Payoh, the demo fixtures' origin).
     geolocation: { latitude: 1.33465, longitude: 103.8491, accuracy: 10 },
-    permissions: ['geolocation', 'notifications'],
+    permissions: ['geolocation'],
     trace: 'off',
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],

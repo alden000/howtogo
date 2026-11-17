@@ -33,7 +33,7 @@
 .stepicon.wait{background:var(--c-ink);color:var(--c-ink-inv)}
 .stepicon.arrive{background:var(--c-saffron);color:var(--c-on-saffron)}
 .steptx{flex:1;min-width:0}
-.steptx h2{text-wrap:balance;margin:0;font-size:1.6rem;line-height:1.2;font-weight:900;overflow-wrap:break-word}
+.steptx h2{text-wrap:balance;margin:0;font-size:1.6rem;line-height:1.2;font-weight:900;word-break:keep-all;overflow-wrap:break-word}
 /* QA-22 (Director): the H5 headline is ≥ 32 px at 100 % (1.6rem on the 20 px root). */
 .steptx h2:focus{outline:none}
 .steptx .sign,.steptx p .sign{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:8px;background:var(--c-surface-2);font-weight:700;font-size:1rem;overflow-wrap:anywhere;max-width:100%}
@@ -54,7 +54,7 @@
 .alert .bellwrap::before,.alert .bellwrap::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:4px solid var(--c-on-saffron);animation:ripple 1.6s var(--ease-out) infinite}
 .alert .bellwrap::after{animation-delay:.8s}
 @keyframes ring{0%,60%,100%{transform:rotate(0)}10%{transform:rotate(16deg)}20%{transform:rotate(-14deg)}30%{transform:rotate(10deg)}40%{transform:rotate(-6deg)}}
-.alert h2{margin:0;font-size:2.4rem;line-height:1.1;font-weight:900;overflow-wrap:break-word}
+.alert h2{margin:0;font-size:min(2.4rem,20vw);line-height:1.1;font-weight:900;word-break:keep-all;overflow-wrap:break-word}
 /* F3: titles are two unbreakable phrases (到站了，| 请下车), so no orphaned 了 or leading comma. */
 .alert h2 .ph{display:inline-block;max-width:100%}
 .alert h2:focus{outline:none}
@@ -103,7 +103,6 @@
 .stepacts .btn-quiet{min-height:var(--tap);padding:8px 10px}
 /* F7: action labels stay on one line at 100 % (rows wrap as a whole); 200 % keeps full-width rows. */
 .stepacts .btn-secondary,.stepacts .btn-quiet{white-space:nowrap;gap:8px;padding-inline:var(--s-3)}
-.stepacts .row.quiet>*{flex:1 1 auto}
 :root[data-text-size="xxlarge"] .stepacts .btn-secondary,:root[data-text-size="xxlarge"] .stepacts .btn-quiet{white-space:normal}
 .stepacts [aria-disabled=true]{opacity:.4}
 :root[data-text-size="xxlarge"] .stepacts .row>*{flex-basis:100%}
@@ -206,3 +205,5 @@
 .allsteps .nowtag{display:inline-block;margin-left:8px;padding:0 10px;border-radius:var(--r-pill);background:var(--c-primary);color:var(--c-on-primary);font-size:.8rem;font-weight:800;vertical-align:middle}
 .allsteps li.done{opacity:.55}
 .democtl .opts .btn{justify-content:flex-start}
+.stepof{display:inline-flex;align-items:center;gap:1px;min-height:var(--tap);margin:-14px 0;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.stepof svg.i{width:.9em;height:.9em}

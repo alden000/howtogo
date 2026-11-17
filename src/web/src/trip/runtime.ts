@@ -892,7 +892,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       );
       return;
     }
-    patchUi({ notify: 'denied' });
+    // Asked before and still undecided (prompt dismissed): no nagging. Denied: the note, once per trip.
+    if (p === 'denied') patchUi({ notify: 'denied' });
   }
 
   async function start(itinerary: Itinerary, places: Place[], opts: StartOptions = {}) {

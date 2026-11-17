@@ -271,7 +271,17 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
           </div>
         )}
         <div class="stepmeta">
-          <span>{t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}</span>
+          {/* AC 12: the step counter opens the All-steps sheet (a history entry; Back closes it). */}
+          <button
+            type="button"
+            class="stepof"
+            data-testid="all-steps-btn"
+            aria-label={`${t('all_steps')}，${t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}`}
+            onClick={() => router.openSheet('all-steps')}
+          >
+            {t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}
+            <Icon name="chev" />
+          </button>
           <span class="num" data-testid="guide-eta">
             {t('g_arrive_left', { t: clock(etaMs, lang), n: minLeft })}
           </span>
@@ -335,10 +345,6 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
             >
               <Icon name="back" />
               {t('step_prev')}
-            </button>
-            <button type="button" class="btn btn-quiet" data-testid="all-steps-btn" onClick={() => router.openSheet('all-steps')}>
-              <Icon name="route" />
-              {t('all_steps')}
             </button>
             {acts.quietNext && act('next', 'btn btn-quiet')}
           </div>

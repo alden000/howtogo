@@ -105,10 +105,12 @@ function guideSay(lang: Lang, kind: StepKind, key: string, params: MessageParams
     tr(l, k, Object.fromEntries(Object.entries(p).filter(([, x]) => x !== undefined)) as MessageParams);
   const v = /bus/.test(key) ? 'bus' : 'train';
   const route = leg.route ?? params.route;
+  // The station code ("(NS17)") belongs on the sign chip, not in the spoken line.
+  const stop = params.stop === undefined ? undefined : String(params.stop).replace(/\s*\([A-Z]{1,3}\d{1,3}\)$/, '');
   switch (kind) {
     case 'walk_to_stop':
     case 'walk_transfer':
-      return t(lang, `guide.walk_to_stop.${v}`, { stop: params.stop });
+      return t(lang, `guide.walk_to_stop.${v}`, { stop });
     case 'walk_to_destination':
       return t(lang, 'guide.walk_to_destination', { exit: params.exit, dest: params.dest });
     case 'board_bus':
@@ -116,9 +118,9 @@ function guideSay(lang: Lang, kind: StepKind, key: string, params: MessageParams
     case 'board_train':
       return t(lang, 'guide.board_train', { towards: params.towards ?? params.via });
     case 'ride_bus':
-      return t(lang, 'guide.ride_bus', { route, stop: params.stop });
+      return t(lang, 'guide.ride_bus', { route, stop });
     case 'ride_train':
-      return t(lang, 'guide.ride_train', { stop: params.stop });
+      return t(lang, 'guide.ride_train', { stop });
     default:
       return tr(lang, key, params);
   }

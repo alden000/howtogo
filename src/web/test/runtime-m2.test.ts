@@ -601,10 +601,14 @@ describe('M2 fix round (QA-21, QA-23, QA-25)', () => {
     env.runtime.dismissNotifyNote();
     expect(env.runtime.ui.value.notify).toBe('idle');
     await env.runtime.end();
-    env.platform.fake.setNotifyPermission('default', 'granted');
-    await env.runtime.start(it0, placesFor(it0));
-    expect(env.platform.fake.notifyRequests).toBe(1); // never asked twice
+    await env.runtime.start(it0, placesFor(it0)); // still denied → note again, no prompt
+    expect(env.platform.fake.notifyRequests).toBe(1);
     expect(env.runtime.ui.value.notify).toBe('denied');
+    await env.runtime.end();
+    env.platform.fake.setNotifyPermission('default', 'granted'); // prompt dismissed earlier: never asked twice, no nag
+    await env.runtime.start(it0, placesFor(it0));
+    expect(env.platform.fake.notifyRequests).toBe(1);
+    expect(env.runtime.ui.value.notify).toBe('idle');
     localStorage.clear();
   });
 
