@@ -158,8 +158,8 @@
 /* ============ H9 help / H10 driver / G2 builder / H4 journey ============ */
 .opt{display:flex;align-items:center;gap:14px;width:100%;min-height:84px;padding:14px 16px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-1);text-align:left;border:3px solid transparent}
 .opt .ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex:none}
-.opt b{display:block;font-size:1.15rem;line-height:1.25}
-.opt span{display:block;font-size:.85rem;color:var(--c-ink-2)}
+.opt b{display:block;font-size:1.15rem;line-height:1.25;text-wrap:balance}
+.opt span{display:block;font-size:.85rem;color:var(--c-ink-2);text-wrap:pretty}
 .opt .tx{flex:1;min-width:0}
 .fullsheet{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;background:var(--c-canvas);animation:fadeIn var(--d-base) var(--ease-out) both}
 .addr{flex:1;display:flex;flex-direction:column;padding:0 var(--s-5) var(--s-5);overflow-y:auto}
@@ -176,10 +176,10 @@
 .stoplist .nm{flex:1;min-width:0}
 .stoplist .nm b{display:block;font-size:1.2rem;font-weight:700;overflow-wrap:anywhere}
 .stoplist .nm span{display:block;font-size:.85rem;color:var(--c-ink-2);overflow-wrap:anywhere}
-.stoplist .ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.stoplist .ctl{display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:center}
 .stoplist .ctl .dwell{flex:1 1 auto;white-space:nowrap;min-height:var(--tap);display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:var(--r-m);background:var(--c-surface-2);font-weight:700}
 .stoplist .ctl .iconbtn{width:var(--tap);padding:0}
-.stoplist .ctl .mv{display:flex;gap:6px;flex:none;margin-left:auto}
+.stoplist .ctl .mv{display:flex;gap:var(--s-2);flex:none;margin-left:auto}
 .stoplist .ctl [aria-disabled=true]{opacity:.4}
 .stoplist .origin{background:var(--c-surface-2);box-shadow:none;font-weight:700}
 :root[data-text-size="xxlarge"] .stoplist .ctl .dwell{flex-basis:100%;white-space:normal}

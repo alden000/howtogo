@@ -55,6 +55,11 @@ describe('QA-40 My places (AC 39): ≤ 6 incl. Home, add / rename / ↑↓ / rem
     expect(placeKind('Lor 8 Market')).toBe('market');
     expect(placeKind('女儿家')).toBe('daughter');
     expect(placeKind('其他')).toBe('other');
+    // Creative m34-fix-b L1: word boundaries for Latin terms.
+    expect(placeKind('Robinsons The Heeren')).toBe('other');
+    expect(placeKind('Grand Hyatt')).toBe('other');
+    expect(placeKind("Daughter's home")).toBe('daughter');
+    expect(placeKind('Tekka Food Center')).toBe('market');
   });
   it('old stored places without `others` still load', () => {
     const kv = memoryKV({ 'places': JSON.stringify({ home: P('Home') }) });
@@ -83,7 +88,8 @@ describe('QA-37 help-only share (AC 35)', () => {
     expect(JSON.parse(kv.data['helpshare.v1']!)).toMatchObject({ id: 'aB3dE5fG7hJ9', fam: '美玲' });
     expect(createHelpShare(kv).current.value?.id).toBe('aB3dE5fG7hJ9');
     await hs.end(api);
-    expect(calls.at(-1)).toBe('delete');
+    // Creative m34-fix-b M2: back to travelling first, so family's page reads "okay", then DELETE.
+    expect(calls.slice(-2)).toEqual(['put travelling -', 'delete']);
     expect(kv.data['helpshare.v1']).toBeUndefined();
   });
   it('a status-only help write when there is no fix; an expired stored share is forgotten', async () => {
@@ -92,6 +98,78 @@ describe('QA-37 help-only share (AC 35)', () => {
     expect(calls[1]).toBe('put help -');
     const old = memoryKV({ 'helpshare.v1': JSON.stringify({ id: 'x1234567', ownerToken: 't', viewPath: '/t/x1234567', expiresAt: '2020-01-01T00:00:00Z', fam: null }) });
     expect(createHelpShare(old).current.value).toBeNull();
+  });
+  it('Creative m34-fix-b H1: keeps sending positions at the share cadence until 我没事了 or expiry', async () => {
+    let t = Date.parse('2026-11-18T02:00:00Z');
+    const now = () => t;
+    const pending: { at: number; fn: () => void }[] = [];
+    const intervals: { every: number; next: number; fn: () => void }[] = [];
+    const timers = {
+      setTimeout: (fn: () => void, ms: number) => (pending.push({ at: t + ms, fn }), pending.at(-1)),
+      clearTimeout: (h: unknown) => void pending.splice(pending.indexOf(h as never) >>> 0, pending.includes(h as never) ? 1 : 0),
+      setInterval: (fn: () => void, ms: number) => (intervals.push({ every: ms, next: t + ms, fn }), intervals.at(-1)),
+      clearInterval: (h: unknown) => void intervals.splice(intervals.indexOf(h as never) >>> 0, intervals.includes(h as never) ? 1 : 0),
+    };
+    const advance = async (ms: number) => {
+      const end = t + ms;
+      for (;;) {
+        const next = [...pending.map((p) => p.at), ...intervals.map((i) => i.next)].filter((x) => x <= end).sort((a, b) => a - b)[0];
+        if (next === undefined) break;
+        t = next;
+        const p = pending.find((x) => x.at === next);
+        if (p) {
+          pending.splice(pending.indexOf(p), 1);
+          p.fn();
+        } else {
+          const i = intervals.find((x) => x.next === next)!;
+          i.next += i.every;
+          i.fn();
+        }
+        await Promise.resolve();
+        await Promise.resolve();
+      }
+      t = end;
+    };
+    let onFix: (f: { lat: number; lng: number; acc: number }) => void = () => {};
+    const stopWatch = vi.fn();
+    const platform = { location: { watch: vi.fn(async (cb: typeof onFix) => ((onFix = cb), stopWatch)) } };
+    const puts: { status: string; lat?: number; at: number }[] = [];
+    const api = {
+      shareCreate: async () => ({ id: 'aB3dE5fG7hJ9', ownerToken: 'tok', viewPath: '/t/aB3dE5fG7hJ9', expiresAt: new Date(t + 4 * 3600_000).toISOString() }),
+      sharePut: vi.fn(async (_i: string, _k: string, b: { status: string; lat?: number }) => void puts.push({ status: b.status, lat: b.lat, at: t })),
+      shareDelete: vi.fn(async () => {}),
+    } as unknown as Api;
+    const hs = createHelpShare(memoryKV(), now);
+    const dispose = hs.track(api, platform as never, timers);
+    expect(platform.location.watch).not.toHaveBeenCalled();
+    await hs.start(api, { destName: 'Where I am', lang: 'en' }, null, { lat: 1.33, lng: 103.85, acc: 10 });
+    await Promise.resolve();
+    expect(platform.location.watch).toHaveBeenCalledTimes(1);
+    expect(puts).toHaveLength(1);
+    // Still, 10 s later: nothing new. Moved 100 m after 15 s: sent.
+    onFix({ lat: 1.33, lng: 103.85, acc: 10 });
+    await advance(10_000);
+    expect(puts).toHaveLength(1);
+    onFix({ lat: 1.3309, lng: 103.85, acc: 10 });
+    await advance(6_000);
+    expect(puts).toHaveLength(2);
+    expect(puts[1]).toMatchObject({ status: 'help', lat: 1.3309 });
+    // Standing still: one update a minute, even without new fixes.
+    await advance(61_000);
+    expect(puts).toHaveLength(3);
+    // 我没事了 stops the watch and the updates.
+    await hs.end(api);
+    expect(stopWatch).toHaveBeenCalled();
+    const n = puts.length;
+    await advance(5 * 60_000);
+    expect(puts).toHaveLength(n);
+    // A share that expires while the app is open is dropped (Creative M4).
+    await hs.start(api, { destName: 'Where I am', lang: 'en' }, null, null);
+    await Promise.resolve();
+    expect(hs.current.value).not.toBeNull();
+    await advance(4 * 3600_000 + 2000);
+    expect(hs.current.value).toBeNull();
+    dispose();
   });
   it('message copy: link, help, no time; AC 47 plain fallback', () => {
     expect(tf('zh', 'hp_share_msg', { url: 'https://howtogo.local/t/aB3dE5fG7hJ9' })).toBe('我需要帮忙，我在这里：https://howtogo.local/t/aB3dE5fG7hJ9');

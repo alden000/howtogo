@@ -26,8 +26,9 @@ export function HelpSheet() {
   const contacts = family.contacts.value;
   const first = contacts[0];
   const offline = !online.value;
-  // QA-37: the share entry point (6e.1) shows only while nothing is shared (trip share or help-only share).
-  const canShare = !sharing && !(helpShare.current.value && !trip);
+  // QA-37 / Creative m34-fix-b M4: the share entry point (6e.1) shows only while nothing is shared
+  // (no trip share and no live help-only share, whatever the trip state).
+  const canShare = !sharing && !helpShare.current.value;
   useEffect(() => void platform.vibrate('tick'), []);
   const setHelp = () => {
     if (sharing && trip?.share?.status !== 'help') runtime.help();
@@ -254,7 +255,8 @@ export function HelpNote() {
   const t = useT();
   const trip = store.trip.value;
   const s = trip?.share;
-  const hs = !trip ? helpShare.current.value : null;
+  // Creative m34-fix-b M4: a live help-only share always shows its off switch, on a trip too.
+  const hs = helpShare.current.value;
   if (s?.status !== 'help' && !hs) return null;
   const fam = (hs ? hs.fam : null) ?? family.contacts.value[0]?.name ?? t('sh_family_fb');
   return (
@@ -271,7 +273,7 @@ export function HelpNote() {
           void platform.vibrate('confirm');
           if (hs) {
             void helpShare.end(api);
-            showToast('help-ok', t('sh_stopped', { fam }));
+            showToast('help-ok', t('hp_ok_end', { fam }));
           } else {
             runtime.clearHelp();
             showToast('help-ok', t('hp_ok_toast', { fam }));

@@ -79,6 +79,8 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 .tile[data-k=clinic] .ic{background:var(--tint-clinic);color:var(--ink-clinic)}
 .tile[data-k=market] .ic{background:var(--tint-market);color:var(--ink-market)}
 .tile[data-k=daughter] .ic{background:var(--tint-family);color:var(--ink-family)}
+.tile.tile-add{background:transparent;box-shadow:none;border:2px dashed var(--c-line)}
+.tile.tile-add .ic{background:var(--c-surface-2);color:var(--c-ink)}
 .helprow{display:flex;align-items:center;gap:14px;width:100%;min-height:76px;margin-top:var(--s-3);padding:12px 18px;border-radius:var(--r-l);background:var(--c-surface-2);text-align:left}
 .helprow .ic{width:52px;height:52px;border-radius:50%;background:var(--c-ink);color:var(--c-ink-inv);display:grid;place-items:center;flex:none}
 .helprow b{display:block;font-size:1.05rem}

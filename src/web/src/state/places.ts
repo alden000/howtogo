@@ -17,9 +17,11 @@ export type PlaceKind = 'clinic' | 'market' | 'daughter' | 'other';
 
 export function placeKind(label: string): PlaceKind {
   const l = label.toLowerCase();
-  if (/诊所|医院|医生|clinic|hospital|polyclinic|doctor/.test(l)) return 'clinic';
-  if (/巴刹|市场|菜市|熟食|market|hawker|food centre/.test(l)) return 'market';
-  if (/女儿|儿子|孙|家人|朋友|daughter|son|grand|family|friend/.test(l)) return 'daughter';
+  // Creative m34-fix-b L1: word boundaries for the Latin terms ("Robinsons", "Grand Hyatt" stay plain;
+  // the grand- suffix is required, else the review's own "Grand Hyatt" example would still match).
+  if (/诊所|医院|医生/.test(l) || /\b(clinic|hospital|polyclinic|doctor)\b/.test(l)) return 'clinic';
+  if (/巴刹|市场|菜市|熟食/.test(l) || /\b(market|hawker|food cent(re|er))\b/.test(l)) return 'market';
+  if (/女儿|儿子|孙|家人|朋友/.test(l) || /\b(daughter|son|grand(child|son|daughter|ma|pa)|family|friend)\b/.test(l)) return 'daughter';
   return 'other';
 }
 

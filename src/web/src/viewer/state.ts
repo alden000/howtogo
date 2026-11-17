@@ -39,7 +39,7 @@ export interface StepWire {
 /** The 15 viewer states of §6e.2 (the `data-state` value). */
 export const VIEW_KINDS = [
   'loading', 'waiting', 'walk', 'wait', 'bus', 'train', 'help', 'helpcleared', 'arrived',
-  'nosignal', 'ended', 'endedArrived', 'expired', 'invalid', 'offline',
+  'nosignal', 'ended', 'endedArrived', 'endedOk', 'expired', 'invalid', 'offline',
 ] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 export type StepKind = 'walk' | 'wait' | 'bus' | 'train';
@@ -63,6 +63,10 @@ export interface Memory {
   offline: boolean;
   /** QA-43 (AC 25): the live socket was refused because 50 people already watch this link. */
   full: boolean;
+  /** Last live status before the end (help → ended reads as "okay", Creative m34-fix-b M2). */
+  lastLive: ShareWire['status'] | null;
+  /** The share ended right after help was cleared (or while help showed) → endedOk. */
+  endedOk: boolean;
 }
 
 export const STALE_MS = 2 * 60_000;
@@ -71,7 +75,7 @@ export const ARRIVED_GRACE_MS = 30 * 60_000;
 export const SHARE_ID_RE = /^[A-Za-z0-9]{6,32}$/;
 
 export const initialMemory = (): Memory => ({
-  share: null, terminal: null, sawArrived: false, arrivedAt: null, helpClearedAt: null, phone: null, offline: false, full: false,
+  share: null, terminal: null, sawArrived: false, arrivedAt: null, helpClearedAt: null, phone: null, offline: false, full: false, lastLive: null, endedOk: false,
 });
 
 const ms = (iso: string | null | undefined): number | null => {
@@ -93,7 +97,20 @@ export function applyShare(mem: Memory, next: ShareWire, now: number): Memory {
   }
   if (prev?.status === 'help' && (next.status === 'travelling' || next.status === 'waiting')) m.helpClearedAt = now;
   if (next.status === 'help') m.helpClearedAt = null;
-  if (next.status === 'ended') m.terminal = 'ended';
+  if (next.status === 'ended') return endShare(m, 'ended', now);
+  m.lastLive = next.status;
+  return m;
+}
+
+/**
+ * Terminal outcome. Creative m34-fix-b M2: a share that ends while help shows, or within 5 min of
+ * "我没事了" (help → travelling), is the senior saying she's okay — not "stopped sharing".
+ */
+export function endShare(mem: Memory, t: Exclude<Terminal, null>, now: number): Memory {
+  const m: Memory = { ...mem, terminal: t, offline: false };
+  if (t === 'ended' && !m.sawArrived && !m.endedOk) {
+    m.endedOk = m.lastLive === 'help' || (m.helpClearedAt !== null && now - m.helpClearedAt < HELP_CLEARED_MS);
+  }
   return m;
 }
 
@@ -164,13 +181,13 @@ export function deriveView(mem: Memory, now: number): View {
   const base = ((): View['base'] => {
     if (mem.terminal === 'invalid') return 'invalid';
     if (mem.terminal === 'expired') return 'expired';
-    if (mem.terminal === 'ended') return mem.sawArrived ? 'endedArrived' : 'ended';
+    if (mem.terminal === 'ended') return mem.sawArrived ? 'endedArrived' : mem.endedOk ? 'endedOk' : 'ended';
     if (!s) return 'loading';
     switch (s.status) {
       case 'waiting': return 'waiting';
       case 'help': return 'help';
       case 'arrived': return 'arrived';
-      case 'ended': return mem.sawArrived ? 'endedArrived' : 'ended';
+      case 'ended': return mem.sawArrived ? 'endedArrived' : mem.endedOk ? 'endedOk' : 'ended';
       case 'paused': return 'nosignal';
       case 'travelling':
         if (upd !== null && now - upd > STALE_MS) return 'nosignal';
@@ -179,12 +196,12 @@ export function deriveView(mem: Memory, now: number): View {
     }
   })();
   v.base = base;
-  v.kind = mem.offline && !['invalid', 'expired', 'ended', 'endedArrived'].includes(base) ? 'offline' : base;
+  v.kind = mem.offline && !['invalid', 'expired', 'ended', 'endedArrived', 'endedOk'].includes(base) ? 'offline' : base;
   // ended keeps a number known from earlier (§6e.2); invalid never shows a call button.
-  v.phone = base === 'invalid' ? null : base === 'ended' || base === 'endedArrived' || base === 'expired' ? mem.phone : (s?.senderPhone ?? null);
+  v.phone = base === 'invalid' ? null : base === 'ended' || base === 'endedArrived' || base === 'endedOk' || base === 'expired' ? mem.phone : (s?.senderPhone ?? null);
   v.helpCleared = base === 'helpcleared';
 
-  const terminal = base === 'ended' || base === 'endedArrived' || base === 'expired' || base === 'invalid';
+  const terminal = base === 'ended' || base === 'endedArrived' || base === 'endedOk' || base === 'expired' || base === 'invalid';
   if (s && !terminal && base !== 'waiting' && base !== 'loading' && s.lat !== null && s.lng !== null) {
     v.pos = { lat: s.lat, lng: s.lng, acc: s.acc, heading: s.heading };
   }

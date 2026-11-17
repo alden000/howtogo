@@ -191,7 +191,7 @@ export function Home() {
               {others.map((p, i) => {
                 const k = placeKind(p.label);
                 return (
-                  <button type="button" class="tile" data-k={k} data-testid={`tile-place-${i}`} aria-label={`${p.label}${t('sr_sep')}${p.name}`} onClick={() => go(p)}>
+                  <button type="button" class="tile" data-k={k} data-testid={`tile-place-${i}`} aria-label={p.label !== p.name ? `${p.label}${t('sr_sep')}${p.name}` : p.label} onClick={() => go(p)}>
                     <span class="ic">
                       <Icon name={KIND_ICON[k]} />
                     </span>
@@ -200,6 +200,15 @@ export function Home() {
                   </button>
                 );
               })}
+              {/* Creative m34-fix-b L6: places but no Home → a 5.1 "Add a place"-style tile to set Home. */}
+              {!home && others.length > 0 && (
+                <button type="button" class="tile tile-add" data-testid="tile-set-home" onClick={() => router.navigate('/search?mode=home')}>
+                  <span class="ic" aria-hidden="true">
+                    <Icon name="home" />
+                  </span>
+                  <span class="nm">{t('set_your_home')}</span>
+                </button>
+              )}
             </div>
           </>
         )}

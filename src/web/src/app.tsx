@@ -6,6 +6,7 @@
 import { online } from './api/offline';
 import { sampleMode } from './state/sample';
 import { useServices, useT } from './context';
+import { helpShare } from './state/helpShare';
 import { EndTripSheet } from './views/sheets';
 import { Home } from './views/Home';
 import { Search } from './views/Search';
@@ -34,9 +35,11 @@ import { ghost } from './ui/ghost';
 import { connectivityToasts } from './ui/toasts';
 
 export function App() {
-  const { router, store, runtime } = useServices();
+  const { router, store, runtime, api, platform } = useServices();
   const t = useT();
   const r = router.route.value;
+  // Creative m34-fix-b H1: a live help-only share keeps sending positions until 我没事了 or expiry.
+  useEffect(() => helpShare.track(api, platform), []);
   // D8: Back onto the guidance guard opens the End-trip sheet while a trip runs; after arrival it goes Home.
   useEffect(
     () =>

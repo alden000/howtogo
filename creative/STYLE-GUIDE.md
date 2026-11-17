@@ -955,9 +955,12 @@ A plain web page, **no install, no login, no app chrome**. It must work on an ol
 | `nosignal` | `status: paused`, or `updatedAt` > 2 min old while travelling | {me}的手机暂时没有信号 / {me}'s phone has no signal right now | `c-surface-2` note, `wifi-off`: `最后位置：{near} 附近，{n} 分钟前 / Last seen near {near}, {n} min ago` · `在地铁里或大楼里常常这样，信号回来后会自己更新。/ This often happens in the MRT or inside buildings. It will update by itself when the signal returns.` · ETA kept with 约 and `（可能有变化）/ (may change)` · puck grey (6c.12) · call |
 | `ended` | `410 share_ended` / ws `ended`, not after arrival | {me}停止了分享 / {me} stopped sharing | `想知道她在哪里，可以打电话给她。/ To find out where she is, you can call her.` · no map, no last position (it was deleted) · call (if number known from earlier state) |
 | `endedArrived` | ended after `arrived` | {me}已经到了 {dest}。分享结束了。/ {me} arrived at {dest}. Sharing has ended. | jade check · no map |
+| `endedOk` | ended right after help was cleared | {me}说自己没事了。分享结束了。/ {me} says everything’s okay now. Sharing has ended. | jade check · `想再联系{me}，可以打电话。/ You can still give {me} a call.` · no map · call |
+| (note) `full` | 51st viewer (AC 25) | top note on any state, `clock`: **看的人太多了，请稍后再试 / Too many people are watching. Please try again later.** + `这一页还会自己更新，只是慢一点。/ This page still updates, just less often.` | last state stays; GET polling |
 | `expired` | `410 share_expired` / ws `expired` | 这个链接已经过期了 / This link has expired | `分享最长 4 小时。可以请{me}再发一个。/ Sharing lasts 4 hours at most. You can ask {me} for a new one.` · no map |
 | `invalid` | `404` / malformed id | 找不到这个链接 / We can't find this link | `请检查链接是否完整，或请家人再发一次。/ Check the whole link was copied, or ask your family member to send it again.` · no map, no call |
 | `offline` (viewer's own internet) | WebSocket closed and GET fails | a top note on any state: `你的网络断了，正在重新连接… / Your internet dropped. Reconnecting…` (`wifi-off`, spinner) | the last state stays on screen, last-updated keeps ticking honestly |
+- **在地图上打开 / Open in Maps** — secondary 56, `locate`, under the call button whenever a position is shown; `https://maps.google.com/?q={lat},{lng}`, new tab.
 
 - Pronouns: zh uses 她/他 only when the contact record says so; default zh "TA" is avoided by repeating `{me}`. en uses "they" unless set. (The share carries `senderName` and an optional pronoun, 6e.9.)
 - **Updates:** WebSocket `/api/share/:id/live`; reconnect with backoff (1, 2, 5, 10, 30 s). Each `state` message updates in place without layout jumps (fixed-height ETA line).
@@ -976,6 +979,8 @@ Title 别担心，我来帮你 / Don't worry, I'm here to help. Fixed order:
 2. **给司机看地址 / Show the driver** (saffron disc, `car`): sub `大字显示，也可以叫车 / Big address, or book a ride` → H10 + taxi hand-off (6e.6).
 3. **我在哪里？/ Where am I?** (`loc`): → H10 `here` tab, which gains **把我的位置发给{fam} / Send my location to {fam}** (secondary, WhatsApp with `我在这里：{address} {maps link}` / `I'm here: {address} {maps link}`).
 4. **帮我重新找路 / Find my way again** (`route`, trip only): → re-plan from here (H11 found / 6c.8). Not on a trip: **带我回家 / Take me home** (`home`) → H3 to Home.
+4b. **让家人看到我在哪里 / Let family see where I am** (`share`, `c-jade-soft` disc; only while nothing is shared): sub `用 WhatsApp 发链接给{fam}，说你需要帮忙 / Send {fam} a link by WhatsApp to say you need help` (no contact: `用 WhatsApp 发链接，说你需要帮忙 / Send a link by WhatsApp to say you need help`; offline: `需要网络 / Needs internet`). On a trip: starts the trip share with `status: help`. Not on a trip: a help-only share (`destName` 我在这里 / Where I am, `status: help`) that **keeps sending positions at the normal cadence until 我没事了 or 4 h**. Either way WhatsApp opens to the first contact with `我需要帮忙，我在这里：{url} / I need help. See where I am: {url}`. Failed, offline or 429 (AC 47): WhatsApp opens with `我需要帮忙。我在这里：{address} {maps link} / I need help. I'm here: {address} {maps link}`, or `我需要帮忙。/ I need help.` with no fix. Position rationale: Help runs from self-help to telling family to emergency.
+- Help-only note (Home and step card, `c-saffron-soft`): `{fam} 的页面显示你需要帮忙。` + **我没事了** → ends the share; toast `好的，已经停止分享。{fam} 的页面会显示你没事了。/ Okay, sharing has stopped. {fam}'s page will show you're okay.` Baseline `P2-helponly-note`.
 5. **紧急情况 · 拨打 995 / Emergency · Call 995** (danger outline, last). → confirm sheet: title `要打 995 吗？/ Call 995?` · `995 是救护车和消防。/ 995 is for an ambulance or the fire service.` · **拨打 995 / Call 995** (the **only** `c-danger` fill in the app, `c-on-danger`, 72 px) · **不用了 / No, go back** (secondary). Back = No.
 - **Help status:** when sharing, tapping 1 or confirming 5 PUTs `status: help` (bypasses the rate limit, D-7). The pill turns `help` and a trip note appears on the step card (6c.10, `help` icon): `{fam} 的页面显示你需要帮忙。/ {fam}'s page shows you need help.` + button **我没事了 / I'm okay now** (secondary 56) → PUT `travelling`, pill back to sharing, toast `好的，已经告诉{fam}你没事了。/ Okay, {fam}'s page now shows you're okay.` Opening the sheet alone never sends `help`.
 - Haptic: `tick` on open; `confirm` on each action. Voice: none (the user is reading). SR: each row's name = title + sub.
@@ -1050,6 +1055,9 @@ Under the always-light address card on H10 (all tabs), a button stack (`s-3` apa
 - **H1 help row** sub-line uses the first contact: `打电话给{fam}，或给司机看地址 / Call {fam}, or show a driver your address`; no contacts: `加一个家人的电话，有事一按就打 / Add a family number to call with one tap`.
 - **Settings** gains: `家人 / Family` → P3 · `让家人帮我设置 / Let family set it up for me` → P5a · (M3) 出行 / Travel · 隐私 / Privacy rows.
 - Baselines: `P7-home-contacts`, `P7-settings`.
+
+### 6e.7b P8 My places
+Title `常去的地方 / My places` · lead `家总是排在第一个。最多可以存 6 个地方。/ Home is always first. You can save up to 6 places.` · G2 `.stoplist` rows with a 44 px 5.1-tint disc: Home row first (edit → Home sheet; none → `设好你的家`), then ≤ 5 places, each with **改名字 / Rename** (`.dwell`) and ↑ ↓ 🗑 (56 px, 8 px gaps) · dashed **加一个地方 / Add a place** (72) → search; at the cap the caption `最多 6 个地方 / Up to 6 places` · rename sheet `改名字` / `名字` / placeholder `比如：诊所 / e.g. Clinic` / **保存** · remove confirm as P4. H1 shows the places as 5.1 tiles after Home; tint from the label (诊所 clinic · 巴刹 market · 女儿/family family · else `c-surface-2`). Baselines `P8-list`, `P8-max`, `P8-rename`, `P8-remove`.
 
 ### 6e.8 Voice and haptics added in M4
 | Moment | zh | en | Haptic |
