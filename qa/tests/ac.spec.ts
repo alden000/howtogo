@@ -450,7 +450,7 @@ test('AC-42 report: version, UA, language, font size; no coordinates/addresses',
   await page.getByTestId('report').click();
   await page.getByTestId('report-see').click();
   const txt = await page.getByTestId('report-text').innerText();
-  expect(txt).toMatch(/0\.1\.0/);
+  expect(txt).toMatch(/0\.2\.0/); // M2 (QA-27)
   expect(txt).toMatch(/Mozilla|Chrome/);
   expect(txt).toMatch(/zh/);
   expect(txt).toMatch(/125|large/);

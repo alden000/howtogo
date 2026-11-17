@@ -107,20 +107,24 @@ export async function startTo(page: Page, query: string) {
 }
 
 /** Step the simulator fix by fix until a hook line appears. */
-export async function runUntil(page: Page, line: string, max = 4000) {
+export async function runUntil(page: Page, line: string, max = 4000, fresh = false) {
+  // fresh: wait for a NEW occurrence (the log is change-only and may already hold the line from an earlier trip).
   const ok = await page.evaluate(
-    async ([l, n]) => {
+    async ([l, n, fr]) => {
       const w = window as unknown as W;
       const f = w.__howtogo.platform.fake;
+      const c = () => w.__howtogoLog.filter((x: string) => x === l).length;
+      const base = fr ? c() : 0;
+      const hit = () => (fr ? c() > base : w.__howtogoLog.includes(l as string));
       for (let i = 0; i < (n as number); i++) {
-        if (w.__howtogoLog.includes(l as string)) return true;
+        if (hit()) return true;
         if (!f.step()) break;
         if (i % 4 === 0) await new Promise((r) => setTimeout(r, 0));
       }
       await new Promise((r) => setTimeout(r, 30));
-      return w.__howtogoLog.includes(l as string);
+      return hit();
     },
-    [line, max] as const,
+    [line, max, fresh] as const,
   );
   if (!ok) console.log('HOOKS', (await logOf(page)).slice(-30).join(' | '));
   expect(ok, `hook ${line}`).toBe(true);

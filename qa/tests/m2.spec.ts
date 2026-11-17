@@ -106,7 +106,7 @@ for (const e of ENTRIES)
     await page.getByTestId('route-option-0').click();
     await page.getByTestId('start-guide').click();
     await expect(page.getByTestId('guide')).toBeVisible();
-    await runUntil(page, 'trip:arrived');
+    await runUntil(page, 'trip:arrived', 4000, e === 'arrival-route-home'); // 2nd trip: wait for a new arrival
     await expect(page.getByTestId('arrived')).toBeVisible();
     const starts = await page.evaluate(() => (window as unknown as { __starts: string[] }).__starts);
     expect(starts.length).toBe(e === 'recent' || e === 'arrival-route-home' ? 2 : 1);
@@ -207,11 +207,29 @@ test('AC 20: auto-advance gives the confirm haptic and speaks the new headline o
   expect(n).toBe(1);
 });
 
-test('AC 12 (Should): "All steps" sheet — KNOWN NOT BUILT', async ({ page }) => {
-  test.fail(true, 'AC 12 not built in the M2 UI round (dev-log deviation)');
+test('AC 12 (Should): All-steps sheet from the step counter — remaining steps, current marked, Back closes, axe clean', async ({ page }) => {
   await boot(page);
   await startTo(page, 'tan tock');
-  await expect(page.getByText(/全部步骤/)).toBeVisible({ timeout: 2000 });
+  const btn = page.getByTestId('all-steps-btn');
+  await expect(btn).toBeVisible();
+  await expect(btn).toHaveAccessibleName(/全部步骤/);
+  const bb = (await btn.boundingBox())!;
+  expect(bb.height).toBeGreaterThanOrEqual(44);
+  await btn.click();
+  const sheet = page.getByTestId('sheet-all-steps');
+  await expect(sheet).toBeVisible();
+  const n0 = await sheet.locator('li').count();
+  expect(n0).toBeGreaterThanOrEqual(3);
+  await expect(sheet.locator('li[aria-current=step]')).toHaveCount(1);
+  const head = (await page.getByTestId('current-step').innerText()).trim();
+  await expect(sheet.locator('li[aria-current=step]')).toContainText(head);
+  await axe(page, 'All-steps sheet');
+  await page.goBack();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByTestId('guide')).toBeVisible();
+  await runUntil(page, 'loc:profile 5000'); // auto-advance to the wait step
+  await btn.click();
+  await expect(page.getByTestId('sheet-all-steps').locator('li')).toHaveCount(n0 - 1);
 });
 
 // ---------------------------------------------------------------- C. follow-me
@@ -828,10 +846,39 @@ test('AC 49: hooks are change-only and carry no coordinates, place names or sear
   for (const l of ['map:ready', 'wakelock:on', 'alert:next', 'alert:now', 'cue:arrived_destination']) expect(log).toContain(l);
 });
 
-test('AC 50: demo mode plays every new state without walking — KNOWN NOT BUILT', async ({ page }) => {
-  test.fail(true, 'AC 50 demo controls not built (dev-log deviation)');
+test('AC 50: demo controls (H9, ?demo=1 only) play get-off, off route, weak GPS, skip and arrival without walking', async ({ page }) => {
+  test.setTimeout(60_000);
   await boot(page);
-  await expect(page.getByTestId('demo-controls')).toBeVisible({ timeout: 2000 });
+  await startTo(page, 'tan tock');
+  const play = async (id: string) => {
+    await page.getByTestId('guide-help').click();
+    await expect(page.getByTestId('demo-controls')).toBeVisible();
+    await page.getByTestId(`demo-${id}`).click();
+  };
+  await page.getByTestId('guide-help').click();
+  await auditControls(page);
+  await axe(page, 'H9 + demo controls');
+  await page.goBack();
+  const s0 = await page.getByTestId('guide').getAttribute('data-step');
+  await play('skip');
+  await expect(page.getByTestId('guide')).not.toHaveAttribute('data-step', s0!);
+  await play('weak');
+  await expect(page.locator('[data-testid=trip-note][data-note=weak]')).toBeVisible();
+  await play('offroute');
+  await expect.poll(() => logOf(page)).toContain('cue:off_route');
+  await play('getoff');
+  await expect(page.getByTestId('getoff-next')).toBeVisible();
+  await page.getByTestId('getoff-ack').click();
+  await play('arrive');
+  await expect(page.getByTestId('arrived')).toBeVisible({ timeout: 15_000 });
+});
+
+test('AC 50: no demo controls outside demo mode', async ({ page }) => {
+  await boot(page, {}, null, { path: '/?mock=1' });
+  await startTo(page, 'tan tock');
+  await page.getByTestId('guide-help').click();
+  await expect(page.getByTestId('help-send').or(page.locator('[data-testid=sheet-help], .sheet')).first()).toBeVisible();
+  await expect(page.getByTestId('demo-controls')).toHaveCount(0);
 });
 
 // ---------------------------------------------------------------- 200 % / dark / axe on new screens
