@@ -115,3 +115,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 ## 2026-11-17 — M2 Creative review: APPROVED WITH FIXES
 - Rulings on deviations accepted as Creative ruled: headline = spoken line (principle) with Creative's F1 wording; sign chip = sign text only (train chip adds code); End sheet over pocket in normal theme with a scrim fade; AC 12 All-steps sheet built in the M2 fix round (before the owner phone test). AC 50 demo controls also in the fix round.
 - P1: F1 copy, F2 walk sub-line minutes, F3 H6b at 200%. Batched with QA findings into ONE M2 fix round.
+
+## 2026-11-17 — M2 QA gate 1: PASS WITH FIXES (qa/reports/0.2.0-m2.md on dev/m2-engine)
+- 41/46 Must pass; bugs QA-21…27 (1 S2, 4 S3, 2 S4). AC 36/41 blocked on a real phone (owner test).
+- Rulings: QA-25 S2 "route home" must plan from the current position. QA-21: request notification permission at Start, with a one-line explainer, only once; if denied, the in-app alerts still work and a note says alerts need the app open. QA-22: AC wins — H5 headline ≥ 32 px (2rem at 100%); Creative's 200% wrap rules apply. QA-23: the wake-lock note shows once per trip. QA-27: version 0.2.0.
+- ONE M2 fix round now: all QA bugs + Creative F1–F6 + AC 12 All-steps sheet + AC 50 demo controls.
