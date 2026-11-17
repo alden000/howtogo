@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Concept B: the character 去 as a seal whose last stroke becomes a path">
+  <title>怎么去? — Concept B “去 Seal”</title>
+  <rect width="512" height="512" rx="116" fill="#FBF5EC"/>
+  <rect x="36" y="36" width="440" height="440" rx="88" fill="none" stroke="#9A3412" stroke-width="20"/>
+  <g fill="none" stroke="#9A3412" stroke-width="42" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M186 160H326"/><path d="M256 104V236"/><path d="M136 236H376"/>
+    <path d="M246 276C226 316 198 350 166 380H300"/>
+  </g>
+  <path d="M300 380C330 380 352 360 352 334" fill="none" stroke="#9A3412" stroke-width="42" stroke-linecap="round" stroke-dasharray="1 70"/>
+  <circle cx="356" cy="318" r="30" fill="#E0A100"/>
+</svg>

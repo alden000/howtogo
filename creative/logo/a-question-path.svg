@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="怎么去? logo: a question mark drawn as a route ending at a destination dot">
+  <title>怎么去? — Concept A “Question Path” (recommended)</title>
+  <rect width="512" height="512" rx="116" fill="#9A3412"/>
+  <path d="M168 206C168 146 210 104 262 104C318 104 352 142 352 190C352 238 312 256 284 276C266 289 258 304 258 330" fill="none" stroke="#FBF5EC" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="168" cy="206" r="40" fill="#9A3412" stroke="#FBF5EC" stroke-width="22"/>
+  <circle cx="258" cy="408" r="42" fill="#FFD23F"/>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Concept C: a lantern lighting a winding path">
+  <title>怎么去? — Concept C “Lantern”</title>
+  <rect width="512" height="512" rx="116" fill="#1D1915"/>
+  <rect x="206" y="78" width="100" height="34" rx="12" fill="#FFD23F"/>
+  <rect x="206" y="392" width="100" height="34" rx="12" fill="#FFD23F"/>
+  <ellipse cx="256" cy="252" rx="150" ry="148" fill="#C2410C"/>
+  <path d="M206 158C206 158 316 182 300 236C286 284 196 268 204 320C210 356 270 350 306 346" fill="none" stroke="#FBF5EC" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="206" cy="158" r="20" fill="#FBF5EC"/>
+  <path d="M256 426V460" stroke="#FFD23F" stroke-width="16" stroke-linecap="round"/>
+</svg>
