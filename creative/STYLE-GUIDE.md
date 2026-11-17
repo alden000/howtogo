@@ -1,4 +1,4 @@
-# 怎么去? — Style guide v1.2
+# 怎么去? — Style guide v1.3
 
 Source of truth for the build. **Build strictly to these tokens and frames:** no raw values outside the token sheet, and no improvised UI. New tokens need Director approval. The prototype `creative/prototype/index.html` implements every token below in its `:root` block. Brand rationale lives in `docs/02-creative-direction.md`.
 
@@ -161,7 +161,7 @@ Icon tile by type: walk = primary-soft · waiting = ink · bus-here / arrive / a
 
 ### 5.5 Bus-arrival chip (`.arrchip`)
 `surface-2` panel, `r-m`. Contents: bus badge, big minutes (900, 1.6rem, tabular), a "● 实时 Live" blinking dot, and "下一班 12 分钟".
-States: counting · `here` (saffron fill, "快到了 / Arriving") · stale > 60s (build: dot turns grey and shows "约 / about") · no data (build: "暂时没有到站时间，请看站牌 / No live time right now — check the stop sign").
+States: counting · `here` (saffron fill, "快到了 / Arriving") · stale > 60s (build: dot turns grey and shows "约 / about") · no data (build: "暂时没有到站时间，请看站牌 / No live time right now — check the stop sign"). **M3 supersedes these with the six states in 6d.1.**
 
 ### 5.6 Follow-me map controls (`.mapctl`)
 A right-edge column of 56px round buttons that floats 14px above the step card (from M2 the top bar is a solid band and the map sits between it and the card: see 6c.0): **Follow / See whole trip** toggle (filled primary when following) and **Share**.
@@ -177,7 +177,7 @@ Bottom sheet: title, lead, a "告诉谁？" radiogroup of contact options (avata
 While sharing: title "正在分享给 美玲", "到达后自动停止", preview, **停止分享**.
 
 ### 5.9 Help sheet (H9)
-Options in fixed order: 打电话给美玲 (jade disc) → 给司机看地址 (saffron disc) → 我在哪里？ → 帮我重新找路 (only during a trip) → `紧急情况 · 拨打 995` (danger outline, last, not a big red button).
+**M4 full version: 6e.3.** Options in fixed order: 打电话给美玲 (jade disc) → 给司机看地址 (saffron disc) → 我在哪里？ → 帮我重新找路 (only during a trip) → `紧急情况 · 拨打 995` (danger outline, last, not a big red button).
 
 ## 6. Frames
 
@@ -685,6 +685,390 @@ No haptic: `approaching_stop`, `gps_weak`, offline/online, trip notes, H11 `fail
 - **Copy deviation (Creative recommendation):** the waypoint counter is 第 2 个地方，共 4 个 / Place 2 of 4, not "第 2 站，共 4 站 / Stop 2 of 4", because 站 / stop already means a bus stop or station on the same screens ("还有 4 站"). Director to confirm; the fallback is the brief's wording.
 - **AC wording:** AC 13 "puck at 34% height" becomes "66% down the visible map window" (6c.0). AC 10 "上一步 / Back a step" becomes "上一步 / Previous step".
 
+## 6d. M3 SG transit smarts
+
+Frames for the M3 build (live LTA data, transfers, exits, fares, recent trips). Designed from the feature list (`01-research-and-plan.md` F9, F17, S3, S4, S5, S8; ROADMAP M3) while the PM writes the M3 requirements in parallel; the Director reconciles AC numbers. They reuse §1 tokens and §5/§6b/§6c components. **No new colour, type, space, radius or motion tokens.** New icons and components are listed in 6d.10 for Director approval.
+
+Shared rules (as §6, 6b, 6c, plus):
+- Frame IDs: **T1–T9**. Baselines: `M3-{frame}-{state}-{light|dark}-{100|200}-{zh|en}.png` at 390×844 DPR 2.
+- **Never colour-only (D7).** Every live-data state is carried by words first, then a glyph, then colour. Remove all colour and each state must still read.
+- **Honest data.** Live numbers say where they come from: 实时 / Live only when LTA reports a monitored bus; otherwise 约 / About. We never invent a time, an exit, a fare or a station name. Missing data = the line is hidden, not guessed.
+- Live data refresh: BusArrival every **20 s** while the chip is on screen (the Worker caches 20 s). Alerts every **60 s** while H3, H4 or H5 is open. Refreshes are silent: no live-region traffic on a number change (only on a **state** change).
+- No red. `c-danger` stays 995-only. Disruptions use **saffron** (attention), never danger.
+
+### 6d.1 T1 Bus-arrival chip states (`.arrchip`, extends §5.5)
+Where: H5 wait step (§6, 6c), H4 timeline bus row (a compact chip, first bus only), H3 bus card (one line under the chain: `下一班 139：4 分钟 / Next 139: 4 min`, live/estimated only).
+
+Anatomy (100%): bus badge · big minutes (`1.6rem`/900 tabular) · source tag (`label`) · second line (`caption` ink-2): next bus + load. Then a glyph row (6d.2). At 200% everything wraps; the minutes stay on the first line with the badge.
+
+| State | Trigger (Worker data) | Big text zh / en | Source tag zh / en | Second line zh / en | Look |
+|---|---|---|---|---|---|
+| `live` | `etaMin ≥ 1`, bus monitored, data ≤ 60 s old | `4 分钟` / `4 min` | `● 实时` / `● Live` (jade dot blinks 1.6 s) | 下一班 12 分钟 / Next one in 12 min | `c-surface-2` |
+| `here` | `etaMin = 0` | `快到了` / `Arriving` | — | 看清楚车头的号码，再上车。/ Check the number on the front before you get on. | `c-saffron` fill, ink text (12.1:1) |
+| `estimated` | bus not monitored (LTA `Monitored = 0`: time from the schedule), **or** the last good fetch is > 60 s old | `约 4 分钟` / `About 4 min` | `按时间表` / `By timetable` (hollow ring, no blink) | 时间可能会变，请看站牌。/ Times may change. Check the stop sign. | `c-surface-2`, a 2 px dashed `c-line` border |
+| `nodata` | service in route, but `next` is empty and the service is in its operating hours, or the fetch failed | `暂时没有到站时间` / `No arrival time right now` (`label` 700, not big) | — | 请看站牌上的时间。巴士还是会来的。/ Check the times on the stop sign. The bus will still come. | `c-surface-2`, `clock` icon in place of minutes |
+| `lastgone` | after the service's last bus (BusRoutes `LastBus` for that stop and day type) and `next` is empty | `今天的末班车开走了` / `The last bus today has gone` | — | 我帮你找别的路。/ I'll help you find another way. | `c-surface`, 8 px `c-saffron` left rule, `moon` icon |
+| `notrunning` | before the first bus, or the service does not run today (BusRoutes `FirstBus` / day type) | `{svc} 号现在不开` / `Bus {svc} isn't running now` | — | 第一班大约 {t}。/ First bus about {t}. (hidden if unknown) | as `lastgone`, `clock` icon |
+
+- `lastgone` and `notrunning` add a button row under the chip: **找别的路 / Find another way** (primary 56 px, `route` icon → re-plan from here, T4 flow without the disruption note) · **给司机看地址 / Show the driver** (secondary 56 px → H10 去目的地). On H3 the card for that route gets the same sentence in its facts row and moves to the bottom; it is not removed (the user may know better).
+- `here` keeps the §2 signature moment: chip flips to saffron, haptic `attention`, voice "{svc} 号巴士快到了。看清楚车头的号码，再上车。/ Bus {svc} is almost here. Check the number on the front before you get on."
+- Voice for the other states, **once per state per step**, in the trip language: `nodata` "暂时没有到站时间，请看站牌。/ No arrival time right now. Check the stop sign." · `lastgone` "今天的末班车开走了。我帮你找别的路。/ The last bus today has gone. I'll help you find another way." · `notrunning` "{svc} 号现在不开。/ Bus {svc} isn't running now." `live` and `estimated` are not spoken on refresh (the wait-step headline already says the minutes when the step starts).
+- Haptic: `attention` for `here` only. None for the others (we never buzz bad news; 6c.13).
+- **SR label** (the chip is one `role="group"` with this `aria-label`; children `aria-hidden`):
+  - live: "139 号巴士，4 分钟后到，实时。有座位，轮椅可以上，双层巴士。下一班 12 分钟。" / "Bus 139 in 4 minutes, live. Seats free, wheelchair OK, double deck. Next one in 12 minutes."
+  - estimated: "139 号巴士，大约 4 分钟后到，按时间表。" / "Bus 139 in about 4 minutes, by timetable."
+  - here / nodata / lastgone / notrunning: the big text + second line.
+  - State changes (not number changes) go to the polite region once.
+- **Reduce motion:** the live dot does not blink (solid); the saffron flip is a 120 ms cross-fade.
+- `data-testid`: `arrchip` with `data-state="live|here|estimated|nodata|lastgone|notrunning"`. Baselines: `T1-live`, `T1-here`, `T1-estimated`, `T1-nodata`, `T1-lastgone`, `T1-notrunning`.
+
+### 6d.2 T2 Seat load, wheelchair and double-deck glyphs (`.loadtag`)
+A row of small tags under the chip's second line (and on H4's compact chip). Each tag = 24 px glyph + `label` text, `c-ink` on `c-surface`, 2 px `c-line` border, `r-s`, min height 40 px (not a control). **The word carries the meaning; the glyph repeats it; there is no colour code.**
+
+| Data | Glyph (new icon) | zh | en | Notes |
+|---|---|---|---|---|
+| `load: SEA` | `seat` (a seat) | 有座位 | Seats free | Default when LTA leaves it blank — then the tag is **not shown** (we don't claim seats we don't know) |
+| `load: SDA` | `stand` (a person holding a rail) | 要站着 | Standing room | |
+| `load: LSD` | `full` (two people close) | 很挤，可以等下一班 | Very full — you can wait for the next one | The only load tag with advice. If the next bus is SEA/SDA, the second line reads 下一班 12 分钟，有座位 / Next one in 12 min, seats free |
+| `wheelchair: true` | `wheelchair` | 轮椅可以上 | Wheelchair OK | |
+| `wheelchair: false` | — | — | — | Not shown (all SG public buses are WAB except a few; absence ≠ claim) |
+| `deck: double` | `deck2` (two-storey bus) | 双层巴士 | Double deck | Helps recognise the bus from afar |
+| `deck: bendy` | `bus` + text | 长巴士 | Bendy bus | |
+| `deck: single` | — | — | — | Not shown |
+
+- Order: load · wheelchair · deck. They wrap at 200%.
+- Load is about the **first** bus only; the next-bus load appears only in the LSD advice sentence.
+- Settings → 出行 / Travel (new row, M3): **我用轮椅或助行器 / I use a wheelchair or walker** (开 / 关). When on, `wheelchair: false` **is** shown as a tag `这班车轮椅不方便 / Not wheelchair friendly` (ink, `wheelchair` glyph with a diagonal stroke drawn in the same icon: `wheelchair-no`, new) and the second line suggests the next WAB bus if there is one.
+- SR: included in the chip label (6d.1). Tags themselves are `aria-hidden`.
+- Baselines: `T2-tags-sea`, `T2-tags-lsd`, `T2-tags-nowab`.
+
+### 6d.3 T3 MRT disruption banner (`.banner.warn`, TrainServiceAlerts)
+Shown only when `/api/alerts` reports `disrupted` **and** an affected line + station range intersects a train leg on screen (H3 card, H4, H5 active route), or on H1 when a recent trip (T9) uses the line. Never shown for lines the user is not taking.
+
+Look: the §5.7 info banner with the left rule in **`c-saffron`** (8 px) instead of jade, `c-surface` fill, `train-off` icon (new) in `c-ink` on a 44 px `c-saffron-soft` disc, and the affected **line tag** (stripe + code, D7) inline in the title. Text: `c-ink` / `c-ink-2` (≥ 9.3:1 both themes).
+
+| Part | zh | en |
+|---|---|---|
+| Title (stopped) | [NE] 东北线 有些站暂时没有地铁 | [NE] North East Line: no trains at some stations |
+| Title (delay; LTA message contains "delay") | [NE] 东北线 地铁会慢一些 | [NE] North East Line: trains are running slowly |
+| Line 1 | {from 站} 到 {to 站}，往 {direction} 方向 | {from} to {to}, towards {direction} |
+| Line 2 (if `freePublicBus`) | 这些站有免费巴士：{codes}。跟着“免费接驳巴士”的牌子走。 | Free buses at {codes}. Follow the “Free bridging bus” signs. |
+| Primary (56 px, `route`) | 找别的路 | Find another way |
+| Quiet link | 看 LTA 的通知 | Read the LTA notice |
+
+- Station names follow T7 (zh name + code). `{direction}` is the LTA direction station, T7 rule.
+- **Where it sits:** H3: above the cards; the affected card gets a facts-row line `[NE] 有些站没有地铁 / [NE] no trains at some stations` and loses the 推荐 tag (the best non-affected card takes it). H4: under the title. H5: **inside the top band** (6c.0), so it never covers the map; at 200% the band yields as in 6c.8 (map ≥ 160 px), and if there isn't room the banner collapses to its title + button and Line 1–2 move to a trip note on the step card.
+- **LTA notice sheet:** title 交通管理局（LTA）的通知 / Notice from LTA (LTA) → the latest `messages[].text` verbatim in English (`body`, `lang="en"`), each with its time (`caption`, e.g. 下午 5:10 / 5:10 pm) → caption 原文是英文。/ The notice is in English, as published. → **找别的路** primary. Back → screen below.
+- **When it clears** (`status: normal` or the line is no longer listed): banner removed, toast `{line} 恢复正常了 / The {line} is running normally again` (`train` icon), polite.
+- Moments: first time the banner appears for the **active trip** (H5): haptic `attention`, voice "{line}有些站暂时没有地铁。要找别的路，就按“找别的路”。/ No trains at some {line} stations. To go another way, tap Find another way." Polite (not assertive: no immediate danger), once per disruption. On H3/H4: no haptic, no voice, polite announcement of the title.
+- SR: banner is `role="region"` `aria-label` = the title text with the line name spelled out (never just "NE").
+- `data-testid`: `disruption`, `disruption-find`, `disruption-notice`. Baselines: `T3-h3`, `T3-h4`, `T3-h5`, `T3-h5-200`, `T3-notice`, `T3-cleared`.
+
+### 6d.4 T4 "Find another way" flow
+1. Tap **找别的路** → H3 in `reroute` mode (history entry; Back → where the user came from). From = the current position (H5) or the original From (H3/H4).
+2. Loading (F3 skeleton) with the line `我在找不坐 {line} 的路… / Finding a way without the {line}…` (spinner, `aria-busy`).
+3. Results: the H3 title becomes 换一条路去 {dest} / Another way to {dest}. Above the cards a jade-rule note: `这些路不经过 {line} 有问题的站。/ These ways avoid the affected {line} stations.` Cards are the normal §5.2 cards (max 3). If LTA lists free buses for the stretch, a card may be the bridging bus route; it carries the tag `免费接驳巴士 / Free bridging bus` and the note `上车时不用付钱。/ No fare on this bus.`
+4. Pick a card → H4 → Start, or in-trip → straight to H5 with the new route (the G6 "end your current trip" sheet is **not** shown: it is the same trip). Haptic `confirm`. Voice: the new first headline. Toast `换好路了 / New way ready` (`route` icon).
+5. No alternative: F3 `none` with the M4 additions (show a driver → H10, call family, 6e.3).
+- Offline: the button shows the 6c.8 offline note instead (no new copy).
+- `data-testid`: `reroute-results`. Baselines: `T4-loading`, `T4-results`, `T4-none`.
+
+### 6d.5 T5 MRT exit hint (`.exittag`)
+Data: the curated exit table (Dev data round). **Only shown when the table has an exit for the destination** (or for the walk leg's first point within 80 m of an exit); otherwise no hint (never guessed).
+
+- **Exit tag:** a square `c-saffron` badge with the exit letter/number in `c-on-saffron` 900 (12.1:1; saffron = "get off / way out" across the app), min 40 × 40 px, `r-s`, `aria-hidden` (the text says it). Exit codes print exactly as the sign: `B`, `A1`, `E`.
+- **Alight step (train, H5)** sub-line, after the platform line: `出站时走 [B] 出口 / Use Exit [B] when you leave`.
+- **Walk step after the station (H5)**, the headline becomes: `从 [B] 出口出来 / Use Exit [B]`; sign chip = the exit sign text as printed, e.g. `B · Tan Tock Seng Hospital`; sub-line: `出站后，往 {landmark} 方向走 / After the gates, head towards {landmark}` (only if the table has a landmark; else `出了闸门，找写着 B 的黄色牌子 / After the gates, look for the sign marked B`). *(Director: "yellow" describes SMRT/SBS exit signage; confirm before release or drop the colour word.)*
+- **H4 timeline** train row: `… 在 诺维娜 NS20 下车 · 走 [B] 出口 / … get off at Novena NS20 · Exit [B]`.
+- **G1 pocket view** walk line: `从 B 出口出来 / Use Exit B`.
+- Voice at the alight step (after the 6c.14 line): "出站时走 B 出口。/ Use Exit B when you leave." At the walk step: "从 B 出口出来。/ Use Exit B." (letters spoken as letters: `B`, `A 1`.)
+- SR: "从 B 出口出来，出口牌子上写着 B，Tan Tock Seng Hospital。" / "Use Exit B. The sign says B, Tan Tock Seng Hospital."
+- Lift exits: the table may later flag lifts; until then **no lift claims** (D-8).
+- Baselines: `T5-alight`, `T5-walk`, `T5-h4`.
+
+### 6d.6 T6 Transfer step card (MRT line change)
+A walk step whose `to` is a platform of another line inside the same station complex (engine `transfer`; haptic `confirm`, 6c.13).
+
+| Part | zh | en |
+|---|---|---|
+| Meta | 换车 · 第 3 步，共 6 步 | Change trains · Step 3 of 6 |
+| Icon tile | `walk` on `c-primary-soft` + a 28 px line tag of the **next** line overlapping its corner | |
+| Headline (`step`) | 换车：走到 [CC] 环线 月台 | Change: walk to the [CC] Circle Line platform |
+| Sign chip (two lines, as on the station signs) | [CC] Circle Line · 往 HarbourFront 方向 | [CC] Circle Line · towards HarbourFront |
+| Sub-line | 跟着 [CC] 的牌子走，大约 {n} 分钟。不用出闸门。 | Follow the [CC] signs, about {n} min. You don't need to go out through the gates. |
+| Sub-line (out-of-system transfer, e.g. Bras Basah ⇄ Bencoolen) | 要先出闸门，再进去。用同一张卡，车费会连起来算。 | You'll go out through the gates and in again. Use the same card; the fare continues. |
+| Next line | 然后坐 [CC] 往 港湾 HarbourFront 方向，坐 {n} 站 | Then take [CC] towards HarbourFront, {n} stops |
+
+- The **towards** text is the terminus as printed on the platform (T7). If the engine can't name the terminus, the line reads `跟着 [CC] 的牌子走 / Follow the [CC] signs` only.
+- Interchange stations with two directions on one platform (e.g. cross-platform at Jurong East): sub-line `在对面的月台上车 / Board from the platform across` only when the table says so.
+- Voice (trip language): "换车。跟着环线的牌子走，坐往港湾方向的地铁。/ Change trains. Follow the Circle Line signs, towards HarbourFront." — line names are spoken as names, never codes.
+- H4 timeline: a transfer row between the two train rows: `walk` icon · `在 {station} 换 [CC] 环线 · 大约 {n} 分钟 / Change to [CC] Circle Line at {station} · about {n} min`.
+- SR: the card's headline and sign chip are read with the line code expanded ("CC 环线" → "环线"; en "Circle Line").
+- Baselines: `T6-transfer`, `T6-transfer-out`, `T6-h4`.
+
+#### 6d.6b Circle Line loop: boarding copy (replaces `step.board_train.loop*`, Director request)
+The CCL has no terminus, and 顺时针 / 逆时针 ("clockwise / anticlockwise") is not how seniors (or the platform signs) think about a train. **Lead with a station name they can find on the platform sign: the next interchange in the direction of travel (`{via}`), as zh name + English sign text (T7). Never show or speak clockwise/anticlockwise.**
+
+| Key | zh | en |
+|---|---|---|
+| `step.board_train.loop` (headline) | 坐 [CC] 环线，往 **{via_zh}** {via_en} 方向 | Take the [CC] Circle Line towards **{via_en}** |
+| `step.board_train.loop.transfer` (headline) | 换车：坐 [CC] 环线，往 **{via_zh}** {via_en} 方向 | Change to the [CC] Circle Line towards **{via_en}** |
+| Sign chip | `Circle Line · {via_en}` | `Circle Line · {via_en}` |
+| Sub-line (always, confirms the side) | 这个方向的下一站是 {next_zh} {next_en}。 | In this direction, the next stop is {next_en}. |
+| Voice | 坐环线，往{via_zh}方向。下一站是{next_zh}。 | Take the Circle Line towards {via_en}. The next stop is {next_en}. |
+| Fallback (no `{via}` known) headline | 坐 [CC] 环线，下一站是 **{next_zh}** {next_en} | Take the [CC] Circle Line. The next stop is **{next_en}** |
+
+- Example (from Bishan CC15, heading south): zh 坐 [CC] 环线，往 **实龙岗** Serangoon 方向 · sub 这个方向的下一站是 罗弄泉 Lorong Chuan。 en Take the [CC] Circle Line towards **Serangoon** · In this direction, the next stop is Lorong Chuan.
+- `{via}` = the next interchange station in the direction of travel (as on the CCL platform signs), even if the user gets off before it; the next-stop sub-line is what confirms the side. If the user's alight station **is** that interchange, the headline still names it (it's both).
+- `{direction}` (顺时针 / 逆时针) stays internal (engine/debug); it is not a UI string in either language. Dev: drop it from the two keys, or keep it out of rendered output.
+- No-zh-name rule (T7) applies to `{via}` and `{next}`: English only, never translated.
+- SR: "坐环线，往实龙岗方向，下一站罗弄泉" / "Take the Circle Line towards Serangoon, next stop Lorong Chuan".
+- Baselines: `T6-ccl-board`, `T6-ccl-transfer`.
+
+### 6d.7 T7 Station names display rule (zh name + code + English sign text)
+Singapore station signs show the **English name**, the **Chinese name** and the **code**. Seniors must be able to match the screen to the sign. Rule:
+
+| Context | zh UI | en UI |
+|---|---|---|
+| Primary mention (step headline, H4 row, alert sign chip) | **诺维娜** [NS20] · `Novena` — zh name in the role's weight, then the line tag with the code, then the English sign text in `caption` (`lang="en"`) | **Novena** [NS20] (zh name hidden) |
+| Sign chip (§5.3) — what to look for on the platform | `Novena · 诺维娜 NS20` (exactly as on the sign: English first) | `Novena NS20` |
+| Towards (direction) | 往 **滨海南码头** Marina South Pier 方向 | towards **Marina South Pier** |
+| Voice | zh name only: "在诺维娜下车。" (TTS reads codes badly) | English name only |
+| SR | zh name + "NS20" (spelled "N S 20") | English name + code |
+| No zh name in the table | English name only, in both UIs, **never machine-translated** | — |
+| Interchange with several codes | All codes as tags, the one for the line in use first: [NS24] [NE6] [CC1] | the same |
+| LRT | as MRT, line tag `LRT` (`line-lrt`) + code `BP6` | |
+
+- **Bus stops:** SG bus-stop signs are English only. Show the English stop name as printed (`Opp Shaw Plaza`) + the 5-digit stop code in `caption`: `车站编号 53009 / Stop 53009` (printed on the pole). A zh name is added only for known landmarks from the same table (e.g. `Tan Tock Seng Hosp · 陈笃生医院`).
+- The zh name table is the Dev data round (`src/shared/data`); this rule is how it displays.
+- Baselines: covered by T5/T6 and the existing H5 MRT frames re-shot with codes.
+
+### 6d.8 T8 Fare estimate + concession note (H3, H4)
+Only when the OneMap itinerary has a fare (`fare` string); otherwise nothing is shown (no "unknown").
+- **H3 card facts row**, after walk total: `card` icon (new) + `约 $1.19 / About $1.19`. SR: "车费大约 1 块 1 毛 9" → simpler and safe: "车费大约 1.19 元" / "Fare about 1 dollar 19".
+- **H3 note** (the existing honest-note style, `card` icon), once under the cards: `车费是成人卡的价钱。用乐龄卡（Senior Citizen concession card）会更便宜。/ Fares shown are adult card fares. With a Senior Citizen concession card you pay less.`
+- **H4** under the title line: `车费 约 $1.19（成人卡）· 乐龄卡更便宜 / Fare about $1.19 (adult card) · less with a senior card`.
+- Settings → 出行 / Travel (M3): **我有乐龄卡 / I have a senior concession card** (开 / 关, default 关). When on, the note reads `你用乐龄卡，车费会比这里写的便宜。/ You use a senior card, so you'll pay less than shown.` We do **not** compute the concession fare (no reliable source; Director to confirm if a fare table appears).
+- Never on H5 (not useful mid-trip). Never in voice.
+- Baselines: `T8-h3`, `T8-h4`, `T8-h3-concession`.
+
+### 6d.9 T9 Recent trips (H1, H2)
+Stored on the device only (max 10, newest first; a trip is recorded when it **starts**, deduped on from+to).
+- **H1:** a section under the tiles, before the help row: header `最近的行程 / Recent trips` (`label`, ink-2) + up to **3** rows (`.ritem`, 72 px): `clock` icon · `去 陈笃生医院 / To Tan Tock Seng Hospital` (`headline`) · `从 家 · 上星期二 / From Home · last Tuesday` (`caption`) · chevron. Tap → H3 to that destination **from where the user is now** (the row's From is a memory aid). If the user is within 300 m of the destination → the F5 "already here" toast pattern: `你现在就在 {dest} 附近。/ You're already near {dest}.`
+- Rows whose route uses a disrupted line show the line tag + `有些站没有地铁 / No trains at some stations` as a second caption line (T3).
+- Hidden when empty (no empty state on H1). Saved places (tiles) never appear as recent rows (no duplication); trips **to** a saved place do, because the From differs.
+- **H2:** the existing `最近去过 / Recent` list shows recent **destinations** (from the same store), max 5.
+- **Settings → 隐私 / Privacy:** `清除最近的行程 / Clear recent trips` (secondary 56 px, `trash`) → confirm sheet `要清除最近的行程吗？/ Clear recent trips?` · `这只会清除这部手机上的记录。/ This only clears the list on this phone.` · **清除 / Clear** (secondary) · **不用了 / Keep them** (primary). Toast `清除了 / Cleared`.
+- Relative dates: 今天 / Today · 昨天 / Yesterday · 星期X / {weekday} (within 6 days) · 上星期X / last {weekday} · else `11月3日 / 3 Nov`.
+- SR: one label per row: "去陈笃生医院，从家出发，上星期二。" / "To Tan Tock Seng Hospital, from Home, last Tuesday."
+- `data-testid`: `recent-trips`, `recent-trip-{i}`, `clear-recent`. Baselines: `T9-home`, `T9-home-disrupted`, `T9-clear`.
+
+### 6d.10 New items needing Director approval (M3)
+- **Icons** (24 grid, 2.2 stroke, as §1.4): `seat`, `stand`, `full`, `wheelchair`, `wheelchair-no`, `deck2`, `train-off`, `card` (fare card). Eight.
+- **Components** (existing tokens only): `.loadtag` (6d.2), `.exittag` (6d.5), `.banner.warn` (saffron-rule banner variant, 6d.3), arrival chip states `estimated` / `nodata` / `lastgone` / `notrunning`.
+- **Settings rows (M3):** 出行 / Travel: 我用轮椅或助行器 · 我有乐龄卡; 隐私 / Privacy: 清除最近的行程.
+- **Data asks (Dev / PM, not Creative calls):** the Worker's BusArrival response needs LTA `Monitored` (for `estimated`); BusRoutes `FirstBus`/`LastBus` per stop and day type (for `lastgone` / `notrunning`); the exit table with sign text and optional landmark; terminus names as printed.
+- **No new tokens.**
+
+## 6e. M4 share and safety
+
+Frames for the M4 build (live share end-to-end, the public family viewer page, Help in full, family contacts, caregiver setup, taxi hand-off). From F8, F12, S2, S7 and ROADMAP M4; the PM's M4 requirements are being written in parallel. Reuse §1 tokens and §5–6c components. **No new colour, type, space, radius or motion tokens.** New icons, components, pages and API asks are listed in 6e.9.
+
+Shared rules (as above, plus):
+- Frame IDs: **P1–P8** (in-app), **V** (family viewer page, its own baselines), **W** (family-side setup page). Baselines: `M4-{frame}-{state}-{light|dark}-{100|200}-{zh|en}.png` at 390×844 DPR 2; the viewer also at **1440×900** (`M4-V-{state}-{light|dark}-1440-{zh|en}.png`).
+- **Honesty about sharing.** We can open WhatsApp with the message ready, but we can't know it was sent or opened. Copy never says "she can see you now"; it says the link is ready / sent. (Replaces the H7 toast; see 6e.1.)
+- **Calm safety copy.** Words like 安全 / safe, 加密 / encrypted appear once, plainly, next to the action they describe. No shields, no alarm red, no "WARNING".
+- Names: `{fam}` = the contact's name as saved (美玲 / Mei Ling); `{me}` = what that contact calls the senior (妈妈 / Mum), set per contact (6e.4). Default `{me}` when unknown: 你的家人 / your family member.
+
+### 6e.1 P1 Share flow end-to-end (replaces H7 copy where they differ)
+Entry points: H4 quiet link `出发前，告诉家人 / Tell family before I go` · H5 map control `share` (SR 分享我的行程 / Share my trip) · Help sheet while not sharing (6e.3) · H12 when not shared (one-off message, below).
+
+**Step 1 — 告诉谁？ / Who should know?** (sheet, history entry)
+- Title 让家人知道你在哪里 / Let family see where you are · lead 他们会看到你在哪里、大约什么时候到。你到了 30 分钟后，分享会自己停止。/ They'll see where you are and about when you'll arrive. Sharing stops by itself 30 minutes after you arrive.
+- Radiogroup of saved contacts (max 5, §5.8 cards: avatar initial, name, relation). The first contact is preselected. Last option: **别的人 / Someone else** (`person` icon), which skips the contact and lets WhatsApp/SMS pick the person.
+- No saved contacts: the radiogroup is replaced by one row **加一个家人的电话 / Add a family phone number** (→ P4 add, then back here with that person selected) and the Someone else option.
+- **Step 2 — 怎么发？ / How to send?** (same sheet, below the radiogroup):
+  1. **用 WhatsApp 发送 / Send by WhatsApp** — jade, `tap-hero` 72. Opens `https://wa.me/{intl number}?text={msg}` (or `https://wa.me/?text=` for Someone else).
+  2. **发短信 / Send a text message** — secondary 64. `sms:{number}?&body={msg}` (iOS `sms:{number}&body=`).
+  3. **用别的方式发 / Send another way** — secondary 56, `share` icon. `navigator.share({ title, text, url })`; hidden where unsupported.
+  4. **复制链接 / Copy link** — quiet, `copy` icon (new). Toast `链接复制好了 / Link copied`.
+  5. Quiet: **看看家人会看到什么 / See what family will see** → the viewer preview (H8 frame = V page inside the app frame).
+  - Lock line (`caption`, `lock`): 只分享这一次的行程。到了以后会自己停止，我们不会保存你的位置。/ Only this trip is shared. It stops by itself after you arrive, and we don't keep your location.
+- **Preparing:** tapping 1–4 first creates the share (POST). The tapped button shows a spinner + `我在准备链接… / Getting the link ready…` (`aria-busy`), ≤ 10 s. If it fails or there is no internet, the sheet shows the 6b state panel inline: `现在发不了 / Can't send right now` · `请检查网络，再试一次。/ Check your internet and try again.` · **再试一次 / Try again** (primary) · **打电话给 {fam} / Call {fam}** (secondary, only with a contact).
+- **Message** (language = the contact's message language, 6e.4; default the app language):
+  - zh: `我正在去 {dest}，大约 {t} 到。按这里看我在哪里：{url} （我到了以后，这个链接会自己停止。）——怎么去?`
+  - en: `I'm on my way to {dest}, arriving about {t}. See where I am: {url} (The link stops by itself after I arrive.) — 怎么去?`
+- **Back in the app** (page visible again after WhatsApp/SMS): sheet closed, pill shown, toast `链接发出去了。{fam} 打开后就看得到你。/ Link sent. {fam} can see you once they open it.` (Someone else: `链接发出去了。对方打开后就看得到你。/ Link sent. They can see you once they open it.`) Haptic `confirm`. Polite.
+- **Also share with another person:** the sharing sheet (below) offers `也发给别人 / Also send to someone else` → step 1 with the same link (no second share).
+- **H12 one-off** (not sharing): `告诉{fam}我到了 / Tell {fam} I've arrived` opens WhatsApp with `我到 {dest} 了。/ I've arrived at {dest}.` — no share is created. The H12 tick reads `已经准备好给 {fam} 的信息 / Message ready for {fam}` (honest: we can't confirm sending).
+- **Back goes to:** step 1 sheet → screen below; the preview → the sheet. Baselines: `P1-choose`, `P1-nocontacts`, `P1-preparing`, `P1-failed`, `P1-sent-toast`.
+
+**Sharing pill states** (§5.6 pill, inside the H5 band, centred; tap → sharing sheet). SR = the visible text + "，按一下管理分享 / , tap to manage sharing".
+
+| State | When | Pill | zh | en |
+|---|---|---|---|---|
+| `sharing` | share alive, last PUT accepted ≤ 60 s ago | `c-jade-soft` / `c-on-jade-soft`, blinking jade dot | 正在分享给 {fam} | Sharing with {fam} |
+| `paused` | no fix or no internet for > 60 s (PUTs failing) | `c-surface-2` / ink, `wifi-off` icon, no dot | 分享暂停：没有信号 | Sharing paused: no signal |
+| `help` | status `help` sent (6e.3) | `c-saffron` / ink, `help` icon | {fam} 知道你需要帮忙 | {fam} knows you need help |
+| `arrived` | status `arrived` sent | jade-soft, `check` icon | 到了 · 分享 {t} 停止 | Arrived · sharing stops at {t} |
+| `ended` | DELETE / auto-end / expiry | pill removed; toast below | | |
+
+- `paused` → `sharing`: no toast (quiet recovery). Polite announcements on state change only.
+- Ended by expiry while still travelling (4 h cap): toast `分享时间到了，已经停止。/ Sharing has reached its time limit and stopped.` + the share sheet offers **再分享一次 / Share again**.
+
+**Sharing sheet** (tap pill or the share control while sharing):
+- Title 正在分享给 {fam} / Sharing with {fam} · lead 你到了 30 分钟后会自己停止，最长 4 小时（到 {t}）。/ Stops by itself 30 minutes after you arrive, at most 4 hours (until {t}).
+- **看看家人会看到什么 / See what family sees** (secondary, `eye`) · **再发一次链接 / Send the link again** (secondary, `msg`; reopens WhatsApp/SMS with the same message) · **也发给别人 / Also send to someone else** (secondary, `family`) · **停止分享 / Stop sharing** (secondary, `close`, last).
+- **Stop sharing** is one tap (no confirm: it is safe and can be redone). DELETE → toast `已经停止分享。{fam} 现在看不到你了。/ Sharing stopped. {fam} can't see you now.` Haptic `confirm`. Voice: none. Offline: queued; the pill shows `正在停止分享… / Stopping sharing…` until the DELETE goes through, and the device stops sending positions at once.
+- **Auto "arrived":** at `arrived_destination` the app PUTs `status: arrived` with the final position. The viewer turns to its `arrived` state (V). H12 tick reads `{fam} 的页面会显示你到了 / {fam}'s page shows you've arrived` (replaces `美玲已经知道你到了`, which we can't know). The share ends 30 min later (Worker alarm). Optional **Web Push** to family who opted in on the viewer (S7) is post-M4 unless the PM pulls it in; the viewer has no push UI until then.
+- Baselines: `P1-pill-sharing`, `P1-pill-paused`, `P1-pill-help`, `P1-pill-arrived`, `P1-sheet-sharing`, `P1-stopped`.
+
+### 6e.2 V Family viewer page `/t/:id` (standalone public web page)
+A plain web page, **no install, no login, no app chrome**. It must work on an older relative's Android phone at 200% browser text, on an iPhone in WhatsApp's in-app browser, and on a desktop. It is the brand's first impression for many families: warm, calm, legible.
+
+**Language:** default = the share's `lang`; a text toggle in the header **English** / **中文** (56 px, SR "Switch to English" / "切换到中文"); the choice is remembered on that browser (`localStorage`, try/catch). `<html lang>` follows.
+**Theme:** follows the OS (`prefers-color-scheme`); no toggle. Same tokens as the app.
+**Header** (60 px, `c-canvas`): logo mark 32 px + `怎么去?` (`label` 900) · language toggle. No other links.
+
+**Phone layout (< 1000 px), top to bottom, `s-5` gutters, max column 560 centred from 600 px:**
+1. **Status block** (`c-surface`, `r-l`, `e-1`, padding 20): avatar initial (`tint-home`) + **status sentence** (`title` 1.5 rem/700, the main message) → **ETA** (`display` 2.1 rem/900 tabular): `约 上午 10:39 到达 / Arriving about 10:39 am` → `还有 16 分钟 / 16 min to go` (`headline`, ink-2) → **step pill** (`c-jade-soft`, icon + `label`), e.g. `在 139 号巴士上，还有 3 站 / On bus 139, 3 stops to go`.
+2. **Live map** (OneMap tiles, MapLibre; 300 px tall at 390, `r-l`, attribution visible): the sharer's puck (§6c.12 style, accuracy circle), the saffron destination dot when coordinates are known, north-up, **auto-fit** to puck + destination; a 56 px `locate` button (SR 回到她的位置 / Back to her position) appears after the viewer pans.
+3. **Last updated** (`caption`, live dot): `刚刚更新 / Updated just now` (≤ 30 s) · `{n} 分钟前更新 / Updated {n} min ago`. Ticks every 15 s, **not** announced.
+4. **Call button**: jade, `tap-hero` 72, `phone` icon: `打电话给{me} / Call {me}` → `tel:{number}`. Shown only when the share carries a number (6e.9 API ask). Without it: no button and no placeholder.
+5. **Footer** (`caption`, centred): `{me}到了 30 分钟后，这个链接会停止（最长 4 小时）。/ This link stops 30 minutes after {me} arrives (4 hours at most).` · `怎么去? 不会保存任何人的位置。/ 怎么去? doesn't keep anyone's location.`
+
+**Desktop (≥ 1000 px):** two panes, full height: left column 440 px (status block, last updated, call button, footer, scrolls) · right: the map fills the rest (min 560 px wide) with `r-l` corners and a 24 px margin. At 1440 the status sentence and ETA stay the same rem sizes (no hero scaling; calm). `max-width: 1600px` centred beyond.
+
+**States** (status sentence · ETA · pill · map · call · extras). `{dest}` = destName.
+
+| State | Trigger | Status sentence zh / en | Below |
+|---|---|---|---|
+| `loading` | before the first GET answers | — | Skeleton blocks + `正在打开… / Opening…` (`aria-busy`) |
+| `waiting` | `status: waiting` (no PUT yet) | {me}还没出发 / {me} hasn't set off yet | Line `她出发后，这里会显示她在哪里。/ Once she sets off, you'll see where she is here.` (en: "Once they set off, you'll see where they are here.") · destination card `要去：{dest} / Going to: {dest}` · no ETA, no map · call button |
+| `walk` | travelling, step walk | {me}正在去 {dest} / {me} is on the way to {dest} | ETA · pill `walk` `正在走路去 {place} / Walking to {place}` · map · call |
+| `wait` | travelling, step wait | (same) | pill `clock` `在 {stop} 等 {svc} 号巴士 / Waiting at {stop} for bus {svc}` (train: `在 {station} 等地铁 / Waiting for the train at {station}`) |
+| `bus` | travelling, ride bus | (same) | pill `bus` `在 {svc} 号巴士上，还有 {n} 站 / On bus {svc}, {n} stops to go` |
+| `train` | travelling, ride train | (same) | pill `train` `在地铁上，往 {towards} 方向，还有 {n} 站 / On the train towards {towards}, {n} stops to go` (station names per T7) |
+| `help` | `status: help` | **{me}按了“帮忙” / {me} tapped Help** | A **saffron panel** replaces the status block's top (`c-saffron` fill, ink text 12.1:1, `help` icon in an ink disc): title as left, line `她可能需要你。请打电话给她。/ She may need you. Please give her a call.` (en neutral: "They may need you. Please give them a call.") · the **call button moves into the panel** (ink fill, saffron text, 72 px) · then `她现在在 {near} 附近 / She's near {near} now` (revgeocode; hidden if none) · map · last updated. No red, no siren, no flashing. |
+| `helpcleared` | `help` → `travelling` | jade-soft note at the top for 5 min: `{me}说她没事了。/ {me} says she's okay now.` | then the normal travelling state |
+| `arrived` | `status: arrived` | **{me}已经到了 {dest} / {me} has arrived at {dest}** | jade check disc (64 px) with one saffron-dot ripple (static under reduce motion) · `{t} 到的 / Arrived at {t}` · map with the final position · `分享会在 {t+30} 停止 / Sharing stops at {t+30}` · call |
+| `nosignal` | `status: paused`, or `updatedAt` > 2 min old while travelling | {me}的手机暂时没有信号 / {me}'s phone has no signal right now | `c-surface-2` note, `wifi-off`: `最后位置：{near} 附近，{n} 分钟前 / Last seen near {near}, {n} min ago` · `在地铁里或大楼里常常这样，信号回来后会自己更新。/ This often happens in the MRT or inside buildings. It will update by itself when the signal returns.` · ETA kept with 约 and `（可能有变化）/ (may change)` · puck grey (6c.12) · call |
+| `ended` | `410 share_ended` / ws `ended`, not after arrival | {me}停止了分享 / {me} stopped sharing | `想知道她在哪里，可以打电话给她。/ To find out where she is, you can call her.` · no map, no last position (it was deleted) · call (if number known from earlier state) |
+| `endedArrived` | ended after `arrived` | {me}已经到了 {dest}。分享结束了。/ {me} arrived at {dest}. Sharing has ended. | jade check · no map |
+| `expired` | `410 share_expired` / ws `expired` | 这个链接已经过期了 / This link has expired | `分享最长 4 小时。可以请{me}再发一个。/ Sharing lasts 4 hours at most. You can ask {me} for a new one.` · no map |
+| `invalid` | `404` / malformed id | 找不到这个链接 / We can't find this link | `请检查链接是否完整，或请家人再发一次。/ Check the whole link was copied, or ask your family member to send it again.` · no map, no call |
+| `offline` (viewer's own internet) | WebSocket closed and GET fails | a top note on any state: `你的网络断了，正在重新连接… / Your internet dropped. Reconnecting…` (`wifi-off`, spinner) | the last state stays on screen, last-updated keeps ticking honestly |
+
+- Pronouns: zh uses 她/他 only when the contact record says so; default zh "TA" is avoided by repeating `{me}`. en uses "they" unless set. (The share carries `senderName` and an optional pronoun, 6e.9.)
+- **Updates:** WebSocket `/api/share/:id/live`; reconnect with backoff (1, 2, 5, 10, 30 s). Each `state` message updates in place without layout jumps (fixed-height ETA line).
+- **Page title** (tab): `{me}正在去 {dest} · 怎么去?` → help: `{me}按了帮忙 · 怎么去?` → arrived: `{me}到了 · 怎么去?`. No title flashing.
+- **Link preview (WhatsApp/OG):** generic and location-free: `og:title` `家人的行程 · 怎么去? / A family member's trip · 怎么去?`, `og:description` `看看家人现在在哪里，大约什么时候到。/ See where your family member is and about when they'll arrive.`, `og:image` = the logo icon. **Never** the destination or name in OG (previews are cached by WhatsApp servers). `robots: noindex, nofollow`.
+- **Live regions:** polite = status sentence + pill on **state change** only. Assertive = `help` once ("{me}按了帮忙。她可能需要你。"). The last-updated ticker is `aria-live="off"`.
+- **Haptics (viewer, Android only):** `attention` once on entering `help`; `confirm` once on `arrived`. Nothing else. **Voice:** none.
+- **200% (browser text zoom / 2× root):** single column at every width below 1000; the ETA wraps under itself; the call button stays full width; the map keeps ≥ 240 px height; no horizontal scroll.
+- **Reduce motion:** the live dot is solid, the arrival ripple is static, the map camera jumps.
+- **Back:** browser default (no in-page Back). Links to the app: none (the family member doesn't need it). A small quiet footer link `这是什么？/ What is this?` opens an in-page `details` with two sentences about 怎么去? (no store links).
+- `data-testid`: `viewer` with `data-state`, `viewer-call`, `viewer-lang`. Baselines: `M4-V-{loading|waiting|walk|wait|bus|train|help|helpcleared|arrived|nosignal|ended|endedArrived|expired|invalid|offline}-{light|dark}-{390|1440}-{zh|en}`, plus `-200` at 390 for `bus`, `help`, `nosignal`.
+
+### 6e.3 P2 Help sheet, full (replaces §5.9 / H9 for M4)
+Title 别担心，我来帮你 / Don't worry, I'm here to help. Fixed order:
+1. **打电话给{fam} / Call {fam}** (jade disc, `phone`): sub `{relation} · 一按就打 / {relation} · one tap to call`; while sharing the sub reads `一按就打，她的页面也会显示你需要帮忙 / One tap to call. Her page will also show you need help` (honest about what the tap does). → `tel:` directly. With 2+ contacts, a second row **打给别的家人 / Call someone else** → P4 list in call mode. No contacts: the row is **加一个家人的电话 / Add a family phone number** → P4 add.
+2. **给司机看地址 / Show the driver** (saffron disc, `car`): sub `大字显示，也可以叫车 / Big address, or book a ride` → H10 + taxi hand-off (6e.6).
+3. **我在哪里？/ Where am I?** (`loc`): → H10 `here` tab, which gains **把我的位置发给{fam} / Send my location to {fam}** (secondary, WhatsApp with `我在这里：{address} {maps link}` / `I'm here: {address} {maps link}`).
+4. **帮我重新找路 / Find my way again** (`route`, trip only): → re-plan from here (H11 found / 6c.8). Not on a trip: **带我回家 / Take me home** (`home`) → H3 to Home.
+5. **紧急情况 · 拨打 995 / Emergency · Call 995** (danger outline, last). → confirm sheet: title `要打 995 吗？/ Call 995?` · `995 是救护车和消防。/ 995 is for an ambulance or the fire service.` · **拨打 995 / Call 995** (the **only** `c-danger` fill in the app, `c-on-danger`, 72 px) · **不用了 / No, go back** (secondary). Back = No.
+- **Help status:** when sharing, tapping 1 or confirming 5 PUTs `status: help` (bypasses the rate limit, D-7). The pill turns `help` and a trip note appears on the step card (6c.10, `help` icon): `{fam} 的页面显示你需要帮忙。/ {fam}'s page shows you need help.` + button **我没事了 / I'm okay now** (secondary 56) → PUT `travelling`, pill back to sharing, toast `好的，已经告诉{fam}你没事了。/ Okay, {fam}'s page now shows you're okay.` Opening the sheet alone never sends `help`.
+- Haptic: `tick` on open; `confirm` on each action. Voice: none (the user is reading). SR: each row's name = title + sub.
+- **Back goes to:** the screen underneath; confirm sheet → Help.
+- Baselines: `P2-trip-sharing`, `P2-home`, `P2-nocontacts`, `P2-995confirm`, `P2-helpnote`.
+
+### 6e.4 P3–P4 Family contacts (saved on the device)
+**P3 list** — `家人的电话 / Family phone numbers`, from Settings → 家人 / Family, and from Help/Share when empty.
+- Lead: `有事的时候，一按就能打给他们。/ So you can call them with one tap when you need to.`
+- Rows (max 5; `r-m` surface cards, ≥ 84 px): avatar initial (tint by order) · name (`headline`) + `{relation} · {phone formatted +65 9123 4567}` (`caption`, tabular) · first row has the tag `最先打给 TA / Called first` (`label` on `c-jade-soft`) · **call** 56 px jade round button (`phone`, SR `打电话给 {name} / Call {name}`) · **edit** 56 px round surface button (`edit` icon, new; SR `改 {name} 的资料 / Edit {name}`).
+- Under the list: **加一个家人 / Add a family member** (dashed 72 px row, `plus`; replaced at 5 by caption `最多 5 个人 / Up to 5 people`) · **让家人帮我设置 / Let family set it up for me** (quiet → P5).
+- Lock line: `家人的电话只存在这部手机里。/ Family numbers stay on this phone only.`
+- Reorder: on the edit screen, `设为最先打给 TA / Make them first to call` (secondary). No drag.
+
+**P4 add / edit** (screen, history entry). Title `加一个家人 / Add a family member` or `改 {name} 的资料 / Edit {name}`.
+- **从手机通讯录选 / Pick from my contacts** (secondary 56, `family`) — Contact Picker API (Android Chrome); hidden where unsupported. Fills name + number.
+- Fields (labels above, `label` 700; inputs 64 px, `body` 1rem+, `r-m`, 2 px `c-line` border, 3 px focus ring):
+  1. `名字 / Name` (required) — placeholder `比如：美玲 / e.g. Mei Ling`.
+  2. `TA 是你的… / They are your…` — chip radio (56 px, wraps): 女儿 Daughter · 儿子 Son · 太太 Wife · 丈夫 Husband · 孙子 / 孙女 Grandchild · 朋友 Friend · 邻居 Neighbour · 其他 Other.
+  3. `电话号码 / Phone number` (required) — `type="tel"`, `inputmode="tel"`, a fixed `+65` prefix block; accepts an 8-digit SG number or a full `+` international number.
+  4. `TA 叫你什么？/ What do they call you?` — placeholder `比如：妈妈 / e.g. Mum`; helper `在他们看到的页面上用。/ Used on the page they see.`
+  5. `发给 TA 的信息用 / Messages to them in` — seg `中文 / English`.
+- **保存 / Save** (primary 72, `check`) · edit only: **删掉 {name} / Remove {name}** (quiet) → confirm sheet `要删掉 {name} 吗？/ Remove {name}?` · **删掉 / Remove** (secondary) · **不用了 / Keep** (primary).
+- **Validation** (on Save, never while typing; calm, `c-ink` text with the `info` icon, field border 3 px `c-ink`; no red): name empty `请写一个名字 / Please add a name` · phone short `这个号码好像少了几个数字 / This number seems to be missing some digits` · not SG and no `+` `新加坡号码是 8 个数字，外国号码请用 + 开头 / Singapore numbers have 8 digits. For other countries, start with +`. Focus moves to the first field with a note; polite announcement.
+- Toasts: `存好了 / Saved` · `删掉了 / Removed`. Haptic `confirm`.
+- **Back goes to:** P3 (unsaved changes are kept as a draft for this session; no "discard?" dialog).
+- `data-testid`: `contacts`, `contact-call-{i}`, `contact-edit-{i}`, `contact-add`, `contact-save`. Baselines: `P3-list`, `P3-empty`, `P4-add`, `P4-edit`, `P4-invalid`, `P4-remove`.
+
+### 6e.5 P5 Caregiver setup (senior side) and W family-side page
+**Model:** the senior's phone shows a QR; a family member scans it with their own phone (or opens the same link sent by WhatsApp), fills in places and contacts on a web page, and sends them back. The senior's phone shows what arrived and applies it **only after one big confirm**. The data is end-to-end encrypted with a key that lives only in the QR/link fragment (`#k=`), never sent to our server. One-time, 30 minutes. *(Needs a small Worker relay; 6e.9.)*
+
+**P5a Show the code** (screen; from Settings → 家人 / Family, P3, F1 page 3, and the H1 "Add a place" empty tile)
+- Title `让家人帮你设置 / Let family set it up for you`.
+- Lead: `请家人用他们的手机扫这个二维码。他们可以帮你加常去的地方和家人的电话。/ Ask a family member to scan this code with their phone. They can add your places and family phone numbers.`
+- QR: always black on white (`#1D1915` on `#FFFFFF`, like the H10 address card, both themes), 240 px min (280 at 390 if space), 16 px quiet zone, `r-m` white card. `aria-label`: `设置用的二维码 / Setup code`.
+- `或者把链接发给他们 / Or send them the link`: **用 WhatsApp 发送 / Send by WhatsApp** (jade 72) · **复制链接 / Copy link** (quiet).
+- Status line (polite, `role="status"`): `等家人打开… / Waiting for your family to open it…` (spinner) → `家人正在填 / Your family member is filling it in` (when the page connects) → arrives → P5b.
+- Lock line: `只有你的手机能打开他们填的资料。这个二维码 30 分钟后就不能用了。/ Only your phone can open what they fill in. This code stops working after 30 minutes.`
+- Expired: the QR is replaced by the 6b state panel `这个二维码过期了 / This code has expired` · **再做一个 / Make a new one** (primary).
+- Screen kept awake while shown (Wake Lock). Back → where it came from (the session is cancelled).
+
+**P5b Review and confirm** (screen, replaces P5a in history)
+- Title `{家人} 帮你设置好了 / {fam} has set things up for you` (from the sender name in the payload; else `家人帮你设置好了 / Your family has set things up`).
+- Sections, each a surface card: `常去的地方 / Places` (mini tiles: icon + name + address) · `家人的电话 / Family phone numbers` (rows: name, relation, number) · `问好 / Greeting`: `早上好，{name} / Good morning, {name}` · `语言和字体 / Language and text size`.
+- Replacements are named, never silent: `会换掉现在的“家” / This replaces your current Home` (`caption` with `info` icon) under the affected item.
+- **好，用这些 / Yes, use these** — primary `tap-hero` 72, `check`, full width, pinned at the bottom (sticky at 200%).
+- **不用了 / No thanks** — secondary 56.
+- Caption: `以后可以在“设置”里改。家人不能从远处改你的手机，每次都要你按“好”。/ You can change these later in Settings. Family can't change your phone from far away; you always tap Yes first.`
+- On Yes: apply, haptic `confirm`, toast `设置好了！/ All set!`, → H1 (with the new tiles and greeting). Voice: none. On No: nothing applied, toast `没有改动 / Nothing changed`, → where P5a was opened.
+- Arrival of the data: haptic `attention`, polite announcement of the title, voice (if on) speaks the title + `看一看，没问题就按“好，用这些”。/ Have a look, and if it's right, tap Yes, use these.`
+- **Back goes to:** = No thanks (nothing applied).
+
+**W Family-side setup page** (`/s/:id#k=…`, standalone like V; same header, language toggle, OS theme)
+- Title `帮家人设置 怎么去? / Set up 怎么去? for your family`.
+- Lead: `你填的资料会加密，只有那部手机能打开。我们不会保存。/ What you fill in is encrypted so only that phone can open it. We don't keep it.`
+- Form (single column, `r-l` sections, 64 px inputs): 1 `TA 的名字（用来问好）/ Their name (for the greeting)` e.g. 林阿姨 · 2 `家 / Home` (address search, OneMap) · 3 `常去的地方 / Places they go` (max 5: label chips 诊所 / 巴刹 / 女儿家 / 其他 + address search; `plus` add) · 4 `家人的电话 / Family phone numbers` (max 5; same fields as P4 incl. "what they call you" and message language; the first is called first) · 5 `语言和字体 / Language and text size` (seg 中文/English; 100/125/150/200%) · `你的名字 / Your name` (shown on their review screen).
+- **发送到 TA 的手机 / Send to their phone** (primary 72). Then: `发好了。请 TA 在手机上按“好，用这些”。/ Sent. Ask them to tap "Yes, use these" on their phone.` Expired/used: `这个设置码已经用过或过期了。请在 TA 的手机上再打开一次。/ This setup code has been used or has expired. Open it again on their phone.`
+- Desktop: centred 640 px column. 200%: single column, nothing truncates.
+- Baselines: `P5a-code`, `P5a-filling`, `P5a-expired`, `P5b-review`, `M4-W-form`, `M4-W-sent`, `M4-W-expired` (+ 1440 for `W-form`).
+
+### 6e.6 P6 Taxi hand-off (H10 additions)
+Under the always-light address card on H10 (all tabs), a button stack (`s-3` apart):
+- **用 Grab 叫车 / Book with Grab** — secondary 64, `car` icon. Android: `intent://open?…#Intent;scheme=grab;package=com.grabtaxi.passenger;S.browser_fallback_url=https%3A%2F%2Fwww.grab.com%2Fsg%2Ftransport%2F;end` with the drop-off prefilled when the deep link supports it (⚠ to verify); iOS: try `grab://` and, if the page is still visible after 1.5 s, show the caption `好像没有 Grab。可以用下面的方法。/ Grab doesn't seem to be on this phone. Try the options below.`
+- **用 CDG Zig 叫车 / Book with CDG Zig** — secondary 64, `car`. Opens the ComfortDelGro Zig page (web link; the app if installed).
+- **打电话叫德士 / Call for a taxi** — quiet, `phone`: `6552 1111（ComfortDelGro）` (⚠ Director to verify the number before release).
+- Caption (`info`): `叫车会打开别的应用，车费由他们收。拦德士时，把上面的地址给司机看。/ Booking opens another app, and they charge the fare. If you stop a taxi, show the driver the address above.`
+- The address card stays first and unchanged (always light, 17.5:1), Wake Lock on, landscape allowed. The buttons are below the fold at 200%; the card is never pushed off by them.
+- H3 `none` state (6b F3) gains **给司机看地址 / Show the driver** (secondary) → H10 去目的地.
+- Haptic `tick`. SR: names = visible text. Baselines: `P6-dest`, `P6-ios-nograb`, `H3-none-m4`.
+
+### 6e.7 P7 Home and Settings in M4
+- **H1 help row** sub-line uses the first contact: `打电话给{fam}，或给司机看地址 / Call {fam}, or show a driver your address`; no contacts: `加一个家人的电话，有事一按就打 / Add a family number to call with one tap`.
+- **Settings** gains: `家人 / Family` → P3 · `让家人帮我设置 / Let family set it up for me` → P5a · (M3) 出行 / Travel · 隐私 / Privacy rows.
+- Baselines: `P7-home-contacts`, `P7-settings`.
+
+### 6e.8 Voice and haptics added in M4
+| Moment | zh | en | Haptic |
+|---|---|---|---|
+| Share link sent (back in app) | — (toast only) | — | `confirm` |
+| Sharing stopped | — | — | `confirm` |
+| Setup arrived (P5b) | {fam}帮你设置好了。看一看，没问题就按“好，用这些”。 | {fam} has set things up for you. Have a look, and if it's right, tap Yes, use these. | `attention` |
+| Setup applied | — | — | `confirm` |
+| Viewer: help | (no voice) | | `attention` (viewer device) |
+| Viewer: arrived | (no voice) | | `confirm` (viewer device) |
+No new haptic names (6c.13 stays the canonical six).
+
+### 6e.9 New items needing Director approval (M4)
+- **Icons:** `copy` (two sheets), `edit` (pencil), `qr` (QR finder squares). Three new icons (adding a person reuses `plus`; contacts reuse `family`). (`wifi-off`, `person`, `info`, `trash` are already approved in 6b.)
+- **Components / pages:** sharing pill states (6e.1); `.viewer` standalone page + desktop two-pane (V); `.qrcard` (always-light code card, like `.card2`); form fields `.field2` (labelled 64 px input + calm note); W setup page.
+- **Copy deviations:** the H7 toast `她现在看得到你` and H12 `美玲已经知道你到了` are replaced by honest versions (6e.1); the H8 footer becomes the 30 min / 4 h line.
+- **API asks (Dev / Director, not Creative calls):** `POST /api/share` gains optional `senderName` (≤ 40, "what they call you"), `callTel` (E.164) and `destLat/destLng`; `PUT` gains optional structured `step` (`{k: walk|wait|bus|train, svc, line, stops, place, towards}`) so the viewer can render either language (until then the viewer shows `stepText` as sent). New **setup relay** (`POST /api/setup`, WS, 30 min TTL, opaque ciphertext only; key in the URL fragment). OG tags for `/t/:id` must be generic (6e.2).
+- **No new tokens.** `c-danger` fill appears only on the 995 confirm button (6e.3); `c-saffron` panel for viewer `help` reuses the get-off colour pair.
+
 ## 7. Parity checklist (prototype ↔ build)
 - [ ] Tokens identical: colour, type, space, radii, motion, haptics.
 - [ ] Back stack per frame, as above, including the D8 end-trip guard.
@@ -698,3 +1082,6 @@ No haptic: `approaching_stop`, `gps_weak`, offline/online, trip notes, H11 `fail
 - [ ] H5: puck and station labels never intersect the top band or the step card (6c.0 rect check, 100% and 200%).
 - [ ] Haptic names are exactly the six in 6c.13; no `tap/notice/get_off/alert/arrived` left in `src/web`.
 - [ ] H6b, pocket view, manual controls, waypoint and resume states match 6c, with Back → End-trip sheet → Back → same state.
+- [ ] M3: every live-data state readable with colour removed (arrival chip, load tags, disruption banner); no guessed exit, fare or station name (6d).
+- [ ] M4: share copy never claims the family has seen it; viewer OG tags carry no name or place; `c-danger` fill only on the 995 confirm (6e).
+- [ ] Viewer `/t/:id`: all 15 states at 390 and 1440, light/dark, zh/en; 200% at 390 without horizontal scroll.
