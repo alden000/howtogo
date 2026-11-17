@@ -198,7 +198,7 @@ describe("CORS, headers, errors", () => {
     expect(res.headers.get("Access-Control-Allow-Headers")).toMatch(/Authorization/);
   });
   it("404 / 405 as JSON", async () => {
-    const r404 = await call("/nope");
+    const r404 = await call("/api/nope");
     expect(r404.status).toBe(404);
     expect(await r404.json()).toEqual({ error: { code: "not_found", message: "Not found." } });
     expect((await call("/api/search?q=x", { method: "POST" })).status).toBe(405);
