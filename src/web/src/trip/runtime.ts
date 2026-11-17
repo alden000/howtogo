@@ -677,10 +677,10 @@ export function createTripRuntime(o: TripRuntimeOptions) {
 
   // ------------------------------------------------------------ live share
   function sharePayload(t: ActiveTrip, share: ShareSession): SharePut | null {
-    const p = toSharePayload(t.guidance);
+    // Worker statuses only (API.md): the user's help/paused wins; a waypoint is still travelling.
+    const status = share.status === 'help' || share.status === 'paused' ? share.status : t.phase === 'waypoint' ? 'travelling' : undefined;
+    const p = toSharePayload(t.guidance, { updatedAt: now(), ...(status ? { status } : {}) });
     if (!p) return null;
-    const status =
-      share.status === 'help' || share.status === 'paused' ? share.status : t.guidance.status === 'arrived' && t.phase !== 'waypoint' ? 'arrived' : 'travelling';
     return {
       lat: p.lat,
       lng: p.lng,
@@ -688,9 +688,9 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       heading: p.heading ?? null,
       speed: p.speed ?? null,
       etaISO: p.etaISO ?? null,
-      stepText: p.stepText ? p.stepText.slice(0, 280) : null,
-      status,
-      updatedAt: now(),
+      stepText: p.stepText ?? null,
+      status: p.status,
+      updatedAt: p.updatedAt,
     };
   }
 

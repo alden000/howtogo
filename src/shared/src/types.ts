@@ -304,6 +304,15 @@ export interface GuidanceState {
   t?: number;
 }
 
+/**
+ * Live-share status: exactly the Worker's accepted values (src/worker/API.md,
+ * PUT /api/share/:id; `STATUSES` in src/worker/src/share.ts). Off route and
+ * weak GPS are still "travelling" for the family page.
+ */
+export type ShareStatus = 'travelling' | 'arrived' | 'paused' | 'help';
+export const SHARE_STATUSES: readonly ShareStatus[] = ['travelling', 'arrived', 'paused', 'help'];
+
+/** Body of PUT /api/share/:id (API.md). */
 export interface SharePayload {
   lat: number;
   lng: number;
@@ -311,6 +320,9 @@ export interface SharePayload {
   heading?: number;
   speed?: number;
   etaISO?: string;
+  /** ≤ 280 chars. */
   stepText?: string;
-  status: 'active' | 'off_route' | 'arrived' | 'gps_weak';
+  status: ShareStatus;
+  /** Epoch ms (the Worker clamps future values). */
+  updatedAt: number;
 }

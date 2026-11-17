@@ -51,5 +51,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['test/**/*.test.ts'],
+    // share-contract.test.ts imports the Worker's validator; its Durable Object import is stubbed.
+    alias: { 'cloudflare:workers': new URL('./test/stubs/cloudflare-workers.ts', import.meta.url).pathname },
   },
 });
