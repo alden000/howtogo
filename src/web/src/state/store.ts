@@ -132,6 +132,8 @@ export interface Plan {
   start?: Place;
   /** When the options were fetched. */
   fetchedAt?: number;
+  /** The route preference the options were ranked for (QA-30). */
+  pref?: RoutePreference;
   /** G2 multi-stop builder: places after the start (≤ 5), each with an optional dwell. */
   stops?: Place[];
   /** H4 journey: the planned multi-stop journey (from `runtime.planTrip`). */

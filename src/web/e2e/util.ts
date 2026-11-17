@@ -18,7 +18,7 @@ export async function onboarded(page: Page, extra: Record<string, unknown> = {})
 /** Lines from the app's change-only test log (window.__howtogoLog). */
 export const logOf = (page: Page) => page.evaluate(() => [...(window.__howtogoLog ?? [])]);
 
-/** Fonts come from Google Fonts in production; tests stay hermetic (system fallback fonts). */
+/** Tests stay hermetic: no third-party requests (fonts are self-hosted since QA-48; OneMap is stubbed). */
 export async function hermetic(page: Page) {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   await page.route('https://www.onemap.gov.sg/**', (r) => r.fulfill({ status: 204 }));
