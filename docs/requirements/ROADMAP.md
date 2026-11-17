@@ -9,9 +9,9 @@ PM · 2026-11-17 · Estimates are wall-clock hours "if run straight through". Th
 | M2 | Guided trip | 7–8 h | M1 |
 | M3 | SG transit smarts | 6–7 h | M1 (parallel with M2 for engine work) |
 | M4 | Share & safety | 8–10 h | M2 |
-| M5 | 1.0 hardening & launch (web) | 5–6 h | M2–M4 |
-| M6 | Android app (Capacitor) | 6–8 h | M2 (can start after M2, parallel with M3–M5); release after M5 |
-| | **Total** | **~41–50 h** (+ M0 3 h) | |
+| M5 | 1.0 hardening & launch (web) | 7–9 h | M2–M4 |
+| M6 | Android app (Capacitor) | 7–9 h | M2 (can start after M2, parallel with M3–M5); release after M5 |
+| | **Total** | **~41–51 h** (+ M0 3 h) | |
 
 ---
 
@@ -90,6 +90,7 @@ Spec: `M4-share-and-safety.md` (52 ACs).
   - the privacy review shows no coordinates or identifiers in logs or in storage after a share ends.
 
 ## M5 — 1.0 hardening & launch
+Spec: `M5-hardening-launch.md` (44 ACs). Adds `smoke:live`, monitoring-lite (error counts only), production/preview Workers; 1.0 is never tagged in sample mode.
 - **Goal:** fast, frugal, accessible, and live on the owner's domain.
 - **Scope:**
   - perf budget (first load ≤ 2.5 s on a mid Android over 4G; JS ≤ 300 KB gz excl. map);
@@ -104,7 +105,7 @@ Spec: `M4-share-and-safety.md` (52 ACs).
 - **Exit:** release gate green; owner field-test sign-off; 1.0 tagged.
 
 ## M6 — Android app (Capacitor)
-Added 2026-11-17 at the owner's request (director-log D-4/D-5).
+Added 2026-11-17 at the owner's request (director-log D-4/D-5). Spec: `M6-android-app.md` (44 ACs), built on the spike (Capacitor 8.6.2, custom TripPlugin/TripService, no background location).
 - **Goal:** guidance keeps working with the screen off or the phone locked, in a pocket or bag.
 - **Scope:**
   - a Capacitor Android shell around the same web build (`src/android`);
