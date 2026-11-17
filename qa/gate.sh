@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 怎么去? release gate (M1). One command, terse output, PASS/FAIL summary. Logs: qa/.out/logs/.
+# 怎么去? release gate (M1 + M2). One command, terse output, PASS/FAIL summary. Logs: qa/.out/logs/.
 #   qa/gate.sh            full gate
 #   SKIP=lighthouse,qa-e2e qa/gate.sh   skip steps by name (reported as SKIP, gate cannot PASS)
 # Read-only for src/: builds go to qa/.out/dist (A) and qa/.out/dist-b (B, for the SW update test);
@@ -36,6 +36,8 @@ build() {
 }
 step build 'grep -E "^size"' build
 step static-pwa 'grep -E "static-pwa (ok|FAIL)" -A3 | head -4' node "$QA/scripts/static-pwa.mjs" "$QA/.out/dist"
+# M2 AC 37: device APIs only via the Platform adapter (D-4).
+step platform-api 'tail -3' node "$QA/scripts/platform-grep.mjs"
 step secrets 'tail -n +1 | head -3' node "$QA/scripts/secret-scan.mjs" "$QA/.out/dist"
 step dev-e2e "grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)'" bash -c "cd '$WEB' && npx playwright test -c '$QA/playwright.dev.config.mjs'"
 step qa-e2e "grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)'" bash -c "cd '$QA' && npx playwright test"

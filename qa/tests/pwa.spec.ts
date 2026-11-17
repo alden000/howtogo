@@ -90,7 +90,8 @@ const B = join(QA, '.out/dist-b');
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
 let root = A;
 let server: Server;
-const PORT = 4190 + (process.pid % 7);
+// An OS-assigned free port: fixed ports collided with other worktrees' runs on this host (M2 gate).
+let PORT = 0;
 test.describe('AC-4 SW update', () => {
   test.skip(!existsSync(B), 'qa/.out/dist-b missing (run qa/gate.sh)');
   test.beforeAll(async () => {
@@ -101,7 +102,8 @@ test.describe('AC-4 SW update', () => {
       res.writeHead(200, { 'content-type': TYPES[extname(f)] ?? 'application/octet-stream', 'cache-control': p === '/sw.js' ? 'no-cache' : 'max-age=0' });
       res.end(readFileSync(f));
     });
-    await new Promise<void>((r) => server.listen(PORT, r));
+    await new Promise<void>((r) => server.listen(0, r));
+    PORT = (server.address() as { port: number }).port;
   });
   test.afterAll(() => new Promise<void>((r) => server.close(() => r())));
 
