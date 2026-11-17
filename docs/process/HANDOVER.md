@@ -27,6 +27,10 @@ The team process is the owner's `app-dev-team` skill. It isn't in the repo; ask 
   5. Ask the owner before deleting the old raus-ums Worker `howtogo` and KV `TOKEN_KV`.
 - `ALLOWED_ORIGINS` and the CSP already include the custom domain and `https://localhost` (Capacitor).
 
+## LTA key reuse (owner decision)
+- Bus arrival reuses the owner's existing Worker `whereisthebus-lta-proxy` (same Genixm account) through the service binding `LTA_PROXY`, so its key isn't needed here. Deploys fail in an account without that Worker.
+- Train alerts and lifts still need the raw key: ask via the secure form, `wrangler secret put LTA_ACCOUNT_KEY`. Until then they return `not_configured`.
+
 ## Still pending from the owner
 
 - OneMap account and LTA DataMall key. They go in as Wrangler secrets; then set `FIXTURE_MODE="0"`. Never paste keys in chat.
