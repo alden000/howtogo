@@ -155,6 +155,7 @@ async function boot() {
   void runtime.resume().then((resumed) => {
     const onGuide = router.route.value.name === 'guide';
     if (resumed && !onGuide) router.enterGuide();
+    else if (!resumed && onGuide && !store.trip.peek()) router.reset('/'); // QA-26: dropped (> 24 h) or no trip → H1
     else if (runtime.ui.peek().stale) {
       if (!onGuide) return router.openSheet('stale-trip');
       addEventListener('popstate', () => setTimeout(() => router.openSheet('stale-trip')), { once: true });

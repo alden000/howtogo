@@ -68,6 +68,13 @@ import { log } from '../log';
 import { followReducer, type FollowEvent, type FollowMode } from '../map/follow';
 import type { LocationFix, Platform, PlatformError, Unsubscribe } from '../platform/types';
 import { toLang, type ActiveTrip, type ShareSession, type Store } from '../state/store';
+import { here } from '../state/location';
+import { local } from '../state/storage';
+
+/** QA-21: the notification prompt is shown at most once per install. */
+const NOTIFY_ASKED_KEY = 'notify.asked';
+/** QA-25: a trip's last fix stands in for "here" after End for this long. */
+const HERE_MAX_AGE_MS = 15 * 60_000;
 
 export const SHARE_MIN_INTERVAL_MS = 3000;
 /** Minimum gap between two re-route attempts (AC 32: ≤ 1 per 20 s). */
@@ -104,6 +111,8 @@ export interface TripUi {
   voiceUnlockNeeded: boolean;
   /** No voice for the trip language (AC 26 note). */
   noVoice: boolean;
+  /** QA-21: `asking` = explainer note while the permission prompt is up; `denied` = "alerts need the app open" note. */
+  notify: 'idle' | 'asking' | 'denied';
   /** G4 stale-trip sheet (older than ETA + 2 h): ask Continue / End. */
   stale: { dest: string } | null;
   /** G4 resume toast: true right after a resume (`dismissResumed`). */
@@ -137,6 +146,7 @@ const INITIAL_UI: TripUi = {
   wakeLockFailed: false,
   voiceUnlockNeeded: false,
   noVoice: false,
+  notify: 'idle',
   stale: null,
   resumed: false,
   stopsLeft: null,
@@ -553,9 +563,12 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     clear('wakeRelease');
     const ok = await platform.wakeLock.acquire();
     if (!ok && trip()) {
-      if (!wakeFailLogged) log('state:wakelock-failed');
+      // QA-23: the note shows once per trip; later failed re-acquires (app switches) stay quiet.
+      if (!wakeFailLogged) {
+        log('state:wakelock-failed');
+        patchUi({ wakeLockFailed: true });
+      }
       wakeFailLogged = true;
-      patchUi({ wakeLockFailed: true });
     } else if (ok) log('wakelock:on');
     return ok;
   }
@@ -857,6 +870,31 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     }
   }
 
+  /**
+   * QA-21 (Director ruling): ask for notification permission once ever, inside the Start tap, with the
+   * explainer note on H5 while the prompt is up. Denied → a note that get-off alerts need the app open.
+   */
+  function askNotify() {
+    const n = platform.notifications;
+    const p = n?.permission() ?? 'unsupported';
+    if (p === 'granted' || p === 'unsupported') return;
+    if (p === 'default' && local.get(NOTIFY_ASKED_KEY) !== '1') {
+      local.set(NOTIFY_ASKED_KEY, '1');
+      log('state:notify-ask');
+      patchUi({ notify: 'asking' });
+      const id = trip()?.id;
+      void n.request().then(
+        (r) => {
+          log(`notify:${r === 'granted' ? 'granted' : 'denied'}`);
+          if (trip()?.id === id) patchUi({ notify: r === 'granted' ? 'idle' : 'denied' });
+        },
+        () => trip()?.id === id && patchUi({ notify: 'denied' }),
+      );
+      return;
+    }
+    patchUi({ notify: 'denied' });
+  }
+
   async function start(itinerary: Itinerary, places: Place[], opts: StartOptions = {}) {
     if (attached || trip()) detach();
     resetUi();
@@ -889,6 +927,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       ...(plans ? { journey: { segment: 0, plans } } : {}),
     };
     store.setTrip(t);
+    askNotify();
     const to = places[places.length - 1];
     if (to) store.addRecent(to, places[0], now());
     handleCues(guidance, l);
@@ -897,6 +936,10 @@ export function createTripRuntime(o: TripRuntimeOptions) {
 
   async function end() {
     const t = trip();
+    // QA-25: plans made right after a trip (H12 Route home) start from where the senior is now:
+    // the trip's last fix when it is recent, otherwise no cached position (the next plan locates afresh).
+    const f = t?.guidance.fix;
+    here.value = f && now() - lastFixAt <= HERE_MAX_AGE_MS ? { lat: f.lat, lng: f.lng, label: null, acc: f.acc } : null;
     detach();
     if (t?.share) await api.shareDelete(t.share.id, t.share.ownerToken).catch(() => {});
     store.setTrip(null);
@@ -969,7 +1012,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       haptic('tick');
       await acquireWake();
       const step = curStep();
-      if (step) say(step.text, 'high', step.id);
+      if (step) say(step.say ?? step.text, 'high', step.id);
       syncPocket();
     },
     dismissResumed: () => patchUi({ resumed: false }),
@@ -985,7 +1028,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       if (!t) return;
       if (t.alert) return speakAlert(t.alert, true);
       const step = curStep(t);
-      if (step) say(step.text, 'high', step.id, true);
+      if (step) say(step.say ?? step.text, 'high', step.id, true);
     },
     /** H6/H6b "知道了 / OK, got it". */
     ackAlert: () => alertEvent({ type: 'ack', t: now() }),
@@ -996,6 +1039,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       syncPocket();
     },
     dismissWakeNote: () => patchUi({ wakeLockFailed: false }),
+    dismissNotifyNote: () => patchUi({ notify: 'idle' }),
     // ---- pocket view (G1)
     /** Any touch / key press on the guidance screen (also leaves pocket view; `tick` haptic is the UI's). */
     touch: () => pocketEvent({ type: 'touch', t: now() }),

@@ -164,8 +164,10 @@ export interface Step {
   /** i18n key into src/i18n/steps.ts and its parameters. */
   key: string;
   params: MessageParams;
-  /** Resolved main sentence in the requested language. */
+  /** Resolved main sentence in the requested language (planner register: H3/H4). */
   text: string;
+  /** H5 headline and spoken line (guidance register, Creative F1). Older stored trips lack it → fall back to `text`. */
+  say?: string;
   /** Resolved secondary line ("About 5 min · 350 m"). */
   detail: string;
   geometry: LatLng[];

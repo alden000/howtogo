@@ -20,7 +20,7 @@ import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
 import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
 import { JourneyBuilder } from './views/Journey';
-import { DriverSheet, DwellSheet, HelpSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
+import { AllStepsSheet, DriverSheet, DwellSheet, HelpSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
 const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
@@ -137,6 +137,7 @@ export function App() {
       </div>
       {sheet === 'end-trip' && <EndTripSheet />}
       {sheet === 'help' && <HelpSheet />}
+      {sheet === 'all-steps' && <AllStepsSheet />}
       {sheet === 'driver' && <DriverSheet />}
       {sheet === 'voice-help' && <VoiceHelpSheet />}
       {sheet === 'stale-trip' && <StaleSheet />}

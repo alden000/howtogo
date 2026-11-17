@@ -33,7 +33,8 @@
 .stepicon.wait{background:var(--c-ink);color:var(--c-ink-inv)}
 .stepicon.arrive{background:var(--c-saffron);color:var(--c-on-saffron)}
 .steptx{flex:1;min-width:0}
-.steptx h2{text-wrap:balance;margin:0;font-size:1.45rem;line-height:1.2;font-weight:900;overflow-wrap:anywhere}
+.steptx h2{text-wrap:balance;margin:0;font-size:1.6rem;line-height:1.2;font-weight:900;overflow-wrap:break-word}
+/* QA-22 (Director): the H5 headline is ≥ 32 px at 100 % (1.6rem on the 20 px root). */
 .steptx h2:focus{outline:none}
 .steptx .sign,.steptx p .sign{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:8px;background:var(--c-surface-2);font-weight:700;font-size:1rem;overflow-wrap:anywhere;max-width:100%}
 .steptx p{margin:6px 0 0;font-size:1rem;color:var(--c-ink-2);overflow-wrap:anywhere}
@@ -53,7 +54,9 @@
 .alert .bellwrap::before,.alert .bellwrap::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:4px solid var(--c-on-saffron);animation:ripple 1.6s var(--ease-out) infinite}
 .alert .bellwrap::after{animation-delay:.8s}
 @keyframes ring{0%,60%,100%{transform:rotate(0)}10%{transform:rotate(16deg)}20%{transform:rotate(-14deg)}30%{transform:rotate(10deg)}40%{transform:rotate(-6deg)}}
-.alert h2{margin:0;font-size:2.4rem;line-height:1.1;font-weight:900;overflow-wrap:anywhere}
+.alert h2{margin:0;font-size:2.4rem;line-height:1.1;font-weight:900;overflow-wrap:break-word}
+/* F3: titles are two unbreakable phrases (到站了，| 请下车), so no orphaned 了 or leading comma. */
+.alert h2 .ph{display:inline-block;max-width:100%}
 .alert h2:focus{outline:none}
 .alert p{margin:8px 0 0;font-size:1.2rem;font-weight:700}
 .alert .sign{display:inline-block;margin-top:12px;padding:6px 14px;border-radius:10px;background:var(--c-on-saffron);color:var(--c-saffron);font-weight:700;font-size:1.1rem;overflow-wrap:anywhere;max-width:100%}
@@ -98,6 +101,10 @@
 .stepacts .row.quiet>*{flex:1 1 5rem}
 .stepacts .btn-secondary{min-height:var(--tap);font-size:1rem;padding:8px 14px}
 .stepacts .btn-quiet{min-height:var(--tap);padding:8px 10px}
+/* F7: action labels stay on one line at 100 % (rows wrap as a whole); 200 % keeps full-width rows. */
+.stepacts .btn-secondary,.stepacts .btn-quiet{white-space:nowrap;gap:8px;padding-inline:var(--s-3)}
+.stepacts .row.quiet>*{flex:1 1 auto}
+:root[data-text-size="xxlarge"] .stepacts .btn-secondary,:root[data-text-size="xxlarge"] .stepacts .btn-quiet{white-space:normal}
 .stepacts [aria-disabled=true]{opacity:.4}
 :root[data-text-size="xxlarge"] .stepacts .row>*{flex-basis:100%}
 /* G1 pocket view (6c.2): dark only, scoped dark tokens */
@@ -111,7 +118,7 @@
 .pocket .btn{margin-top:auto;background:transparent;color:var(--c-ink-2);border:2px solid var(--c-ink-2);flex:none}
 .pocket .hint{font-size:.85rem;margin:10px 0 0}
 :root[data-text-size="xxlarge"] .pocket .glyph{width:96px;height:96px}
-:root.rm .pocket{animation:fadeIn 120ms linear both}
+:root.rm .pocket{animation:fadeIn 120ms linear both!important}
 
 /* ============ G3 waypoint / H12 arrival ============ */
 .wpscreen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--c-canvas)}
@@ -186,7 +193,16 @@
 /* ============ reduce motion ============ */
 :root.rm .petal,:root.rm .ringout,:root.rm .inkring,:root.rm .dotring{display:none}
 :root.rm .edgeglow{animation:none}
-:root.rm .alert,:root.rm .alert.now{animation:fadeIn 120ms linear both}
+:root.rm .alert,:root.rm .alert.now{animation:fadeIn 120ms linear both!important}
 :root.rm .alert .bellwrap svg{animation:none}
 :root.rm .alert .bellwrap::before,:root.rm .alert .bellwrap::after{display:none}
 :root.rm .stamp,:root.rm .drop,:root.rm .rise,:root.rm .qpath{animation:none;opacity:1;transform:none;stroke-dashoffset:0}
+:root[data-text-size="xxlarge"] .alert.now .bellwrap{width:72px;height:72px}
+:root[data-text-size="xxlarge"] .alert.now .bellwrap svg{width:40px;height:40px}
+/* F3(c): at 200 % H6b reads title → sign chip → line, so the chip shows without scrolling. */
+:root[data-text-size="xxlarge"] .alert.now #ga-d{display:flex;flex-direction:column;align-items:flex-start}
+:root[data-text-size="xxlarge"] .alert.now #ga-d .sign{order:-1}
+/* AC 12 All-steps sheet: the current step is marked (§5.9 rows, no new tokens). */
+.allsteps .nowtag{display:inline-block;margin-left:8px;padding:0 10px;border-radius:var(--r-pill);background:var(--c-primary);color:var(--c-on-primary);font-size:.8rem;font-weight:800;vertical-align:middle}
+.allsteps li.done{opacity:.55}
+.democtl .opts .btn{justify-content:flex-start}

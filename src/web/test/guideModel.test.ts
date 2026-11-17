@@ -134,3 +134,21 @@ describe('G2 list edits', () => {
     expect(addStop(l, P('d'))).toHaveLength(4);
   });
 });
+
+describe('M2 fix round', () => {
+  it('F2: walk minutes come from this walk\'s metres (≈ 67 m/min), at least 1', async () => {
+    const { walkMinutes } = await import('../src/views/guideModel');
+    expect(walkMinutes(80)).toBe(2);
+    expect(walkMinutes(0)).toBe(1);
+    expect(walkMinutes(670)).toBe(10);
+  });
+  it('QA-21: explainer note while asking (above offline); denied note below wake lock, above no voice', () => {
+    expect(pickNote({ ...ui, notify: 'asking', gpsWeak: true }, { ...o, online: false })).toBe('notify-ask');
+    expect(pickNote({ ...ui, notify: 'denied', wakeLockFailed: true }, o)).toBe('wakelock');
+    expect(pickNote({ ...ui, notify: 'denied', noVoice: true }, o)).toBe('notify-denied');
+  });
+  it('F3: alert titles come as two phrases', () => {
+    const a = { kind: 'now', stepId: 's', stop: 'X', mode: 'bus', shownAt: 0, escalated: false } as const;
+    expect(alertCopy(a)).toMatchObject({ t1: 'now_t1', t2: 'now_t2' });
+  });
+});

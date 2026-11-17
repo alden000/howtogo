@@ -114,6 +114,13 @@ export interface PlatformCapabilities {
   os: 'ios' | 'android' | 'other';
 }
 
+export type NotifyPermission = 'granted' | 'denied' | 'default' | 'unsupported';
+
+export interface NotificationsApi {
+  permission(): NotifyPermission;
+  request(): Promise<NotifyPermission>;
+}
+
 /** Page / app foreground state (web: document.visibilityState). */
 export interface VisibilityApi {
   isVisible(): boolean;
@@ -131,6 +138,8 @@ export interface Platform {
   vibrate(pattern: VibratePattern): Promise<void>;
   /** Shown only when the app is not visible (web) / always as lock-screen alert (native). */
   notify(cue: NotifyCue): Promise<void>;
+  /** Notification permission (QA-21): read synchronously, request only from a user gesture (Start). */
+  notifications: NotificationsApi;
   share(url: string, text: string): Promise<ShareOutcome>;
   battery?: BatteryApi;
   recognition?: RecognitionApi;

@@ -501,3 +501,24 @@ The trip and its step still come from `store.trip` (`guidance`, `journey {segmen
 - `wrangler.preview.toml` = `wrangler.toml` minus `[assets]` (kept for later). vitest now runs on the preview config. `deploy:preview` = build:release → `npm run embed -w @howtogo/worker` → `wrangler deploy -c wrangler.preview.toml`. `npm run dev:preview -w @howtogo/worker` for local.
 - Tests: 99 pass (7 new in `test/static.test.ts`; `/nope` API-404 test now `/api/nope`, since `/nope` is a PWA route). Typecheck clean. Dry run OK (TRIP_SHARE DO, TOKEN_KV, 3 vars, no ASSETS). `wrangler dev -c wrangler.preview.toml` smoke: `/`, `/settings`, hashed JS, `/sw.js` headers as `_headers`; `/api/health` → `{"ok":true,"fixtureMode":true}`; `/_headers` 404; 304 works.
 - Note: `qa/scripts/secret-scan.mjs` flags the real KV id in wrangler.toml (pre-existing, since d97ce71; it does not check the preview config).
+
+## 2026-11-17 — M2 fix round: QA-21…27, Creative F1–F6/F12, AC 12 All-steps, AC 50 demo controls (Developer, branch `dev/m2-engine`)
+
+**Visible changes (written first, before code)**
+1. H5 headline + voice use new H5-register lines (`guide.*`, Creative F1): 走到 {stop} 巴士站 / 在这里等 {route} 号巴士 / 坐 {route} 号巴士，在 {stop} 下车 … No stop code and no stop count in the headline. H3/H4 keep the planner `step.*` text.
+2. Walk sign chip on H5 shows `{stop} · {code}` (e.g. `Toa Payoh Int · 52009`).
+3. H5 headline is 2rem (32 px) at 100 % (QA-22 ruling); never breaks inside a word at 200 %.
+4. Walk sub-line minutes are this walk's own time (`max(1, ceil(m / 67))`), not the whole trip's (F2).
+5. Voice says 你, never 您 (F5): 到了，这里是 {stop}。/ 好，你上车了。下车前我会提醒你。/ 好，你回到路上了。
+6. H6/H6b titles never orphan a character (two unbreakable phrases); at 200 % H6b shows title → sign chip → line, bell 72 px (F3).
+7. Train sign chip carries the station code: "Raffles Place NS26 站" / "Raffles Place NS26 station" (F4).
+8. Reduce motion: H6, H6b and pocket view cross-fade in 120 ms instead of snapping (F6).
+9. Back from pocket view: the End sheet fades in over H5 with the normal scrim (F12).
+10. Start asks once for notification permission with a one-line explainer on H5; denied → note "下车提醒要开着这个应用才收得到" (QA-21).
+11. Wake-lock note shows once per trip (QA-23).
+12. G3 and H12 content is keyboard-scrollable at 200 % (QA-24).
+13. Route home on H12 plans from where you are now (QA-25); any plan right after a trip starts from the trip's last position.
+14. A trip older than 24 h reloaded on /guide lands on H1 (QA-26).
+15. Version 0.2.0 in About / Report / SW (QA-27).
+16. New "全部步骤 / All steps" sheet from H5 (AC 12): remaining steps, current one marked, Back closes it.
+17. New demo controls panel in `?demo=1` on H5 (AC 50): buttons that play get-off alert, off route, weak GPS, skip to waypoint/arrival.
