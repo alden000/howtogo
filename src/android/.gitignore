@@ -1,0 +1,15 @@
+node_modules/
+# never commit SDKs, build outputs, keystores, APKs
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+*.p12
+keystore.properties
+android/keystore.properties
+*.jks.txt
+release/

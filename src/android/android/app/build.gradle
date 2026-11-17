@@ -1,0 +1,111 @@
+apply plugin: 'com.android.application'
+
+import groovy.json.JsonSlurper
+
+// ---- Version scheme (M6 AC 33): versionName = the web version; release N = (MAJOR*10000 + MINOR*100 + PATCH)*100,
+// hotfix rebuilds N+1..N+9 (-PhotfixN=1..9), QA/test builds N+10..N+99 (qa build type: N+10+testN).
+def webVersion = new JsonSlurper().parse(file('../../../web/package.json')).version
+def vParts = webVersion.tokenize('.').collect { it.replaceAll(/[^0-9].*$/, '') as int }
+def releaseCode = (vParts[0] * 10000 + vParts[1] * 100 + vParts[2]) * 100
+def hotfixN = (project.findProperty('hotfixN') ?: '0') as int
+def testN = (project.findProperty('testN') ?: '0') as int
+if (hotfixN < 0 || hotfixN > 9) throw new GradleException('hotfixN must be 0..9')
+if (testN < 0 || testN > 89) throw new GradleException('testN must be 0..89')
+
+// ---- Release signing (D-11): keystore OUTSIDE the repo. Values come from the environment or from
+// android/keystore.properties (gitignored); never from files in the repo.
+def ksProps = new Properties()
+def ksFile = rootProject.file('keystore.properties')
+if (ksFile.exists()) ksFile.withInputStream { ksProps.load(it) }
+def ks = { String envName, String propName -> System.getenv(envName) ?: ksProps.getProperty(propName) }
+def releaseStore = ks('HOWTOGO_KEYSTORE', 'storeFile')
+
+android {
+    namespace = "com.wwweeeiii.howtogo"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.wwweeeiii.howtogo"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode releaseCode + hotfixN
+        versionName webVersion
+        manifestPlaceholders = [appLabel: "怎么去"]
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (releaseStore) {
+                storeFile file(releaseStore)
+                storePassword ks('HOWTOGO_KEYSTORE_PASSWORD', 'storePassword')
+                keyAlias ks('HOWTOGO_KEY_ALIAS', 'keyAlias')
+                keyPassword ks('HOWTOGO_KEY_PASSWORD', 'keyPassword')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // OQ8: R8 on, with keep rules (proguard-rules.pro) and the release smoke.
+            minifyEnabled true
+            shrinkResources true
+            debuggable false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig releaseStore ? signingConfigs.release : null
+        }
+        // AC 32: QA/test build = the same R8 release build, throwaway (debug) key, separate package beside the real app.
+        qa {
+            initWith release
+            applicationIdSuffix ".qa"
+            manifestPlaceholders = [appLabel: "怎么去 QA"]
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
+    }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+    packaging {
+        jniLibs { useLegacyPackaging = false } // 16 KB page size: keep .so files (if any) stored + aligned
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    // TripService: fused location (LocationManager fallback without Play services)
+    implementation "com.google.android.gms:play-services-location:21.3.0"
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+androidComponents {
+    onVariants(selector().withBuildType('qa')) { v ->
+        v.outputs.each { it.versionCode.set(releaseCode + 10 + testN) }
+    }
+}
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

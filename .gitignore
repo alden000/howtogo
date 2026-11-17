@@ -6,3 +6,9 @@ dist/
 test-results/
 playwright-report/
 src/worker/src/generated/
+
+# M6: signing material never enters the repo (AC 31)
+*.jks
+*.keystore
+*.p12
+keystore.properties

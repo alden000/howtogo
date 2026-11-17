@@ -20,7 +20,7 @@ run_worker_first = ["/api/*"]
 
 [vars]
 # Same-origin PWA on workers.dev, plus local dev (vite dev 5173, vite preview 4173, wrangler dev 8787).
-ALLOWED_ORIGINS = "https://howtogo.raus-ums.workers.dev,https://howtogo.wwweeeiii.com,http://localhost:5173,http://localhost:4173,http://localhost:8787"
+ALLOWED_ORIGINS = "https://howtogo.wwweeeiii.com,https://howtogo.raus-ums.workers.dev,https://localhost,http://localhost:5173,http://localhost:4173,http://localhost:8787"
 SHARE_TTL_HOURS = "4"
 # FIXTURE_MODE "1": search/route/revgeocode/bus-arrival/alerts answer from bundled SYNTHETIC
 # fixtures (AC 21) and /api/health reports fixtureMode:true, so the PWA shows the
