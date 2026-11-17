@@ -550,14 +550,22 @@ test('AC-9 layout at 150 % on route states (close, error)', async ({ page }) => 
 
 void TTSH;
 
-test('QA: Home "需要帮忙？" card leads to a useful Help screen (not a dead end)', async ({ page }) => {
+// QA-1 ruling (Director, gate 1): Help row/pill hidden in the M1 release behind flag `help`.
+test('QA-1: Help row and Help pill do not render in M1 (flag off); ?ff=help brings them back', async ({ page }) => {
   await setup(page);
   await page.goto('/?demo=1');
-  await page.getByText('需要帮忙').click();
-  await expect(page).toHaveURL(/\/help/);
-  // Expect at least one action besides Back/Help (call family, show address to driver…).
-  const actions = await page.locator('.stage button, .stage a[href]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')).filter((id) => id && !['back', 'bar-help'].includes(id)));
-  expect(actions.length, `help actions: ${actions.join(',')}`).toBeGreaterThan(0);
+  await expect(page.locator('h1').first()).toBeVisible();
+  await expect(page.getByTestId('nav-help')).toHaveCount(0);
+  await expect(page.getByText('需要帮忙')).toHaveCount(0);
+  await toRoutes(page);
+  await expect(page.getByTestId('route-option-0')).toBeVisible();
+  await expect(page.getByTestId('bar-help')).toHaveCount(0);
+  await page.getByTestId('route-option-0').click();
+  await expect(page.getByTestId('step-list')).toBeVisible();
+  await expect(page.getByTestId('bar-help')).toHaveCount(0);
+  // Flag override (per tab): the row returns.
+  await page.goto('/?demo=1&ff=help');
+  await expect(page.getByTestId('nav-help')).toBeVisible();
 });
 
 test('QA: 404 page offers a way home (labelled control), in the UI language', async ({ page }) => {
