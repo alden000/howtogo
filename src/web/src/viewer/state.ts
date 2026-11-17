@@ -16,12 +16,26 @@ export interface ShareWire {
   heading: number | null;
   etaISO: string | null;
   stepText: string | null;
+  /** Structured step (contract since the viewer review ruling); absent from older senders. */
+  step?: StepWire | null;
   updatedAt: string | null;
   positionAt: string | null;
   helpAt: string | null;
   expiresAt: string | null;
   /** Not in the contract yet (6e.9 ask): 'f' | 'm' lets zh copy use 她/他. */
   pronoun?: 'f' | 'm' | null;
+}
+
+/** `step` of the share contract (src/worker/API.md). */
+export interface StepWire {
+  k: StepKind;
+  svc?: string;
+  line?: string;
+  stops?: number;
+  place?: string;
+  stop?: string;
+  station?: string;
+  towards?: string;
 }
 
 /** The 15 viewer states of §6e.2 (the `data-state` value). */
@@ -91,16 +105,23 @@ export function terminalFromHttp(status: number, code: string | undefined): Term
 }
 
 /**
- * The contract carries only free `stepText` (already in the sharer's language), not a step type.
- * The pill icon is inferred from it; the text itself is shown verbatim.
+ * Fallback for senders without the structured `step`: the pill icon is inferred from the
+ * free `stepText` (shown verbatim). No match → null: no icon (a wrong mode icon is worse, review ruling).
  */
-export function stepKindOf(stepText: string | null | undefined): StepKind {
+export function stepKindOf(stepText: string | null | undefined): StepKind | null {
   const t = (stepText ?? '').toLowerCase();
   if (/等|waiting|wait for/.test(t)) return 'wait';
   if (/走路|步行|walking|walk to/.test(t)) return 'walk';
   if (/巴士|公交|\bbus\b|号车/.test(t)) return 'bus';
   if (/地铁|轻轨|列车|\btrain\b|\bmrt\b|\blrt\b/.test(t)) return 'train';
-  return 'walk';
+  return null;
+}
+
+const KINDS: readonly StepKind[] = ['walk', 'wait', 'bus', 'train'];
+/** The step kind for the pill icon and `data-state`: structured step first, then the text guess. */
+export function shareStepKind(s: Pick<ShareWire, 'step' | 'stepText'>): StepKind | null {
+  if (s.step && KINDS.includes(s.step.k)) return s.step.k;
+  return stepKindOf(s.stepText);
 }
 
 export interface View {
@@ -150,7 +171,7 @@ export function deriveView(mem: Memory, now: number): View {
       case 'travelling':
         if (upd !== null && now - upd > STALE_MS) return 'nosignal';
         if (mem.helpClearedAt !== null && now - mem.helpClearedAt < HELP_CLEARED_MS) return 'helpcleared';
-        return stepKindOf(s.stepText);
+        return shareStepKind(s) ?? 'walk';
     }
   })();
   v.base = base;

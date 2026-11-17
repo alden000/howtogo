@@ -275,3 +275,33 @@ describe("OQ6: test-only short TTL", () => {
     expect((await call(`/api/share/${c.id}`)).status).toBe(404); // lazily wiped
   });
 });
+
+describe("structured step (viewer review ruling)", () => {
+  it("stores and serves step; status-only updates carry it too", async () => {
+    const c = await created();
+    const step = { k: "train", line: "NS", towards: "NS1", stops: 3 };
+    expect((await put(c.id, c.ownerToken, fix({ step }))).status).toBe(204);
+    expect((await getState(c.id)).step).toEqual(step);
+    await clearWriteLimit(c.id);
+    const wait = { k: "wait", svc: "139", stop: "Opp Blk 215" };
+    expect((await put(c.id, c.ownerToken, { status: "travelling", updatedAt: Date.now(), step: wait })).status).toBe(204);
+    expect((await getState(c.id)).step).toEqual(wait);
+  });
+  it.each([
+    [{ k: "fly" }],
+    [{ svc: "139" }],
+    [{ k: "bus", stops: -1 }],
+    [{ k: "bus", stops: 2.5 }],
+    [{ k: "bus", svc: "x".repeat(9) }],
+    [{ k: "walk", place: "x".repeat(81) }],
+    [{ k: "walk", lat: 1.3 }],
+    [{ k: "walk", place: "" }],
+    ["walk"],
+    [[{ k: "walk" }]],
+  ])("refuses a bad step %j", async (step) => {
+    const c = await created();
+    const res = await put(c.id, c.ownerToken, fix({ step }));
+    expect(res.status).toBe(400);
+    expect(await code(res)).toBe("invalid_step");
+  });
+});

@@ -1,5 +1,5 @@
 /** Viewer markup per state (STYLE-GUIDE §6e.2 table). Returns HTML strings; all data is escaped. */
-import { copy, defaultMe, type Lang } from './copy';
+import { copy, defaultMe, stepLine, type Lang } from './copy';
 import { stepKindOf, type View } from './state';
 
 export const esc = (s: string) =>
@@ -35,8 +35,8 @@ export function renderParts(v: View, lang: Lang, near: string | null): Parts {
     v.updatedAgoMin === null
       ? ''
       : `<div class="upd" data-testid="viewer-updated"><i class="${off ? 'off' : ''}" aria-hidden="true"></i><span aria-live="off">${esc(v.justUpdated ? c.updatedNow : c.updatedAgo(v.updatedAgoMin))}</span></div>`;
-  const pill = (icon: string, text: string, grey = false) =>
-    `<div class="pill${grey ? ' grey' : ''}" data-testid="viewer-pill">${ic(icon)}<span>${esc(text)}</span></div>`;
+  const pill = (icon: string | null, text: string, textLang?: string) =>
+    `<div class="pill" data-testid="viewer-pill"${icon ? ` data-icon="${icon}"` : ''}>${icon ? ic(icon) : ''}<span${textLang ? ` lang="${textLang}"` : ''}>${esc(text)}</span></div>`;
   const eta = (sub: string | null) =>
     v.etaAt === null ? '' : `<div class="eta"><b class="num">${esc(c.etaAbout(v.etaAt))}</b>${sub ? `<span class="num">${esc(sub)}</span>` : ''}</div>`;
   const head = (h1: string, line?: string, av = avatar) =>
@@ -46,11 +46,18 @@ export function renderParts(v: View, lang: Lang, near: string | null): Parts {
     note: '', status: '', upd: '', call: '', foot: '', title: c.titleDefault, live: '', assertive: false,
     map: v.pos !== null, mapLabel: c.mapLabel, locate: c.locate,
   };
-  P.foot = `<div class="foot"><p>${esc(c.foot1)}</p><p>${esc(c.foot2)}</p><details class="what"><summary>${esc(c.whatIs)}</summary><p>${esc(c.whatIsBody)}</p></details></div>`;
+  const details = `<details class="what"><summary>${esc(c.whatIs)}</summary><p>${esc(c.whatIsBody)}</p></details>`;
+  P.foot = `<div class="foot"><p>${esc(c.foot1)}</p><p>${esc(c.foot2)}</p>${details}</div>`;
 
   const travelling = () => {
-    const step = s?.stepText?.trim();
-    P.status = `<section class="card" aria-labelledby="st">${head(c.onWay)}${eta(v.minutesLeft !== null ? c.minLeft(v.minutesLeft) : null)}${step ? pill(PILL_ICON[stepKindOf(step)], step) : ''}</section>`;
+    // Review ruling: the structured step renders the §6e.2 template in the viewer's language;
+    // stepText (sender's language, lang-tagged for screen readers) only when step is absent.
+    const fromStep = s ? stepLine(s.step, lang) : null;
+    const raw = s?.stepText?.trim();
+    const kind = s ? (fromStep ? s.step!.k : stepKindOf(raw)) : null;
+    const step = fromStep ?? raw;
+    const rawLang = s?.lang?.startsWith('en') ? 'en' : 'zh-Hans';
+    P.status = `<section class="card" aria-labelledby="st">${head(c.onWay)}${eta(v.minutesLeft !== null ? c.minLeft(v.minutesLeft) : null)}${step ? pill(kind ? PILL_ICON[kind] : null, step, fromStep ? undefined : rawLang) : ''}</section>`;
     P.upd = updated(false);
     P.call = callBtn();
     P.title = c.onWay;
@@ -122,6 +129,10 @@ export function renderParts(v: View, lang: Lang, near: string | null): Parts {
       P.live = c.invalid;
       break;
   }
+  // Review P2 #5: once the link has stopped, the "stops 30 min after…" line reads wrong.
+  if (v.base === 'ended' || v.base === 'endedArrived' || v.base === 'expired') P.foot = `<div class="foot"><p>${esc(c.foot2)}</p>${details}</div>`;
+  // Review P3 #7: break zh "这个链接 / 已经过期了" at the word boundary.
+  if (v.base === 'expired') P.status = P.status.replace('这个链接已经', '这个链接<wbr>已经');
   if (v.kind === 'offline') {
     P.note = `<div class="note" role="status" data-testid="viewer-offline"><span class="spin" aria-hidden="true"></span><div><b>${esc(c.offline)}</b></div></div>`;
     P.upd = updated(true);

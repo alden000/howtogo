@@ -106,7 +106,7 @@ describe("share lifecycle", () => {
     expect(state.etaISO).toBe("2026-11-17T07:30:00.000Z");
     expect(Object.keys(state).sort()).toEqual(
       [
-        "acc", "destName", "etaISO", "expiresAt", "heading", "lang", "lat", "lng", "status", "stepText", "updatedAt",
+        "acc", "destName", "etaISO", "expiresAt", "heading", "lang", "lat", "lng", "status", "stepText", "step", "updatedAt",
         "senderName", "senderPhone", "positionAt", "helpAt",
       ].sort(),
     );

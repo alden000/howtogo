@@ -109,6 +109,7 @@ Keep `ownerToken` on the device only; it is never shown again.
 Body `{"lat":1.35,"lng":103.82,"acc":12,"heading":90,"speed":1.2,"etaISO":"2026-11-17T07:30:00Z","stepText":"Take bus 162","status":"travelling","updatedAt":1763359200000}`
 - `status`: `travelling | arrived | paused | help` (exported as `STATUSES` from `src/worker/src/share.ts` for the M4 AC 10 contract test). Anything else → `400 invalid_status`.
 - **Position is optional (M4):** omit `lat`/`lng`/`acc` (or send null) for a status-only update: start before the first fix (`travelling`), `paused` from a hidden page, `help` with no fix. The last known position (and its `positionAt`) is then kept. If `lat` or `lng` is given, both plus `acc` are required.
+- **`step` (optional, structured; viewer review ruling):** `{"k":"walk|wait|bus|train","svc?":"139","line?":"NS","stops?":3,"place?":"…","stop?":"…","station?":"NS17","towards?":"NS28"}`. `svc` ≤ 8, `line` ≤ 4, other strings 1–80 chars, `stops` integer 0–200; unknown keys or a bad `k` → `400 invalid_step`. `station`/`towards`/`place` may be a rail station code, which the viewer names in its own language; other values are shown as sent. The viewer renders the §6e.2 pill templates from `step` and falls back to `stepText` only when `step` is absent. Status-only updates may carry it.
 - `heading` 0–360, `speed` m/s, `stepText` ≤ 280 chars, `etaISO`: optional or null. Send `etaISO: null` on `arrived`.
 - `updatedAt`: epoch ms or ISO, capped at server time. → `204`.
 - `429 rate_limited` + `Retry-After` (seconds) if the last accepted write was < 3 s ago. The client should keep only the latest fix and resend it.
@@ -119,7 +120,7 @@ Body `{"lat":1.35,"lng":103.82,"acc":12,"heading":90,"speed":1.2,"etaISO":"2026-
 → `200` (`Cache-Control: no-store`):
 ```json
 {"destName":"陈笃生医院","lang":"zh","senderName":"妈妈","senderPhone":"+6591234567",
- "status":"help","lat":1.35,"lng":103.82,"acc":12,"heading":90,"etaISO":null,"stepText":"在 139 号巴士上",
+ "status":"help","lat":1.35,"lng":103.82,"acc":12,"heading":90,"etaISO":null,"stepText":"在 139 号巴士上","step":{"k":"bus","svc":"139","stops":3},
  "updatedAt":"2026-11-17T02:12:00.000Z","positionAt":"2026-11-17T02:11:45.000Z","helpAt":"2026-11-17T02:12:00.000Z",
  "expiresAt":"2026-11-17T06:00:00.000Z"}
 ```

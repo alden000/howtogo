@@ -71,8 +71,45 @@ export interface PositionUpdate {
   speed: number | null;
   etaISO: string | null;
   stepText: string | null;
+  /** Structured step (viewer review ruling): the viewer renders §6e.2 templates from it. */
+  step: ShareStep | null;
   status: ShareStatus;
   updatedAt: string;
+}
+
+export const STEP_KINDS = ["walk", "wait", "bus", "train"] as const;
+export interface ShareStep {
+  k: (typeof STEP_KINDS)[number];
+  svc?: string;
+  line?: string;
+  stops?: number;
+  place?: string;
+  stop?: string;
+  station?: string;
+  towards?: string;
+}
+const STEP_TEXT_FIELDS: Record<string, number> = { svc: 8, line: 4, place: 80, stop: 80, station: 80, towards: 80 };
+
+/** `step` is optional; unknown keys are refused so the stored shape stays exactly the contract. */
+export function validateStep(v: unknown): ShareStep | null {
+  if (v === undefined || v === null) return null;
+  const bad = () => new HttpError(400, "invalid_step", "step is not valid.");
+  if (typeof v !== "object" || Array.isArray(v)) throw bad();
+  const o = v as Record<string, unknown>;
+  if (typeof o.k !== "string" || !(STEP_KINDS as readonly string[]).includes(o.k)) throw bad();
+  const out: ShareStep = { k: o.k as ShareStep["k"] };
+  for (const [key, val] of Object.entries(o)) {
+    if (key === "k") continue;
+    if (key === "stops") {
+      if (!Number.isInteger(val) || (val as number) < 0 || (val as number) > 200) throw bad();
+      out.stops = val as number;
+      continue;
+    }
+    const max = STEP_TEXT_FIELDS[key];
+    if (max === undefined || typeof val !== "string" || val.length === 0 || val.length > max) throw bad();
+    (out as unknown as Record<string, string>)[key] = val;
+  }
+  return out;
 }
 
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
@@ -107,6 +144,7 @@ export function validateUpdate(body: unknown): PositionUpdate {
     if (typeof b.stepText !== "string" || b.stepText.length > 280) throw new HttpError(400, "invalid_step_text", "stepText is too long.");
     stepText = b.stepText;
   }
+  const step = validateStep(b.step);
   if (typeof b.status !== "string" || !(STATUSES as readonly string[]).includes(b.status)) {
     throw new HttpError(400, "invalid_status", "status must be travelling, arrived, paused or help.");
   }
@@ -124,6 +162,7 @@ export function validateUpdate(body: unknown): PositionUpdate {
     speed: hasPosition ? speed : null,
     etaISO,
     stepText,
+    step,
     status: b.status as ShareStatus,
     updatedAt: new Date(updatedMs).toISOString(),
   };
@@ -164,6 +203,7 @@ export interface PublicState {
   heading: number | null;
   etaISO: string | null;
   stepText: string | null;
+  step: ShareStep | null;
   updatedAt: string | null;
   positionAt: string | null;
   helpAt: string | null;
@@ -221,6 +261,7 @@ export class TripShare extends DurableObject<Env> {
       heading: pos?.heading ?? null,
       etaISO: pos?.etaISO ?? null,
       stepText: pos?.stepText ?? null,
+      step: pos?.step ?? null,
       updatedAt: pos?.updatedAt ?? null,
       positionAt: pos?.positionAt ?? null,
       helpAt: pos?.helpAt ?? null,

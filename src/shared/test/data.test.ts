@@ -245,13 +245,17 @@ describe('steps on the Circle Line loop', () => {
     },
   ]);
 
-  it('says direction and via instead of a terminus', () => {
+  it('names the next interchange (6d.6b), never clockwise/anticlockwise', () => {
     const res = normalizeOneMapPlan(plan);
     if (!res.ok) throw new Error(res.message);
     const it0 = res.itineraries[0]!;
     const zh = buildSteps(it0, 'zh-CN').map((s) => s.text);
     const en = buildSteps(it0, 'en').map((s) => s.text);
-    expect(zh).toEqual(['搭乘环线，逆时针方向（经滨海湾）', '坐 4 站，在 滨海湾 Marina Bay (CC33) 下车']);
-    expect(en).toEqual(['Take the Circle Line, Anticlockwise (via Marina Bay)', 'Ride 4 stops. Get off at Marina Bay']);
+    expect(zh).toEqual(['坐环线，往 滨海湾 Marina Bay 方向', '坐 4 站，在 滨海湾 Marina Bay (CC33) 下车']);
+    expect(en).toEqual(['Take the Circle Line towards Marina Bay', 'Ride 4 stops. Get off at Marina Bay']);
+    expect([...zh, ...en].join(' ')).not.toMatch(/顺时针|逆时针|clockwise/i);
+    const b = buildSteps(it0, 'zh-CN')[0]!;
+    expect(b.towardsCode).toBe('CC33');
+    expect(b.nextStop).toBeTruthy();
   });
 });

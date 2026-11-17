@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { copy, timeText } from '../src/viewer/copy';
+import { copy, stepLine, timeText } from '../src/viewer/copy';
 import { renderParts } from '../src/viewer/render';
 import {
   applyShare, backoffMs, deriveView, initialMemory, pickLang, stepKindOf, terminalFromHttp, VIEW_KINDS,
@@ -33,6 +33,38 @@ describe('viewer state mapping (STYLE-GUIDE §6e.2, M4 AC 21)', () => {
     expect(kind(fold({ stepText: '在地铁上，往 滨海南码头 方向，还有 1 站' }))).toBe('train');
     expect(kind(fold({ stepText: null }))).toBe('walk');
     expect(stepKindOf('Waiting for the train at Bishan')).toBe('wait');
+    expect(stepKindOf('Somewhere nice')).toBeNull();
+  });
+
+  it('structured step wins over the text guess (review ruling)', () => {
+    expect(kind(fold({ stepText: 'Walk to the stop and wait', step: { k: 'bus', svc: '139', stops: 3 } }))).toBe('bus');
+  });
+
+  it('renders the §6e.2 templates in the viewer language from step', () => {
+    expect(stepLine({ k: 'walk', place: 'Blk 79' }, 'zh')).toBe('正在走路去 Blk 79');
+    expect(stepLine({ k: 'wait', svc: '139', stop: 'Opp Blk 215' }, 'en')).toBe('Waiting at Opp Blk 215 for bus 139');
+    expect(stepLine({ k: 'wait', station: 'NS17' }, 'zh')).toBe('在 碧山 等地铁');
+    expect(stepLine({ k: 'wait', station: 'NS17' }, 'en')).toBe('Waiting for the train at Bishan');
+    expect(stepLine({ k: 'bus', svc: '139', stops: 3 }, 'zh')).toBe('在 139 号巴士上，还有 3 站');
+    expect(stepLine({ k: 'bus', svc: '139', stops: 1 }, 'en')).toBe('On bus 139, 1 stop to go');
+    expect(stepLine({ k: 'train', towards: 'NS28', stops: 4 }, 'zh')).toBe('在地铁上，往 滨海南码头 方向，还有 4 站');
+    expect(stepLine({ k: 'train', towards: 'NS28', stops: 4 }, 'en')).toBe('On the train towards Marina South Pier, 4 stops to go');
+    expect(stepLine({ k: 'train', stops: 4 }, 'en')).toBeNull();
+    expect(stepLine(null, 'en')).toBeNull();
+  });
+
+  it('pill: no icon when nothing matches; lang-tagged stepText fallback; terminal footer', () => {
+    const v = deriveView(fold({ stepText: 'Somewhere nice' }), T0 + 1000);
+    const p = renderParts(v, 'zh', null);
+    expect(p.status).toContain('Somewhere nice');
+    expect(p.status).not.toContain('data-icon');
+    const v2 = deriveView(fold({ stepText: '在 139 号巴士上', step: { k: 'bus', svc: '139', stops: 2 } }), T0 + 1000);
+    expect(renderParts(v2, 'en', null).status).toContain('data-icon="bus"');
+    expect(renderParts(v2, 'en', null).status).toContain('On bus 139, 2 stops to go');
+    const ended = deriveView({ ...fold({}), terminal: 'expired' }, T0);
+    const pe = renderParts(ended, 'zh', null);
+    expect(pe.foot).not.toContain('30 分钟');
+    expect(pe.status).toContain('这个链接<wbr>已经过期了');
   });
 
   it('help, then help cleared for 5 min, then plain travelling', () => {

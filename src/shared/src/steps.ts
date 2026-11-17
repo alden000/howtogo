@@ -6,7 +6,7 @@
  */
 import { cumulativeDistances, polylineLength, snapToPolyline } from './geo';
 import { normalizeLang, t } from './i18n/steps';
-import { inferHeading, LOOP_DIRECTION_LABEL, stationForStop, stationLabel } from './data/network';
+import { inferHeading, stationForStop, stationLabel } from './data/network';
 import { parseExit } from './onemap';
 import type { Itinerary, Journey, Lang, LangInput, Leg, MessageParams, Step, StepKind, StepStop, StepTurn, Stop } from './types';
 
@@ -48,16 +48,31 @@ function stopName(stop: Stop, lang: Lang, isRail: boolean): string {
 }
 
 /** Which way the train goes: a terminus (towards) or a loop direction (+ via). */
-function headingParams(leg: Leg, lang: Lang): { towards?: string; direction?: string; via?: string } {
+function headingParams(leg: Leg, lang: Lang): { towards?: string; loop?: boolean; via?: string; code?: string } {
+  const h = leg.line ? inferHeading(leg.line.code, leg.from.code, leg.to.code, leg.startTime) : undefined;
+  // T7: zh name + English sign text in zh ("滨海南码头 Marina South Pier"); English only in en.
+  const name = (st: { en: string; zh: string }) => (lang === 'zh-CN' ? `${st.zh} ${st.en}` : st.en);
+  if (h?.kind === 'loop') {
+    // 6d.6b: never clockwise/anticlockwise; lead with the next interchange (via).
+    const out: { loop: true; via?: string; code?: string } = { loop: true };
+    if (h.via) {
+      out.via = name(h.via);
+      out.code = h.via.codes.find((c) => c.startsWith('CC')) ?? h.via.codes[0]!;
+    }
+    return out;
+  }
   if (leg.headsign) return { towards: leg.headsign };
-  if (!leg.line) return {};
-  const h = inferHeading(leg.line.code, leg.from.code, leg.to.code, leg.startTime);
-  if (!h) return {};
-  const name = (st: { en: string; zh: string }) => (lang === 'zh-CN' ? st.zh : st.en);
-  if (h.kind === 'terminus') return { towards: name(h.terminus) };
-  const out: { direction: string; via?: string } = { direction: LOOP_DIRECTION_LABEL[h.direction][lang] };
-  if (h.via) out.via = name(h.via);
-  return out;
+  if (h?.kind === 'terminus') return { towards: name(h.terminus), code: h.terminus.codes.find((c) => c.startsWith(leg.line!.code)) ?? h.terminus.codes[0]! };
+  return {};
+}
+
+/** First stop after boarding, in the step language (CCL sub-line "下一站是 …"). */
+function nextStopName(leg: Leg, lang: Lang): string | undefined {
+  const s = leg.intermediateStops[0] ?? leg.to;
+  if (!s) return undefined;
+  const st = stationForStop(s);
+  if (st) return lang === 'zh-CN' ? `${st.zh} ${st.en}` : st.en;
+  return s.displayName || s.name;
 }
 
 function stopParams(leg: Leg, lang: Lang): MessageParams {
@@ -169,10 +184,15 @@ export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildS
     else {
       boardParams.line = lineParam(leg, lang);
       const heading = headingParams(leg, lang);
-      if (heading.direction) {
-        boardKey += '.loop';
-        boardParams.direction = heading.direction;
-        if (heading.via) boardParams.via = heading.via;
+      if (heading.loop) {
+        const next = nextStopName(leg, lang);
+        if (heading.via) {
+          boardKey += '.loop';
+          boardParams.via = heading.via;
+        } else {
+          boardKey += '.loop_next';
+          boardParams.next = next ?? '';
+        }
       } else if (heading.towards) boardParams.towards = heading.towards;
     }
     const prevEnd = prev?.endTime ?? leg.startTime;
@@ -184,6 +204,14 @@ export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildS
     };
     if (leg.route) boardExtra.route = leg.route;
     if (leg.line) boardExtra.line = leg.line;
+    if (leg.from.code) boardExtra.fromCode = leg.from.code;
+    let towardsCode: string | undefined;
+    if (variant === 'train') {
+      towardsCode = headingParams(leg, lang).code;
+      if (towardsCode) boardExtra.towardsCode = towardsCode;
+      const next = nextStopName(leg, lang);
+      if (next) boardExtra.nextStop = next;
+    }
     push(
       variant === 'bus' ? 'board_bus' : 'board_train',
       leg,
@@ -198,6 +226,8 @@ export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildS
     const rideExtra: Partial<Step> = { stops, stopCount: stops.length };
     if (leg.route) rideExtra.route = leg.route;
     if (leg.line) rideExtra.line = leg.line;
+    if (leg.from.code) rideExtra.fromCode = leg.from.code;
+    if (towardsCode) rideExtra.towardsCode = towardsCode;
     push(variant === 'bus' ? 'ride_bus' : 'ride_train', leg, i, `step.ride_${variant}`, rideParams, rideExtra);
     seenTransit = true;
   });

@@ -185,6 +185,12 @@ export interface Step {
   isTransfer?: boolean;
   /** walk_to_destination: false for a multi-stop waypoint, true for the final place. */
   isFinal?: boolean;
+  /** Board/ride steps: the boarding stop's code (bus: 5 digits, for the arrival chip; rail: station code). */
+  fromCode?: string;
+  /** Train board/ride steps: station code of the terminus, or of the next interchange on the CCL loop. */
+  towardsCode?: string;
+  /** Train board steps: the next stop in the direction of travel (display name in the step language). */
+  nextStop?: string;
   /** Multi-stop: index of the journey segment this step belongs to. */
   segmentIndex?: number;
 }
@@ -312,6 +318,34 @@ export interface GuidanceState {
 export type ShareStatus = 'travelling' | 'arrived' | 'paused' | 'help';
 export const SHARE_STATUSES: readonly ShareStatus[] = ['travelling', 'arrived', 'paused', 'help'];
 
+/** Viewer pill kind (STYLE-GUIDE §6e.2). */
+export type ShareStepKind = 'walk' | 'wait' | 'bus' | 'train';
+export const SHARE_STEP_KINDS: readonly ShareStepKind[] = ['walk', 'wait', 'bus', 'train'];
+
+/**
+ * Structured step in the share contract (Director ruling after the viewer review):
+ * the family page renders the §6e.2 templates from it in the viewer's language.
+ * `station`/`towards`/`place` may be a rail station code ("NS17"): the viewer shows
+ * the name in its language; anything else is shown as sent (bus stops, places).
+ */
+export interface ShareStep {
+  k: ShareStepKind;
+  /** Bus service number ("139"). */
+  svc?: string;
+  /** Rail line code ("NS", "CC"). */
+  line?: string;
+  /** Stops to go on a ride. */
+  stops?: number;
+  /** Walk target. */
+  place?: string;
+  /** Bus stop name (wait for a bus). */
+  stop?: string;
+  /** Station (wait for a train): code or name. */
+  station?: string;
+  /** Direction of a train ride: terminus or next interchange (CCL), code or name. */
+  towards?: string;
+}
+
 /** Body of PUT /api/share/:id (API.md). */
 export interface SharePayload {
   lat: number;
@@ -322,6 +356,8 @@ export interface SharePayload {
   etaISO?: string;
   /** ≤ 280 chars. */
   stepText?: string;
+  /** Structured step (viewer renders §6e.2 templates in its own language). */
+  step?: ShareStep;
   status: ShareStatus;
   /** Epoch ms (the Worker clamps future values). */
   updatedAt: number;

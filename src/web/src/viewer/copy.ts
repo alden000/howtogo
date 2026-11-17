@@ -1,4 +1,6 @@
 /** Viewer copy, zh / en — verbatim from STYLE-GUIDE §6e.2. `me` = senderName (or the default). */
+import { stationByCode } from '@howtogo/shared/data';
+import type { StepWire } from './state';
 export type Lang = 'zh' | 'en';
 export type Pronoun = 'f' | 'm' | null | undefined;
 
@@ -21,6 +23,39 @@ export function timeText(lang: Lang, t: number): string {
   const h12 = h % 12 === 0 ? 12 : h % 12;
   if (lang === 'zh') return `${h < 12 ? '上午' : '下午'} ${h12}:${mm}`;
   return `${h12}:${mm} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+/** A rail station code ("NS17") in the viewer's language; anything else as sent. */
+export function placeName(v: string | undefined, lang: Lang): string {
+  if (!v) return '';
+  const st = /^[A-Z]{2}\d{1,2}[A-Z]?$/.test(v) ? stationByCode(v) : undefined;
+  return st ? (lang === 'zh' ? st.zh : st.en) : v;
+}
+
+/**
+ * Step pill from the structured `step` (§6e.2 templates, review ruling), in the viewer's language.
+ * Returns null when a template's fields are missing (the caller then shows `stepText` as sent).
+ */
+export function stepLine(step: StepWire | null | undefined, lang: Lang): string | null {
+  if (!step) return null;
+  const zh = lang === 'zh';
+  const n = step.stops;
+  const name = (v?: string) => placeName(v, lang);
+  switch (step.k) {
+    case 'walk':
+      return step.place ? (zh ? `正在走路去 ${name(step.place)}` : `Walking to ${name(step.place)}`) : null;
+    case 'wait':
+      if (step.svc && step.stop) return zh ? `在 ${step.stop} 等 ${step.svc} 号巴士` : `Waiting at ${step.stop} for bus ${step.svc}`;
+      if (step.station) return zh ? `在 ${name(step.station)} 等地铁` : `Waiting for the train at ${name(step.station)}`;
+      return null;
+    case 'bus':
+      return step.svc && typeof n === 'number' ? (zh ? `在 ${step.svc} 号巴士上，还有 ${n} 站` : `On bus ${step.svc}, ${n} ${n === 1 ? 'stop' : 'stops'} to go`) : null;
+    case 'train':
+      return step.towards && typeof n === 'number'
+        ? zh ? `在地铁上，往 ${name(step.towards)} 方向，还有 ${n} 站` : `On the train towards ${name(step.towards)}, ${n} ${n === 1 ? 'stop' : 'stops'} to go`
+        : null;
+  }
+  return null;
 }
 
 export function copy(c: CopyCtx) {

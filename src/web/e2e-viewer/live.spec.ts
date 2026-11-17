@@ -47,7 +47,7 @@ test('senior shares → family sees waiting, travelling, help, arrived, ended', 
   await expect(page.getByTestId('viewer-call')).toHaveAttribute('href', 'tel:+6591234567');
 
   const eta = new Date(Date.now() + 16 * 60_000).toISOString();
-  await put(senior.request, s, { status: 'travelling', lat: 1.3346, lng: 103.8491, acc: 12, etaISO: eta, stepText: '在 139 号巴士上，还有 3 站' });
+  await put(senior.request, s, { status: 'travelling', lat: 1.3346, lng: 103.8491, acc: 12, etaISO: eta, stepText: '在 139 号巴士上，还有 3 站', step: { k: 'bus', svc: '139', stops: 3 } });
   await expect(viewer(page)).toHaveAttribute('data-state', 'bus', { timeout: 5000 });
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('妈妈正在去 陈笃生医院');
   await expect(page.getByTestId('viewer-pill')).toHaveText('在 139 号巴士上，还有 3 站');

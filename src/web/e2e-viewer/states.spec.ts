@@ -29,10 +29,10 @@ const ENDED = { ...base, status: 'ended', lat: null, lng: null, acc: null, sende
 const MOCKS: Record<string, Mock> = {
   loading: { get: 'hang' },
   waiting: { get: st({ status: 'waiting', lat: null, lng: null, acc: null, etaISO: null, stepText: null, positionAt: null }) },
-  walk: { get: st({ stepText: '正在走路去 Blk 79 巴士站' }) },
-  wait: { get: st({ stepText: '在 Blk 79 巴士站 等 139 号巴士' }) },
-  bus: { get: st({}) },
-  train: { get: st({ stepText: '在地铁上，往 滨海南码头 Marina South Pier 方向，还有 1 站' }) },
+  walk: { get: st({ stepText: '正在走路去 Blk 79 巴士站', step: { k: 'walk', place: 'Blk 79 巴士站' } }) },
+  wait: { get: st({ stepText: '在 Blk 79 巴士站 等 139 号巴士', step: { k: 'wait', svc: '139', stop: 'Blk 79 巴士站' } }) },
+  bus: { get: st({ step: { k: 'bus', svc: '139', stops: 3 } }) },
+  train: { get: st({ stepText: '在地铁上，往 滨海南码头 Marina South Pier 方向，还有 1 站', step: { k: 'train', line: 'NS', towards: 'NS28', stops: 1 } }) },
   help: { get: st({ status: 'help', helpAt: iso(0) }) },
   helpcleared: { get: st({ status: 'help', helpAt: iso(0) }), ws: [{ type: 'state', state: st({}) }] },
   arrived: { get: st({ status: 'arrived', etaISO: null, lat: 1.3214, lng: 103.8458, updatedAt: iso(-1) }) },
@@ -116,6 +116,11 @@ for (const state of ['bus', 'help', 'nosignal', 'arrived', 'waiting', 'offline']
     await page.evaluate(() => document.documentElement.setAttribute('data-text-size', 'xxlarge'));
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe('40px');
     await expectNoClipping(page);
+    // Review P1 #1: the card and the ETA text fit their boxes.
+    const over = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('.card, .eta b')].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.className || el.tagName),
+    );
+    expect(over).toEqual([]);
     const call = page.getByTestId('viewer-call');
     if (await call.count()) expect((await call.boundingBox())!.width).toBeGreaterThan(300); // stays full width
     if (await page.locator('#maparea').isVisible()) expect((await page.locator('.map').boundingBox())!.height).toBeGreaterThanOrEqual(240);
@@ -131,6 +136,8 @@ test('language toggle switches copy and <html lang>, and is remembered', async (
   await toggle.click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en-SG');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('妈妈 is on the way to 陈笃生医院');
+  // Structured step: the pill follows the viewer's language (review ruling).
+  await expect(page.getByTestId('viewer-pill')).toHaveText('On bus 139, 3 stops to go');
   await expect(toggle).toHaveAccessibleName('切换到中文');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en-SG');
