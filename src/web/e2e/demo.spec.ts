@@ -45,6 +45,12 @@ test.describe('demo mode', () => {
     expect(nextStop).toBeGreaterThan(-1);
     expect(now).toBeGreaterThan(nextStop);
     expect(all.at(-1)).toBe('arrived_destination');
+    // M2 runtime hooks (no new screens yet): H6 → H6b order, resume window, location profile.
+    const lines = await logOf(page);
+    expect(lines.indexOf('alert:next')).toBeGreaterThan(-1);
+    expect(lines.indexOf('alert:now')).toBeGreaterThan(lines.indexOf('alert:next'));
+    expect(lines).toEqual(expect.arrayContaining(['state:resume', 'loc:profile 2000']));
+    expect(lines.some((l) => l.startsWith('state:wakelock-failed') || l === 'wakelock:on')).toBe(true);
 
     // Back: one in-app step at a time (guide → trip → routes → home).
     await page.goBack();
