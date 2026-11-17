@@ -126,3 +126,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Android appId: **com.wwweeeiii.howtogo**. Signing key: generated in this session (never committed), handed to the owner once (file + password) to keep; M6 builds need it back.
 - Error counts: ON, anonymous counts only, listed on the privacy page, Settings switch.
 - Container restarted mid-afternoon; all worktrees/branches survived. M2 fix round done (gate 10/12; remaining failures = QA harness updates + load flakes). M3/M4 web round done on dev/m34-web (dev-e2e 132/132; QA M1 specs contradict M2 flags → QA update).
+
+## 2026-11-17 — M3/M4 Creative review: APPROVED WITH FIXES
+- 3 High (H5 arrival chip placement, Home disruption banner → 72 px strip only when a recent trip uses the line, drop the possibly-false night line), Mediums (en list joiner, colour-only picked contact, Help pronoun → neutral wording).
+- Deviation rulings accepted as Creative ruled: build now nodata voice, T4 title/note, T6 meta; defer the rest to M5; drop Web Push; keep the 995 confirm; drop the `pronoun` field (neutral copy everywhere).
+- Sequence: after the M2 re-check passes → merge M2 into dev/m34-web → QA M3/M4 gate → ONE fix round (Creative + QA).
