@@ -301,3 +301,40 @@ H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-144
 - **Deviation from AC 21 wording:** the AC reads "no credentials → fixtures". The task asked for an explicit flag, so production without secrets answers `503 not_configured` instead of fake routes. Director to confirm. `@howtogo/shared` is resolved via the workspace and not declared in the worker's package.json (that would need a root lockfile change). The fixtures are lazily imported.
 - Also: AC 19 upstream timeout 10 s → 8 s (QA missed it).
 - 91 tests pass; typecheck clean.
+
+## 2026-11-17 — M3 + M4 Worker round (dev/m34-worker) · Developer (fresh)
+Scope: Worker-side ACs only (`src/worker/`). 136 tests pass (was 91), typecheck clean. Contract details in `src/worker/API.md`.
+
+**Endpoints added / changed**
+- `GET /api/bus-arrival`: each `next[]` entry gains `monitored: boolean` (LTA `Monitored` 1 → true; 0/missing → false) — M3 AC 4.
+- `GET /api/alerts`: adds `minor` (Status 1 + message, AC 24); each line adds `freeBusIslandWide`, `shuttleDirection`; station lists are now codes only (LTA `|`, `;`, `*` delimiters flattened). Tolerates `value` as array / single objects (LTA Jan 2026 revision). Cache key bumped to `alerts:v2`.
+- **New `GET /api/lifts`** from `v2/FacilitiesMaintenance` → `{fetchedAt, lifts:[{line, station, stationName, liftId|null, desc}]}`, cached 5 min, 502/503 rules, in the 60/min read bucket — M3 AC 30.
+- FIXTURE_MODE: `/api/lifts` fixture + `?fixture=` scenarios (bus `live|empty|not_configured`, alerts `normal|minor|disrupted|not_configured`, lifts `outage|none|not_configured`) — M3 AC 39. All new fixtures are labelled SYNTHETIC.
+- `POST /api/share`: optional `senderName` (≤ 40) and `senderPhone` (E.164) — AC 18/OQ3. Phone removed from storage and from the ended state when the share ends. No destination coordinates anywhere (OQ4).
+- `PUT /api/share/:id`: position now optional (status-only updates for start-before-fix, paused, help-only share; last position kept). **D-7: `help` bypasses the 3 s limit, max 1 help write/s** — AC 13.
+- Share state adds `senderName`, `senderPhone`, `positionAt`, `helpAt`.
+- Rate limits (AC 47): share create 10/h, viewer GET 1 per 5 s per share, setup create 5/h, setup GET 30/h (per IP, in-memory, hashed). `ratelimit.ts` now has named limits (`checkLimit`).
+- **New caregiver setup box** (AC 40–41): `POST /api/setup {ct}` → `{code, expiresAt}`; `GET /api/setup/:code` returns the ciphertext once (then `410 setup_used`); 24 h (`410 setup_expired`), 4096-byte cap, body must be exactly `{ct}` (a key field is refused). New DO class `SetupBox` (`src/setup.ts`).
+- OQ6: `SHARE_TEST_TTL_SECONDS` honoured only when `ENVIRONMENT="test"`; `test/config.test.ts` scans `wrangler.toml` and fails if either (or `FIXTURE_MODE`) appears outside `[env.test]`.
+- `npm run record:lta -w @howtogo/worker` (AC 40, owner-run, refuses in CI).
+
+**Contract changes the web client must follow**
+- Bus chip: use `monitored` for Live vs Timetable.
+- Alerts: `minor` → quiet Home line; `freeBusIslandWide`; `shuttleDirection`; station lists are codes.
+- Lifts: poll `/api/lifts`; "lifts OK" fact only if `fetchedAt` < 15 min; show zh name by `station` code.
+- Share create: send `senderName`, and `senderPhone` only if allowed. PUT without `lat/lng/acc` for status-only updates; `etaISO:null` on arrived. Viewer: use `helpAt`, `positionAt`, `updatedAt` (signal lost), poll GET at 15 s (5 s limit).
+- Setup: `ct` = base64url (no padding) of `iv(12) ‖ ciphertext‖tag`, ≤ 4096 bytes; key only in `#k=`; GET only when about to show the preview (it consumes the box).
+
+**wrangler.toml additions (appended block at the end, for the Director to merge with the static-assets change)**
+- `[[durable_objects.bindings]] SETUP_BOX → SetupBox` and `[[migrations]] tag "v2" new_sqlite_classes ["SetupBox"]`.
+- `[env.test]` (name `howtogo-api-test`) with vars `ENVIRONMENT="test"`, `SHARE_TEST_TTL_SECONDS="90"`, `ALLOWED_ORIGINS` (localhost 4173/5173), and repeated KV + both DO bindings (envs don't inherit bindings). If the static-assets change adds `[assets]`, repeat it under `[env.test]` too.
+
+**Assumptions to verify with a real LTA key**
+- FacilitiesMaintenance v2 reply is `{value:[…]}` with ≤ 500 rows (no `$skip` paging implemented); v2 has no dates (guide v6.11 lists none).
+- `Monitored` arrives as number 1/0 (string "1" also accepted).
+- TrainServiceAlerts after the Jan 2026 revision still matches §2.11 (defensive parsing in place; check `record:lta` diff).
+
+**Not done / next steps**
+- Web Push (AC 31, Should) not built.
+- `smoke:live` (M3 AC 45) does not exist yet in the repo; add bus-arrival/alerts/lifts when it does.
+- Arrival grace (30 min) has no test override; with the 90 s test TTL, expiry comes first in the two-browser test.
