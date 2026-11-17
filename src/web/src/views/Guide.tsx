@@ -288,6 +288,7 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
         </div>
         {group === 'ride' && (
           <div class="ridebox">
+            <Badge step={step} />
             <span class="stopsleft num" data-testid="stops-left">
               {mrt ? t('pk_n_est', { n: mrt.stopsLeft }) : left === 1 ? t('g_stop_left1') : t('g_stops_left', { n: left })}
             </span>
@@ -347,17 +348,12 @@ function StepSub(p: { step: Step | undefined; group: 'walk' | 'wait' | 'ride'; t
     if (step.mode === 'bus')
       return (
         <p data-testid="step-sub">
-          {t('g_wait_s')} <span class="sign">{String(step.params.stop ?? '')}</span>
+          <Badge step={step} /> {t('g_wait_s')} <span class="sign">{String(step.params.stop ?? '')}</span>
         </p>
       );
     return (
       <p data-testid="step-sub">
-        {step.line && (
-          <span class="linetag">
-            <span class="sw" style={{ background: `var(--${step.line.colorToken})` }} />
-            <span class="cd">{step.line.code}</span>
-          </span>
-        )}{' '}
+        <Badge step={step} />{' '}
         {step.params.towards ? t('g_towards', { p: String(step.params.towards) }) : ''}
       </p>
     );
@@ -371,6 +367,24 @@ function StepSub(p: { step: Step | undefined; group: 'walk' | 'wait' | 'ride'; t
       {t('g_ride_tell')}
     </p>
   );
+}
+
+/** §5.4 transit badge: bus badge (ink block, bus icon + number) or line tag (colour stripe + code, never colour-only). */
+function Badge({ step }: { step: Step | undefined }) {
+  if (!step) return null;
+  if (step.mode === 'bus')
+    return step.route ? (
+      <span class="busbadge" data-testid="bus-badge">
+        <Icon name="bus" />
+        {step.route}
+      </span>
+    ) : null;
+  return step.line ? (
+    <span class="linetag" data-testid="line-tag">
+      <span class="sw" style={{ background: `var(--${step.line.colorToken})` }} />
+      <span class="cd">{step.line.code}</span>
+    </span>
+  ) : null;
 }
 
 function RerouteBanner({ found, t }: { found: boolean; t: TFn }) {

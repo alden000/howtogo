@@ -25,7 +25,7 @@ async function stubs(page: Page, o: { wakeLockOk?: boolean } = {}) {
       };
       synth.getVoices = () => [{ lang: 'zh-CN', name: 'zh', default: true, localService: true, voiceURI: 'zh' } as SpeechSynthesisVoice, { lang: 'en-SG', name: 'en', default: false, localService: true, voiceURI: 'en' } as SpeechSynthesisVoice];
     }
-    navigator.vibrate = (p: VibratePattern) => (w.__vib.push(p), true);
+    (navigator as unknown as { vibrate: (p: unknown) => boolean }).vibrate = (p) => (w.__vib.push(p), true);
     Object.defineProperty(navigator, 'wakeLock', {
       configurable: true,
       value: { request: () => (wl ? Promise.resolve({ release: () => Promise.resolve(), addEventListener() {} }) : Promise.reject(new Error('no'))) },

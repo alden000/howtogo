@@ -427,3 +427,66 @@ The trip and its step still come from `store.trip` (`guidance`, `journey {segmen
 - Web: use `exits` for the final-walk exit chip, and `stationLabel` / the zh name for the sign chip (STYLE-GUIDE H6b).
 - Re-run `gen/build_stations.py` when stations open (TEL/DTL 26 Dec 2026, JRL, CRL). The JRL/CRL codes on interchange stations are filtered out until those lines exist in `lines.ts`.
 - Bundle cost: `stations.ts` is 55 KB raw, about 12 KB gzipped.
+
+## 2026-11-17 — M2 round 2: guided-trip UI (Developer, branch `dev/m2-engine`)
+
+**Visible changes (for Creative / QA review)**
+- **Flags:** `guide` and `help` are **on by default** (AC 1). `?ff=-guide` / `?ff=-help` turns one off for a tab; `?ff=live` still adds `live`.
+- **H3:** new secondary button **加一个地方 / Add a stop** under the From line (→ G2).
+- **H4:** **开始出发 / Start** is shown. A multi-stop plan opens **H4 journey** (今天的行程, one block per part, dwell rows, note, 改一改).
+- **H5 (new):** solid top band (结束 · voice toggle · 帮忙 pill; share pill, H11 banner, MRT pre-alert and the voice-unlock bar sit inside the band), a map window between the band and the step card, map controls (Follow / See whole trip, Share). The step card has a trip note, journey dots + "去第 k 个地方（共 n 个）", "第 n 步，共 m 步", ETA, the step icon tile, the headline (polite live region), sign chip, sub-line, bus badge / line tag, stops left + stop dots, progress bar and the G5 action rows (I'm on / I got off · Say it again · Pocket · Previous step / Next).
+- **H6 / H6b:** a saffron panel and an ink takeover with saffron type, edge glow, OK. Back opens the End-trip sheet over them.
+- **H11:** searching/found banner in the band. Re-route failed/offline is a trip note with Show the driver + 995.
+- **Trip notes:** weak GPS, offline, manual mode (+ "found you" for 4.2 s), wake lock failed, no voice (+ a link to the G7 voice help sheet).
+- **G1 pocket view** (black, dark tokens), **G3 waypoint** screen, **H12 arrival** (seal stamp, petals, 用了 N 分钟, Done, Route home).
+- **H9 Help sheet** (M2 subset) on H1, H3, H4 and H5. **H10 Show the driver** (always light card; tabs Where I'm going / My home / Where I am). **G6 End your current trip?** and the **G4 stale trip** sheet.
+- **G2 builder** screen (`/journey`), plus the dwell picker sheet and H2 in "Add a place" mode.
+- **Settings:** 语音提示 on/off, **试听 / Test voice** (with the "no Chinese voice" caption and link), 震动提示 on/off.
+- **Back on H5 / H6 / H6b / H11 / pocket / G3** opens the End-trip sheet (D8 guard history entry). Back on H12 goes to H1 and clears the trip.
+
+**Done.** All views render from `runtime.ui` + `store.trip` and call only runtime actions. No guidance logic in views.
+- `views/Guide.tsx`: H5 (Live), H6/H6b (GetOffAlert), trip notes, G1 Pocket, G3 Waypoint, H12 Arrival.
+- `views/guideModel.ts` (pure, unit-tested): step group/icon, note priority (6c.10), G5 action rows (6c.7), alert copy, pocket text, stop dots, next stop, card max height + puck padding (6c.0), heading choice (AC 14: compass when slow → course > 1 m/s → north-up), follow zoom (AC 18).
+- `map/GuideMap.tsx` + `map/map.ts` (`setFollow`, `setPadding`, `setFollowZoom`, `onGesture`, stale grey puck). The canvas is sized to the window between the band and the card, so labels are clipped to it. The puck sits at 66 % down that window. The follow mode is the runtime's (gesture → `mapGesture()`, Follow → `recentre()`, See whole trip → `overview()`, and a step change re-engages it). Nothing is timer-based.
+- `views/tripSheets.tsx`: H9, H10, G7 voice help, G6, G4 stale, G2 dwell. `views/Journey.tsx`: G2 + the pure list edits.
+- `views/TripDetail.tsx`: `useStartTrip()` is the single Start path (AC 2). It calls `heading.requestPermission()` inside the tap (AC 4), then `runtime.start`/`startJourney`, then `router.enterGuide()`. It shows G6 first when a trip is active (AC 5).
+- **Router:** `NavState.guard` + `enterGuide()` + `setGuard()`. A reload on `/guide` seeds Home → guard → guide. `reset(path, then?)` (H12 Route home → H1 + H3).
+- **main.tsx:** `DEFAULT_FLAGS`. After `resume()`: straight into H5, or G4 on H1 when stale.
+- i18n: 150 new keys (`ui.ts`, zh + en, copy verbatim from §6/§6c). 11 icons added (5 approved 6c icons + speaker, mute, bell, car, phone, eye from §1.4). The `c-pocket` token and `styles/guide.css` (values from the prototype).
+- `playwright.config.ts`: `E2E_PORT` (default 4173), so parallel worktrees don't share a preview server.
+
+**Tests**
+- vitest web: 109 (+ `test/guideModel.test.ts` 14 and 2 router guard tests).
+- e2e `e2e/guide.spec.ts` (12):
+  - bus trip zh: cue order, H6 → ack → H6b, Back over the alert, arrival, Back → H1 + trip cleared, spoken lines
+  - MRT trip en
+  - off route → found, then re-route failed note → H10 → ✕
+  - manual mode
+  - pocket: enter; the first touch only wakes the screen; alert breaks through
+  - resume after reload: same step, toast, guard
+  - Back/End + H9 subset + H10 Back → H9
+  - multi-stop 3 places (waypoints "第 k 个地方，共 3 个", Back → End sheet → Back → G3, continue ×2, arrival)
+  - entry points: Take me home, Home tile, recent
+  - AC 5 G6
+  - 200 % dark zh and light en: no clipping, ≥ 56 px, labelled and test-id'd controls on H5/H9/pocket/H6/H6b
+- M1 specs updated for M2 behaviour: Start visible; Help on by default; Back on H5/H12 per D8/AC 47; the `:4173` URL checks now accept any port.
+- **Baselines** (`e2e/baselines-m2.spec.ts`, 27, 390×844 DPR 1, the WebGL canvas hidden):
+  - `M2-H5-walk` ×4, `M2-H5-ride`, `M2-H5-manual-walk`
+  - `M2-H6-bus` ×3, `M2-H6-train`, `M2-H6b-bus` ×3, `M2-H6b-train`
+  - `M2-G1-pocket-walk` ×3 (dark), `M2-G1-pocket-ride`
+  - `M2-H11-failed`, `M2-H12-notshared` ×2, `M2-H9-m2-trip`, `M2-H10-dest`, `M2-G2-two` ×2, `M2-H4-journey-3`, `M2-G3-waypoint`
+  - Re-recorded M1: `H3-*`, `H4-*`, `M1-F3-close` (Add a stop / Start).
+
+**Deviations**
+- **H5 headline = the shared step sentence** (`step.text`, e.g. "坐 4 站，在 Tan Tock Seng Hosp 下车"), not the H5 example "坐着就好，还有 4 站". It is the line the runtime speaks, so screen = voice (AC 22). The H5 copy is in the sub-lines ("下一站：…", "下车前我会提醒你。", "还有 N 站"). The MRT estimate uses the 6c.12 headline. Creative to confirm, or the runtime should speak the H5 templates.
+- **Bus sign chip on H6/H6b** = "{stop} 巴士站" / "{stop} bus stop". There is no zh bus-stop name table yet (M3), so there is no "· {zh name}".
+- **End-trip sheet over pocket view:** opening any sheet leaves pocket view (runtime `setSheetOpen` → touch), so the sheet is drawn over H5 in the normal theme, not over a dark pocket view.
+- **G2 at 100 %:** the dwell chip and ↑ ↓ ✕ do not fit one row at 390 px in zh, so ↑ ↓ ✕ stay together on a second row (as at 200 %).
+- **H10 "Where I am"** shows the reverse-geocoded name (no address lines). It is always the "I am here" card.
+- **Not built:** the "全部步骤 / All steps" sheet (AC 12, Should); demo-mode buttons that play every new state (AC 50). The e2e drives those states through the fake platform instead. The H12 shared/told lines are M4 (AC 48).
+
+**Next steps**
+1. Creative review of the built M2 frames against §6c (baselines above). QA gate M2: map ACs to tests, and add the axe pass on H5/H6/H6b/H11/H12/G1/G3.
+2. AC 50 demo controls, and the AC 12 All-steps sheet.
+3. Owner phone test (thresholds, compass, voices, wake lock, pocket battery).
+4. The GPS replay variant with the real `web` adapter (`context.setGeolocation`) is still to do. The current e2e uses the fake platform + simulator.

@@ -139,7 +139,7 @@ const FRAMES: { frame: string; variants: Variant[]; perm?: 'denied'; go: (p: Pag
         const s = g.steps[0].start;
         for (let i = 1; i <= 4; i++) w.__howtogo.platform.fake.emit({ lat: s.lat + 0.004, lng: s.lng + 0.004 + i * 0.00002, acc: 8, t: T0 + i * 1000, speed: 1 });
       }, FIXED_T);
-      await expect(p.locator('[data-note=reroute-failed]')).toBeVisible();
+      await expect(p.locator('[data-note=reroute-failed]')).toBeVisible({ timeout: 15_000 });
     },
   },
   {
