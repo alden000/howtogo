@@ -1,0 +1,49 @@
+# 怎么去? release gate (web / PWA)
+
+One command, from the repo root: **`qa/gate.sh`** (≈ 3–4 min). Terse per-step lines, then `GATE PASS` or `GATE FAIL — failing steps: …`.
+Logs go to `qa/.out/logs/<step>.log`. QA-only dependencies live in `qa/package.json` (not in the root workspace). Install them once with `npm ci --prefix qa`.
+
+The gate is **read-only for `src/`**:
+- Builds go to `qa/.out/dist` (A) and `qa/.out/dist-b` (B = A plus `VITE_FLAGS=qa-b`, used only for the SW-update test).
+- Playwright runs with `updateSnapshots: 'none'`, so it compares baselines and never writes them.
+
+`SKIP=lighthouse,qa-e2e qa/gate.sh` skips steps. A skipped step counts as not passed.
+
+## Checklist
+
+| # | Step (`gate.sh` name) | What it proves | Pass rule | AC |
+|---|---|---|---|---|
+| 1 | `deps` | `npm ci` equivalent, without touching `node_modules`: `npm ls --all` is clean, `package-lock.json` is unchanged, and the qa tree is complete | exit 0 | – |
+| 2 | `typecheck` | `tsc --noEmit` for shared, worker, web and the SW. `en: typeof zh` plus typed `t()` keys make a missing i18n key a type error | 0 errors | 8 |
+| 3 | `unit` | vitest for shared, web and worker. Worker tests run in workerd: token renewal and 401 retry, validation, caching keys, log redaction, fixture mode, rate limit | all pass | 15–18, 20, 21, 29, 30, 32 |
+| 4 | `i18n` | zh/en key parity and no empty strings (`present.test.ts`, "AC 8") | pass | 8 |
+| 5 | `build` | Production build A and B. App JS without MapLibre is ≤ 150 KB gz, and MapLibre is a separate lazy chunk that `index.html` does not reference | budget held | 46 |
+| 6 | `static-pwa` | Manifest: name `怎么去?`, short_name, `start_url` `/`, `scope` `/`, `display: standalone`, colours, 192/512/maskable icons present in dist, only allow-listed keys. SW: placeholders replaced, precache files exist, exactly one shell JS, no MapLibre precached, only `install/activate/fetch/message` listeners, no push/sync/periodicSync/backgroundFetch/showNotification. App APIs are listed against an allow-list (getUserMedia, push, bluetooth fail) | no FAIL lines | 1, 2 |
+| 7 | `secrets` | Scans `src/` (excl. node_modules) and `dist/` for JWTs, private keys, AWS/Google keys, Bearer literals, credential assignments with real-looking values, and e-mails outside `example.com` / `howtogo.local`. Also checks `wrangler.toml` has no credentials in `[vars]` (placeholders only) and that no `.dev.vars` / `.env` is tracked. Reviewed test dummies are allow-listed in the script | 0 findings | 14 |
+| 8 | `dev-e2e` | Developer suite `src/web/e2e` (52 tests, incl. 36 screenshot baselines) against the **release build served by `vite preview`** (release-artifact smoke) | all pass | 5–7, 9, 10, 22–28, 35, 36 |
+| 9 | `qa-e2e` | QA suite `qa/tests`: `ac.spec.ts` (one test per AC), `pwa.spec.ts` (manifest, Chrome installability verdict, offline cold start, two-build SW update) and `matrix.spec.ts` (every screen and sheet × zh/en × light/dark × 100/150/200 % × 390/720/1440: layout, 56 px + 8 px gap, labels + testids, axe WCAG 2.1 AA, attribution) | all pass | 1–13, 19–28, 31, 33–44, 47 |
+| 10 | `lighthouse` | Lighthouse 12 mobile on `/`, `/about`, `/settings` (release build). HTML and JSON reports go to `qa/.out/lighthouse/` | perf ≥ 80, a11y ≥ 95 | 45 |
+| 11 | `artifact` | A deterministic zip of `dist/` with its SHA-256: `qa/reports/howtogo-web-<ver>-dist.zip` + `.sha256`. The zip itself is git-ignored | written | – |
+
+### Substitutions (documented)
+- **Lighthouse "PWA installable".** Lighthouse ≥ 12 removed the PWA category, so `pwa.spec.ts` replaces it with:
+  - Chrome's own verdict, `Page.getInstallabilityErrors` over CDP, which must be empty;
+  - manifest fetch and field checks;
+  - SW registration and control;
+  - an offline cold start in a new tab, plus an offline deep path.
+
+  Note: current Chrome has relaxed install criteria and reports no error even without icons. Step 6 enforces the icons.
+- **"Install prompt shown"** (AC 3) can't be observed headless. It is deferred to the real-device pass.
+- **Two-build SW update** (AC 4). A tiny static server inside `pwa.spec.ts` switches its root from dist A to dist B on one origin.
+- **150 % × 200 % browser zoom** (AC 9) is emulated as 150 % app text at half the CSS viewport (1440 → 720 × 450). The 390 px phone is checked at 200 % app text (`xxlarge`).
+- **Fault states** (error, 429, no route, outside SG) need a fault switch, and the mock API has none. The tests run the app in **live mode** with `/api/*` answered by Playwright, using the shared fixtures for good answers.
+
+### Not covered by the gate (manual / deferred)
+- Live OneMap and LTA: `npm run smoke:live` needs the owner's credentials, and the Worker is not deployed.
+- Real devices: an Android Chrome install (prompt, icon, standalone, Back gesture) and iOS Safari (Add to Home Screen, standalone, safe areas). Also VoiceOver and TalkBack passes on Home → Route detail (deferred to M5 if no device).
+- Cloudflare Pages HTTPS and headers (AC 1, first half). This needs the preview deploy.
+
+### Rules
+- Never run Playwright with `--update-snapshots` in the gate. Baselines change only in a Developer round, and Creative reviews them.
+- A new manifest key, SW event or permission-bearing API needs Director approval plus an allow-list edit in `scripts/static-pwa.mjs`.
+- A new secret-scan allow-list entry needs QA review (the comment in `scripts/secret-scan.mjs`).
