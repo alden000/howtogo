@@ -3,7 +3,7 @@
  * No state or decisions of its own: it maps `runtime.ui` + the current step to what the
  * frames show (which note, which action rows, pocket text, map viewport). Unit-tested.
  */
-import type { AlertState, GuidanceState, Step } from '@howtogo/shared';
+import type { AlertState, GuidanceState, Leg, Step } from '@howtogo/shared';
 import type { IconName } from '../ui/kit';
 import type { UiKey } from '../i18n/ui';
 import type { TripUi } from '../trip/runtime';
@@ -185,3 +185,12 @@ export function followZoom(group: StepGroup): number {
 
 /** Puck greys after 30 s without a good fix (6c.12). */
 export const STALE_PUCK_MS = 30_000;
+
+/** T6: the step is a train-to-train change (walk between two rail legs, or boarding a train straight after one). */
+export function isTrainChange(step: Pick<Step, 'kind' | 'legIndex'> | undefined, legs: readonly Pick<Leg, 'mode'>[]): boolean {
+  if (!step) return false;
+  const rail = (i: number) => legs[i]?.mode === 'mrt' || legs[i]?.mode === 'lrt';
+  if (step.kind === 'walk_transfer') return rail(step.legIndex - 1) && rail(step.legIndex + 1);
+  if (step.kind === 'board_train') return rail(step.legIndex - 1) || (legs[step.legIndex - 1]?.mode === 'walk' && rail(step.legIndex - 2));
+  return false;
+}

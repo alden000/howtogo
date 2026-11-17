@@ -7,3 +7,6 @@
 | `lta-train-alerts-disrupted.json`, `lta-train-alerts-normal.json` | **Synthetic**, from the documented TrainServiceAlerts format (assumed shape, verify with a real key). |
 | `onemap-revgeocode.json` | **Synthetic**, from the OneMap revgeocode docs (assumed field names, verify with a real token). |
 | `onemap-route.json` | **Synthetic**, trimmed OpenTripPlanner-style shape; the Worker passes it through byte-for-byte. |
+| `lta-facilities-maintenance-v2.json` (also `fixtures/`) | **Synthetic**, in the `v2/FacilitiesMaintenance` shape from the LTA DataMall API guide v6.11 §2.23 (`value[]` of Line, StationCode, StationName, LiftID?, LiftDesc). |
+| `../../fixtures/lta-train-alerts-disrupted.json`, `lta-train-alerts-minor.json` | **Synthetic** fixture-mode replies (`?fixture=disrupted|minor`). |
+| `recorded/` | Written by `npm run record:lta` (owner-run with the real key, M3 AC 40). Not committed until the owner records them. |

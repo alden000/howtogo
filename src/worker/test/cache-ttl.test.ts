@@ -9,7 +9,7 @@ afterEach(() => {
 
 describe("AC 17 cache lifetimes", () => {
   it("search 24 h, route 2 min, revgeocode 1 h", () => {
-    expect(TTL).toEqual({ search: 86_400, route: 120, revgeocode: 3_600 });
+    expect(TTL).toEqual({ search: 86_400, route: 120, revgeocode: 3_600, bus: 20, alerts: 60, lifts: 300 });
   });
 
   it("a route entry is served for 2 min and refetched after", async () => {

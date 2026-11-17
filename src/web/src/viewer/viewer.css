@@ -1,0 +1,92 @@
+/* Family viewer /t/:id — STYLE-GUIDE §6e.2. Values from creative/prototype/viewer.html; tokens only
+   (tokens.css is inlined at build time by Vite's CSS @import, so no JS module is shared with the app). */
+@import '../styles/tokens.css';
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{font-size:calc(20px * var(--ts));-webkit-text-size-adjust:100%;background:var(--c-canvas)}
+body{margin:0;font-family:var(--font);color:var(--c-ink);background:var(--c-canvas);line-height:1.45;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:3px solid var(--c-focus);outline-offset:3px;border-radius:var(--r-s)}
+svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.num{font-variant-numeric:tabular-nums}
+
+.hdr{display:flex;align-items:center;gap:10px;padding:8px 20px;min-height:72px;max-width:1600px;margin:0 auto}
+.hdr .mark{width:36px;height:36px;flex:none}
+.hdr .name{font-weight:900;font-size:.95rem}
+.hdr .grow{flex:1}
+.langbtn{min-height:var(--tap);min-width:var(--tap);padding:0 18px;border-radius:var(--r-pill);background:var(--c-surface);box-shadow:var(--e-1);font-weight:700;font-size:.95rem}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"note" "status" "map" "rest";gap:16px;max-width:560px;margin:0 auto;padding:0 20px 32px}
+.notearea{grid-area:note}.statusarea{grid-area:status;min-width:0}.maparea{grid-area:map;min-width:0}.restarea{grid-area:rest;min-width:0}
+.notearea:empty{display:none}
+.card{padding:20px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-1)}
+.who{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.who>div{min-width:0;flex:1 1 12rem}
+.avatar{width:max(56px,2.8rem);height:max(56px,2.8rem);border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:1.3rem;flex:none;background:var(--tint-home);color:var(--ink-home)}
+.avatar.ok{width:max(64px,3.2rem);height:max(64px,3.2rem);background:var(--c-jade);color:var(--c-on-jade);position:relative}
+.avatar svg.i{width:58%;height:58%}
+.avatar.ok svg.i{width:58%;height:58%;stroke-width:3}
+.avatar.ok::after{content:"";position:absolute;inset:0;border-radius:50%;border:4px solid var(--c-saffron);animation:ring 1.2s ease-out 1 both}
+@keyframes ring{from{transform:scale(.8);opacity:1}to{transform:scale(1.8);opacity:0}}
+.who h1{margin:0;font-size:1.5rem;line-height:1.2;font-weight:700;text-wrap:balance;min-width:0;flex:1;overflow-wrap:anywhere}
+.who p{margin:6px 0 0;color:var(--c-ink-2);font-size:1rem}
+.eta{margin-top:16px}
+.eta b{display:block;font-size:min(2.1rem,18vw);overflow-wrap:anywhere;line-height:1.15;font-weight:900;min-height:1.15em}
+.eta span{display:block;margin-top:4px;font-size:1.2rem;font-weight:700;color:var(--c-ink-2)}
+.pill{display:flex;gap:10px;align-items:center;margin-top:16px;padding:12px 14px;border-radius:var(--r-m);background:var(--c-jade-soft);color:var(--c-on-jade-soft);font-weight:700;font-size:1rem;line-height:1.3;overflow-wrap:anywhere}
+.pill.grey{background:var(--c-surface-2);color:var(--c-ink)}
+.dest{margin-top:16px;padding:14px;border-radius:var(--r-m);background:var(--c-surface-2);font-weight:700;overflow-wrap:anywhere}
+
+.helpbox{padding:20px;border-radius:var(--r-l);background:var(--c-saffron);color:var(--c-on-saffron);box-shadow:var(--e-2)}
+.helpbox .who h1{font-weight:900}
+.helpbox .avatar{background:var(--c-on-saffron);color:var(--c-saffron)}
+.helpbox p{margin:10px 0 0;font-size:1.1rem;font-weight:700}
+.helpbox .btn{margin-top:16px;background:var(--c-on-saffron);color:var(--c-saffron)}
+.helpbox .near{font-weight:400;font-size:1rem}
+
+.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--r-m);background:var(--c-surface-2);color:var(--c-ink);font-size:1rem}
+.note.jade{background:var(--c-jade-soft);color:var(--c-on-jade-soft);font-weight:700}
+.note b{display:block}
+.note span{display:block;margin-top:4px;color:var(--c-ink-2)}
+.note.jade span{color:inherit}
+.spin{width:26px;height:26px;border-radius:50%;border:3px solid var(--c-jade-soft);border-top-color:var(--c-jade);animation:spin .9s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.map{position:relative;height:300px;border-radius:var(--r-l);overflow:hidden;background:var(--m-land);box-shadow:var(--e-1)}
+.mapcanvas{position:absolute;inset:0}
+.attrib{position:absolute;left:8px;bottom:6px;z-index:2;max-width:calc(100% - 16px)}
+.attrib .maplibregl-ctrl-attrib{margin:0;padding:2px 6px;border-radius:6px;background:var(--m-halo)!important;color:var(--m-label);font-size:11px!important;line-height:1.3}
+.attrib .maplibregl-ctrl-attrib a{color:var(--m-label)}
+.attrib .maplibregl-ctrl-attrib-button{display:none}
+.locbtn{position:absolute;right:12px;top:12px;z-index:2;width:var(--tap);height:var(--tap);border-radius:50%;display:grid;place-items:center;background:var(--c-surface);box-shadow:var(--e-2)}
+
+.upd{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--c-ink-2)}
+.upd i{width:10px;height:10px;border-radius:50%;background:var(--c-jade);animation:blink 1.6s infinite;flex:none}
+.upd i.off{background:transparent;border:2px solid var(--c-ink-2);animation:none}
+@keyframes blink{50%{opacity:.25}}
+.btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:var(--tap-hero);padding:12px 24px;border-radius:var(--r-l);font-weight:700;font-size:1.15rem;line-height:1.2;text-align:center;text-decoration:none;overflow-wrap:anywhere}
+.btn svg.i{width:1.5em;height:1.5em}
+.btn-jade{background:var(--c-jade);color:var(--c-on-jade)}
+.rest{display:flex;flex-direction:column;gap:16px}
+.rest>div:empty{display:none}
+.foot{font-size:.9rem;color:var(--c-ink-2);text-align:center}
+.foot p{margin:0 0 6px}
+details.what{font-size:.9rem;color:var(--c-ink-2)}
+details.what summary{min-height:var(--tap);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--c-primary-text);text-decoration:underline;text-underline-offset:4px;font-weight:700;list-style:none}
+details.what summary::-webkit-details-marker{display:none}
+details.what p{margin:0 0 8px;text-align:left}
+.skel{border-radius:var(--r-l);background:var(--c-surface-2);animation:blink 1.6s infinite}
+
+.who h1,.eta b,.btn{word-break:keep-all}
+@media (min-width:1000px){
+  .layout{max-width:1600px;grid-template-columns:minmax(440px,22rem) minmax(400px,1fr);grid-template-areas:"note map" "status map" "rest map";grid-template-rows:auto auto 1fr;column-gap:24px;padding:0 24px 24px;align-items:start}
+  .maparea{position:sticky;top:12px;align-self:stretch}
+  .map{height:calc(100dvh - 96px);min-height:520px}
+  .layout:has(.notearea:empty){grid-template-areas:"status map" "rest map";grid-template-rows:auto 1fr}
+  .layout.nomap{grid-template-columns:minmax(0,640px);justify-content:center;grid-template-areas:"note" "status" "rest"}
+  .layout.nomap:has(.notearea:empty){grid-template-areas:"status" "rest";grid-template-rows:auto}
+}
+/* 200 % text: single column below 1000 px is already the default; the map keeps ≥ 240 px. */
+@media (prefers-reduced-motion:reduce){ .avatar.ok::after{animation:none;opacity:0} .upd i,.skel{animation:none} .spin{animation-duration:2.4s} }

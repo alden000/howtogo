@@ -1,0 +1,11 @@
+{
+  "_synthetic": "SYNTHETIC fixture in the LTA DataMall TrainServiceAlerts shape: Status 1 with a message (minor delay). Not real.",
+  "odata.metadata": "https://datamall2.mytransport.sg/ltaodataservice/$metadata#TrainServiceAlerts",
+  "value": {
+    "Status": 1,
+    "AffectedSegments": [],
+    "Message": [
+      { "Content": "0730hrs: CCL - Please add 10 minutes of train travel time between Buona Vista and Kent Ridge stations due to a train fault. (SYNTHETIC)", "CreatedDate": "2026-11-17 07:30:00" }
+    ]
+  }
+}

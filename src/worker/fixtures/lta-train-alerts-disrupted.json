@@ -1,0 +1,13 @@
+{
+  "_synthetic": "SYNTHETIC fixture in the LTA DataMall TrainServiceAlerts shape (API guide v6.11 §2.11). Not a real disruption.",
+  "odata.metadata": "https://datamall2.mytransport.sg/ltaodataservice/$metadata#TrainServiceAlerts",
+  "value": {
+    "Status": 2,
+    "AffectedSegments": [
+      { "Line": "NSL", "Direction": "Marina South Pier", "Stations": "NS16,NS17,NS18,NS19,NS20", "FreePublicBus": "NS16,NS17,NS18,NS19,NS20", "FreeMRTShuttle": "NS16,NS17|CC15,NS18,NS19,NS20", "MRTShuttleDirection": "Both" }
+    ],
+    "Message": [
+      { "Content": "0815hrs: NSL - No train service between Ang Mo Kio and Novena stations towards Marina South Pier due to a track fault. Free bus rides and free bridging bus services are available at designated bus stops. (SYNTHETIC)", "CreatedDate": "2026-11-17 08:15:00" }
+    ]
+  }
+}

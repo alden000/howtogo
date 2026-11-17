@@ -59,8 +59,50 @@ describe("AC 18 log-line test", () => {
     await call(`/api/revgeocode?lat=${LAT}&lng=${LNG}`, h);
     await call("/api/bus-arrival?stop=53009", h);
     await call("/api/alerts", h);
+    await call("/api/lifts", h);
     // rate limit
     for (let i = 0; i < 62; i++) await call(`/api/search?q=${encodeURIComponent(QUERY)}`, h);
     assertClean();
+  });
+});
+
+describe("M4 AC 49: a full share + setup run logs no identifiers", () => {
+  it("no share id, owner token, setup code, ciphertext, phone, names or coordinates in any log line", async () => {
+    const h = { "CF-Connecting-IP": IP, "Content-Type": "application/json" };
+    const secrets: string[] = [IP, "+6591234567", "陈太太", "Tan Tock Seng"];
+    // force an internal log line too (upstream error) so the capture is known to work
+    stubFetch(() => jsonRes({}, 500));
+    await call("/api/lifts", { headers: h });
+    const created = (await (
+      await call("/api/share", {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify({ destName: "Tan Tock Seng Hospital", senderName: "陈太太", senderPhone: "+6591234567" }),
+      })
+    ).json()) as { id: string; ownerToken: string };
+    secrets.push(created.id, created.ownerToken);
+    const auth = { ...h, Authorization: `Bearer ${created.ownerToken}` };
+    const body = (status: string) => JSON.stringify({ lat: 1.351019, lng: 103.850057, acc: 9, status, updatedAt: Date.now() });
+    await call(`/api/share/${created.id}`, { method: "PUT", headers: auth, body: body("travelling") });
+    await call(`/api/share/${created.id}`, { method: "PUT", headers: auth, body: body("travelling") }); // 429
+    await call(`/api/share/${created.id}`, { method: "PUT", headers: auth, body: body("help") });
+    await call(`/api/share/${created.id}`, { method: "PUT", headers: { ...h, Authorization: `Bearer ${"wrong-token-".repeat(2)}xx` }, body: body("help") });
+    await call(`/api/share/${created.id}`, { headers: h });
+    await call(`/api/share/${created.id}`, { headers: h }); // 429
+    await call(`/api/share/${created.id}`, { method: "DELETE", headers: auth });
+    const ct = "Q0lQSEVSVEVYVC1vbmx5LXN5bnRoZXRpYy1jaXBoZXJ0ZXh0LWZvci1sb2dz";
+    secrets.push(ct);
+    const setup = (await (await call("/api/setup", { method: "POST", headers: h, body: JSON.stringify({ ct }) })).json()) as { code: string };
+    secrets.push(setup.code);
+    await call(`/api/setup/${setup.code}`, { headers: h });
+    await call(`/api/setup/${setup.code}`, { headers: h }); // 410
+    await call("/api/setup", { method: "POST", headers: h, body: JSON.stringify({ ct, k: "fragment-key-should-never-be-sent" }) });
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      for (const s of secrets) expect(line).not.toContain(s);
+      expect(line).not.toMatch(/\b1\.\d{3,}/);
+      expect(line).not.toMatch(/\b10[34]\.\d{2,}/);
+      expect(line).not.toContain("fragment-key");
+    }
   });
 });

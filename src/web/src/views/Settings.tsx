@@ -2,6 +2,7 @@
  * F6 Settings (H13 extended to a full screen for M1) + its sheets (name, home, clear, install, report)
  * and the About & privacy screen. Voice/vibration rows stay hidden while flag `guide` is off.
  */
+import { family, normalizePhone } from '../state/family';
 import { useEffect, useState } from 'preact/hooks';
 import { useServices, useT } from '../context';
 import { canInstall, promptInstall } from '../pwa/install';
@@ -127,11 +128,16 @@ export function SettingsScreen() {
             onClick={() => (home ? router.openSheet('home') : router.navigate('/search?mode=home'))}
           />
         </div>
+        <M4Rows />
         <h2 class="grp">{t('grp_display')}</h2>
         <DisplayRows />
+        <TravelRows />
         {flags.has('guide') && <VoiceRows />}
         <h2 class="grp">{t('grp_history')}</h2>
-        <Row icon="trash" label={t('clear_recent_row')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
+        <div class="opts">
+          <Row icon="trash" label={t('clear_recent_row')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
+          <Row icon="trash" label={t('set_delete_all')} testid="row-delete-all" onClick={() => router.openSheet('delete-all')} />
+        </div>
         <h2 class="grp">{t('grp_app')}</h2>
         <div class="opts">
           {!isStandalone() && <Row icon="install" label={t('install')} testid="row-install" onClick={() => router.openSheet('install')} />}
@@ -335,6 +341,84 @@ export function About() {
           ))}
         </ul>
       </main>
+    </>
+  );
+}
+
+/** On/off row (role=switch, 56 px). */
+function Switch(props: { label: string; sub?: string; on: boolean; testid: string; onChange: (v: boolean) => void }) {
+  const t = useT();
+  return (
+    <button type="button" class="row" role="switch" aria-checked={props.on} data-testid={props.testid} onClick={() => props.onChange(!props.on)}>
+      <span class="tx">
+        {props.label}
+        {props.sub && <small style={{ display: 'block', fontWeight: 400 }}>{props.sub}</small>}
+      </span>
+      <span class="val">{props.on ? t('on') : t('off')}</span>
+    </button>
+  );
+}
+
+/** M3 Settings → 出行 / Travel (6d.2, 6d.8, AC 28). */
+function TravelRows() {
+  const t = useT();
+  const p = family.prefs.value;
+  return (
+    <>
+      <h2 class="grp">{t('set_travel')}</h2>
+      <div class="opts">
+        <Switch label={t('set_wheelchair')} on={p.wheelchair} testid="set-wheelchair" onChange={(v) => family.setPrefs({ wheelchair: v })} />
+        <Switch label={t('set_concession')} on={p.concession} testid="set-concession" onChange={(v) => family.setPrefs({ concession: v })} />
+        <Switch label={t('set_liftfriendly')} on={p.liftFriendly} testid="set-liftfriendly" onChange={(v) => family.setPrefs({ liftFriendly: v })} />
+      </div>
+    </>
+  );
+}
+
+/** M4 Settings: Family (P3), Let family set it up (P5), my phone + OQ3 switch. */
+function M4Rows() {
+  const { router } = useServices();
+  const t = useT();
+  const p = family.prefs.value;
+  const n = family.contacts.value.length;
+  const [phone, setPhone] = useState(p.myPhone.replace(/^\+65/, ''));
+  const [bad, setBad] = useState(false);
+  return (
+    <>
+    <h2 class="grp">{t('fam_row')}</h2>
+    <div class="opts">
+      <Row icon="family" label={t('fam_row')} value={n ? String(n) : t('not_set')} testid="row-family" onClick={() => router.navigate('/family')} />
+      <Row icon="qr" label={t('fam_setup')} testid="row-setup" onClick={() => router.navigate('/setup/start')} />
+      <div class={`field2${bad ? ' bad' : ''}`} style={{ margin: '8px 0' }}>
+        <label for="my-phone">{t('set_myphone')}</label>
+        <div class="telrow">
+          <span class="pre" aria-hidden="true">
+            +65
+          </span>
+          <input
+            id="my-phone"
+            type="tel"
+            inputMode="tel"
+            data-testid="my-phone"
+            aria-describedby="my-phone-h"
+            value={phone}
+            onInput={(e) => setPhone(e.currentTarget.value)}
+            onBlur={() => {
+              if (!phone.trim()) return family.setPrefs({ myPhone: '' });
+              const r = normalizePhone(phone);
+              setBad(!r.e164);
+              if (r.e164) family.setPrefs({ myPhone: r.e164 });
+            }}
+          />
+        </div>
+        {bad && <span class="fnote">{t('fam_err_fmt')}</span>}
+        <p class="t-caption helper" id="my-phone-h" data-testid="my-phone-help">
+          <Icon name="lock" />
+          <span>{t('set_myphone_h')}</span>
+        </p>
+      </div>
+      {p.myPhone && <Switch label={t('set_sendphone')} sub={t('set_sendphone_s')} on={p.sendPhone} testid="set-sendphone" onChange={(v) => family.setPrefs({ sendPhone: v })} />}
+    </div>
     </>
   );
 }

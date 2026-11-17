@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Place, Step } from '@howtogo/shared';
 import {
+  isTrainChange,
   alertCopy,
   cardMaxHeight,
   followZoom,
@@ -150,5 +151,17 @@ describe('M2 fix round', () => {
   it('F3: alert titles come as two phrases', () => {
     const a = { kind: 'now', stepId: 's', stop: 'X', mode: 'bus', shownAt: 0, escalated: false } as const;
     expect(alertCopy(a)).toMatchObject({ t1: 'now_t1', t2: 'now_t2' });
+  });
+});
+
+describe('T6 train change meta', () => {
+  const legs = [{ mode: 'walk' }, { mode: 'mrt' }, { mode: 'mrt' }, { mode: 'walk' }, { mode: 'lrt' }, { mode: 'bus' }] as const;
+  it('board_train straight after a train, or after a walk from a train; walk between trains', () => {
+    expect(isTrainChange({ kind: 'board_train', legIndex: 1 }, legs)).toBe(false);
+    expect(isTrainChange({ kind: 'board_train', legIndex: 2 }, legs)).toBe(true);
+    expect(isTrainChange({ kind: 'walk_transfer', legIndex: 3 }, legs)).toBe(true);
+    expect(isTrainChange({ kind: 'board_train', legIndex: 4 }, legs)).toBe(true);
+    expect(isTrainChange({ kind: 'board_bus', legIndex: 5 }, legs)).toBe(false);
+    expect(isTrainChange(undefined, legs)).toBe(false);
   });
 });

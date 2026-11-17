@@ -124,8 +124,17 @@ export function createHttpApi(opts: HttpApiOptions): Api {
     alerts() {
       return request('alerts', '/api/alerts');
     },
-    shareCreate(destName, lang) {
-      return request('share-create', '/api/share', json('POST', { destName, lang }));
+    lifts() {
+      return request('lifts', '/api/lifts');
+    },
+    shareCreate(body) {
+      return request('share-create', '/api/share', json('POST', body));
+    },
+    setupCreate(ct) {
+      return request('setup-create', '/api/setup', json('POST', { ct }));
+    },
+    setupGet(code) {
+      return request('setup-get', `/api/setup/${encodeURIComponent(code)}`);
     },
     async sharePut(id, token, body) {
       await request<void>('share-put', `/api/share/${encodeURIComponent(id)}`, json('PUT', body, token));

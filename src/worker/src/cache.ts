@@ -20,6 +20,12 @@ const MEM_MAX = 500;
 const mem = new Map<string, MemEntry>();
 const CACHE_ORIGIN = "https://cache.howtogo.internal/";
 
+/** Test hook: drops one key from memory and the Cache API. */
+export async function evictCached(key: string): Promise<void> {
+  mem.delete(key);
+  await cacheApi()?.delete(new Request(CACHE_ORIGIN + encodeURIComponent(key)));
+}
+
 export function resetMemoryCache(): void {
   mem.clear();
 }

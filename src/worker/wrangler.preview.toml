@@ -36,3 +36,16 @@ new_sqlite_classes = ["TripShare"]
 
 [observability]
 enabled = false
+
+# ---------------------------------------------------------------------------
+# M3/M4 Worker round — mirrors the same block in wrangler.toml (keep both in sync).
+# ---------------------------------------------------------------------------
+# M4 AC 41: one-time caregiver setup box (ciphertext only, 24 h).
+[[durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["SetupBox"]
+# [env.test] (two-browser e2e) lives only in wrangler.toml.

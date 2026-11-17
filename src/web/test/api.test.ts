@@ -175,7 +175,7 @@ describe('mock api', () => {
   it('share lifecycle with 3 s limit and help bypass', async () => {
     let t = 1_000_000;
     const api = createMockApi({ latencyMs: 0, now: () => t });
-    const c = await api.shareCreate('TTSH', 'zh');
+    const c = await api.shareCreate({ destName: 'TTSH', lang: 'zh' });
     const events: LiveEvent[] = [];
     const live = api.shareLive(c.id, (e) => events.push(e));
     await api.sharePut(c.id, c.ownerToken, { lat: 1.3, lng: 103.8, acc: 10, status: 'travelling', updatedAt: t });

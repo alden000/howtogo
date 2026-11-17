@@ -207,3 +207,4 @@
 .democtl .opts .btn{justify-content:flex-start}
 .stepof{display:inline-flex;align-items:center;gap:1px;min-height:var(--tap);margin:-14px 0;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .stepof svg.i{width:.9em;height:.9em}
+.stepbelow{margin-top:4px}

@@ -3,11 +3,16 @@ import { useServices, useT } from '../context';
 import { Icon, Sheet } from '../ui/kit';
 
 export function EndTripSheet() {
-  const { router, runtime } = useServices();
+  const { router, runtime, store } = useServices();
   const t = useT();
   return (
     <Sheet id="end-trip" title={t('end_trip_confirm')} close={false}>
       <p class="lead">{t('end_lead')}</p>
+      {store.trip.value?.share && (
+        <p class="lead" data-testid="end-share-line">
+          {t('sh_stops_too')}
+        </p>
+      )}
       <div class="opts">
         <button type="button" class="btn btn-primary" data-testid="end-trip-no" onClick={() => router.closeSheet()}>
           <Icon name="nav" />

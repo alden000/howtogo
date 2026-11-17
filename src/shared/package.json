@@ -6,6 +6,7 @@
   "description": "Pure client-side routing/guidance engine for 怎么去? (types, OneMap normaliser, ranking, steps, guidance, voice, simulator).",
   "exports": {
     ".": "./src/index.ts",
+    "./data": "./src/data/index.ts",
     "./fixtures": "./test/fixtures/index.ts"
   },
   "scripts": {

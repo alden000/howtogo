@@ -14,7 +14,9 @@ export type IconName =
   // §6b icons pending Director approval (drawn on the same 24px grid / 2.2px stroke):
   | 'wifi-off' | 'refresh' | 'install' | 'ios-share' | 'info' | 'trash' | 'person' | 'report'
   // §1.4 base icons used from M2 + the 6c icons approved by the Director (exit, moon, plus, arrow-up, arrow-down):
-  | 'speaker' | 'mute' | 'bell' | 'car' | 'phone' | 'eye' | 'exit' | 'moon' | 'plus' | 'arrow-up' | 'arrow-down';
+  | 'speaker' | 'mute' | 'bell' | 'car' | 'phone' | 'eye' | 'exit' | 'moon' | 'plus' | 'arrow-up' | 'arrow-down'
+  // §6d.10 / §6e.9 icons approved with the M3/M4 frames (+ msg from §1.4):
+  | 'seat' | 'stand' | 'full' | 'wheelchair' | 'wheelchair-no' | 'deck2' | 'train-off' | 'card' | 'copy' | 'edit' | 'qr' | 'msg';
 
 /** Icon paths copied from the prototype's <symbol>s (24px grid, 2.2px stroke). */
 const PATHS: Record<IconName, string> = {
@@ -58,6 +60,18 @@ const PATHS: Record<IconName, string> = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   'arrow-up': '<path d="M12 19V5M6 11l6-6 6 6"/>',
   'arrow-down': '<path d="M12 5v14M6 13l6 6 6-6"/>',
+  seat: '<path d="M8 3.5v10h8.5M8 13.5L6.5 20.5M16.5 13.5l1 7M8 9.5h6a2 2 0 0 1 2 2v2"/>',
+  stand: '<path d="M3.5 3h17M15.5 3v4.5l-3.5 2"/><circle cx="10" cy="6.5" r="2"/><path d="M10 9.5v6.5l-2 5M10 16l2.2 5M10 10.5l2 0"/>',
+  full: '<circle cx="8" cy="5.5" r="2"/><circle cx="16" cy="5.5" r="2"/><path d="M8 8.5v12.5M16 8.5v12.5M4.5 12.5l3.5-3 3.5 3M12.5 12.5l3.5-3 3.5 3"/>',
+  wheelchair: '<circle cx="9.5" cy="4" r="1.8"/><path d="M9.5 7.5V14h6l2.5 5.5M9.5 10.5h5"/><path d="M7 10.8a5.3 5.3 0 1 0 7.4 6.7"/>',
+  'wheelchair-no': '<circle cx="9.5" cy="4" r="1.8"/><path d="M9.5 7.5V14h6l2.5 5.5M9.5 10.5h5"/><path d="M7 10.8a5.3 5.3 0 1 0 7.4 6.7"/><path d="M3 3l18 18"/>',
+  deck2: '<rect x="4.5" y="2.5" width="15" height="17" rx="3"/><path d="M4.5 10.5h15M7.5 6h9M7.5 13.5h9M8 22v-2.5M16 22v-2.5"/>',
+  'train-off': '<rect x="5" y="3" width="14" height="14" rx="4"/><path d="M5 10h14M8.5 21l2-4M15.5 21l-2-4M3 3l18 18"/>',
+  card: '<rect x="3" y="6" width="18" height="12.5" rx="2.5"/><path d="M3 10.5h18M7 15h4"/>',
+  copy: '<rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V5.5a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 0 4 5.5V14a1.5 1.5 0 0 0 1.5 1.5h3"/>',
+  edit: '<path d="M4 20h4.2L19.5 8.7l-4.2-4.2L4 15.8zM13.5 6.3l4.2 4.2"/>',
+  qr: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2.5v2.5H14zM20 14v.5M20 20h-3.5M14 20v-.5"/>',
+  msg: '<path d="M4 5h16v11H9l-5 4z"/>',
 };
 
 /** One hidden sprite per page; icons reference it with <use>. */

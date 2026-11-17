@@ -11,73 +11,16 @@ import { here, locate } from '../state/location';
 import { announce, Bar, Icon, NumSteps, Sheet } from '../ui/kit';
 import { log } from '../log';
 import { dwellLabel } from './Guide';
+import { HereFallback, SendMyLocation, TaxiButtons } from './helpSheet';
 import { stepGroup, vehicleIcon } from './guideModel';
 import type { FakePlatform } from '../platform';
 
-/** H9 Help, M2 subset: driver card → where am I → find my way again (trip only) → 995. No "call family" until M4. */
-export function HelpSheet() {
-  const { router, store, runtime } = useServices();
-  const t = useT();
-  const trip = store.trip.value;
-  const guiding = !!trip && runtime.ui.value.phase === 'guiding';
-  return (
-    <Sheet id="help" title={t('help_t')}>
-      <div class="opts">
-        <button type="button" class="opt" data-testid="help-driver" onClick={() => router.openSheet('driver', { tab: trip ? 'dest' : 'home' })}>
-          <span class="ic" style={{ background: 'var(--c-saffron)', color: 'var(--c-on-saffron)' }} aria-hidden="true">
-            <Icon name="car" />
-          </span>
-          <span class="tx">
-            <b>{t('show_addr')}</b>
-            <span>{t('show_addr_s')}</span>
-          </span>
-          <Icon name="chev" />
-        </button>
-        <button type="button" class="opt" data-testid="help-where" onClick={() => router.openSheet('driver', { tab: 'here' })}>
-          <span class="ic" style={{ background: 'var(--c-primary-soft)', color: 'var(--c-on-primary-soft)' }} aria-hidden="true">
-            <Icon name="loc" />
-          </span>
-          <span class="tx">
-            <b>{t('where_am_i')}</b>
-            <span>{t('where_am_i_s')}</span>
-          </span>
-          <Icon name="chev" />
-        </button>
-        {guiding && (
-          <button
-            type="button"
-            class="opt"
-            data-testid="help-reroute"
-            onClick={() => {
-              router.closeSheet();
-              void runtime.reroute();
-            }}
-          >
-            <span class="ic" style={{ background: 'var(--c-surface-2)' }} aria-hidden="true">
-              <Icon name="route" />
-            </span>
-            <span class="tx">
-              <b>{t('find_again')}</b>
-              <span>{t('find_again_s')}</span>
-            </span>
-            <Icon name="chev" />
-          </button>
-        )}
-        <a class="btn btn-danger-outline" href="tel:995" data-testid="help-995">
-          <Icon name="phone" />
-          {t('emergency')}
-        </a>
-      </div>
-      {guiding && <DemoControls />}
-    </Sheet>
-  );
-}
-
+/** H9 Help is the full M4 sheet in helpSheet.tsx (it renders DemoControls below on a trip). */
 /**
  * AC 50: demo mode (`?demo=1`) controls that play every new state without walking. Shown only in demo
  * mode, at the bottom of H9 on a trip, so H5 itself looks exactly like the real app.
  */
-function DemoControls() {
+export function DemoControls() {
   const { mode, platform, store, router, runtime } = useServices();
   const t = useT();
   const fake = (platform as Partial<FakePlatform>).fake;
@@ -227,6 +170,9 @@ export function DriverSheet() {
             </div>
           )}
         </div>
+        {tab === 'here' && here.value && !here.value.label && <HereFallback lat={here.value.lat} lng={here.value.lng} />}
+        {tab === 'here' && p && <SendMyLocation place={p} />}
+        <TaxiButtons />
       </div>
     </div>
   );

@@ -95,11 +95,11 @@ describe("normaliseBusArrival (synthetic LTA v3 fixture)", () => {
     const s162 = out.services.find((s) => s.no === "162")!;
     expect(s162.operator).toBe("SBST");
     expect(s162.next).toEqual([
-      { etaMin: 4, load: "SEA", wheelchair: true, deck: "double", lat: 1.3502, lng: 103.8487 },
-      { etaMin: 15, load: "SDA", wheelchair: true, deck: "single", lat: 1.3601, lng: 103.8402 },
+      { etaMin: 4, load: "SEA", wheelchair: true, deck: "double", monitored: true, lat: 1.3502, lng: 103.8487 },
+      { etaMin: 15, load: "SDA", wheelchair: true, deck: "single", monitored: true, lat: 1.3601, lng: 103.8402 },
     ]);
     const s13 = out.services.find((s) => s.no === "13")!;
-    expect(s13.next[0]).toEqual({ etaMin: 0, load: "LSD", wheelchair: false, deck: "bendy" }); // past ETA → 0, no 0.0 coords
+    expect(s13.next[0]).toEqual({ etaMin: 0, load: "LSD", wheelchair: false, deck: "bendy", monitored: false }); // past ETA → 0, no 0.0 coords
     expect(s13.next).toHaveLength(3);
     expect(out.services.find((s) => s.no === "410W")!.next).toHaveLength(1);
   });
@@ -120,13 +120,21 @@ describe("normaliseTrainAlerts", () => {
     const a = normaliseTrainAlerts(disrupted);
     expect(a.status).toBe("disrupted");
     expect(a.lines).toEqual([
-      { line: "NEL", direction: "Punggol", stations: ["NE1", "NE3", "NE4", "NE5"], freePublicBus: ["NE1", "NE3", "NE4", "NE5"], freeShuttle: ["NE1", "NE3"] },
+      {
+        line: "NEL",
+        direction: "Punggol",
+        stations: ["NE1", "NE3", "NE4", "NE5"],
+        freePublicBus: ["NE1", "NE3", "NE4", "NE5"],
+        freeBusIslandWide: false,
+        freeShuttle: ["NE1", "NE3"],
+        shuttleDirection: "Punggol",
+      },
     ]);
     expect(a.messages[0]!.createdAt).toBe("2026-11-17T17:10:28+08:00");
     expect(a.messages[0]!.text).toMatch(/signalling fault/);
   });
   it("normal", () => {
-    expect(normaliseTrainAlerts(normal)).toEqual({ status: "normal", lines: [], messages: [] });
-    expect(normaliseTrainAlerts({})).toEqual({ status: "normal", lines: [], messages: [] });
+    expect(normaliseTrainAlerts(normal)).toEqual({ status: "normal", minor: false, lines: [], messages: [] });
+    expect(normaliseTrainAlerts({})).toEqual({ status: "normal", minor: false, lines: [], messages: [] });
   });
 });

@@ -12,6 +12,11 @@ export type RouteName =
   | 'settings'
   | 'about'
   | 'welcome'
+  | 'family'
+  | 'family_edit'
+  | 'setup_start'
+  | 'setup'
+  | 'setup_import'
   | 'not_found';
 
 export interface RouteMatch {
@@ -34,6 +39,11 @@ const TABLE: { name: RouteName; re: RegExp; keys: string[] }[] = [
   { name: 'settings', re: /^\/settings\/?$/, keys: [] },
   { name: 'about', re: /^\/about\/?$/, keys: [] },
   { name: 'welcome', re: /^\/welcome\/?$/, keys: [] },
+  { name: 'family', re: /^\/family\/?$/, keys: [] },
+  { name: 'family_edit', re: /^\/family\/edit\/?$/, keys: [] },
+  { name: 'setup_start', re: /^\/setup\/start\/?$/, keys: [] },
+  { name: 'setup', re: /^\/setup\/?$/, keys: [] },
+  { name: 'setup_import', re: /^\/s\/([A-Za-z0-9]{6,32})\/?$/, keys: ['code'] },
 ];
 
 export function matchRoute(url: string): RouteMatch {
@@ -50,7 +60,7 @@ export function matchRoute(url: string): RouteMatch {
 }
 
 /** Public standalone pages: Back from them leaves the app (no seeded Home entry). */
-export const STANDALONE: ReadonlySet<RouteName> = new Set(['viewer']);
+export const STANDALONE: ReadonlySet<RouteName> = new Set(['viewer', 'setup']);
 
 /** Screens that are the root of the in-app stack (no Home seeded underneath). F1 first run is a root. */
 export const ROOTS: ReadonlySet<RouteName> = new Set(['home', 'welcome']);

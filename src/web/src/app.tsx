@@ -20,7 +20,11 @@ import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
 import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
 import { JourneyBuilder } from './views/Journey';
-import { AllStepsSheet, DriverSheet, DwellSheet, HelpSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
+import { AllStepsSheet, DriverSheet, DwellSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
+import { Confirm995Sheet, HelpSheet } from './views/helpSheet';
+import { ShareSheet } from './views/share';
+import { DisruptionOfferSheet, LtaNoticeSheet } from './views/transit';
+import { DeleteAllSheet, FamilyEdit, FamilyList, SetupFamily, SetupImport, SetupStart } from './views/family';
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
 const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
@@ -107,6 +111,21 @@ export function App() {
     case 'help':
       view = <Help />;
       break;
+    case 'family':
+      view = <FamilyList />;
+      break;
+    case 'family_edit':
+      view = <FamilyEdit />;
+      break;
+    case 'setup_start':
+      view = <SetupStart />;
+      break;
+    case 'setup':
+      view = <SetupFamily />;
+      break;
+    case 'setup_import':
+      view = <SetupImport code={r.params.code!} />;
+      break;
     default:
       view = (
         <main class="scroll">
@@ -137,6 +156,11 @@ export function App() {
       </div>
       {sheet === 'end-trip' && <EndTripSheet />}
       {sheet === 'help' && <HelpSheet />}
+      {sheet === 'confirm-995' && <Confirm995Sheet />}
+      {sheet === 'share' && <ShareSheet />}
+      {sheet === 'lta-notice' && <LtaNoticeSheet />}
+      {sheet === 'delete-all' && <DeleteAllSheet />}
+      {sheet === 'dis-offer' && <DisruptionOfferSheet />}
       {sheet === 'all-steps' && <AllStepsSheet />}
       {sheet === 'driver' && <DriverSheet />}
       {sheet === 'voice-help' && <VoiceHelpSheet />}

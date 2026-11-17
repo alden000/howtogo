@@ -9,6 +9,7 @@
 import './styles/tokens.css';
 import './styles/app.css';
 import './styles/guide.css';
+import './styles/m34.css';
 import { render } from 'preact';
 import { effect } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
@@ -37,9 +38,16 @@ const DEFAULT_FLAGS = ['guide', 'help'];
 
 async function boot() {
   const q = new URLSearchParams(location.search);
+  // Caregiver setup: keep the fragment key in memory before the router rewrites the URL (never stored, never sent).
+  if (/^\/s\//.test(location.pathname) && /#k=/.test(location.hash)) (globalThis as { __setupKey?: string }).__setupKey = /#k=([A-Za-z0-9_-]+)/.exec(location.hash)![1];
   if (q.get('demo') === '1') session.set('mode.demo', '1');
   if (q.get('demo') === '0') session.remove('mode.demo');
   if (q.get('mock') === '1') session.set('mode.mock', '1');
+  // Mock scenarios (M3 AC 39 names): ?scn=bus:here,alerts:disrupted,lifts:none
+  for (const kv of (q.get('scn') ?? '').split(',').filter(Boolean)) {
+    const [k, v] = kv.split(':');
+    if (k && v) session.set(`mock.scn.${k}`, v);
+  }
   if (q.get('demoMs')) session.set('mode.demoMs', q.get('demoMs')!);
   // Feature flags per tab: `?ff=live` adds, `?ff=-guide` removes (comma-separated; `?ff=` clears the tab's list).
   // M2 release (AC 1): `guide` and `help` are on by default.
@@ -63,6 +71,13 @@ async function boot() {
     const m = await import('./api/mock');
     api = m.createMockApi();
     start = m.DEMO_START;
+    // Dev/e2e: `&realshare=1` keeps fixture routes but sends shares + setup to the real Worker
+    // (two-browser share test against `wrangler dev`, M4 testability table).
+    if (q.get('realshare') === '1') session.set('mode.realshare', '1');
+    if (session.get('mode.realshare') === '1') {
+      const h = createHttpApi({ base: import.meta.env.VITE_API_BASE ?? '' });
+      api = { ...api, shareCreate: h.shareCreate, sharePut: h.sharePut, shareGet: h.shareGet, shareDelete: h.shareDelete, shareLive: h.shareLive, setupCreate: h.setupCreate, setupGet: h.setupGet };
+    }
   } else {
     api = createHttpApi({ base: apiBase });
     // D-10: the preview Worker answers from fixtures → show the sample-routes banner.

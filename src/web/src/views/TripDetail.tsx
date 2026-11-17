@@ -4,7 +4,7 @@
  * (Home tile, Take me home, search, recent, H12 Route home, multi-stop, deep link) reaches
  * this screen and `useStartTrip()`, which runs the same runtime start call.
  */
-import { useMemo } from 'preact/hooks';
+import { useEffect, useMemo } from 'preact/hooks';
 import { buildSteps, type Itinerary, type Journey, type Place } from '@howtogo/shared';
 import { useServices, useT, type TFn } from '../context';
 import { MapPanel } from '../map/MapPanel';
@@ -15,6 +15,11 @@ import { Bar, HelpButton, Icon, useStateHook } from '../ui/kit';
 import { Chips } from './Routes';
 import { dwellLabel } from './Guide';
 import { clock, minutes, timeline } from './present';
+import { ArrivalChip, DisruptionBanner, ExitForTrip, LiftFacts } from './transit';
+import { refreshAlerts, refreshLifts } from '../transit/live';
+import { fareText } from '../transit/m3';
+import { family } from '../state/family';
+import { shareOnStart } from './share';
 import { EndFirstSheet } from './tripSheets';
 
 const ICON = { walk: 'walk', bus: 'bus', train: 'train', dest: 'check' } as const;
@@ -114,6 +119,7 @@ function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
         </div>
         <MapPanel steps={steps} me={me ? { pos: me, ...(me.acc !== undefined ? { acc: me.acc } : {}) } : null} toggle />
         <div style={{ padding: '0 var(--s-5) var(--s-6)' }}>
+          <H4Extras it={it} />
           <ol class="timeline" data-testid="step-list">
             {timeline(it, plan.to, t).map((row) => (
               <li class={row.kind === 'bus' || row.kind === 'train' ? 'ride' : ''}>
@@ -138,6 +144,22 @@ function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
               </li>
             ))}
           </ol>
+          <ExitForTrip itinerary={it} />
+          {guide && (
+          <button
+              type="button"
+              class="btn btn-quiet"
+              data-testid="share-before"
+              onClick={() => {
+                // AC 8 (deviation): sharing needs a running trip on this phone, so Start opens the share sheet on H5.
+                shareOnStart.value = true;
+                void onStart();
+              }}
+            >
+              <Icon name="share" />
+              {t('sh_before')}
+            </button>
+          )}
         </div>
       </main>
       {guide && (
@@ -146,10 +168,38 @@ function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
             <Icon name="nav" />
             {t('start')}
           </button>
+
         </div>
       )}
       <EndFirst />
     </>
+  );
+}
+
+
+/** H4 (6d): disruption banner, first-bus chip (compact), fare line, lift facts. */
+function H4Extras({ it }: { it: Itinerary }) {
+  const { api } = useServices();
+  const t = useT();
+  useEffect(() => {
+    void refreshAlerts(api);
+    refreshLifts(api);
+  }, []);
+  const bus = it.legs.find((l) => l.mode === 'bus' && l.route);
+  const fare = typeof it.fare === 'number' && it.fare > 0 ? fareText(it.fare) : null;
+  return (
+    <div data-testid="h4-extras">
+      <DisruptionBanner where="h4" itinerary={it} />
+      {bus && <ArrivalChip stop={bus.from.code} svc={bus.route!} active compact />}
+      {fare && (
+        <p class="xline" data-testid="fare-h4">
+          <Icon name="card" /> {t(family.prefs.value.concession ? 'fare_h4_conc' : 'fare_h4', { f: fare })}
+        </p>
+      )}
+      <p class="xline">
+        <LiftFacts itinerary={it} detail />
+      </p>
+    </div>
   );
 }
 

@@ -105,7 +105,10 @@ describe("share lifecycle", () => {
     expect(state).toMatchObject({ status: "travelling", lat: 1.3521, lng: 103.8198, acc: 12, heading: 90, stepText: "Take bus 162" });
     expect(state.etaISO).toBe("2026-11-17T07:30:00.000Z");
     expect(Object.keys(state).sort()).toEqual(
-      ["acc", "destName", "etaISO", "expiresAt", "heading", "lang", "lat", "lng", "status", "stepText", "updatedAt"].sort(),
+      [
+        "acc", "destName", "etaISO", "expiresAt", "heading", "lang", "lat", "lng", "status", "stepText", "step", "updatedAt",
+        "senderName", "senderPhone", "positionAt", "helpAt",
+      ].sort(),
     );
   });
 
