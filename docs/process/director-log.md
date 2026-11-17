@@ -92,3 +92,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Rulings: M3 OQ1–OQ9 and M4 OQ1–OQ11 accepted at PM defaults (owner's standing D-6 instruction). M4 OQ3 (send the senior's own number with a share, only if set, off switch) and OQ4 (destination name only, no coordinates) are privacy calls → accepted at the privacy-protective defaults and flagged to the owner as FYI.
 - Conflict M4 AC 14 vs M2 AC 41: **sharing continues in pocket view** (safety over battery) at the OQ7 cadence (15 s moving / 60 s still).
 - Bugs found by PM: share status enum mismatch → folded into the running M2 engine round (small, specified). D-7 help write-limit bypass not built → M4 Worker round.
+
+## 2026-11-17 — M6 spike result
+- Capacitor 8.6.2 debug APK builds here (5.1 MB, minSdk 24, target 36). Custom TripPlugin/TripService (location FGS + Stop action, per-leg interval, native backup get-off alert), zh-CN TTS, lock-screen alert channel. No ACCESS_BACKGROUND_LOCATION needed (trip starts with the app open). Locked-screen behaviour unproven until a real device.
+- Rulings: keep the custom plugin approach. Back fix (toggleBackButtonHandler by depth) goes into M6 proper. Guidance cues must be driven by location fixes, not JS timers (hidden-WebView throttling) — note for M2/M6.
+- appId: owner to confirm (placeholder `sg.howtogo.app`; permanent once installed by users). Spike stays on dev/m6-spike until M6.
