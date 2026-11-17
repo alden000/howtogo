@@ -55,3 +55,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - PM M2 spec: 50 ACs, estimate 8–10 h (multi-stop moved in from M3).
 - Rulings: M2 OQ1–OQ10 all accepted at PM defaults (owner pre-approved recommended defaults, D-6). OQ7 pocket view after 45 s idle is a UI dimming only, not a guidance guard, so the "no time-window heuristics" rule doesn't apply.
 - PM finding: shell vibration names ≠ style guide haptic map → fold into M1 fix round.
+
+## 2026-11-17 — Creative round 2 merged (prototype v1.1)
+- Logo B master + PNG exports in creative/logo/final/; M1 state frames F1–F8 in STYLE-GUIDE §6b. ~11 min, ~163k tokens.
+- Approved: 8 new icons (wifi-off, refresh, install, ios-share, info, trash, person, report). F8: the From/To swap button moves to Route options (AC 22 amended).
+- Owner question pending: privacy contact for About (default: a generic contact form/email the owner provides; until then About shows no contact line).
