@@ -131,3 +131,7 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - 3 High (H5 arrival chip placement, Home disruption banner → 72 px strip only when a recent trip uses the line, drop the possibly-false night line), Mediums (en list joiner, colour-only picked contact, Help pronoun → neutral wording).
 - Deviation rulings accepted as Creative ruled: build now nodata voice, T4 title/note, T6 meta; defer the rest to M5; drop Web Push; keep the 995 confirm; drop the `pronoun` field (neutral copy everywhere).
 - Sequence: after the M2 re-check passes → merge M2 into dev/m34-web → QA M3/M4 gate → ONE fix round (Creative + QA).
+
+## 2026-11-17 — M2 0.2.0 released to preview
+- QA re-check 0.2.1: gate 12/12, all M2 bugs fixed; AC 36/41 await the owner's phone test. Merged dev/m2-engine → session branch; deployed version 728d70b4 (fixture mode). Config allows howtogo.wwweeeiii.com (origins + CSP wss) ahead of the owner adding the custom domain.
+- M2 actual: ~5 h wall clock (runtime round, UI round, QA, fix, re-check), overlapped with M3/M4/M6 tracks.
