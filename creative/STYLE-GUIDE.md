@@ -444,11 +444,12 @@ Shared rules (as §6 and §6b, plus):
 ### 6c.0 H5 layout fix: nothing covers the map (D-8 S4, AC 9)
 The v1.0 top bar was a gradient laid over the map, so the End button sat on top of station labels. From M2:
 - **Top band (`.top`)** is a solid strip, not an overlay: `c-canvas` background, `e-1` shadow on its bottom edge, padding `s-3` `s-4`. Row 1 is 结束 End · voice toggle · 帮忙 Help (unchanged). Further rows, only when present and in this order, go **inside the band**: share pill (§5.6), H11 banner (6c.8), resume voice bar (6c.6). The band grows; it never overlaps the map.
-- **Map viewport** = the rectangle from the band's bottom edge to the step card's top edge. In MapLibre, size the map container to the full screen and set `map.setPadding({ top: bandHeight, bottom: cardHeight })` on every band or card resize (ResizeObserver), **and** clip symbol rendering to that rectangle by sizing the canvas container to it. The step card's `r-xl` corners show `m-land` behind them, so the join looks continuous.
+- **Map viewport** = the rectangle from the band's bottom edge to the step card's top edge. It is **never shorter than 160 px**: the step card's max height is `min(62% of the screen, screen − band − 160 px)` and the card scrolls inside it (this matters at 200% while the H11 banner is in the band). In MapLibre, size the map container to the full screen and set `map.setPadding({ top: bandHeight, bottom: cardHeight })` on every band or card resize (ResizeObserver), **and** clip symbol rendering to that rectangle by sizing the canvas container to it. The step card's `r-xl` corners show `m-land` behind them, so the join looks continuous.
 - **Puck:** horizontally centred, at **66% down the map viewport** (34% up from its bottom edge; this replaces "34% of the screen" in AC 13 and stays correct at 200%). It is never closer than 72 px to either edge of the viewport; if the viewport is shorter than 144 px (200% text with a tall card), the puck is centred in it.
 - **Map controls (`.mapctl`)** float at the right edge of the viewport, 14 px above the card. They are the only things over the map. Labels under them are acceptable; the puck never is (it is centred).
 - **QA check (AC 9):** for every H5 state at 100% and 200%, the puck rect and every rendered station/stop label rect intersect neither the band rect nor the card rect. Zero overlap.
-- **Trip notes** (6c.10–6c.12) sit at the top of the step card, not over the map.
+- **Trip notes** (6c.8, 6c.10–6c.12) sit at the top of the step card, not over the map.
+- Step-card action rows (6c.7): row B (Say it again · Pocket) and row C (Previous step · Next) each fit on **one line at 100%** (`flex: 1 1 7rem` and `1 1 5rem`), so the card stays ≈ 45% of the screen on a walk step at 100%.
 
 ### 6c.1 H6 → H6b Get off now (bus and train)
 H6 is unchanged (§6, 5.7): saffron bottom panel "下一站下车 / Get off at the next stop". **H6b** is the second, stronger stage when the engine sends `get_off_now`. It is visibly different so the user knows something changed: **H6 = saffron panel, "get ready"; H6b = full ink takeover with saffron type, "go now".**
@@ -604,17 +605,17 @@ Manual controls are **always on the step card** (AC 10). Layout of the card's ac
 - Baselines: `H5-manual-walk`, `H5-manual-wait`, `H5-manual-ride`.
 
 ### 6c.8 H11 states: re-route failed and offline (AC 33)
-Same banner component (§5.7, jade rule), placed **inside the top band** (6c.0). The `searching` and `found` states are unchanged.
+The `searching` and `found` states keep the §5.7 banner, placed **inside the top band** (6c.0). The `failed` and `offline` states are **not** banners: they carry buttons and stay up, so they are a **trip note at the top of the step card** (6c.10, highest priority). Putting them in the band left no map at 200% (self-audit).
 
 | State | Title | Line | Spoken | Haptic |
 |---|---|---|---|---|
 | `failed` | 暂时找不到新的路 / No new way found yet | 先跟着地图上的线走。/ Follow the line on the map for now. | title + line, once | none (the `gentle` of `off_route` came first) |
 | `offline` | 没有网络，现在不能找新的路 / No internet, so I can't find a new way now | 网络回来后我会再找。先跟着地图上的线走。/ I'll try again when you're back online. Follow the line on the map for now. | title + line, once | none |
 
-- Icon: `route` in `c-ink` (no spinner, no check). The banner does not auto-dismiss; it has a ✕ (56 px, SR 知道了 / OK) and goes away by itself if the next off-route episode finds a way (`found`).
-- Fallback buttons in the banner, in this order (only what exists in M2):
+- Icon: `route` in `c-ink` (no spinner, no check). The note does not auto-dismiss; it has a ✕ (56 px, SR 知道了 / OK), goes away by itself if the next off-route episode finds a way (`found`), and clears on a step change.
+- Fallback buttons in the note, in this order (only what exists in M2):
   1. **给司机看地址 / Show the driver** (secondary 56 px, `car` icon) → H10 on 去目的地 / Where I'm going.
-  2. **紧急情况 · 拨打 995 / Emergency · Call 995** (the §5.9 danger outline, 56 px, last). "Call family" arrives in M4 and is not shown.
+  2. **紧急情况 · 拨打 995 / Emergency · Call 995** (the §5.9 danger outline, 56 px, last, on a `c-surface` fill: on `c-surface-2` the danger text is only 6.5:1). "Call family" arrives in M4 and is not shown.
 - Polite announcement (not assertive: it is not urgent). Retries on the next off-route episode (AC 33).
 - **Back goes to:** End-trip sheet. Baselines: `H11-failed`, `H11-offline`.
 
@@ -624,7 +625,8 @@ Same banner component (§5.7, jade rule), placed **inside the top band** (6c.0).
 
 ### 6c.10 Trip note component (`.tripnote`) and the wake-lock note
 - **Trip note** (new component, built only from tokens): a row at the top of the step card: `c-surface-2`, `r-m`, padding `s-3`, 28 px `c-ink` icon, text in `label` (700, `c-ink`), optional second line in `caption` `c-ink-2`, optional ✕ (56 px, SR 知道了 / OK). It wraps at 200%. Announced once, polite.
-- One note at a time, by priority: offline > weak GPS > manual mode > wake lock > no voice. A lower note waits until the higher one clears.
+- Layout: icon · text (`flex: 1 1 0`, so it wraps beside the icon even at 200%) · ✕; buttons, if any, on a full-width row below.
+- One note at a time, by priority: re-route failed/offline (6c.8) > offline > weak GPS > manual mode > wake lock > no voice. A lower note waits until the higher one clears.
 - **Wake lock failed** (AC 39, once per trip, with ✕): icon `eye`. 请让屏幕保持亮着 / Please keep the screen on · second line 这部手机不让我一直亮着屏幕。屏幕暗了，提醒可能会晚。/ This phone won't let me keep the screen on. If it goes dark, reminders may be late. No voice, no haptic.
 - **Offline** (AC 35): icon `wifi-off`. 没有网络，行程继续 / No internet, trip continues. No ✕; it goes when back online.
 - `data-testid`: `trip-note`. Baselines: `H5-note-wakelock`, `H5-note-offline`.
