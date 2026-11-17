@@ -156,3 +156,13 @@ Owner: "Go with all your recommended defaults. No need android play store."
   - M3 AC 45 `smoke:live`: deferred to M5 (needs the owner's OneMap/LTA secrets).
   - QA-47: version 0.3.0. QA-49: raise that test's timeout. QA-29 stays S3.
 - Fix round: two fresh Developers in parallel worktrees (A: M3 + gate/infra; B: M4), then Creative review of the visible changes, then a QA re-check of the failures only.
+
+## 2026-11-18 — M3/M4 fix round: Creative reviews and rulings
+- Fix A (M3, fonts, version, gate Docker dev-e2e) and fix B (M4) are done. Lighthouse perf 85–91. Creative: both APPROVED WITH FIXES (creative/reviews/m34-fix-a.md, m34-fix-b.md).
+- Rulings:
+  - A help-only share (started from Help) keeps updating location at the normal share cadence until "我没事了" or expiry (safety over battery, as M4 AC 14).
+  - Share row in Help sits after 找路/回家 and before 995 (Creative).
+  - AC 28: the Lift-friendly switch leaves the H3 options sheet until M5 ranking exists. It stays in Settings with the honest sub-line.
+  - AC 44: About shows the date in words ("交通资料日期：2026年11月17日"); the Report keeps `data: 2026-11-17`.
+  - AC 32/39 amended per the earlier rulings (Creative §6e.3 rows; 5 family members).
+- Developer C: merge A+B, all Creative fixes, re-record baselines once in Docker; then a QA re-check of the failures only.
