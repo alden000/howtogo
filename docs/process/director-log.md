@@ -139,3 +139,6 @@ Owner: "Go with all your recommended defaults. No need android play store."
 ## 2026-11-17 — Hosting move + M6 round 1
 - Owner: the domain is in a different Cloudflare account; "don't use raus-ums". Owner saved a Cloudflare token for the domain's account as an environment network secret. Plan: redeploy the Worker + KV + DOs there, attach howtogo.wwweeeiii.com via the API, then (owner's OK) delete the old raus-ums deployment and KV.
 - M6 round 1 (dev/m6): signed R8 release APK 0.2.0, com.wwweeeiii.howtogo, versionCode 20000, 1.6 MB; keystore outside the repo at /home/user/keys (to hand to the owner). Rulings: WAKE_LOCK not needed (FGS keeps the CPU awake for location) → allow-list updated to drop it; the extra non-exported Play services activity is accepted (no exported surface). ALLOWED_ORIGINS gains https://localhost (Capacitor origin) on the next deploy.
+
+## 2026-11-17 — M3/M4 merged pre-gate (handover)
+- Merged dev/m34-web (Creative High/Medium fixes done; unit tests 139/180/162 green; typecheck clean) into the session branch so the work survives the session switch for the hosting move. Not deployed (old account). QA gate for M3/M4 is the next step in the new session; see HANDOVER.md.

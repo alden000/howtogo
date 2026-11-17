@@ -11,7 +11,7 @@ The team process is the owner's `app-dev-team` skill. It isn't in the repo; ask 
 | M0 Creative | Done. Logo B (去 seal). STYLE-GUIDE v1.3. Prototype: creative/prototype/ |
 | M1 Foundation | Released (0.1.x) |
 | M2 Guided trip | Released 0.2.0 to the preview. Owner phone test pending (script in M2-guided-trip.md) |
-| M3 + M4 | Worker, viewer and web UI built. A Creative-fix round is merged or in progress (see dev-log). **Next: QA gate, then one fix round** |
+| M3 + M4 | Built and merged into the session branch with Creative's review fixes, **before the QA gate**. **Next:** fresh QA gate (qa/ suite + new M3/M4 ACs; run on a quiet host), then one batched fix round, then deploy. Deferred to M5 per Creative: lift-friendly ranking, bus-routes-only re-query, Contact Picker, auto-share, save-as-place, chip lastgone/notrunning. Web Push dropped |
 | M5 Hardening | Spec written (M5-hardening-launch.md), not started |
 | M6 Android | Round 1 merged. Signed release APK built (com.wwweeeiii.howtogo, versionCode 20000). Not yet run on a device |
 
