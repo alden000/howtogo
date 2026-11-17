@@ -8,7 +8,6 @@ import type { Place } from '@howtogo/shared';
 import { DWELL_CHOICES_MIN } from '@howtogo/shared';
 import { useServices, useT } from '../context';
 import { here, locate } from '../state/location';
-import { online } from '../api/offline';
 import { announce, Bar, Icon, NumSteps, Sheet } from '../ui/kit';
 import { log } from '../log';
 import { dwellLabel } from './Guide';
@@ -127,8 +126,9 @@ export function DriverSheet() {
   const tabs = (['dest', 'home', 'here'] as DriverTab[]).filter((x) => x !== 'dest' || trip);
   useEffect(() => {
     log(`state:driver-${tab}`);
-    // QA-38: also look the address up when the cached fix has none (e.g. the last trip fix), while online.
-    if (tab === 'here' && (!here.value || (here.value.label === null && online.peek()))) void locate(platform, api);
+    // QA-38 (AC 36): always a fresh fix + address — a cached one may be from somewhere else (or a trip fix with
+    // no address). Offline, the address lookup fails and the coordinates fallback shows instead.
+    if (tab === 'here') void locate(platform, api);
   }, [tab]);
   useEffect(() => {
     void platform.wakeLock.acquire();
