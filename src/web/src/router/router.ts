@@ -16,8 +16,14 @@ export interface NavState {
   idx: number;
   sheet?: string;
   sheetData?: unknown;
+  /** D8 guard under the guidance screen: Back onto it opens the End-trip sheet instead of leaving. */
+  guard?: boolean;
 }
 
+/** What Back onto the guidance guard does: End-trip sheet (trip running), Home (arrived), or keep going back (no trip). */
+export type GuardAction = 'sheet' | 'home' | 'pass';
+
+const GUIDE = '/guide';
 const isNav = (s: unknown): s is NavState => !!s && typeof s === 'object' && (s as NavState).howtogo === 1;
 
 export interface Router {
@@ -31,8 +37,12 @@ export interface Router {
   closeSheet(): void;
   /** Swap the open sheet for another in the same history entry (e.g. explainer → denied help). */
   replaceSheet(name: string, data?: unknown): void;
-  /** Drop the whole in-app stack and land on `path` as the new root (first run done). */
-  reset(path: string): void;
+  /** Drop the whole in-app stack and land on `path` as the new root (first run done); then push `then`, if given. */
+  reset(path: string, then?: string): void;
+  /** Open the guidance screen over a D8 guard entry (H4 Start, resume). */
+  enterGuide(): void;
+  /** Decide what Back onto the guard does (set by the app). */
+  setGuard(fn: () => GuardAction): void;
   back(): void;
   dispose(): void;
 }
@@ -44,7 +54,12 @@ export function createRouter(win: Window = window): Router {
   // Seed history on first load.
   if (!isNav(h.state)) {
     const m = matchRoute(href());
-    if (!ROOTS.has(m.name) && !STANDALONE.has(m.name)) {
+    if (m.name === 'guide') {
+      // D8: a reload on /guide keeps the End-trip guard under it.
+      h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', '/');
+      h.pushState({ howtogo: 1, idx: 1, guard: true } satisfies NavState, '', GUIDE);
+      h.pushState({ howtogo: 1, idx: 2 } satisfies NavState, '', GUIDE);
+    } else if (!ROOTS.has(m.name) && !STANDALONE.has(m.name)) {
       const target = href();
       h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', '/');
       h.pushState({ howtogo: 1, idx: 1 } satisfies NavState, '', target);
@@ -66,12 +81,48 @@ export function createRouter(win: Window = window): Router {
   };
   announce();
 
+  let guardFn: () => GuardAction = () => 'pass';
   const sync = () => {
-    state.value = isNav(h.state) ? h.state : { howtogo: 1, idx: 0 };
+    const st = isNav(h.state) ? h.state : ({ howtogo: 1, idx: 0 } as NavState);
+    if (st.guard) {
+      const a = guardFn();
+      log(`guard:${a}`);
+      if (a === 'pass') return void (st.idx > 0 ? h.back() : h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', '/'));
+      if (a === 'home') return resetTo('/');
+      h.pushState({ howtogo: 1, idx: st.idx + 1 } satisfies NavState, '', GUIDE);
+      h.pushState({ howtogo: 1, idx: st.idx + 2, sheet: 'end-trip' } satisfies NavState, '', GUIDE);
+      state.value = h.state as NavState;
+      route.value = matchRoute(href());
+      return announce();
+    }
+    state.value = st;
     route.value = matchRoute(href());
     announce();
   };
   const onPop = () => sync();
+  function resetTo(path: string, then?: string) {
+    const n = state.value.idx;
+    const land = () => {
+      h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', path);
+      if (then) h.pushState({ howtogo: 1, idx: 1 } satisfies NavState, '', then);
+      state.value = h.state as NavState;
+      route.value = matchRoute(href());
+      announce();
+    };
+    const cur = isNav(h.state) ? h.state.idx : 0;
+    const back = Math.max(n, cur);
+    if (back <= 0) return land();
+    const once = () => {
+      win.removeEventListener('popstate', once, true);
+      // Stop the regular handler from seeing the intermediate entry (it may be a guard).
+      win.removeEventListener('popstate', onPop);
+      land();
+      win.addEventListener('popstate', onPop);
+    };
+    win.removeEventListener('popstate', onPop);
+    win.addEventListener('popstate', once, true);
+    h.go(-back);
+  }
   win.addEventListener('popstate', onPop);
 
   return {
@@ -105,19 +156,22 @@ export function createRouter(win: Window = window): Router {
       h.replaceState(next, '', href());
       sync();
     },
-    reset(path) {
-      const n = state.value.idx;
-      const land = () => {
-        h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', path);
-        sync();
-      };
-      if (n <= 0) return land();
-      const once = () => {
-        win.removeEventListener('popstate', once, true);
-        land();
-      };
-      win.addEventListener('popstate', once, true);
-      h.go(-n);
+    reset(path, then) {
+      resetTo(path, then);
+    },
+    enterGuide() {
+      const cur = state.value;
+      if (route.value.name === 'guide' && !cur.sheet) return;
+      const base = cur.sheet ? cur.idx : cur.idx + 1;
+      if (cur.sheet) h.replaceState({ howtogo: 1, idx: cur.idx, guard: true } satisfies NavState, '', GUIDE);
+      else h.pushState({ howtogo: 1, idx: base, guard: true } satisfies NavState, '', GUIDE);
+      h.pushState({ howtogo: 1, idx: base + 1 } satisfies NavState, '', GUIDE);
+      state.value = h.state as NavState;
+      route.value = matchRoute(href());
+      announce();
+    },
+    setGuard(fn) {
+      guardFn = fn;
     },
     back() {
       if (state.value.idx > 0) h.back();

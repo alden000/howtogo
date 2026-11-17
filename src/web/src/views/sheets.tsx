@@ -19,7 +19,7 @@ export function EndTripSheet() {
           data-testid="end-trip-yes"
           onClick={async () => {
             await runtime.end();
-            router.navigate('/', { replace: true });
+            router.reset('/');
           }}
         >
           <Icon name="close" />

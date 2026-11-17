@@ -222,6 +222,21 @@ export function Routes() {
               <span>{t('from_here', { p: from.name })}</span>
             </div>
           )}
+          {flags.has('guide') && plan.to && (
+            <button
+              type="button"
+              class="btn btn-secondary small"
+              style={{ marginTop: 'var(--s-3)' }}
+              data-testid="add-stop"
+              onClick={() => {
+                if (!plan.stops?.length) store.setPlan({ stops: [plan.to!], journey: undefined });
+                router.navigate('/journey');
+              }}
+            >
+              <Icon name="plus" />
+              {t('add_stop')}
+            </button>
+          )}
         </div>
 
         {(phase === 'loading' || phase === 'need_loc') && (

@@ -1,18 +1,77 @@
-/** H4 Trip overview (STYLE-GUIDE §6 H4): fitted map + timeline. Start is behind feature flag `guide` (OQ5); "Tell family" is M4. */
+/**
+ * H4 Trip overview (STYLE-GUIDE §6 H4) and H4 journey (§6c.4): fitted map + timeline.
+ * "开始出发 / Start" (flag `guide`) is the ONLY way a trip starts (AC 1/2): every entry point
+ * (Home tile, Take me home, search, recent, H12 Route home, multi-stop, deep link) reaches
+ * this screen and `useStartTrip()`, which runs the same runtime start call.
+ */
 import { useMemo } from 'preact/hooks';
-import { buildSteps } from '@howtogo/shared';
-import { useServices, useT } from '../context';
+import { buildSteps, type Itinerary, type Journey, type Place } from '@howtogo/shared';
+import { useServices, useT, type TFn } from '../context';
 import { MapPanel } from '../map/MapPanel';
 import { toLang } from '../state/store';
 import { here } from '../state/location';
+import { log } from '../log';
 import { Bar, HelpButton, Icon, useStateHook } from '../ui/kit';
+import { Chips } from './Routes';
+import { dwellLabel } from './Guide';
 import { clock, minutes, timeline } from './present';
+import { EndFirstSheet } from './tripSheets';
 
 const ICON = { walk: 'walk', bus: 'bus', train: 'train', dest: 'check' } as const;
 
+type StartArgs = { it: Itinerary; places: Place[] } | { journey: Journey };
+let pending: (() => Promise<void>) | null = null;
+
+/**
+ * The single Start flow (AC 4/5): the tap is the user gesture that asks for compass permission
+ * (iOS), unlocks audio and takes the wake lock (runtime.start). Location denied → the runtime
+ * starts in manual mode. An active trip first asks "End your current trip?" (G6).
+ */
+export function useStartTrip() {
+  const { store, router, runtime, platform } = useServices();
+  const go = async (s: StartArgs) => {
+    // Inside the tap: iOS needs DeviceOrientationEvent.requestPermission() from a gesture.
+    void platform.heading.requestPermission().catch(() => false);
+    log('ui:start');
+    if ('journey' in s) await runtime.startJourney(s.journey);
+    else await runtime.start(s.it, s.places);
+    router.enterGuide();
+  };
+  return (s: StartArgs) => {
+    const cur = store.trip.peek();
+    if (cur && (cur.phase ?? 'guiding') !== 'arrived') {
+      pending = () => go(s);
+      return router.openSheet('end-first');
+    }
+    return go(s);
+  };
+}
+
 export function TripDetail() {
-  const { store, router, runtime, flags } = useServices();
+  const { store, router, flags } = useServices();
   const t = useT();
+  const plan = store.plan.value;
+  const isJourney = router.route.value.query.get('j') === '1' && !!plan.journey?.ok;
+  return isJourney ? <JourneyOverview journey={plan.journey!} t={t} /> : <SingleOverview guide={flags.has('guide')} t={t} />;
+}
+
+function EndFirst() {
+  const { router } = useServices();
+  if (router.sheet.value !== 'end-first') return null;
+  return (
+    <EndFirstSheet
+      onGo={async () => {
+        const run = pending;
+        pending = null;
+        if (run) await run();
+      }}
+    />
+  );
+}
+
+function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
+  const { store } = useServices();
+  const start = useStartTrip();
   const plan = store.plan.value;
   const me = here.value;
   const lang = store.settings.value.lang;
@@ -35,10 +94,9 @@ export function TripDetail() {
     );
   }
   const it = option.itinerary;
-  const start = async () => {
+  const onStart = () => {
     const from = plan.start ?? plan.from ?? { name: t('my_location'), lat: it.legs[0]!.from.lat, lng: it.legs[0]!.from.lng };
-    await runtime.start(it, [from, plan.to!]);
-    router.navigate('/guide');
+    return start({ it, places: [from, plan.to!] });
   };
   return (
     <>
@@ -82,14 +140,76 @@ export function TripDetail() {
           </ol>
         </div>
       </main>
-      {flags.has('guide') && (
+      {guide && (
         <div class="dock">
-          <button type="button" class="btn btn-primary" data-testid="start-guide" onClick={start}>
+          <button type="button" class="btn btn-primary" data-testid="start-guide" onClick={onStart}>
             <Icon name="nav" />
             {t('start')}
           </button>
         </div>
       )}
+      <EndFirst />
+    </>
+  );
+}
+
+/** H4 journey (6c.4): one block per segment, dwell rows between, final arrival estimate. */
+function JourneyOverview({ journey, t }: { journey: Journey; t: TFn }) {
+  const { store, router } = useServices();
+  const start = useStartTrip();
+  const lang = store.settings.value.lang;
+  const n = journey.places.length - 1;
+  useStateHook(`trip-journey-${n}`);
+  const steps = useMemo(
+    () => journey.segments.flatMap((s) => (s.itinerary ? buildSteps(s.itinerary, toLang(lang), { destinationName: s.to.name }) : [])),
+    [journey.startTime, lang],
+  );
+  return (
+    <>
+      <Bar>
+        <HelpButton />
+      </Bar>
+      <main class="scroll" style={{ padding: 0 }}>
+        <div style={{ padding: '0 var(--s-5) var(--s-3)' }}>
+          <h1 class="t-title" style={{ margin: 0 }}>
+            {t('hj_title')}
+          </h1>
+          <p class="t-label num" style={{ margin: '6px 0 0', color: 'var(--c-ink-2)' }} data-testid="trip-summary">
+            {t('hj_line', { n, t: journey.endTime ? clock(journey.endTime, lang) : '—' })}
+          </p>
+        </div>
+        <MapPanel steps={steps} toggle />
+        <div style={{ padding: '0 var(--s-5) var(--s-6)' }} data-testid="journey-timeline">
+          {journey.segments.map((s, k) => (
+            <>
+              {k > 0 && s.dwellS > 0 && (
+                <div class="dwellrow">
+                  <Icon name="clock" />
+                  {t('hj_stay', { p: s.from.name, d: dwellLabel(Math.round(s.dwellS / 60), t) })}
+                </div>
+              )}
+              <div class="seghead" data-testid={`segment-${k}`}>
+                <b>{t('hj_part', { k: k + 1, p: s.to.name })}</b>
+                {s.arriveAt && <span class="num">{t('hj_about', { t: clock(s.arriveAt, lang) })}</span>}
+              </div>
+              {s.itinerary && <Chips it={s.itinerary} />}
+            </>
+          ))}
+          <p class="t-caption" style={{ color: 'var(--c-ink-2)', marginTop: 'var(--s-4)' }}>
+            {t('hj_note')}
+          </p>
+        </div>
+      </main>
+      <div class="dock">
+        <button type="button" class="btn btn-primary" data-testid="start-guide" onClick={() => start({ journey })}>
+          <Icon name="nav" />
+          {t('start')}
+        </button>
+        <button type="button" class="btn btn-quiet" data-testid="journey-change" onClick={() => router.back()}>
+          {t('hj_change')}
+        </button>
+      </div>
+      <EndFirst />
     </>
   );
 }

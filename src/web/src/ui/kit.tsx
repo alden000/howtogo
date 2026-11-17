@@ -12,7 +12,9 @@ export type IconName =
   | 'walk' | 'bus' | 'train' | 'home' | 'clinic' | 'market' | 'family' | 'search' | 'mic' | 'help' | 'close'
   | 'back' | 'chev' | 'sliders' | 'nav' | 'check' | 'loc' | 'clock' | 'share' | 'route' | 'lock'
   // §6b icons pending Director approval (drawn on the same 24px grid / 2.2px stroke):
-  | 'wifi-off' | 'refresh' | 'install' | 'ios-share' | 'info' | 'trash' | 'person' | 'report';
+  | 'wifi-off' | 'refresh' | 'install' | 'ios-share' | 'info' | 'trash' | 'person' | 'report'
+  // §1.4 base icons used from M2 + the 6c icons approved by the Director (exit, moon, plus, arrow-up, arrow-down):
+  | 'speaker' | 'mute' | 'bell' | 'car' | 'phone' | 'eye' | 'exit' | 'moon' | 'plus' | 'arrow-up' | 'arrow-down';
 
 /** Icon paths copied from the prototype's <symbol>s (24px grid, 2.2px stroke). */
 const PATHS: Record<IconName, string> = {
@@ -45,6 +47,17 @@ const PATHS: Record<IconName, string> = {
   trash: '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 12.5a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5L17.5 7M10 11v6M14 11v6"/>',
   person: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/>',
   report: '<path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v3"/><circle cx="12" cy="13.8" r=".9"/>',
+  speaker: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+  mute: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
+  bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  car: '<path d="M4.5 16.5v-4.5l2-5.5h11l2 5.5v4.5zM4.5 16.5V19h3v-2.5M16.5 16.5V19h3v-2.5M4.5 12h15"/><circle cx="8" cy="14.3" r=".9"/><circle cx="16" cy="14.3" r=".9"/>',
+  phone: '<path d="M5 4h3.5l1.5 4.5-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5C10.6 20 4 13.4 3.5 5.6A1.5 1.5 0 0 1 5 4z"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  exit: '<path d="M13 4H6.5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1H13"/><path d="M10.5 12H20M16.5 8.5L20 12l-3.5 3.5"/>',
+  moon: '<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  'arrow-up': '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  'arrow-down': '<path d="M12 5v14M6 13l6 6 6-6"/>',
 };
 
 /** One hidden sprite per page; icons reference it with <use>. */
@@ -137,13 +150,13 @@ export function Bar({ children }: { children?: ComponentChildren }) {
   );
 }
 
-/** Help button for bars. Behind flag `help`: hidden in the M1 release (QA-1 ruling); M2 builds the Help sheet. */
+/** Help button for bars → H9 Help sheet (M2 subset, OQ4). Behind flag `help` (on from M2). */
 export function HelpButton() {
   const { router, flags } = useServices();
   const t = useT();
   if (!flags.has('help')) return null;
   return (
-    <button type="button" class="iconbtn" data-testid="bar-help" onClick={() => router.navigate('/help')}>
+    <button type="button" class="iconbtn" data-testid="bar-help" onClick={() => router.openSheet('help')}>
       <Icon name="help" />
       {t('help')}
     </button>
@@ -177,6 +190,20 @@ export function Sheet(props: { id: string; title: string; close?: boolean; top?:
         </div>
         {props.children}
       </section>
+    </div>
+  );
+}
+
+/** Polite live region (`#live`, 6c shared rules): one announcement per moment. */
+export const liveText = signal('');
+export function announce(text: string) {
+  liveText.value = '';
+  queueMicrotask(() => (liveText.value = text));
+}
+export function LiveRegion() {
+  return (
+    <div id="live" class="sr" aria-live="polite" data-testid="live">
+      {liveText.value}
     </div>
   );
 }

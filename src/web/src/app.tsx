@@ -18,7 +18,9 @@ import { Help } from './views/Help';
 import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, SettingsScreen } from './views/Settings';
 import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
-import { Bar, Icon, IconSprite, Toast } from './ui/kit';
+import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
+import { JourneyBuilder } from './views/Journey';
+import { DriverSheet, DwellSheet, HelpSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
 const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
@@ -27,9 +29,19 @@ import { ghost } from './ui/ghost';
 import { connectivityToasts } from './ui/toasts';
 
 export function App() {
-  const { router } = useServices();
+  const { router, store, runtime } = useServices();
   const t = useT();
   const r = router.route.value;
+  // D8: Back onto the guidance guard opens the End-trip sheet while a trip runs; after arrival it goes Home.
+  useEffect(
+    () =>
+      router.setGuard(() => {
+        const tr = store.trip.peek();
+        if (!tr) return 'pass';
+        return tr.phase === 'arrived' || runtime.ui.peek().phase === 'arrived' ? 'home' : 'sheet';
+      }),
+    [],
+  );
   const sheet = router.sheet.value;
   const depth = router.depth.value;
   useEffect(() => connectivityToasts(t), [t]);
@@ -81,6 +93,9 @@ export function App() {
     case 'guide':
       view = <Guide />;
       break;
+    case 'journey':
+      view = <JourneyBuilder />;
+      break;
     case 'share_start':
       view = <ShareStart />;
       break;
@@ -119,6 +134,18 @@ export function App() {
         {view}
       </div>
       {sheet === 'end-trip' && <EndTripSheet />}
+      {sheet === 'help' && <HelpSheet />}
+      {sheet === 'driver' && <DriverSheet />}
+      {sheet === 'voice-help' && <VoiceHelpSheet />}
+      {sheet === 'stale-trip' && <StaleSheet />}
+      {sheet === 'dwell' && (
+        <DwellSheet
+          onPick={(i, min) => {
+            const stops = (store.plan.peek().stops ?? []).map((p, k) => (k === i ? { ...p, dwellMin: min } : p));
+            store.setPlan({ stops, journey: undefined });
+          }}
+        />
+      )}
       {sheet === 'loc-explain' && <LocExplainSheet />}
       {sheet === 'loc-denied' && <LocDeniedSheet />}
       {sheet === 'name' && <NameSheet />}
@@ -127,6 +154,7 @@ export function App() {
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
       <Toast />
+      <LiveRegion />
       <div class="ghosts over" />
     </div>
   );

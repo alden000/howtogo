@@ -35,12 +35,16 @@ export interface MapOptions {
    * content inside aria-hidden) and pinned at the top so it stays on screen on short viewports (QA-12).
    */
   attributionHost?: HTMLElement;
+  /** H5: a user drag/pinch/rotate (the runtime owns the follow mode, AC 15). */
+  onGesture?: () => void;
 }
 
 export interface PuckInput {
   pos: LatLng;
   acc?: number;
   heading?: number | null;
+  /** 6c.12: no good fix for 30 s → grey puck, no cone. */
+  stale?: boolean;
 }
 
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
@@ -160,6 +164,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
   let lastPuck: PuckInput | null = null;
   let routeSteps: Step[] = [];
   let dark = opts.dark;
+  let followZoom: number | undefined;
   const duration = opts.reducedMotion ? 0 : 600;
 
   const ready = new Promise<void>((r) => (map.loaded() ? r() : map.once('load', () => r())));
@@ -193,7 +198,10 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
   // Any user gesture pauses follow-me (events from code carry no originalEvent).
   for (const ev of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'] as const) {
     map.on(ev, (e: { originalEvent?: unknown }) => {
-      if (e.originalEvent) dispatchFollow({ type: 'user_gesture' });
+      if (e.originalEvent) {
+        dispatchFollow({ type: 'user_gesture' });
+        opts.onGesture?.();
+      }
     });
   }
 
@@ -204,17 +212,21 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
   function renderPuck() {
     const src = map.getSource('puck') as GeoJSONSource | undefined;
     if (!src || !lastPuck) return;
-    const { pos, acc, heading } = lastPuck;
+    const { pos, acc, heading, stale } = lastPuck;
     const feats: GeoJSON.Feature[] = [];
     if (acc && acc > 5) feats.push({ type: 'Feature', properties: { kind: 'acc' }, geometry: { type: 'Polygon', coordinates: [circle(pos, acc)] } });
-    if (typeof heading === 'number') feats.push({ type: 'Feature', properties: { kind: 'cone' }, geometry: { type: 'Polygon', coordinates: [cone(pos, heading)] } });
+    if (map.getLayer('puck-dot')) {
+      map.setPaintProperty('puck-dot', 'circle-color', cssColor(container, stale ? 'c-ink-2' : 'puck'));
+      map.setPaintProperty('puck-dot', 'circle-stroke-color', cssColor(container, stale ? 'c-surface' : 'puck-ring'));
+    }
+    if (typeof heading === 'number' && !stale) feats.push({ type: 'Feature', properties: { kind: 'cone' }, geometry: { type: 'Polygon', coordinates: [cone(pos, heading)] } });
     feats.push({ type: 'Feature', properties: { kind: 'dot' }, geometry: { type: 'Point', coordinates: [pos.lng, pos.lat] } });
     src.setData({ type: 'FeatureCollection', features: feats });
   }
 
   function applyFollow() {
     if (follow.value !== 'follow' || !lastPuck) return;
-    const cam = followCamera(lastPuck.pos, lastPuck.heading);
+    const cam = followCamera(lastPuck.pos, lastPuck.heading, followZoom);
     map.easeTo({ ...cam, duration });
   }
 
@@ -254,6 +266,23 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     },
     recentre() {
       dispatchFollow({ type: 'recentre' });
+      applyFollow();
+    },
+    /** H5: the runtime's follow mode (follow-me, or free after a gesture / See whole trip). */
+    setFollow(mode: FollowMode) {
+      if (follow.value === mode) return;
+      follow.value = mode;
+      applyFollow();
+    },
+    /** 6c.0: keep the puck and labels inside the window between the top band and the step card. */
+    setPadding(p: { top: number; bottom: number }) {
+      map.setPadding({ top: p.top, bottom: p.bottom, left: 0, right: 0 });
+      applyFollow();
+    },
+    /** AC 18: zoom out on rides, in on walks. */
+    setFollowZoom(z: number) {
+      if (followZoom === z) return;
+      followZoom = z;
       applyFollow();
     },
     stepChanged() {

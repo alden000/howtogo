@@ -5,7 +5,7 @@
  *  - sessionStorage: the in-progress plan (from/to/options) so a reload on /routes works.
  */
 import { batch, effect, signal } from '@preact/signals';
-import type { AlertState, GuidanceState, Itinerary, Lang, Place, RankedItinerary, RoutePreference, SegmentPlan } from '@howtogo/shared';
+import type { AlertState, GuidanceState, Itinerary, Journey, Lang, Place, RankedItinerary, RoutePreference, SegmentPlan } from '@howtogo/shared';
 import { local, readJSON, session, writeJSON, type KV } from './storage';
 
 export type UiLang = 'zh' | 'en';
@@ -67,6 +67,10 @@ export interface Plan {
   start?: Place;
   /** When the options were fetched. */
   fetchedAt?: number;
+  /** G2 multi-stop builder: places after the start (≤ 5), each with an optional dwell. */
+  stops?: Place[];
+  /** H4 journey: the planned multi-stop journey (from `runtime.planTrip`). */
+  journey?: Journey;
 }
 
 export interface ShareSession {

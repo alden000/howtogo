@@ -52,7 +52,8 @@ export function Home() {
   useStateHook(nearHome ? 'home-at-home' : near ? 'home-away' : 'home-default');
 
   const go = (to: Place) => {
-    store.setPlan({ to, options: [] });
+    // A new destination starts a new plan: the G2 stop list is kept only until H1 (6c.3).
+    store.setPlan({ to, options: [], stops: undefined, journey: undefined });
     router.navigate('/routes');
   };
   const takeMeHome = () => {
@@ -132,7 +133,7 @@ export function Home() {
             class="btn btn-secondary small"
             style={{ marginBottom: 'var(--s-4)' }}
             data-testid="continue-trip"
-            onClick={() => router.navigate('/guide')}
+            onClick={() => router.enterGuide()}
           >
             <Icon name="nav" />
             {t('continue_trip')}
@@ -193,7 +194,7 @@ export function Home() {
           </>
         )}
         {flags.has('help') && (
-        <button type="button" class="helprow" data-testid="nav-help" onClick={() => router.navigate('/help')}>
+        <button type="button" class="helprow" data-testid="nav-help" onClick={() => router.openSheet('help')}>
           <span class="ic" aria-hidden="true">
             <Icon name="help" />
           </span>

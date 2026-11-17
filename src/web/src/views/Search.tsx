@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Place } from '@howtogo/shared';
 import type { SearchResult } from '../api/types';
+import { addStop } from './Journey';
+import { announce } from '../ui/kit';
 import { useServices, useT } from '../context';
 import { log } from '../log';
 import { signal } from '@preact/signals';
@@ -24,7 +26,7 @@ export function Search() {
   const lang = store.settings.value.lang;
   const query = router.route.value.query;
   /** to (default) · from (F8 From pill) · home (F1/F6 set-home mode). */
-  const mode = query.get('mode') === 'home' ? 'home' : query.get('field') === 'from' ? 'from' : 'to';
+  const mode = query.get('mode') === 'home' ? 'home' : query.get('mode') === 'add' ? 'add' : query.get('field') === 'from' ? 'from' : 'to';
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [phase, setPhase] = useState<Phase>('recent');
@@ -65,11 +67,19 @@ export function Search() {
   useEffect(() => () => mic?.stop(), []);
 
   const pick = (p: Place) => {
+    if (mode === 'add') {
+      // G2: append to the multi-stop list (≤ 5) and return to the builder.
+      const cur = store.plan.peek();
+      const stops = addStop(cur.stops ?? (cur.to ? [cur.to] : []), p);
+      store.setPlan({ stops, journey: undefined });
+      announce(t('jb_added', { p: p.name, n: stops.length }));
+      return router.back();
+    }
     if (mode === 'home') {
       pendingHome.value = p;
       return router.back();
     }
-    store.setPlan({ [mode]: p, options: [] });
+    store.setPlan(mode === 'to' ? { to: p, options: [], stops: undefined, journey: undefined } : { [mode]: p, options: [] });
     if (mode === 'to') {
       // Destination picked → straight to route options (replacing Search, so Back from H3 returns to H1).
       store.addRecent(p);
@@ -121,7 +131,7 @@ export function Search() {
       <Bar />
       <main class="scroll">
         <h1 class="t-title" style={{ margin: '0 0 4px' }}>
-          {t(mode === 'home' ? 'find_home' : mode === 'from' ? 'from_title' : 'search_title')}
+          {t(mode === 'home' ? 'find_home' : mode === 'add' ? 'add_place_title' : mode === 'from' ? 'from_title' : 'search_title')}
         </h1>
         <div class="field">
           <label for="q" class="sr">

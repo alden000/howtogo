@@ -63,13 +63,44 @@ describe('router history', () => {
   });
 
   it('seeds Home under a deep link so Back stays in the app', async () => {
-    history.replaceState(null, '', '/guide');
+    history.replaceState(null, '', '/routes');
     r = createRouter();
-    expect(r.route.value.name).toBe('guide');
+    expect(r.route.value.name).toBe('routes');
     expect(r.depth.value).toBe(1);
     r.back();
     await popped();
     expect(r.route.value.name).toBe('home');
+  });
+
+  it('D8 guard: Back on H5 opens the End-trip sheet, Back again returns to H5 (reload keeps the guard)', async () => {
+    history.replaceState(null, '', '/guide');
+    r = createRouter();
+    r.setGuard(() => 'sheet');
+    expect(r.route.value.name).toBe('guide');
+    expect(r.depth.value).toBe(2);
+    r.back();
+    await popped();
+    expect(r.route.value.name).toBe('guide');
+    expect(r.sheet.value).toBe('end-trip');
+    r.back();
+    await popped();
+    expect(r.route.value.name).toBe('guide');
+    expect(r.sheet.value).toBeNull();
+    r.back();
+    await popped();
+    expect(r.sheet.value).toBe('end-trip');
+  });
+
+  it('D8 guard: enterGuide from H4; no trip → Back passes through to H4', async () => {
+    r = createRouter();
+    r.navigate('/trip');
+    r.enterGuide();
+    expect(r.route.value.name).toBe('guide');
+    r.setGuard(() => 'pass');
+    r.back();
+    await popped();
+    await popped();
+    expect(r.route.value.name).toBe('trip');
   });
 
   it('does not reseed on reload (history.state survives)', () => {
