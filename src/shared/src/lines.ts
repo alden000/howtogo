@@ -2,65 +2,53 @@
  * Singapore MRT / LRT line catalogue. Colours are token names only
  * (Creative owns the palette): the web app maps `line-ns` → a CSS variable.
  *
- * Termini are used to say "towards X" when OneMap gives no headsign.
- * ASSUMPTION (re-check against LTA network map when lines extend):
- * NE ends at Punggol Coast (NE18, opened Dec 2024), TE at Bayshore (TE29),
- * DT at Expo (DT35), CC treated as Dhoby Ghaut (CC1) ↔ HarbourFront (CC29).
+ * Termini ("towards X" when OneMap gives no headsign) come from the station data in
+ * ./data (dated stage openings, Circle Line loop handling), not a hand table.
  */
+import { inferHeading } from './data/network';
 import type { LineInfo, TransitMode } from './types';
 
-interface LineDef extends LineInfo {
-  /** Station-number ends of the line: [lowEnd, highEnd]. */
-  termini?: [Terminus, Terminus];
-}
+type LineDef = LineInfo;
 
-interface Terminus {
+export interface Terminus {
   'zh-CN': string;
   'en-SG': string;
 }
-
-const t = (en: string, zh: string): Terminus => ({ 'en-SG': en, 'zh-CN': zh });
 
 const LINES: Record<string, LineDef> = {
   NS: {
     code: 'NS', kind: 'mrt', colorToken: 'line-ns',
     name: { 'en-SG': 'North-South Line', 'zh-CN': '南北线' },
-    termini: [t('Jurong East', '裕廊东'), t('Marina South Pier', '滨海南码头')],
   },
   EW: {
     code: 'EW', kind: 'mrt', colorToken: 'line-ew',
     name: { 'en-SG': 'East-West Line', 'zh-CN': '东西线' },
-    termini: [t('Pasir Ris', '巴西立'), t('Tuas Link', '大士连路')],
   },
   CG: {
     code: 'CG', kind: 'mrt', colorToken: 'line-ew',
     name: { 'en-SG': 'East-West Line (Changi Airport branch)', 'zh-CN': '东西线（樟宜机场支线）' },
-    termini: [t('Tanah Merah', '丹那美拉'), t('Changi Airport', '樟宜机场')],
   },
   NE: {
     code: 'NE', kind: 'mrt', colorToken: 'line-ne',
     name: { 'en-SG': 'North East Line', 'zh-CN': '东北线' },
-    termini: [t('HarbourFront', '港湾'), t('Punggol Coast', '榜鹅海岸')],
   },
   CC: {
     code: 'CC', kind: 'mrt', colorToken: 'line-cc',
     name: { 'en-SG': 'Circle Line', 'zh-CN': '环线' },
-    termini: [t('Dhoby Ghaut', '多美歌'), t('HarbourFront', '港湾')],
   },
+  // Retired code (Bayfront CE1 / Marina Bay CE2 are CC34 / CC33 since CCL6, Jul 2026);
+  // kept in case OneMap data still uses it.
   CE: {
     code: 'CE', kind: 'mrt', colorToken: 'line-cc',
-    name: { 'en-SG': 'Circle Line (Marina Bay branch)', 'zh-CN': '环线（滨海湾支线）' },
-    termini: [t('Bayfront', '海湾舫'), t('Marina Bay', '滨海湾')],
+    name: { 'en-SG': 'Circle Line', 'zh-CN': '环线' },
   },
   DT: {
     code: 'DT', kind: 'mrt', colorToken: 'line-dt',
     name: { 'en-SG': 'Downtown Line', 'zh-CN': '滨海市区线' },
-    termini: [t('Bukit Panjang', '武吉班让'), t('Expo', '博览')],
   },
   TE: {
     code: 'TE', kind: 'mrt', colorToken: 'line-te',
     name: { 'en-SG': 'Thomson-East Coast Line', 'zh-CN': '汤申—东海岸线' },
-    termini: [t('Woodlands North', '兀兰北'), t('Bayshore', '碧湾')],
   },
   BP: {
     code: 'BP', kind: 'lrt', colorToken: 'line-lrt',
@@ -141,28 +129,21 @@ export function inferLine(h: LineHints): LineInfo | undefined {
   return undefined;
 }
 
-/** Numeric part of a station code ("NS17" → 17, "CC29" → 29). */
-function stationNumber(code: string | undefined): number | undefined {
-  if (!code) return undefined;
-  const m = /^[A-Za-z]{2}(\d+)/.exec(code);
-  return m ? Number(m[1]) : undefined;
-}
-
 /**
- * "Towards" terminus for a train leg from boarding/alighting station numbers.
- * Undefined for LRT loops or when station codes are missing.
+ * "Towards" terminus for a train leg from boarding/alighting station codes.
+ * `at` = travel time (epoch ms) or ISO date, so stage openings apply. Undefined for
+ * loops (Circle Line: use `inferHeading` for clockwise/anticlockwise + via; LRT)
+ * or when station codes are missing.
  */
 export function inferTerminus(
   lineCode: string,
   fromCode: string | undefined,
   toCode: string | undefined,
+  at?: number | string,
 ): Terminus | undefined {
-  const def = LINES[lineCode];
-  if (!def?.termini) return undefined;
-  const a = stationNumber(fromCode);
-  const b = stationNumber(toCode);
-  if (a === undefined || b === undefined || a === b) return undefined;
-  return b > a ? def.termini[1] : def.termini[0];
+  const h = inferHeading(lineCode, fromCode, toCode, at);
+  if (!h || h.kind !== 'terminus') return undefined;
+  return { 'en-SG': h.terminus.en, 'zh-CN': h.terminus.zh };
 }
 
 export function transitModeForLine(line: LineInfo | undefined): TransitMode {
