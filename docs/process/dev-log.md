@@ -301,3 +301,82 @@ H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-144
 - **Deviation from AC 21 wording:** the AC reads "no credentials → fixtures". The task asked for an explicit flag, so production without secrets answers `503 not_configured` instead of fake routes. Director to confirm. `@howtogo/shared` is resolved via the workspace and not declared in the worker's package.json (that would need a root lockfile change). The fixtures are lazily imported.
 - Also: AC 19 upstream timeout 10 s → 8 s (QA missed it).
 - 91 tests pass; typecheck clean.
+
+## 2026-11-17 — M2 round 1: engine + runtime, no new screens (Developer, branch `dev/m2-engine`)
+
+**Done.** Logic only. Screens are unchanged, and the M1 view files were not touched. "runtime" is `src/web/src/trip/` and "store" is `src/web/src/state/` (the existing folders).
+- **Haptics (AC 37, 6c.13):** `VibratePattern` is now the shared `HapticName` (`tick|confirm|attention|getoff|arrive|gentle`). `VIBRATE_PATTERNS` = `HAPTIC_PATTERNS`, copied from the 6c.13 table. No `tap/notice/get_off/alert/arrived` names remain. New setting `haptics` (default on) silences all six.
+- **Engine (`src/shared/src/trip.ts`, all pure):** haptic map, alert escalation reducer, resume decision, pocket reducer, manual-mode rule, location profile, stops-left countdown, MRT soft estimate, journey progress and total ETA, and the speech queue. `guidance.ts`: a segment guided on its own (built with `isWaypoint`) now ends with `arrived_waypoint`.
+- **Voice copy:** Creative's 6c.14/H11 lines are in `i18n/steps.ts` (`cue.get_off_now` = 到站了，请下车。, `cue.gps_weak`, `cue.off_route`, `cue.arrived_waypoint`, `cue.arrived_destination` = 到了！, and `voice.*`). `cueToSpeech` gives the first alert line; `alertSecondLine()` gives the line spoken 2.2 s later. TTS rate: zh 0.9, en 0.92.
+- **Platform (D-4):** new fields `capabilities {backgroundGuidance, speechNeedsGesture, os}` and `visibility {isVisible, onChange}`. `speak(text, lang, prio, {force})` now resolves when the line has been spoken; `force` plays even while muted. Web `wakeLock.acquire` dedupes in-flight requests. The fake platform gains `setVisible`, `setWakeLockOk`, `setPermission`, `emitError`, `watchIntervals`, `wakeLockRequests`, and the options `capabilities/voices/wakeLockOk/permission`.
+- **Share contract (Director add-on):** `ShareStatus`/`SHARE_STATUSES` = exactly the Worker's `travelling|arrived|paused|help`. `toSharePayload(state, {status?, updatedAt?})` maps arrived → `arrived` and everything else, including off route and weak GPS, → `travelling`. It now sends `updatedAt`, and `acc` is required. `test/share-contract.test.ts` runs every PUT body of whole trips (off route, weak spell, help, arrival) through the Worker's real `validateUpdate`. The `cloudflare:workers` import is aliased to a stub in the vitest config.
+
+### API for the UI round (`runtime` from `useServices()`)
+**State:** `runtime.ui` (signal `TripUi`) has these fields:
+- `phase`: `idle|guiding|waypoint|arrived`
+- `alert`: `AlertState|null`, where `kind 'next'` = H6 and `'now'` = H6b. It also carries `stop`, `mode`, `shownAt`, `escalated`.
+- `reroute`: `idle|searching|found|failed|offline`. `searching` and `found` are banners; `failed` and `offline` are trip notes.
+- `manual`, `gpsWeak`, `pocket`
+- `follow`: `follow|free`
+- `wakeLockFailed`, `voiceUnlockNeeded`, `noVoice`
+- `stale`: `{dest}|null`. G4 sheet.
+- `resumed`: shows the toast.
+- `stopsLeft`: `number|null`. Never counts up.
+- `mrt`: `{stopsLeft, preAlertAt, station}|null`. The OQ3 "约 还有 N 站" estimate.
+- `mrtPreAlert`: shows the banner for 4.2 s.
+- `continuing`, `segmentError`
+- `progress`: `{place, places, to, next, isLast, overall}`, i.e. "第 k 个地方，共 n 个"
+- `etaMs`: total ETA, including dwell and later segments.
+- `lastLine`
+
+The trip and its step still come from `store.trip` (`guidance`, `journey {segment, plans}`, `phase`, `alert`, `places`).
+
+**Actions:**
+- `start(itinerary, places, {journey?})`, `planTrip(places)` (uses `planJourney`; ≤ 5 stops; `Place.dwellMin` 15/30/60/90, default 30), `startJourney(journey)`
+- `resume()` (OQ5 window), `continueStale()`, `endStale()`, `unlockVoice()`, `dismissResumed()`
+- `next()`, `previous()`, `onBoard()`, `gotOff()`, `repeat()` (say again, plays even when muted; repeats the alert lines while an alert shows), `ackAlert()`
+- `touch()` (call it on any pointerdown/keydown on H5/pocket), `pocket()`, `setSheetOpen(bool)`
+- `mapGesture()`, `recentre()`, `overview()`
+- `continueJourney()`, `endAtWaypoint()`
+- `dismissRerouteNote()`, `dismissWakeNote()`, `eta()`, `testVoice()`, `speakLine(line)`, `end()`
+- Unchanged: `startShare`, `stopShare`, `help`, `clearHelp`, `heading`, `locationError`, `rerouting`, `attached`
+
+**Behaviour, as built:**
+- **Get-off alerts:** H6 → `getoff`, then line 1, then line 2 at 2.2 s. H6b → `getoff` twice, 800 ms apart, with high-priority voice. Both also `notify({tag:'getoff'})`. One repeat at 20 s if not acknowledged. The alert clears when the ride step ends, and it is not repeated after that.
+- **Off route:** `gentle`, then a re-route to the *current segment's* destination (≤ 1 per 20 s). Then `found` (`confirm`, 4.2 s), `failed`, or `offline` (no call; retried on the `online` event).
+- **Waypoint:** GPS stops at once, and the wake lock is released after 60 s. Nothing happens until `continueJourney()`, which re-plans from `location.current()`.
+- **Arrival:** wake lock released after 60 s. The stored trip stays (phase `arrived`) until the UI calls `end()`. A reload drops it.
+- **Manual mode:** permission denied, or no good fix for 60 s. Speaks the note once. Pocket view is hidden in manual mode.
+- **Pocket view:** 45 s idle on walk/ride steps. Blocked by an alert, a sheet, the H11 banner/note, the waypoint screen, the voice bar, the stale sheet or the MRT banner.
+- **Location profile:** walk 2 s, wait 5 s, bus 5 s, train 10 s, the last 2 stops 2 s. The watch restarts only when the interval changes.
+- **Fixes:** duplicate or out-of-order fixes are dropped.
+- **Language:** the trip language is fixed at start.
+
+**Test hooks (`window.__hooks`):**
+- `cue:<type>` (+ `cue:mrt_prealert`)
+- `alert:next|now|ack|escalate|clear`
+- `state:pocket` + `pocket:on|off`
+- `state:manual|auto`
+- `state:waypoint`, `state:continuing`, `state:segment-failed`, `segment:<k>`
+- `state:resume|resume-ask|resume-drop`, `state:voice-unlock`, `resume:voice`
+- `state:wakelock-failed`, `wakelock:on`
+- `state:reroute-failed|reroute-offline`, `state:gps-weak`, `state:mrt-estimate`, `state:no-voice`
+- `follow:on|free`, `loc:profile <ms>`
+
+### Tests
+- shared: 104 tests (+22 in `test/trip.test.ts`; 3 updated for the new copy and share statuses).
+- web: 87 vitest tests. `test/runtime-m2.test.ts` has 30, using fake timers: escalation at 19.999 s vs 20 s, ack, ride end, H6b ×2, resume windows (ETA + 2 h / ask / 24 h, iOS voice bar), multi-stop (plan, waypoint, continue from here, failure, reload at a waypoint), manual mode, pocket view, wake lock + visibility, profile, follow over 10 min, language, dedupe, re-route found/failed/offline, MRT estimate. Plus `test/share-contract.test.ts` (3).
+- e2e: 60/60. The demo test now also checks `alert:next` before `alert:now`, `state:resume` and `loc:profile 2000`. Typecheck is clean (shared, web, worker).
+
+### Left / caveats
+- **No UI:** H5/H6/H6b/H11/H12, G1–G6 and the Help subset are all for the next round. `Guide.tsx` still shows M1 placeholders. It works because `trip.guidance` is still the current segment's guidance.
+- `main.tsx` still calls `void runtime.resume()`. The UI must render `ui.stale` (H1 sheet) and `ui.resumed` (toast).
+- **Not done yet:** compass `requestPermission` at Start (AC 4) and the "End current trip first?" check (AC 5). Both belong to the UI Start flow.
+- **Location profile on the web:** restarting `watchPosition` per leg is harmless, but it could be skipped on web (the interval is ignored there).
+- **Thresholds are untested in the real world:** MRT estimate (30 s without a fix), manual mode (60 s), escalation (20 s). They need the owner's phone test.
+- **Arrived trips:** a reload drops an arrived trip, so H12 is not shown again after a reload.
+
+### Next steps (UI round)
+1. Build H5 from `runtime.ui` plus the store trip, and call `touch()` from a capture listener. Add H6/H6b sheets bound to `ui.alert` + `ackAlert()`, the H11 banner/notes, G1 pocket, G3 waypoint (`continueJourney`/`endAtWaypoint`), G4 (`stale`, `resumed`, `voiceUnlockNeeded`), and G5 controls.
+2. Build the H3 multi-stop builder → `planTrip()` → H4 timeline → `startJourney()`. Turn the `guide` flag on.
+3. Add Playwright replays (bus, MRT + transfer, mixed, 5-stop, offline) and the entry-point matrix, asserting through the hooks above.
