@@ -1,0 +1,101 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildSteps > angMoKioToNovena — en 1`] = `
+[
+  [
+    "walk_to_stop: Walk to the bus stop Blk 215 (54261) — About 1 min · 80 m",
+    "board_bus: Wait for bus 73 at Blk 215 — Wait about 5 min",
+    "ride_bus: Ride 3 stops. Get off at Ang Mo Kio Int — About 2 min [3 stops]",
+    "walk_transfer: Walk to Ang Mo Kio station for the North-South Line — About 2 min · 150 m",
+    "board_train: Change to the North-South Line towards Marina South Pier — Wait about 2 min",
+    "ride_train: Ride 4 stops. Get off at Novena — About 8 min [4 stops]",
+    "walk_to_destination: Walk to Tan Tock Seng Hospital — About 5 min · 340 m",
+  ],
+]
+`;
+
+exports[`buildSteps > angMoKioToNovena — zh-CN 1`] = `
+[
+  [
+    "walk_to_stop: 步行到巴士站 Blk 215（54261） — 约 1 分钟 · 80 米",
+    "board_bus: 在 Blk 215 等候 73 号巴士 — 约等 5 分钟",
+    "ride_bus: 坐 3 站，在 Ang Mo Kio Int 下车 — 约 2 分钟 [3 stops]",
+    "walk_transfer: 步行到 Ang Mo Kio 地铁站，换乘南北线 — 约 2 分钟 · 150 米",
+    "board_train: 换乘南北线，往滨海南码头方向 — 约等 2 分钟",
+    "ride_train: 坐 4 站，在 Novena 下车 — 约 8 分钟 [4 stops]",
+    "walk_to_destination: 步行到 陈笃生医院 — 约 5 分钟 · 340 米",
+  ],
+]
+`;
+
+exports[`buildSteps > bishanToRafflesPlace — en 1`] = `
+[
+  [
+    "walk_to_stop: Walk to Bishan station — About 4 min · 310 m",
+    "board_train: Take the North-South Line towards Marina South Pier — Wait about 3 min",
+    "ride_train: Ride 9 stops. Get off at Raffles Place — About 14 min [9 stops]",
+    "walk_to_destination: Walk to One Raffles Quay — About 4 min · 320 m",
+  ],
+  [
+    "walk_to_stop: Walk to Bishan station — About 4 min · 310 m",
+    "board_train: Take the North-South Line towards Marina South Pier — Wait about 3 min",
+    "ride_train: Ride 7 stops. Get off at Dhoby Ghaut — About 11 min [7 stops]",
+    "board_train: Change to the North East Line towards HarbourFront — Wait about 3 min",
+    "ride_train: Ride 1 stop. Get off at Clarke Quay — About 2 min [1 stops]",
+    "walk_to_destination: Walk to One Raffles Quay — About 14 min · 1010 m",
+  ],
+]
+`;
+
+exports[`buildSteps > bishanToRafflesPlace — zh-CN 1`] = `
+[
+  [
+    "walk_to_stop: 步行到 Bishan 地铁站 — 约 4 分钟 · 310 米",
+    "board_train: 搭乘南北线，往滨海南码头方向 — 约等 3 分钟",
+    "ride_train: 坐 9 站，在 Raffles Place 下车 — 约 14 分钟 [9 stops]",
+    "walk_to_destination: 步行到 莱佛士码头一号 — 约 4 分钟 · 320 米",
+  ],
+  [
+    "walk_to_stop: 步行到 Bishan 地铁站 — 约 4 分钟 · 310 米",
+    "board_train: 搭乘南北线，往滨海南码头方向 — 约等 3 分钟",
+    "ride_train: 坐 7 站，在 Dhoby Ghaut 下车 — 约 11 分钟 [7 stops]",
+    "board_train: 换乘东北线，往港湾方向 — 约等 3 分钟",
+    "ride_train: 坐 1 站，在 Clarke Quay 下车 — 约 2 分钟 [1 stops]",
+    "walk_to_destination: 步行到 莱佛士码头一号 — 约 14 分钟 · 1010 米",
+  ],
+]
+`;
+
+exports[`buildSteps > toaPayohToTTSH — en 1`] = `
+[
+  [
+    "walk_to_stop: Walk to the bus stop Toa Payoh Int (52009) — About 4 min · 280 m",
+    "board_bus: Wait for bus 139 at Toa Payoh Int — Wait about 4 min",
+    "ride_bus: Ride 4 stops. Get off at Tan Tock Seng Hosp — About 4 min [4 stops]",
+    "walk_to_destination: Walk to Tan Tock Seng Hospital — About 1 min · 80 m",
+  ],
+  [
+    "walk_to_stop: Walk to Toa Payoh station — About 4 min · 300 m",
+    "board_train: Take the North-South Line towards Marina South Pier — Wait about 3 min",
+    "ride_train: Ride 1 stop. Get off at Novena — About 2 min [1 stops]",
+    "walk_to_destination: Walk to Tan Tock Seng Hospital — About 5 min · 340 m",
+  ],
+]
+`;
+
+exports[`buildSteps > toaPayohToTTSH — zh-CN 1`] = `
+[
+  [
+    "walk_to_stop: 步行到巴士站 Toa Payoh Int（52009） — 约 4 分钟 · 280 米",
+    "board_bus: 在 Toa Payoh Int 等候 139 号巴士 — 约等 4 分钟",
+    "ride_bus: 坐 4 站，在 Tan Tock Seng Hosp 下车 — 约 4 分钟 [4 stops]",
+    "walk_to_destination: 步行到 陈笃生医院 — 约 1 分钟 · 80 米",
+  ],
+  [
+    "walk_to_stop: 步行到 Toa Payoh 地铁站 — 约 4 分钟 · 300 米",
+    "board_train: 搭乘南北线，往滨海南码头方向 — 约等 3 分钟",
+    "ride_train: 坐 1 站，在 Novena 下车 — 约 2 分钟 [1 stops]",
+    "walk_to_destination: 步行到 陈笃生医院 — 约 5 分钟 · 340 米",
+  ],
+]
+`;

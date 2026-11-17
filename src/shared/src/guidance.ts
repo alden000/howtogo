@@ -440,7 +440,7 @@ export function guidanceReducer(
         if (i > s.stepIndex && !isBoard(s.steps[i]!)) break; // only the very next boarding
       }
       if (target >= 0) {
-        enterStep(s, target, false);
+        enterStep(s, target, true);
         emit(s, 'boarded', {});
       }
       break;
@@ -448,7 +448,7 @@ export function guidanceReducer(
     case 'got_off': {
       const cur = s.steps[s.stepIndex];
       if (cur && isRide(cur) && s.status !== 'arrived') {
-        if (s.stepIndex < s.steps.length - 1) enterStep(s, s.stepIndex + 1, false);
+        if (s.stepIndex < s.steps.length - 1) enterStep(s, s.stepIndex + 1, true);
         else arrive(s);
       }
       break;
