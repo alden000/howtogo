@@ -2,6 +2,7 @@
  * Family viewer entry (/t/:id → viewer.html). Separate, lightweight Vite entry (M4 AC 17): no Preact,
  * no service worker, no analytics, no storage except the language choice. MapLibre loads lazily.
  */
+import { vibrate } from '../platform/vibrate';
 import './viewer.css';
 import { connectLive } from './live';
 import { renderParts } from './render';
@@ -121,10 +122,8 @@ function render() {
     if (lastBase !== null && P.live) announce(P.live, P.assertive);
     try {
       // Haptics (§6e.2): attention once on help, confirm once on arrived; Android only (vibrate API).
-      if (navigator.vibrate) {
-        if (entering === 'help') navigator.vibrate([60, 80, 60]);
-        if (entering === 'arrived') navigator.vibrate([20, 40, 20]);
-      }
+      if (entering === 'help') vibrate([60, 80, 60]);
+      if (entering === 'arrived') vibrate([20, 40, 20]);
     } catch { /* ignore */ }
     lastBase = v.base;
   }

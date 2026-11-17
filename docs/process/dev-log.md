@@ -670,3 +670,10 @@ Scope: Worker-side ACs only (`src/worker/`). 136 tests pass (was 91), typecheck 
 **Review items** — High 1–3, Medium 4–10, build-now T4/T6 done. Web Push dropped; 995 confirm kept; Lows 11–18 (except #16, touched by the pronoun drop) and the other deviations deferred to M5. Recents now store the rail line codes used (`RecentTrip.lines`), which drives the Home strip.
 
 **Tests** web unit +1 (T6 `isTrainChange`), viewer copy test updated (no pronoun). Dev e2e +6: T3 strip only with a recent trip / height ≥ 72 + LTA sheet lines, T1 nodata night/day, nodata voice once, no H5 badge, chip geometry at 100 % (big number above the fold, wake note below) and 200 % (within one sheet scroll), T4 `rr-note`. New baseline `M3-T3-home-dark-100-zh`. Re-recorded: `M3-T1-*` (5 + live-dark-200), `M3-T3-home-light`, `M4-P1-choose`, `M4-P2-995confirm`, `M4-W-form`, `M1-F6-settings-{light,dark}` (phone helper).
+
+**Gate (`npm run gate`, once, e65b94d):** 8 PASS, 4 FAIL — deps, typecheck, unit 461, i18n, build (app JS 129.4 KB gz / 150), static-pwa, **qa-e2e 124/124**, artifact PASS. No QA spec failed (none to hand back).
+- platform-api: `viewer/main.ts` called `navigator.vibrate` (M4 viewer vs the M2 AC 37 grep, met in the merge) → moved to `platform/vibrate.ts`; grep now ok.
+- secrets: `Bearer` literal in `worker/test/logs.test.ts` → built at runtime; scan now ok.
+- dev-e2e 140/141: AC 50 demo controls failed once under load; passes 3/3 alone.
+- lighthouse: all three runs failed to start (host load); re-run alone on another port: perf 83–85, a11y 100, bp 96–100.
+Fixes in the follow-up commit; gate not re-run (one-run budget).

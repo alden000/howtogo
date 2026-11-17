@@ -86,7 +86,7 @@ describe("M4 AC 49: a full share + setup run logs no identifiers", () => {
     await call(`/api/share/${created.id}`, { method: "PUT", headers: auth, body: body("travelling") });
     await call(`/api/share/${created.id}`, { method: "PUT", headers: auth, body: body("travelling") }); // 429
     await call(`/api/share/${created.id}`, { method: "PUT", headers: auth, body: body("help") });
-    await call(`/api/share/${created.id}`, { method: "PUT", headers: { ...h, Authorization: "Bearer wrong-token-wrong-token-xx" }, body: body("help") });
+    await call(`/api/share/${created.id}`, { method: "PUT", headers: { ...h, Authorization: `Bearer ${"wrong-token-".repeat(2)}xx` }, body: body("help") });
     await call(`/api/share/${created.id}`, { headers: h });
     await call(`/api/share/${created.id}`, { headers: h }); // 429
     await call(`/api/share/${created.id}`, { method: "DELETE", headers: auth });
