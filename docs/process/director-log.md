@@ -26,3 +26,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Screen stays on (dimmed pocket view) during a web trip; accepted.
 - Taxi fallback: show the address in big text, open Grab if installed, link the CDG Zig site.
 - Architecture D-1 confirmed. M6 Android: **sideload APK only, no Play Store** (drop the closed-test track).
+
+## 2026-11-17 — Worker round merged
+- Dev-A Worker merged to the session branch (76 tests pass, ~3 s). Took ~11 min wall clock, ~156k tokens.
+- Ruling D-7: status "help" bypasses the 3 s share write limit (safety beats rate-limit). Rate-limit on POST /api/share → M4 scope.
+- Open until real credentials: OneMap "Bearer" prefix, expiry format, revgeocode fields, BusArrival v3 fields, TrainServiceAlerts path.
