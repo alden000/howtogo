@@ -8,6 +8,7 @@
  */
 import './styles/tokens.css';
 import './styles/app.css';
+import './styles/guide.css';
 import { render } from 'preact';
 import { effect } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
@@ -30,6 +31,7 @@ import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
 
 const DEMO_DEFAULT_MS = 400;
+const DEFAULT_FLAGS = ['guide', 'help'];
 
 async function boot() {
   const q = new URLSearchParams(location.search);
@@ -37,11 +39,14 @@ async function boot() {
   if (q.get('demo') === '0') session.remove('mode.demo');
   if (q.get('mock') === '1') session.set('mode.mock', '1');
   if (q.get('demoMs')) session.set('mode.demoMs', q.get('demoMs')!);
-  // Feature flags per tab: `?ff=guide` (comma-separated; `?ff=` clears). OQ5: `guide` is off in the M1 release.
+  // Feature flags per tab: `?ff=live` adds, `?ff=-guide` removes (comma-separated; `?ff=` clears the tab's list).
+  // M2 release (AC 1): `guide` and `help` are on by default.
   if (q.has('ff')) session.set('mode.ff', q.get('ff')!);
-  const flags = new Set(
-    [...(session.get('mode.ff') ?? '').split(','), ...String(import.meta.env.VITE_FLAGS ?? '').split(',')].map((f) => f.trim()).filter(Boolean),
-  );
+  const flags = new Set(DEFAULT_FLAGS);
+  for (const f of [...String(import.meta.env.VITE_FLAGS ?? '').split(','), ...(session.get('mode.ff') ?? '').split(',')].map((x) => x.trim()).filter(Boolean)) {
+    if (f.startsWith('-')) flags.delete(f.slice(1));
+    else flags.add(f);
+  }
   const demo = session.get('mode.demo') === '1';
   const mock = demo || session.get('mode.mock') === '1' || import.meta.env.VITE_API_MOCK === '1';
   log(`mode:${demo ? 'demo' : mock ? 'mock' : 'live'}`);
@@ -146,8 +151,17 @@ async function boot() {
     document.getElementById('app')!,
   );
 
-  // Resume an unfinished trip after a reload / relaunch.
-  void runtime.resume();
+  // Resume an unfinished trip after a reload / relaunch (OQ5): straight into H5, or the G4 stale sheet on H1.
+  void runtime.resume().then((resumed) => {
+    const onGuide = router.route.value.name === 'guide';
+    if (resumed && !onGuide) router.enterGuide();
+    else if (!resumed && onGuide && !store.trip.peek()) router.reset('/'); // QA-26: dropped (> 24 h) or no trip → H1
+    else if (runtime.ui.peek().stale) {
+      if (!onGuide) return router.openSheet('stale-trip');
+      addEventListener('popstate', () => setTimeout(() => router.openSheet('stale-trip')), { once: true });
+      router.reset('/');
+    }
+  });
 
   captureInstallPrompt();
   if (import.meta.env.PROD && session.get('sw.disabled') !== '1') void registerServiceWorker();

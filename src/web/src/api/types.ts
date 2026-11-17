@@ -53,12 +53,14 @@ export interface ShareCreated {
   expiresAt: string;
 }
 
-export type ShareStatus = 'travelling' | 'arrived' | 'paused' | 'help';
+/** Exactly the Worker's accepted statuses (API.md); defined once in @howtogo/shared. */
+export type ShareStatus = import('@howtogo/shared').ShareStatus;
 
+/** PUT /api/share/:id body (API.md). `acc` and `updatedAt` are required by the Worker's validator. */
 export interface SharePut {
   lat: number;
   lng: number;
-  acc?: number | null;
+  acc: number;
   heading?: number | null;
   speed?: number | null;
   etaISO?: string | null;

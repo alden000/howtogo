@@ -4,7 +4,7 @@
  * back on a timer or stepped manually. Everything else records what it was asked.
  */
 import type { CuePriority, Lang } from '@howtogo/shared';
-import type { LocationFix, NotifyCue, Platform, ShareOutcome, Unsubscribe, VibratePattern } from './types';
+import type { LocationFix, NotifyCue, NotifyPermission, PermissionState, Platform, PlatformCapabilities, PlatformError, ShareOutcome, Unsubscribe, VibratePattern, VoiceSupport } from './types';
 
 export interface FakeControls {
   /** Load a fix script; playback resumes from `startIndex`. */
@@ -19,13 +19,27 @@ export interface FakeControls {
   readonly index: number;
   readonly length: number;
   onProgress?: (index: number) => void;
-  readonly spoken: { text: string; lang: Lang; priority: CuePriority }[];
+  readonly spoken: { text: string; lang: Lang; priority: CuePriority; forced?: boolean }[];
   readonly vibrations: VibratePattern[];
   readonly notifications: NotifyCue[];
   readonly shares: { url: string; text: string }[];
   readonly wakeLockHeld: boolean;
   readonly muted: boolean;
   emitHeading(deg: number): void;
+  /** Simulate the page going to the background / coming back (fires visibility listeners). */
+  setVisible(visible: boolean): void;
+  /** Make the next wake-lock requests succeed or fail. */
+  setWakeLockOk(ok: boolean): void;
+  /** Notification permission (and what a request answers). */
+  setNotifyPermission(p: NotifyPermission, answer?: NotifyPermission): void;
+  readonly notifyRequests: number;
+  /** Location permission reported by `location.permission()`. */
+  setPermission(p: PermissionState): void;
+  /** Deliver a watch error to every watcher (e.g. denied). */
+  emitError(e: PlatformError): void;
+  /** `intervalMs` of every `location.watch` call, in order (AC 38 location profile). */
+  readonly watchIntervals: (number | undefined)[];
+  readonly wakeLockRequests: number;
 }
 
 export type FakePlatform = Platform & { fake: FakeControls };
@@ -40,7 +54,18 @@ const defaultTimers: FakeTimers = {
   clearInterval: (id) => globalThis.clearInterval(id as ReturnType<typeof setInterval>),
 };
 
-export function createFakePlatform(opts: { start?: LocationFix; timers?: FakeTimers; shareOutcome?: ShareOutcome } = {}): FakePlatform {
+export interface FakePlatformOptions {
+  start?: LocationFix;
+  timers?: FakeTimers;
+  shareOutcome?: ShareOutcome;
+  capabilities?: Partial<PlatformCapabilities>;
+  voices?: VoiceSupport;
+  wakeLockOk?: boolean;
+  permission?: PermissionState;
+  notifyPermission?: NotifyPermission;
+}
+
+export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform {
   const timers = opts.timers ?? defaultTimers;
   let script: LocationFix[] = [];
   let idx = 0;
@@ -53,7 +78,17 @@ export function createFakePlatform(opts: { start?: LocationFix; timers?: FakeTim
   const notifications: NotifyCue[] = [];
   const shares: { url: string; text: string }[] = [];
   let wakeLockHeld = false;
+  let wakeLockOk = opts.wakeLockOk ?? true;
+  let wakeLockRequests = 0;
   let muted = false;
+  let visible = true;
+  let permission: PermissionState = opts.permission ?? 'granted';
+  let notifyPerm: NotifyPermission = opts.notifyPermission ?? 'granted';
+  let notifyAnswer: NotifyPermission = 'granted';
+  let notifyRequests = 0;
+  const visWatchers = new Set<(v: boolean) => void>();
+  const errWatchers = new Set<(e: PlatformError) => void>();
+  const watchIntervals: (number | undefined)[] = [];
 
   const deliver = (f: LocationFix) => {
     position = f;
@@ -113,22 +148,61 @@ export function createFakePlatform(opts: { start?: LocationFix; timers?: FakeTim
     emitHeading(deg) {
       for (const w of [...headingWatchers]) w(deg);
     },
+    setVisible(v) {
+      visible = v;
+      if (!v) wakeLockHeld = false; // the browser drops the lock when hidden
+      for (const w of [...visWatchers]) w(v);
+    },
+    setNotifyPermission(p, answer) {
+      notifyPerm = p;
+      if (answer) notifyAnswer = answer;
+    },
+    get notifyRequests() {
+      return notifyRequests;
+    },
+    setWakeLockOk(ok) {
+      wakeLockOk = ok;
+    },
+    setPermission(p) {
+      permission = p;
+    },
+    emitError(e) {
+      for (const w of [...errWatchers]) w(e);
+    },
+    watchIntervals,
+    get wakeLockRequests() {
+      return wakeLockRequests;
+    },
   };
 
   return {
     kind: 'fake',
     fake: controls,
+    capabilities: { backgroundGuidance: false, speechNeedsGesture: false, os: 'other', ...opts.capabilities },
+    visibility: {
+      isVisible: () => visible,
+      onChange(cb) {
+        visWatchers.add(cb);
+        return () => visWatchers.delete(cb);
+      },
+    },
     location: {
       async permission() {
-        return 'granted';
+        return permission;
       },
       async current() {
         if (!position) throw { code: 'unavailable', message: 'fake: no position' };
         return position;
       },
-      async watch(onFix): Promise<Unsubscribe> {
+      async watch(onFix, onError, o = {}): Promise<Unsubscribe> {
+        watchIntervals.push(o.intervalMs);
         watchers.add(onFix);
-        return () => watchers.delete(onFix);
+        if (onError) errWatchers.add(onError);
+        if (permission === 'denied') queueMicrotask(() => onError?.({ code: 'denied', message: 'fake: denied' }));
+        return () => {
+          watchers.delete(onFix);
+          if (onError) errWatchers.delete(onError);
+        };
       },
     },
     heading: {
@@ -142,10 +216,10 @@ export function createFakePlatform(opts: { start?: LocationFix; timers?: FakeTim
     },
     speech: {
       async voices() {
-        return { zh: true, en: true };
+        return opts.voices ?? { zh: true, en: true };
       },
-      async speak(text, lang, priority) {
-        if (!muted) spoken.push({ text, lang, priority });
+      async speak(text, lang, priority, o = {}) {
+        if (!muted || o.force) spoken.push({ text, lang, priority, ...(o.force ? { forced: true } : {}) });
       },
       async cancel() {},
       setMuted(m) {
@@ -154,6 +228,8 @@ export function createFakePlatform(opts: { start?: LocationFix; timers?: FakeTim
     },
     wakeLock: {
       async acquire() {
+        wakeLockRequests++;
+        if (!wakeLockOk || !visible) return false;
         wakeLockHeld = true;
         return true;
       },
@@ -166,6 +242,14 @@ export function createFakePlatform(opts: { start?: LocationFix; timers?: FakeTim
     },
     async notify(cue) {
       notifications.push(cue);
+    },
+    notifications: {
+      permission: () => notifyPerm,
+      async request() {
+        notifyRequests++;
+        notifyPerm = notifyAnswer;
+        return notifyPerm;
+      },
     },
     async share(url, text) {
       shares.push({ url, text });

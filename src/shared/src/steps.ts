@@ -5,7 +5,7 @@
  * (get_off_next_stop / get_off_now) fired by the guidance reducer.
  */
 import { cumulativeDistances, polylineLength, snapToPolyline } from './geo';
-import { normalizeLang, t } from './i18n/steps';
+import { normalizeLang, t, t as tr } from './i18n/steps';
 import { inferHeading, LOOP_DIRECTION_LABEL, stationForStop, stationLabel } from './data/network';
 import { parseExit } from './onemap';
 import type { Itinerary, Journey, Lang, LangInput, Leg, MessageParams, Step, StepKind, StepStop, StepTurn, Stop } from './types';
@@ -96,6 +96,36 @@ function positionStops(leg: Leg): StepStop[] {
   return out;
 }
 
+/**
+ * H5 headline + voice (Creative F1): guidance-register templates (`guide.*`). No stop code and
+ * no stop count (the count lives in "还有 {n} 站", the code on the sign chip).
+ */
+function guideSay(lang: Lang, kind: StepKind, key: string, params: MessageParams, leg: Leg): string {
+  const t = (l: Lang, k: string, p: Record<string, string | number | undefined>) =>
+    tr(l, k, Object.fromEntries(Object.entries(p).filter(([, x]) => x !== undefined)) as MessageParams);
+  const v = /bus/.test(key) ? 'bus' : 'train';
+  const route = leg.route ?? params.route;
+  // The station code ("(NS17)") belongs on the sign chip, not in the spoken line.
+  const stop = params.stop === undefined ? undefined : String(params.stop).replace(/\s*\([A-Z]{1,3}\d{1,3}\)$/, '');
+  switch (kind) {
+    case 'walk_to_stop':
+    case 'walk_transfer':
+      return t(lang, `guide.walk_to_stop.${v}`, { stop });
+    case 'walk_to_destination':
+      return t(lang, 'guide.walk_to_destination', { exit: params.exit, dest: params.dest });
+    case 'board_bus':
+      return t(lang, 'guide.board_bus', { route });
+    case 'board_train':
+      return t(lang, 'guide.board_train', { towards: params.towards ?? params.via });
+    case 'ride_bus':
+      return t(lang, 'guide.ride_bus', { route, stop });
+    case 'ride_train':
+      return t(lang, 'guide.ride_train', { stop });
+    default:
+      return tr(lang, key, params);
+  }
+}
+
 /** Build user-facing steps for one itinerary. */
 export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildStepsOptions = {}): Step[] {
   const lang = normalizeLang(langIn);
@@ -120,6 +150,7 @@ export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildS
       key,
       params,
       text: t(lang, key, params),
+      say: guideSay(lang, kind, key, params, leg),
       detail,
       geometry,
       start: geometry[0]!,

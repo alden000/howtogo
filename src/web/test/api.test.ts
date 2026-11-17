@@ -42,7 +42,7 @@ describe('http api client', () => {
   it('maps Worker errors to typed ApiError (code, status, Retry-After)', async () => {
     const fetch = vi.fn(async () => json({ error: { code: 'rate_limited', message: 'slow down' } }, 429, { 'Retry-After': '2' }));
     const api = createHttpApi({ base: '', fetch: fetch as unknown as typeof globalThis.fetch });
-    const e = await api.sharePut('abc', 'tok', { lat: 1.3, lng: 103.8, status: 'travelling', updatedAt: 1 }).catch((x) => x);
+    const e = await api.sharePut('abc', 'tok', { lat: 1.3, lng: 103.8, acc: 10, status: 'travelling', updatedAt: 1 }).catch((x) => x);
     expect(e).toBeInstanceOf(ApiError);
     expect(e.status).toBe(429);
     expect(e.code).toBe('rate_limited');
@@ -178,10 +178,10 @@ describe('mock api', () => {
     const c = await api.shareCreate('TTSH', 'zh');
     const events: LiveEvent[] = [];
     const live = api.shareLive(c.id, (e) => events.push(e));
-    await api.sharePut(c.id, c.ownerToken, { lat: 1.3, lng: 103.8, status: 'travelling', updatedAt: t });
-    await expect(api.sharePut(c.id, c.ownerToken, { lat: 1.3, lng: 103.8, status: 'travelling', updatedAt: t })).rejects.toMatchObject({ status: 429 });
-    await api.sharePut(c.id, c.ownerToken, { lat: 1.3, lng: 103.8, status: 'help', updatedAt: t });
-    await expect(api.sharePut(c.id, 'wrong', { lat: 1.3, lng: 103.8, status: 'help', updatedAt: t })).rejects.toMatchObject({ status: 403 });
+    await api.sharePut(c.id, c.ownerToken, { lat: 1.3, lng: 103.8, acc: 10, status: 'travelling', updatedAt: t });
+    await expect(api.sharePut(c.id, c.ownerToken, { lat: 1.3, lng: 103.8, acc: 10, status: 'travelling', updatedAt: t })).rejects.toMatchObject({ status: 429 });
+    await api.sharePut(c.id, c.ownerToken, { lat: 1.3, lng: 103.8, acc: 10, status: 'help', updatedAt: t });
+    await expect(api.sharePut(c.id, 'wrong', { lat: 1.3, lng: 103.8, acc: 10, status: 'help', updatedAt: t })).rejects.toMatchObject({ status: 403 });
     expect((await api.shareGet(c.id)).status).toBe('help');
     t += 5000;
     await api.shareDelete(c.id, c.ownerToken);

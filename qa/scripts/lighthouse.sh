@@ -2,7 +2,7 @@
 # Lighthouse (mobile) on the release build: median of 3 runs per URL (QA-20); a11y ≥ 95, perf ≥ 80, best-practices reported.
 # Lighthouse ≥ 12 has no PWA category → installability is covered by tests/pwa.spec.ts (Chrome's own verdict).
 set -uo pipefail
-QA="$(cd "$(dirname "$0")/.." && pwd)"; PORT=4176; OUT="$QA/.out/lighthouse"; mkdir -p "$OUT"
+QA="$(cd "$(dirname "$0")/.." && pwd)"; PORT=${LH_PORT:-4186}; OUT="$QA/.out/lighthouse"; mkdir -p "$OUT"
 export CHROME_PATH="${CHROME_PATH:-$(ls -d /opt/pw-browsers/chromium-*/chrome-linux*/chrome 2>/dev/null | head -1)}"
 (cd "$QA/../src/web" && exec npx vite preview --outDir "$QA/.out/dist" --port $PORT --strictPort >/dev/null 2>&1) & SRV=$!
 trap 'kill $SRV 2>/dev/null' EXIT

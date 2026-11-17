@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4173;
+declare const process: { env: Record<string, string | undefined> };
+// E2E_PORT lets parallel worktrees on one host run their own preview server.
+const PORT = Number(process.env.E2E_PORT) || 4173;
 export default defineConfig({
   testDir: 'e2e',
   timeout: 30_000,

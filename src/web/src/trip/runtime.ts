@@ -1,48 +1,163 @@
 /**
- * Trip runtime: platform location → guidanceReducer → cues → speech / vibration /
- * notification (cue dedupe lives in the engine) → live-share PUT (≥ 3 s apart,
- * latest fix wins; status `help` bypasses the limit per D-7) → automatic re-route
- * from the current position on `off_route`.
+ * Trip runtime (M2): platform location → guidanceReducer → cues → speech queue /
+ * haptics / notification → get-off alert escalation → live-share PUT → automatic
+ * re-route → waypoint / arrival. Decisions live in pure functions
+ * (`@howtogo/shared` trip policies, `map/follow.ts`); this file only wires them
+ * to the platform adapter (D-4) and timers.
  *
- * The guidance state lives in the store (persisted), so `resume()` after a reload
- * continues where the trip left off.
+ * UI contract: `runtime.ui` (one signal, `TripUi`) + the action methods below.
+ * The trip itself (journey, guidance, alert, phase) lives in `store.trip` and is
+ * persisted as `howtogo.trip.v1`, so `resume()` continues after a reload/kill.
  */
 import { effect, signal } from '@preact/signals';
 import {
+  ALERT_SECOND_LINE_MS,
+  alertDueAt,
+  alertReducer,
+  alertSecondLine,
   buildSteps,
   createGuidance,
   cueToSpeech,
+  DEFAULT_DWELL_MIN,
+  enqueueSpeech,
+  GETOFF_NOW_REPEAT_MS,
   guidanceReducer,
+  hapticForCues,
+  isManualMode,
+  journeyEtaMs,
+  journeyProgress,
+  locationProfile,
+  manualDueAt,
+  mrtEstimate,
+  normalizeDwell,
   normalizeOneMapPlan,
+  planJourney,
+  pocketDueAt,
+  pocketReducer,
   rankItineraries,
+  resumeDecision,
+  stopsLeft as stopsLeftOf,
+  takeSpeech,
   toSharePayload,
-  type Cue,
-  type CueType,
+  validateJourney,
+  voiceLine,
+  type AlertEffect,
+  type AlertEvent,
+  type AlertState,
+  type CuePriority,
   type GuidanceEvent,
   type GuidanceState,
+  type HapticName,
   type Itinerary,
+  type Journey,
+  type JourneyProgress,
+  type MrtEstimate,
   type Place,
+  type PocketContext,
+  type PocketEvent,
+  type PocketState,
+  type SegmentPlan,
+  type SpeechItem,
+  type Step,
+  type VoiceLine,
 } from '@howtogo/shared';
 import type { Api, SharePut } from '../api/types';
 import { ApiError } from '../api/errors';
+import { online } from '../api/offline';
 import { log } from '../log';
-import type { LocationFix, Platform, PlatformError, Unsubscribe, VibratePattern } from '../platform/types';
+import { followReducer, type FollowEvent, type FollowMode } from '../map/follow';
+import type { LocationFix, Platform, PlatformError, Unsubscribe } from '../platform/types';
 import { toLang, type ActiveTrip, type ShareSession, type Store } from '../state/store';
+import { here } from '../state/location';
+import { local } from '../state/storage';
+
+/** QA-21: the notification prompt is shown at most once per install. */
+const NOTIFY_ASKED_KEY = 'notify.asked';
+/** QA-25: a trip's last fix stands in for "here" after End for this long. */
+const HERE_MAX_AGE_MS = 15 * 60_000;
 
 export const SHARE_MIN_INTERVAL_MS = 3000;
-/** Minimum gap between two re-route attempts in one off-route episode. */
+/** Minimum gap between two re-route attempts (AC 32: ≤ 1 per 20 s). */
 export const REROUTE_RETRY_MS = 20_000;
+/** "找到了新的路" banner and the MRT pre-alert banner auto-dismiss (AC 32, 6c.12). */
+export const BANNER_MS = 4200;
+/** Wake lock is released this long after arrival / at a waypoint (AC 39, 6c.5). */
+export const WAKE_RELEASE_AFTER_MS = 60_000;
+/** No fix for this long on a train ride → MRT soft estimate (OQ3). */
+export const MRT_NO_FIX_MS = 30_000;
 const TICK_MS = 30_000;
 
-const VIBRATE_FOR: Partial<Record<CueType, VibratePattern>> = {
-  get_off_now: 'get_off',
-  get_off_next_stop: 'notice',
-  off_route: 'alert',
-  arrived_destination: 'arrived',
-  arrived_at_stop: 'tap',
-  transfer: 'notice',
+export type RerouteState = 'idle' | 'searching' | 'found' | 'failed' | 'offline';
+export type TripPhaseUi = 'idle' | 'guiding' | 'waypoint' | 'arrived';
+
+/** Everything the UI round needs to render H5/H6/H6b/H11/G1/G3/G4/G5 (state only). */
+export interface TripUi {
+  phase: TripPhaseUi;
+  /** H6 (`kind: 'next'`) / H6b (`kind: 'now'`) get-off alert, or null. */
+  alert: AlertState | null;
+  /** H11 banner (`searching`, `found`) / trip note (`failed`, `offline`). */
+  reroute: RerouteState;
+  /** G5 manual mode: location denied or no usable fix for 60 s. */
+  manual: boolean;
+  /** Weak GPS spell (note + emphasised manual controls). */
+  gpsWeak: boolean;
+  /** G1 pocket view. */
+  pocket: boolean;
+  /** Follow-me camera (OQ2: step change re-engages; never a timer). */
+  follow: FollowMode;
+  /** Wake lock refused: show "请让屏幕保持亮着" (once per trip, ✕ → `dismissWakeNote`). */
+  wakeLockFailed: boolean;
+  /** G4 voice bar: speech / wake lock need a tap after a resume (iOS-like or refused wake lock). */
+  voiceUnlockNeeded: boolean;
+  /** No voice for the trip language (AC 26 note). */
+  noVoice: boolean;
+  /** QA-21: `asking` = explainer note while the permission prompt is up; `denied` = "alerts need the app open" note. */
+  notify: 'idle' | 'asking' | 'denied';
+  /** G4 stale-trip sheet (older than ETA + 2 h): ask Continue / End. */
+  stale: { dest: string } | null;
+  /** G4 resume toast: true right after a resume (`dismissResumed`). */
+  resumed: boolean;
+  /** Ride steps: stops left (never counts up), else null. */
+  stopsLeft: number | null;
+  /** OQ3 MRT soft estimate while underground, else null. */
+  mrt: MrtEstimate | null;
+  /** OQ3 soft pre-alert banner showing (auto-dismiss 4.2 s). */
+  mrtPreAlert: boolean;
+  /** G3 "continue" in progress (spinner). */
+  continuing: boolean;
+  /** G3 continue failed: the next segment has no route (H3 none state for that part). */
+  segmentError: string | null;
+  /** Journey progress ("Place 2 of 4"); for a single trip place = places = 1. */
+  progress: JourneyProgress | null;
+  /** Total ETA (epoch ms) including later segments and dwell. */
+  etaMs: number | null;
+  /** Last headline / alert line spoken. */
+  lastLine: string | null;
+}
+
+const INITIAL_UI: TripUi = {
+  phase: 'idle',
+  alert: null,
+  reroute: 'idle',
+  manual: false,
+  gpsWeak: false,
+  pocket: false,
+  follow: 'follow',
+  wakeLockFailed: false,
+  voiceUnlockNeeded: false,
+  noVoice: false,
+  notify: 'idle',
+  stale: null,
+  resumed: false,
+  stopsLeft: null,
+  mrt: null,
+  mrtPreAlert: false,
+  continuing: false,
+  segmentError: null,
+  progress: null,
+  etaMs: null,
+  lastLine: null,
 };
-const NOTIFY_FOR = new Set<CueType>(['get_off_now', 'get_off_next_stop', 'off_route', 'arrived_destination', 'transfer']);
 
 export interface Timers {
   setTimeout(fn: () => void, ms: number): unknown;
@@ -64,28 +179,80 @@ export interface TripRuntimeOptions {
   api: Api;
   now?: () => number;
   timers?: Timers;
-  /** Called each time location watching starts (start or resume). Demo mode loads its fix script here. */
+  /** Called each time location watching starts (start, resume, next segment). Demo mode loads its fix script here. */
   onAttach?: (trip: ActiveTrip, resumed: boolean) => void;
-  /** Guidance config override (tests). */
   idFactory?: () => string;
+  /** Network state (default: the `online` signal, which also triggers the offline re-route retry). */
+  isOnline?: () => boolean;
 }
+
+/** Options for `start()`: a multi-stop journey from `planTrip()`. */
+export interface StartOptions {
+  journey?: Journey;
+}
+
+const isRide = (s: Step | undefined) => !!s && s.kind.startsWith('ride');
+const rideMode = (s: Step | undefined): 'bus' | 'train' => (s?.mode === 'bus' ? 'bus' : 'train');
+const NOTIFY_FOR = new Set(['off_route', 'arrived_destination', 'arrived_waypoint', 'transfer']);
 
 export function createTripRuntime(o: TripRuntimeOptions) {
   const { store, platform, api } = o;
   const now = o.now ?? Date.now;
   const timers = o.timers ?? realTimers;
   const newId = o.idFactory ?? (() => Math.random().toString(36).slice(2, 10));
+  const isOnline = o.isOnline ?? (() => online.value);
 
+  const ui = signal<TripUi>({ ...INITIAL_UI });
   const heading = signal<number | null>(null);
   const locationError = signal<PlatformError | null>(null);
   const rerouting = signal(false);
 
   let stopWatch: Unsubscribe | null = null;
   let stopHeading: Unsubscribe | null = null;
+  let stopVisibility: Unsubscribe | null = null;
   let tick: unknown = null;
   let attached = false;
+  let watchInterval: number | undefined;
+  let watchingSince = 0;
+  let lastGoodFixAt: number | undefined;
+  let lastFixT = -Infinity;
+  let lastFixAt = -Infinity;
+  let denied = false;
+  let sheetOpen = false;
+  let pocketState: PocketState = { on: false, since: 0 };
+  let wakeFailLogged = false;
+  const firedLocal = new Set<string>();
+  // speech queue (AC 23)
+  type QItem = SpeechItem & { force?: boolean };
+  let queue: QItem[] = [];
+  let speakGen = 0;
+  let speaking = false;
+
+  // named one-shot timers owned by the runtime
+  const T: Record<string, unknown> = {};
+  const clear = (k: string) => {
+    if (k in T) timers.clearTimeout(T[k]);
+    delete T[k];
+  };
+  const later = (k: string, ms: number, fn: () => void) => {
+    clear(k);
+    T[k] = timers.setTimeout(() => {
+      delete T[k];
+      fn();
+    }, Math.max(0, ms));
+  };
+
   // Mute follows the setting for the runtime's lifetime (also covers the first cue at start).
   const muteEffect = effect(() => platform.speech.setMuted(store.settings.value.muted));
+  // Offline re-route retries once the network is back (AC 33).
+  let wasOnline = isOnline();
+  const onlineEffect = o.isOnline
+    ? () => {}
+    : effect(() => {
+        const on = online.value;
+        if (on && !wasOnline && ui.peek().reroute === 'offline' && trip()?.guidance.status === 'off_route') void reroute();
+        wasOnline = on;
+      });
 
   // share throttle state
   let lastShareAt = -Infinity;
@@ -98,87 +265,435 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   let lastRerouteAt = -Infinity;
 
   const trip = () => store.trip.peek();
+  const lang = () => trip()?.lang ?? toLang(store.settings.peek().lang);
+  const curStep = (t = trip()) => t?.guidance.steps[t.guidance.stepIndex];
 
-  function stepsFor(it: Itinerary, places: Place[], lang: ActiveTrip['lang']) {
-    const dest = places[places.length - 1];
-    return buildSteps(it, lang, dest?.name ? { destinationName: dest.name } : {});
+  // ------------------------------------------------------------ ui + logs
+  function patchUi(p: Partial<TripUi>) {
+    const prev = ui.peek();
+    const next = { ...prev, ...p };
+    if (next.pocket !== prev.pocket) {
+      log(`pocket:${next.pocket ? 'on' : 'off'}`);
+      if (next.pocket) log('state:pocket');
+    }
+    if (next.manual !== prev.manual) log(next.manual ? 'state:manual' : 'state:auto');
+    if (next.follow !== prev.follow) log(`follow:${next.follow === 'follow' ? 'on' : 'free'}`);
+    if (next.reroute !== prev.reroute && (next.reroute === 'failed' || next.reroute === 'offline')) log(`state:reroute-${next.reroute}`);
+    if (next.gpsWeak !== prev.gpsWeak && next.gpsWeak) log('state:gps-weak');
+    if (!!next.mrt !== !!prev.mrt && next.mrt) log('state:mrt-estimate');
+    if (next.voiceUnlockNeeded !== prev.voiceUnlockNeeded && next.voiceUnlockNeeded) log('state:voice-unlock');
+    ui.value = next;
   }
 
-  function handleCues(state: GuidanceState, lang: ActiveTrip['lang']) {
-    for (const cue of state.cues) {
-      log(`cue:${cue.type}`);
-      const text = cueToSpeech(cue, lang);
-      void platform.speech.speak(text, lang, cue.priority);
-      const vib = VIBRATE_FOR[cue.type];
-      if (vib) void platform.vibrate(vib);
+  function plansOf(t: ActiveTrip): SegmentPlan[] {
+    return t.journey?.plans ?? [{ durationS: t.guidance.steps.reduce((a, s) => a + s.durationS, 0), dwellS: 0 }];
+  }
+
+  function etaOf(t: ActiveTrip): number {
+    const seg = t.journey?.segment ?? 0;
+    const segEta = t.phase === 'waypoint' ? now() : t.guidance.etaISO ? Date.parse(t.guidance.etaISO) : now() + t.guidance.remainingS * 1000;
+    return journeyEtaMs(segEta, seg, plansOf(t));
+  }
+
+  /** Recompute derived ui fields from the stored trip. */
+  function derive() {
+    const t = trip();
+    if (!t) return;
+    const step = curStep(t);
+    const g = t.guidance;
+    const progress = journeyProgress(t.places, t.journey?.segment ?? 0, plansOf(t), g.progress, t.phase === 'waypoint');
+    let stopsLeft: number | null = null;
+    if (step && isRide(step)) {
+      stopsLeft = stopsLeftOf(step, g.alongM, t.stopsLeft);
+      if (stopsLeft !== t.stopsLeft) store.patchTrip((tr) => ({ ...tr, stopsLeft }));
+    }
+    // OQ3: a train ride without usable GPS (weak, manual, or no fix for 30 s) → schedule-based estimate.
+    let mrt: MrtEstimate | null = null;
+    if (attached && step?.kind === 'ride_train' && (g.gpsWeak || ui.peek().manual || now() - lastFixAt >= MRT_NO_FIX_MS)) {
+      mrt = mrtEstimate(step, t.stepEnteredAt ?? now(), now(), t.mrtStopsLeft);
+      if (mrt && mrt.stopsLeft !== t.mrtStopsLeft) {
+        const n = mrt.stopsLeft;
+        store.patchTrip((tr) => ({ ...tr, mrtStopsLeft: n }));
+      }
+      const key = `${step.id}:mrt_prealert`;
+      if (mrt?.preAlertAt != null && !firedLocal.has(key) && !(key in T)) later('mrtPre', mrt.preAlertAt - now(), () => mrtPreAlert(step.id, key));
+    } else clear('mrtPre');
+    patchUi({ progress, etaMs: etaOf(t), stopsLeft, mrt, gpsWeak: g.gpsWeak, alert: t.alert ?? null });
+    syncPocket();
+    syncProfile();
+    // Re-check the estimate when it could next switch on.
+    if (attached && step?.kind === 'ride_train' && !mrt) later('mrtCheck', lastFixAt + MRT_NO_FIX_MS - now(), derive);
+    else clear('mrtCheck');
+  }
+
+  // ------------------------------------------------------------ speech queue (AC 23)
+  function say(text: string, priority: CuePriority, stepId?: string, force = false) {
+    if (!text) return;
+    const item: QItem = { text, priority, stepId, at: now(), ...(force ? { force } : {}) };
+    const r = enqueueSpeech(queue, item);
+    queue = r.queue;
+    if (r.interrupt) {
+      speakGen++;
+      speaking = false;
+      void platform.speech.cancel();
+    }
+    void pump();
+  }
+
+  async function pump() {
+    if (speaking) return;
+    speaking = true;
+    const gen = speakGen;
+    for (;;) {
+      if (gen !== speakGen) return; // interrupted: a newer pump owns the queue
+      const r = takeSpeech(queue, now(), curStep()?.id);
+      queue = r.queue;
+      const it = r.item as QItem | undefined;
+      if (!it) break;
+      await platform.speech.speak(it.text, lang(), it.priority, it.force ? { force: true } : undefined);
+    }
+    if (gen === speakGen) speaking = false;
+  }
+
+  function haptic(h: HapticName | null) {
+    if (h && store.settings.peek().haptics !== false) void platform.vibrate(h);
+  }
+
+  // ------------------------------------------------------------ cues
+  function handleCues(state: GuidanceState, l: ActiveTrip['lang']) {
+    const cues = state.cues;
+    if (cues.length === 0) return;
+    for (const cue of cues) log(`cue:${cue.type}`);
+    const plain = cues.filter((c) => c.type !== 'get_off_next_stop' && c.type !== 'get_off_now');
+    for (const cue of plain) {
+      const text = cueToSpeech(cue, l);
+      say(text, cue.priority, cue.stepId);
+      if (cue.type === 'step_changed') patchUi({ lastLine: text });
       if (NOTIFY_FOR.has(cue.type)) void platform.notify({ tag: 'howtogo-cue', title: '怎么去?', body: text, priority: cue.priority });
-      if (cue.type === 'off_route') void reroute(cue);
+    }
+    haptic(hapticForCues(plain));
+    for (const cue of cues) {
+      if (cue.type === 'get_off_next_stop' || cue.type === 'get_off_now') alertEvent({ type: 'cue', cue, mode: rideMode(state.steps[cue.stepIndex]), t: now() });
+    }
+    alertEvent({ type: 'step', stepId: curStep()?.id, t: now() });
+    if (cues.some((c) => c.type === 'off_route')) void reroute();
+  }
+
+  // ------------------------------------------------------------ get-off alert (H6/H6b)
+  function alertEvent(ev: AlertEvent) {
+    const t = trip();
+    if (!t) return;
+    const r = alertReducer(t.alert ?? null, ev);
+    if (r.alert !== (t.alert ?? null)) store.patchTrip((tr) => ({ ...tr, alert: r.alert }));
+    if (r.effect) onAlertEffect(r.effect, r.alert);
+    const due = alertDueAt(r.alert);
+    if (due === null) clear('escalate');
+    else if (r.effect === 'show' || r.effect === 'grow' || !('escalate' in T)) later('escalate', due - now(), () => alertEvent({ type: 'tick', t: now() }));
+    if (r.alert !== ui.peek().alert) patchUi({ alert: r.alert });
+  }
+
+  function speakAlert(a: AlertState, force = false) {
+    const l = lang();
+    const l1 = cueToSpeech({ id: '', type: a.kind === 'now' ? 'get_off_now' : 'get_off_next_stop', priority: 'high', stepId: a.stepId, stepIndex: 0, params: { stop: a.stop }, t: 0 }, l);
+    const l2 = alertSecondLine(a.kind, a.mode, l);
+    say(l1, a.kind === 'now' || force ? 'high' : 'normal', a.stepId, force);
+    later('line2', ALERT_SECOND_LINE_MS, () => say(l2, 'normal', a.stepId, force));
+    patchUi({ lastLine: `${l1} ${l2}` });
+  }
+
+  function onAlertEffect(effect: AlertEffect, a: AlertState | null) {
+    switch (effect) {
+      case 'show':
+      case 'grow': {
+        if (!a) return;
+        const zh = lang() === 'zh-CN';
+        log(`alert:${a.kind}`);
+        haptic('getoff');
+        if (a.kind === 'now') later('getoff2', GETOFF_NOW_REPEAT_MS, () => haptic('getoff'));
+        speakAlert(a);
+        pocketEvent({ type: 'alert', t: now() });
+        void platform.notify({
+          tag: 'getoff',
+          title: a.kind === 'now' ? (zh ? '到站了，请下车' : 'This is your stop. Get off now') : zh ? '下一站下车' : 'Get off at the next stop',
+          body: a.stop,
+          priority: 'high',
+        });
+        return;
+      }
+      case 'escalate':
+        if (!a) return;
+        log('alert:escalate');
+        haptic('getoff');
+        speakAlert(a);
+        return;
+      case 'ack':
+        log('alert:ack');
+        clear('line2');
+        clear('getoff2');
+        haptic('confirm');
+        syncPocket();
+        return;
+      case 'clear':
+        log('alert:clear');
+        clear('line2');
+        clear('getoff2');
+        return;
     }
   }
 
+  // ------------------------------------------------------------ dispatch
   function dispatch(event: GuidanceEvent): GuidanceState | null {
     const t = trip();
-    if (!t) return null;
+    if (!t || t.phase === 'waypoint' || t.phase === 'arrived') return null;
     const prev = t.guidance;
     const next = guidanceReducer(prev, event);
+    const stepChanged = next.stepIndex !== prev.stepIndex || event.type === 'reroute_done';
     if (next.stepIndex !== prev.stepIndex) log(`step:${next.stepIndex}`);
-    store.patchTrip((tr) => ({ ...tr, guidance: next }));
+    store.patchTrip((tr) => ({
+      ...tr,
+      guidance: next,
+      updatedAt: now(),
+      ...(stepChanged ? { stepEnteredAt: now(), stopsLeft: null, mrtStopsLeft: null } : {}),
+    }));
+    if (stepChanged) {
+      const rr = ui.peek().reroute;
+      if (event.type !== 'reroute_done' && rr !== 'idle' && rr !== 'searching') patchUi({ reroute: 'idle' });
+      follow({ type: 'step_changed' });
+      pocketEvent({ type: 'step', t: now() });
+      clear('mrtPre');
+      if (ui.peek().mrtPreAlert) patchUi({ mrtPreAlert: false });
+    }
     handleCues(next, t.lang);
-    if (next.status === 'arrived' && prev.status !== 'arrived') onArrived();
-    else if (event.type === 'fix') scheduleShare(false);
-    // Off-route that persists after a failed attempt: retry on later fixes, at most every REROUTE_RETRY_MS.
-    if (event.type === 'fix' && next.status === 'off_route' && !next.cues.some((c) => c.type === 'off_route')) void reroute();
+    if (next.status === 'arrived' && prev.status !== 'arrived') {
+      if (next.cues.some((c) => c.type === 'arrived_waypoint')) enterWaypoint();
+      else onArrived();
+    } else if (event.type === 'fix') scheduleShare(false);
+    derive();
     return next;
   }
 
   function onFix(f: LocationFix) {
+    if (f.t <= lastFixT) return; // duplicate or out-of-order (AC 21)
+    lastFixT = f.t;
+    lastFixAt = now();
     locationError.value = null;
+    denied = false;
     const fix = { lat: f.lat, lng: f.lng, acc: f.acc, t: f.t, ...(f.heading !== undefined ? { heading: f.heading } : {}), ...(f.speed !== undefined ? { speed: f.speed } : {}) };
-    dispatch({ type: 'fix', fix });
+    const g = dispatch({ type: 'fix', fix });
+    if (g && !g.gpsWeak && g.fix?.t === f.t) lastGoodFixAt = now();
+    syncManual();
+  }
+
+  // ------------------------------------------------------------ manual mode (G5)
+  function syncManual() {
+    if (!attached) return;
+    const input = { denied, lastGoodFixAt, watchingSince };
+    const manual = isManualMode(input, now());
+    if (manual !== ui.peek().manual) {
+      patchUi({ manual });
+      if (manual) say(voiceLine('manual', lang()), 'normal');
+      syncPocket();
+    }
+    const due = manualDueAt(input);
+    if (!manual && due !== null) later('manual', due - now(), syncManual);
+    else clear('manual');
+  }
+
+  // ------------------------------------------------------------ pocket view (G1)
+  function pocketCtx(): PocketContext {
+    const t = trip();
+    const u = ui.peek();
+    return {
+      stepKind: curStep(t)?.kind,
+      blocked: !t || !attached || t.phase !== 'guiding' || !!t.alert || sheetOpen || u.reroute !== 'idle' || u.voiceUnlockNeeded || u.stale !== null || u.mrtPreAlert,
+      manual: u.manual,
+    };
+  }
+
+  function pocketEvent(ev: PocketEvent) {
+    const ctx = pocketCtx();
+    pocketState = pocketReducer(pocketState, ev, ctx);
+    if (pocketState.on !== ui.peek().pocket) patchUi({ pocket: pocketState.on });
+    const due = pocketDueAt(pocketState, ctx);
+    if (due === null) clear('pocket');
+    else later('pocket', due - now(), () => pocketEvent({ type: 'tick', t: now() }));
+  }
+
+  function syncPocket() {
+    pocketEvent({ type: 'tick', t: now() });
+  }
+
+  // ------------------------------------------------------------ follow-me (C)
+  function follow(ev: FollowEvent) {
+    const f = followReducer(ui.peek().follow, ev);
+    if (f !== ui.peek().follow) patchUi({ follow: f });
+  }
+
+  // ------------------------------------------------------------ location profile (AC 38)
+  function syncProfile() {
+    if (!attached || !stopWatch) return;
+    const p = locationProfile(curStep(), ui.peek().stopsLeft);
+    if (p.intervalMs !== watchInterval) void startWatch();
+  }
+
+  async function startWatch() {
+    stopWatch?.();
+    stopWatch = null;
+    const p = locationProfile(curStep(), ui.peek().stopsLeft);
+    watchInterval = p.intervalMs;
+    log(`loc:profile ${p.intervalMs}`);
+    const stop = await platform.location.watch(
+      onFix,
+      (e) => {
+        locationError.value = e;
+        log(`loc:${e.code}`);
+        if (e.code === 'denied' || e.code === 'unsupported') {
+          denied = true;
+          syncManual();
+        }
+      },
+      p,
+    );
+    if (!attached || watchInterval !== p.intervalMs) return stop(); // superseded while awaiting
+    stopWatch = stop;
+  }
+
+  // ------------------------------------------------------------ wake lock (AC 39)
+  async function acquireWake(): Promise<boolean> {
+    clear('wakeRelease');
+    const ok = await platform.wakeLock.acquire();
+    if (!ok && trip()) {
+      // QA-23: the note shows once per trip; later failed re-acquires (app switches) stay quiet.
+      if (!wakeFailLogged) {
+        log('state:wakelock-failed');
+        patchUi({ wakeLockFailed: true });
+      }
+      wakeFailLogged = true;
+    } else if (ok) log('wakelock:on');
+    return ok;
+  }
+
+  function onVisibility(visible: boolean) {
+    const t = trip();
+    if (!visible) {
+      store.flushTrip();
+      return;
+    }
+    if (t && attached && t.phase === 'guiding' && !ui.peek().voiceUnlockNeeded) void acquireWake();
+  }
+
+  // ------------------------------------------------------------ waypoint / arrival
+  function enterWaypoint() {
+    store.patchTrip((tr) => ({ ...tr, phase: 'waypoint', waypointAt: now(), alert: null }));
+    detachWatch();
+    later('wakeRelease', WAKE_RELEASE_AFTER_MS, () => void platform.wakeLock.release());
+    log('state:waypoint');
+    pocketEvent({ type: 'alert', t: now() });
+    patchUi({ phase: 'waypoint', segmentError: null, continuing: false });
   }
 
   function onArrived() {
     log('trip:arrived');
     const t = trip();
+    store.patchTrip((tr) => ({ ...tr, phase: 'arrived', alert: null }));
     if (t?.share && t.share.status !== 'help') setShareStatus('arrived');
     else scheduleShare(true);
-    void platform.wakeLock.release();
+    detachWatch();
+    pocketEvent({ type: 'alert', t: now() });
+    patchUi({ phase: 'arrived' });
+    later('wakeRelease', WAKE_RELEASE_AFTER_MS, () => void platform.wakeLock.release());
   }
 
-  async function reroute(_cue?: Cue) {
+  function mrtPreAlert(stepId: string, key: string) {
+    const t = trip();
+    const step = curStep(t);
+    if (!t || step?.id !== stepId || firedLocal.has(key) || !ui.peek().mrt) return;
+    firedLocal.add(key);
+    log('cue:mrt_prealert');
+    haptic('attention');
+    say(voiceLine('mrt_prealert', t.lang, { station: String(step.params.stop ?? '') }), 'normal', stepId);
+    pocketEvent({ type: 'alert', t: now() });
+    patchUi({ mrtPreAlert: true });
+    later('mrtPreHide', BANNER_MS, () => {
+      patchUi({ mrtPreAlert: false });
+      syncPocket();
+    });
+  }
+
+  // ------------------------------------------------------------ re-route (AC 32–33)
+  async function reroute() {
     const t = trip();
     const fix = t?.guidance.fix;
-    if (!t || !fix || rerouteInflight || now() - lastRerouteAt < REROUTE_RETRY_MS) return;
+    if (!t || !fix || rerouteInflight || t.phase !== 'guiding') return;
+    if (!isOnline()) {
+      patchUi({ reroute: 'offline' });
+      say(voiceLine('reroute_offline', t.lang), 'normal');
+      log('reroute:offline');
+      return;
+    }
+    const wait = lastRerouteAt + REROUTE_RETRY_MS - now();
+    if (wait > 0) {
+      later('reroute', wait, () => {
+        if (trip()?.guidance.status === 'off_route') void reroute();
+      });
+      return;
+    }
     rerouteInflight = true;
     rerouting.value = true;
     lastRerouteAt = now();
+    patchUi({ reroute: 'searching' });
     log('reroute:start');
     try {
-      const dest = t.places[t.places.length - 1]!;
+      const seg = t.journey?.segment ?? 0;
+      const dest = t.places[seg + 1] ?? t.places[t.places.length - 1]!;
       const body = await api.route({ start: fix, end: dest, departAt: now(), numItineraries: 3 });
       const plan = normalizeOneMapPlan(body);
       if (!plan.ok || plan.itineraries.length === 0) throw new Error(plan.ok ? 'no_route' : plan.error);
       const best = rankItineraries(plan.itineraries, store.settings.peek().preference)[0]!.itinerary;
       const cur = trip();
       if (!cur || cur.id !== t.id) return;
-      const places = [{ name: '', lat: fix.lat, lng: fix.lng }, ...cur.places.slice(1)];
-      const steps = stepsFor(best, places, cur.lang);
+      const steps = stepsFor(best, cur, seg);
       store.patchTrip((tr) => ({ ...tr, itinerary: best, reroutes: tr.reroutes + 1 }));
       dispatch({ type: 'reroute_done', steps, t: now() });
       log('reroute:done');
+      patchUi({ reroute: 'found' });
+      say(voiceLine('reroute_found', cur.lang), 'normal');
+      haptic('confirm');
+      later('rerouteFound', BANNER_MS, () => {
+        if (ui.peek().reroute === 'found') patchUi({ reroute: 'idle' });
+        syncPocket();
+      });
     } catch {
       log('reroute:fail');
+      const cur = trip();
+      if (cur?.id === t.id) {
+        const off = !isOnline();
+        patchUi({ reroute: off ? 'offline' : 'failed' });
+        say(voiceLine(off ? 'reroute_offline' : 'reroute_failed', cur.lang), 'normal');
+      }
     } finally {
       rerouteInflight = false;
       rerouting.value = false;
     }
   }
 
+  function stepsFor(it: Itinerary, t: Pick<ActiveTrip, 'places' | 'lang'>, seg: number) {
+    const dest = t.places[seg + 1];
+    const multi = t.places.length > 2;
+    const last = seg >= t.places.length - 2;
+    return buildSteps(it, t.lang, {
+      ...(dest?.name ? { destinationName: dest.name } : {}),
+      ...(multi ? { idPrefix: `j${seg}-`, segmentIndex: seg } : {}),
+      ...(last ? {} : { isWaypoint: true }),
+    });
+  }
+
   // ------------------------------------------------------------ live share
   function sharePayload(t: ActiveTrip, share: ShareSession): SharePut | null {
-    const p = toSharePayload(t.guidance);
+    // Worker statuses only (API.md): the user's help/paused wins; a waypoint is still travelling.
+    const status = share.status === 'help' || share.status === 'paused' ? share.status : t.phase === 'waypoint' ? 'travelling' : undefined;
+    const p = toSharePayload(t.guidance, { updatedAt: now(), ...(status ? { status } : {}) });
     if (!p) return null;
-    const status = share.status === 'help' || share.status === 'paused' ? share.status : t.guidance.status === 'arrived' ? 'arrived' : 'travelling';
     return {
       lat: p.lat,
       lng: p.lng,
@@ -186,9 +701,9 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       heading: p.heading ?? null,
       speed: p.speed ?? null,
       etaISO: p.etaISO ?? null,
-      stepText: p.stepText ? p.stepText.slice(0, 280) : null,
-      status,
-      updatedAt: now(),
+      stepText: p.stepText ?? null,
+      status: p.status,
+      updatedAt: p.updatedAt,
     };
   }
 
@@ -259,78 +774,337 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   async function attach(resumed: boolean) {
     const t = trip();
     if (!t || attached) return;
-    attached = true;
     log(resumed ? 'trip:resumed' : 'trip:started');
-    void platform.wakeLock.acquire();
+    stopVisibility ??= platform.visibility.onChange(onVisibility);
+    if (t.phase === 'waypoint' || t.phase === 'arrived') {
+      // G3 / H12: no GPS watch, no wake lock until "continue".
+      patchUi({ phase: t.phase });
+      derive();
+      return;
+    }
+    attached = true;
+    patchUi({ phase: 'guiding' });
     o.onAttach?.(t, resumed);
-    stopWatch = await platform.location.watch(onFix, (e) => {
-      locationError.value = e;
-      log(`loc:${e.code}`);
-    });
-    stopHeading = await platform.heading.watch((d) => (heading.value = d)).catch(() => null);
-    tick = timers.setInterval(() => dispatch({ type: 'tick', t: now() }), TICK_MS);
+    if (resumed && platform.capabilities.speechNeedsGesture) patchUi({ voiceUnlockNeeded: true });
+    else {
+      const ok = await acquireWake();
+      if (resumed && !ok) patchUi({ voiceUnlockNeeded: true });
+    }
+    watchingSince = now();
+    lastGoodFixAt = undefined;
+    lastFixAt = now();
+    const perm = await platform.location.permission().catch(() => 'prompt' as const);
+    denied = perm === 'denied' || perm === 'unsupported';
+    await startWatch();
+    stopHeading ??= await platform.heading.watch((d) => (heading.value = d)).catch(() => null);
+    if (tick === null)
+      tick = timers.setInterval(() => {
+        if (!dispatch({ type: 'tick', t: now() })) derive();
+      }, TICK_MS);
+    syncManual();
+    void platform.speech
+      .voices()
+      .then((v) => {
+        const has = trip()?.lang === 'en-SG' ? v.en : v.zh;
+        if (!has && !ui.peek().noVoice) {
+          log('state:no-voice');
+          patchUi({ noVoice: true });
+        }
+      })
+      .catch(() => {});
+    derive();
   }
 
-  function detach() {
+  function detachWatch() {
     attached = false;
     stopWatch?.();
     stopHeading?.();
     stopWatch = stopHeading = null;
+    watchInterval = undefined;
     if (tick !== null) timers.clearInterval(tick);
+    tick = null;
+    for (const k of ['manual', 'pocket', 'mrtPre', 'mrtCheck', 'reroute']) clear(k);
+  }
+
+  function detach() {
+    detachWatch();
+    stopVisibility?.();
+    stopVisibility = null;
     if (shareTimer !== null) timers.clearTimeout(shareTimer);
-    tick = shareTimer = null;
+    shareTimer = null;
+    for (const k of Object.keys(T)) clear(k);
+    queue = [];
+    speakGen++;
+    speaking = false;
     void platform.wakeLock.release();
     void platform.speech.cancel();
   }
 
+  function resetUi() {
+    pocketState = { on: false, since: now() };
+    wakeFailLogged = false;
+    firedLocal.clear();
+    lastFixT = -Infinity;
+    ui.value = { ...INITIAL_UI };
+  }
+
+  /** Plan a multi-stop journey (H4): [start, …stops] (≤ 5 after the start), dwell per waypoint in `Place.dwellMin` (15/30/60/90, default 30). */
+  async function planTrip(places: Place[], departAt = now()): Promise<Journey> {
+    const invalid = validateJourney(places);
+    if (invalid) throw new Error(invalid);
+    const withDwell = places.map((p, i) => (i === 0 || i === places.length - 1 ? p : { ...p, dwellMin: normalizeDwell(p.dwellMin) }));
+    return planJourney(withDwell, (from, to, at) => api.route({ start: from, end: to, departAt: at, numItineraries: 3 }), {
+      departAt,
+      preference: store.settings.peek().preference,
+      defaultDwellMin: DEFAULT_DWELL_MIN,
+    });
+  }
+
+  async function currentPlace(t: ActiveTrip): Promise<Place> {
+    try {
+      const f = await platform.location.current({ highAccuracy: true });
+      return { name: '', lat: f.lat, lng: f.lng };
+    } catch {
+      const f = t.guidance.fix;
+      return f ? { name: '', lat: f.lat, lng: f.lng } : t.places[(t.journey?.segment ?? 0) + 1]!;
+    }
+  }
+
+  /**
+   * QA-21 (Director ruling): ask for notification permission once ever, inside the Start tap, with the
+   * explainer note on H5 while the prompt is up. Denied → a note that get-off alerts need the app open.
+   */
+  function askNotify() {
+    const n = platform.notifications;
+    const p = n?.permission() ?? 'unsupported';
+    if (p === 'granted' || p === 'unsupported') return;
+    if (p === 'default' && local.get(NOTIFY_ASKED_KEY) !== '1') {
+      local.set(NOTIFY_ASKED_KEY, '1');
+      log('state:notify-ask');
+      patchUi({ notify: 'asking' });
+      const id = trip()?.id;
+      void n.request().then(
+        (r) => {
+          log(`notify:${r === 'granted' ? 'granted' : 'denied'}`);
+          if (trip()?.id === id) patchUi({ notify: r === 'granted' ? 'idle' : 'denied' });
+        },
+        () => trip()?.id === id && patchUi({ notify: 'denied' }),
+      );
+      return;
+    }
+    // Asked before and still undecided (prompt dismissed): no nagging. Denied: the note, once per trip.
+    if (p === 'denied') patchUi({ notify: 'denied' });
+  }
+
+  async function start(itinerary: Itinerary, places: Place[], opts: StartOptions = {}) {
+    if (attached || trip()) detach();
+    resetUi();
+    const l = toLang(store.settings.peek().lang);
+    const j = opts.journey;
+    const plans: SegmentPlan[] | undefined =
+      places.length > 2
+        ? places.slice(1).map((_, i) => {
+            const seg = j?.segments[i];
+            const it = i === 0 ? itinerary : seg?.itinerary;
+            return {
+              durationS: it ? Math.round((it.endTime - it.startTime) / 1000) : 0,
+              dwellS: i === 0 ? 0 : (seg?.dwellS ?? normalizeDwell(places[i]?.dwellMin) * 60),
+            };
+          })
+        : undefined;
+    const steps = stepsFor(itinerary, { places, lang: l }, 0);
+    const guidance = createGuidance(steps, now());
+    const t: ActiveTrip = {
+      id: newId(),
+      places,
+      itinerary,
+      lang: l,
+      guidance,
+      startedAt: now(),
+      reroutes: 0,
+      phase: 'guiding',
+      stepEnteredAt: now(),
+      alert: null,
+      ...(plans ? { journey: { segment: 0, plans } } : {}),
+    };
+    store.setTrip(t);
+    askNotify();
+    const to = places[places.length - 1];
+    if (to) store.addRecent(to, places[0], now());
+    handleCues(guidance, l);
+    await attach(false);
+  }
+
+  async function end() {
+    const t = trip();
+    // QA-25: plans made right after a trip (H12 Route home) start from where the senior is now:
+    // the trip's last fix when it is recent, otherwise no cached position (the next plan locates afresh).
+    const f = t?.guidance.fix;
+    here.value = f && now() - lastFixAt <= HERE_MAX_AGE_MS ? { lat: f.lat, lng: f.lng, label: null, acc: f.acc } : null;
+    detach();
+    if (t?.share) await api.shareDelete(t.share.id, t.share.ownerToken).catch(() => {});
+    store.setTrip(null);
+    resetUi();
+    log('trip:ended');
+  }
+
   return {
+    /** One signal with every UI state (see `TripUi`). */
+    ui,
     heading,
     locationError,
     rerouting,
     get attached() {
       return attached;
     },
-    /** Start guidance for an itinerary. `places` = [from, …, to]. */
-    async start(itinerary: Itinerary, places: Place[]) {
-      if (attached) detach();
-      const lang = toLang(store.settings.peek().lang);
-      const steps = stepsFor(itinerary, places, lang);
-      const guidance = createGuidance(steps, now());
-      const t: ActiveTrip = { id: newId(), places, itinerary, lang, guidance, startedAt: now(), reroutes: 0 };
-      store.setTrip(t);
-      const to = places[places.length - 1];
-      if (to) store.addRecent(to, places[0], now());
-      handleCues(guidance, lang);
-      await attach(false);
+    planTrip,
+    /**
+     * Start guidance (H4 Start). Every entry point uses this one call (AC 2).
+     * `itinerary` = the chosen option for the first segment; `places` = [from, …, to].
+     * A multi-stop journey passes `{ journey }` from `planTrip()` (or use `startJourney`).
+     */
+    start,
+    /** Start a planned journey with each segment's chosen itinerary. */
+    async startJourney(journey: Journey) {
+      const first = journey.segments[0]?.itinerary;
+      if (!first) throw new Error('journey_not_ok');
+      await start(first, journey.places, { journey });
     },
-    /** After a reload: re-attach to a persisted, unfinished trip. Returns true if resumed. */
+    /**
+     * After a reload/kill: apply the OQ5 window. `resume` re-attaches (`ui.resumed`
+     * toast; `ui.voiceUnlockNeeded` where a tap is needed), `ask` sets `ui.stale`
+     * for the G4 sheet, `drop` deletes the trip silently. True only when guidance resumed.
+     */
     async resume(): Promise<boolean> {
       const t = trip();
       if (!t || attached) return false;
-      if (t.guidance.status === 'arrived') return false;
+      const arrived = t.phase === 'arrived' || (t.guidance.status === 'arrived' && t.phase !== 'waypoint');
+      const d = resumeDecision({ startedAt: t.startedAt, etaMs: etaOf(t), arrived }, now());
+      if (d === 'drop') {
+        log('state:resume-drop');
+        store.setTrip(null);
+        return false;
+      }
+      resetUi();
+      if (d === 'ask') {
+        log('state:resume-ask');
+        patchUi({ stale: { dest: t.places[t.places.length - 1]?.name ?? '' } });
+        return false;
+      }
+      log('state:resume');
+      patchUi({ resumed: true });
       await attach(true);
       return true;
     },
+    /** G4 stale sheet → Continue: resume at the stored step. */
+    async continueStale(): Promise<boolean> {
+      if (!trip()) return false;
+      log('state:resume');
+      patchUi({ stale: null, resumed: true });
+      await attach(true);
+      return true;
+    },
+    /** G4 stale sheet → End: delete the stored trip. */
+    endStale: () => end(),
+    /** G4 voice bar tap: unlock audio + wake lock, speak the current headline. */
+    async unlockVoice() {
+      patchUi({ voiceUnlockNeeded: false });
+      log('resume:voice');
+      haptic('tick');
+      await acquireWake();
+      const step = curStep();
+      if (step) say(step.say ?? step.text, 'high', step.id);
+      syncPocket();
+    },
+    dismissResumed: () => patchUi({ resumed: false }),
     dispatch,
+    // ---- manual controls (G5): each speaks the new headline + `confirm` (via step_changed)
     next: () => dispatch({ type: 'next', t: now() }),
     previous: () => dispatch({ type: 'previous', t: now() }),
     onBoard: () => dispatch({ type: 'on_board', t: now() }),
     gotOff: () => dispatch({ type: 'got_off', t: now() }),
-    /** Repeat the current instruction aloud. */
+    /** "再说一遍": the current headline, or the alert lines while an alert shows. Works while muted (a tap is consent). */
     repeat() {
       const t = trip();
-      const step = t?.guidance.steps[t.guidance.stepIndex];
-      if (t && step) void platform.speech.speak(step.text, t.lang, 'high');
+      if (!t) return;
+      if (t.alert) return speakAlert(t.alert, true);
+      const step = curStep(t);
+      if (step) say(step.say ?? step.text, 'high', step.id, true);
     },
+    /** H6/H6b "知道了 / OK, got it". */
+    ackAlert: () => alertEvent({ type: 'ack', t: now() }),
     reroute: () => reroute(),
-    /** End the trip (user tapped "End" or left after arrival). Ends any share. */
-    async end() {
-      const t = trip();
-      detach();
-      if (t?.share) await api.shareDelete(t.share.id, t.share.ownerToken).catch(() => {});
-      store.setTrip(null);
-      log('trip:ended');
+    /** ✕ on the re-route failed / offline note. */
+    dismissRerouteNote: () => {
+      patchUi({ reroute: 'idle' });
+      syncPocket();
     },
+    dismissWakeNote: () => patchUi({ wakeLockFailed: false }),
+    dismissNotifyNote: () => patchUi({ notify: 'idle' }),
+    // ---- pocket view (G1)
+    /** Any touch / key press on the guidance screen (also leaves pocket view; `tick` haptic is the UI's). */
+    touch: () => pocketEvent({ type: 'touch', t: now() }),
+    /** 放口袋 / Pocket button. */
+    pocket: () => pocketEvent({ type: 'manual', t: now() }),
+    /** The UI reports sheets (End-trip, Help, All steps) so pocket view never starts under one. */
+    setSheetOpen(open: boolean) {
+      sheetOpen = open;
+      if (open) pocketEvent({ type: 'touch', t: now() });
+      else syncPocket();
+    },
+    // ---- follow-me (C)
+    mapGesture: () => follow({ type: 'user_gesture' }),
+    recentre: () => follow({ type: 'recentre' }),
+    overview: () => follow({ type: 'overview' }),
+    // ---- multi-stop (I)
+    /** G3 "继续下一段": re-plan the next segment from the current position (AC 44). Never automatic. */
+    async continueJourney(): Promise<boolean> {
+      const t = trip();
+      if (!t || t.phase !== 'waypoint') return false;
+      const seg = (t.journey?.segment ?? 0) + 1;
+      const to = t.places[seg + 1];
+      if (!to) return false;
+      patchUi({ continuing: true, segmentError: null });
+      log('state:continuing');
+      const from = await currentPlace(t);
+      const journey = await planJourney([from, to], (a, b, at) => api.route({ start: a, end: b, departAt: at, numItineraries: 3 }), {
+        departAt: now(),
+        preference: store.settings.peek().preference,
+      });
+      const it = journey.segments[0]?.itinerary;
+      const cur = trip();
+      if (!cur || cur.id !== t.id || cur.phase !== 'waypoint') return false;
+      if (!journey.ok || !it) {
+        log('state:segment-failed');
+        patchUi({ continuing: false, segmentError: journey.segments[0]?.error ?? 'no_route' });
+        return false;
+      }
+      const guidance = createGuidance(stepsFor(it, cur, seg), now());
+      const plans = plansOf(cur).map((p, i) => (i === seg ? { ...p, durationS: Math.round((it.endTime - it.startTime) / 1000) } : p));
+      store.patchTrip((tr) => ({ ...tr, itinerary: it, guidance, journey: { segment: seg, plans }, phase: 'guiding', alert: null, stepEnteredAt: now(), stopsLeft: null, mrtStopsLeft: null }));
+      log(`segment:${seg}`);
+      pocketState = { on: false, since: now() };
+      patchUi({ continuing: false, phase: 'guiding', reroute: 'idle', alert: null });
+      follow({ type: 'step_changed' });
+      handleCues(guidance, cur.lang);
+      await attach(false);
+      return true;
+    },
+    /** G3 "在这里结束": arrival at this place (H12); the UI then calls `end()`. */
+    endAtWaypoint() {
+      const t = trip();
+      if (!t || t.phase !== 'waypoint') return;
+      log('trip:arrived');
+      store.patchTrip((tr) => ({ ...tr, phase: 'arrived' }));
+      patchUi({ phase: 'arrived' });
+    },
+    /** Total ETA (epoch ms) of the trip including remaining segments and dwell. */
+    eta: () => {
+      const t = trip();
+      return t ? etaOf(t) : null;
+    },
+    /** End the trip (End sheet, Done, stale End). Stops voice, GPS, wake lock; ends any share; deletes the stored trip. */
+    end,
     async startShare(): Promise<ShareSession | null> {
       const t = trip();
       if (!t) return null;
@@ -363,9 +1137,19 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     clearHelp() {
       setShareStatus('travelling');
     },
+    /** Settings → 试听 / Test voice (speaks even when muted: a tap is consent). */
+    testVoice() {
+      const l = toLang(store.settings.peek().lang);
+      void platform.speech.speak(voiceLine('test', l), l, 'high', { force: true });
+    },
+    /** Speak one of the runtime voice lines (for UI notes with a spoken line). */
+    speakLine(line: VoiceLine) {
+      say(voiceLine(line, lang()), 'normal');
+    },
     dispose() {
       detach();
       muteEffect();
+      onlineEffect();
     },
   };
 }

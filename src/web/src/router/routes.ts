@@ -4,6 +4,7 @@ export type RouteName =
   | 'search'
   | 'routes'
   | 'trip'
+  | 'journey'
   | 'guide'
   | 'share_start'
   | 'viewer'
@@ -25,6 +26,7 @@ const TABLE: { name: RouteName; re: RegExp; keys: string[] }[] = [
   { name: 'search', re: /^\/search\/?$/, keys: [] },
   { name: 'routes', re: /^\/routes\/?$/, keys: [] },
   { name: 'trip', re: /^\/trip\/?$/, keys: [] },
+  { name: 'journey', re: /^\/journey\/?$/, keys: [] },
   { name: 'guide', re: /^\/guide\/?$/, keys: [] },
   { name: 'share_start', re: /^\/share\/start\/?$/, keys: [] },
   { name: 'viewer', re: /^\/t\/([A-Za-z0-9]{6,32})\/?$/, keys: ['id'] },

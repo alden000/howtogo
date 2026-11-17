@@ -61,3 +61,25 @@ describe('buildSteps', () => {
     expect(buildSteps(itinerary('toaPayohToTTSH'), 'zh').at(-1)!.text).toBe('步行到 目的地');
   });
 });
+
+describe('H5 guidance lines (`say`, Creative F1)', () => {
+  const say = (name: FixtureName, lang: 'en' | 'zh-CN') => buildSteps(itinerary(name), lang, { destinationName: DEST[name][lang] }).map((s) => s.say);
+  it('zh bus trip: walk / wait / ride / walk, no stop code, no stop count, no 等候', () => {
+    const s = say('toaPayohToTTSH', 'zh-CN');
+    expect(s[0]).toMatch(/^走到 .+ 巴士站$/);
+    expect(s[1]).toMatch(/^在这里等 \S+ 号巴士$/);
+    expect(s[2]).toMatch(/^坐 \S+ 号巴士，在 .+ 下车$/);
+    expect(s[3]).toMatch(/^走到 陈笃生医院$/);
+    for (const x of s) expect(x).not.toMatch(/\d{5}|（|坐 \d+ 站|等候|[{}[\]]/);
+  });
+  it('en train trip: platform + towards, ride without count', () => {
+    const s = say('bishanToRafflesPlace', 'en');
+    expect(s.some((x) => /^Walk to .+ station$/.test(x!))).toBe(true);
+    expect(s.some((x) => /^Wait on the platform( for trains to .+)?$/.test(x!))).toBe(true);
+    expect(s.some((x) => /^Ride the train, get off at .+$/.test(x!))).toBe(true);
+  });
+  it('no 您 anywhere in zh engine copy (F5)', async () => {
+    const { STRINGS } = await import('../src/i18n/steps');
+    expect(Object.values(STRINGS['zh-CN']).filter((v) => v.includes('您'))).toEqual([]);
+  });
+});

@@ -302,6 +302,84 @@ H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-144
 - Also: AC 19 upstream timeout 10 s → 8 s (QA missed it).
 - 91 tests pass; typecheck clean.
 
+## 2026-11-17 — M2 round 1: engine + runtime, no new screens (Developer, branch `dev/m2-engine`)
+
+**Done.** Logic only. Screens are unchanged, and the M1 view files were not touched. "runtime" is `src/web/src/trip/` and "store" is `src/web/src/state/` (the existing folders).
+- **Haptics (AC 37, 6c.13):** `VibratePattern` is now the shared `HapticName` (`tick|confirm|attention|getoff|arrive|gentle`). `VIBRATE_PATTERNS` = `HAPTIC_PATTERNS`, copied from the 6c.13 table. No `tap/notice/get_off/alert/arrived` names remain. New setting `haptics` (default on) silences all six.
+- **Engine (`src/shared/src/trip.ts`, all pure):** haptic map, alert escalation reducer, resume decision, pocket reducer, manual-mode rule, location profile, stops-left countdown, MRT soft estimate, journey progress and total ETA, and the speech queue. `guidance.ts`: a segment guided on its own (built with `isWaypoint`) now ends with `arrived_waypoint`.
+- **Voice copy:** Creative's 6c.14/H11 lines are in `i18n/steps.ts` (`cue.get_off_now` = 到站了，请下车。, `cue.gps_weak`, `cue.off_route`, `cue.arrived_waypoint`, `cue.arrived_destination` = 到了！, and `voice.*`). `cueToSpeech` gives the first alert line; `alertSecondLine()` gives the line spoken 2.2 s later. TTS rate: zh 0.9, en 0.92.
+- **Platform (D-4):** new fields `capabilities {backgroundGuidance, speechNeedsGesture, os}` and `visibility {isVisible, onChange}`. `speak(text, lang, prio, {force})` now resolves when the line has been spoken; `force` plays even while muted. Web `wakeLock.acquire` dedupes in-flight requests. The fake platform gains `setVisible`, `setWakeLockOk`, `setPermission`, `emitError`, `watchIntervals`, `wakeLockRequests`, and the options `capabilities/voices/wakeLockOk/permission`.
+- **Share contract (Director add-on):** `ShareStatus`/`SHARE_STATUSES` = exactly the Worker's `travelling|arrived|paused|help`. `toSharePayload(state, {status?, updatedAt?})` maps arrived → `arrived` and everything else, including off route and weak GPS, → `travelling`. It now sends `updatedAt`, and `acc` is required. `test/share-contract.test.ts` runs every PUT body of whole trips (off route, weak spell, help, arrival) through the Worker's real `validateUpdate`. The `cloudflare:workers` import is aliased to a stub in the vitest config.
+
+### API for the UI round (`runtime` from `useServices()`)
+**State:** `runtime.ui` (signal `TripUi`) has these fields:
+- `phase`: `idle|guiding|waypoint|arrived`
+- `alert`: `AlertState|null`, where `kind 'next'` = H6 and `'now'` = H6b. It also carries `stop`, `mode`, `shownAt`, `escalated`.
+- `reroute`: `idle|searching|found|failed|offline`. `searching` and `found` are banners; `failed` and `offline` are trip notes.
+- `manual`, `gpsWeak`, `pocket`
+- `follow`: `follow|free`
+- `wakeLockFailed`, `voiceUnlockNeeded`, `noVoice`
+- `stale`: `{dest}|null`. G4 sheet.
+- `resumed`: shows the toast.
+- `stopsLeft`: `number|null`. Never counts up.
+- `mrt`: `{stopsLeft, preAlertAt, station}|null`. The OQ3 "约 还有 N 站" estimate.
+- `mrtPreAlert`: shows the banner for 4.2 s.
+- `continuing`, `segmentError`
+- `progress`: `{place, places, to, next, isLast, overall}`, i.e. "第 k 个地方，共 n 个"
+- `etaMs`: total ETA, including dwell and later segments.
+- `lastLine`
+
+The trip and its step still come from `store.trip` (`guidance`, `journey {segment, plans}`, `phase`, `alert`, `places`).
+
+**Actions:**
+- `start(itinerary, places, {journey?})`, `planTrip(places)` (uses `planJourney`; ≤ 5 stops; `Place.dwellMin` 15/30/60/90, default 30), `startJourney(journey)`
+- `resume()` (OQ5 window), `continueStale()`, `endStale()`, `unlockVoice()`, `dismissResumed()`
+- `next()`, `previous()`, `onBoard()`, `gotOff()`, `repeat()` (say again, plays even when muted; repeats the alert lines while an alert shows), `ackAlert()`
+- `touch()` (call it on any pointerdown/keydown on H5/pocket), `pocket()`, `setSheetOpen(bool)`
+- `mapGesture()`, `recentre()`, `overview()`
+- `continueJourney()`, `endAtWaypoint()`
+- `dismissRerouteNote()`, `dismissWakeNote()`, `eta()`, `testVoice()`, `speakLine(line)`, `end()`
+- Unchanged: `startShare`, `stopShare`, `help`, `clearHelp`, `heading`, `locationError`, `rerouting`, `attached`
+
+**Behaviour, as built:**
+- **Get-off alerts:** H6 → `getoff`, then line 1, then line 2 at 2.2 s. H6b → `getoff` twice, 800 ms apart, with high-priority voice. Both also `notify({tag:'getoff'})`. One repeat at 20 s if not acknowledged. The alert clears when the ride step ends, and it is not repeated after that.
+- **Off route:** `gentle`, then a re-route to the *current segment's* destination (≤ 1 per 20 s). Then `found` (`confirm`, 4.2 s), `failed`, or `offline` (no call; retried on the `online` event).
+- **Waypoint:** GPS stops at once, and the wake lock is released after 60 s. Nothing happens until `continueJourney()`, which re-plans from `location.current()`.
+- **Arrival:** wake lock released after 60 s. The stored trip stays (phase `arrived`) until the UI calls `end()`. A reload drops it.
+- **Manual mode:** permission denied, or no good fix for 60 s. Speaks the note once. Pocket view is hidden in manual mode.
+- **Pocket view:** 45 s idle on walk/ride steps. Blocked by an alert, a sheet, the H11 banner/note, the waypoint screen, the voice bar, the stale sheet or the MRT banner.
+- **Location profile:** walk 2 s, wait 5 s, bus 5 s, train 10 s, the last 2 stops 2 s. The watch restarts only when the interval changes.
+- **Fixes:** duplicate or out-of-order fixes are dropped.
+- **Language:** the trip language is fixed at start.
+
+**Test hooks (`window.__hooks`):**
+- `cue:<type>` (+ `cue:mrt_prealert`)
+- `alert:next|now|ack|escalate|clear`
+- `state:pocket` + `pocket:on|off`
+- `state:manual|auto`
+- `state:waypoint`, `state:continuing`, `state:segment-failed`, `segment:<k>`
+- `state:resume|resume-ask|resume-drop`, `state:voice-unlock`, `resume:voice`
+- `state:wakelock-failed`, `wakelock:on`
+- `state:reroute-failed|reroute-offline`, `state:gps-weak`, `state:mrt-estimate`, `state:no-voice`
+- `follow:on|free`, `loc:profile <ms>`
+
+### Tests
+- shared: 104 tests (+22 in `test/trip.test.ts`; 3 updated for the new copy and share statuses).
+- web: 87 vitest tests. `test/runtime-m2.test.ts` has 30, using fake timers: escalation at 19.999 s vs 20 s, ack, ride end, H6b ×2, resume windows (ETA + 2 h / ask / 24 h, iOS voice bar), multi-stop (plan, waypoint, continue from here, failure, reload at a waypoint), manual mode, pocket view, wake lock + visibility, profile, follow over 10 min, language, dedupe, re-route found/failed/offline, MRT estimate. Plus `test/share-contract.test.ts` (3).
+- e2e: 60/60. The demo test now also checks `alert:next` before `alert:now`, `state:resume` and `loc:profile 2000`. Typecheck is clean (shared, web, worker).
+
+### Left / caveats
+- **No UI:** H5/H6/H6b/H11/H12, G1–G6 and the Help subset are all for the next round. `Guide.tsx` still shows M1 placeholders. It works because `trip.guidance` is still the current segment's guidance.
+- `main.tsx` still calls `void runtime.resume()`. The UI must render `ui.stale` (H1 sheet) and `ui.resumed` (toast).
+- **Not done yet:** compass `requestPermission` at Start (AC 4) and the "End current trip first?" check (AC 5). Both belong to the UI Start flow.
+- **Location profile on the web:** restarting `watchPosition` per leg is harmless, but it could be skipped on web (the interval is ignored there).
+- **Thresholds are untested in the real world:** MRT estimate (30 s without a fix), manual mode (60 s), escalation (20 s). They need the owner's phone test.
+- **Arrived trips:** a reload drops an arrived trip, so H12 is not shown again after a reload.
+
+### Next steps (UI round)
+1. Build H5 from `runtime.ui` plus the store trip, and call `touch()` from a capture listener. Add H6/H6b sheets bound to `ui.alert` + `ackAlert()`, the H11 banner/notes, G1 pocket, G3 waypoint (`continueJourney`/`endAtWaypoint`), G4 (`stale`, `resumed`, `voiceUnlockNeeded`), and G5 controls.
+2. Build the H3 multi-stop builder → `planTrip()` → H4 timeline → `startJourney()`. Turn the `guide` flag on.
+3. Add Playwright replays (bus, MRT + transfer, mixed, 5-stop, offline) and the entry-point matrix, asserting through the hooks above.
 ## 2026-11-17 — Release prep: Creative R1–R3, QA-20, D-10 one-Worker hosting, sample-routes banner (dev/m1-ui)
 - **Creative R1** (Med): app.css 150/200 % rules exactly as specified — the Settings value drops to its own line under the label, chevron stays on row 1. Re-recorded only `M1-F6-settings-light-200-zh` (the only baseline that changed; the other 33 passed untouched).
 - **R2**: `ui/ghost.ts` rewrites `:root` → `.groot` in the adopted sheet and wraps the ghost copy in a `.groot` div carrying `<html>`'s classes, `data-theme`, `data-text-size`. **R3**: zh `not_set` = "还没设置".
@@ -350,6 +428,72 @@ H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-144
 - Re-run `gen/build_stations.py` when stations open (TEL/DTL 26 Dec 2026, JRL, CRL). The JRL/CRL codes on interchange stations are filtered out until those lines exist in `lines.ts`.
 - Bundle cost: `stations.ts` is 55 KB raw, about 12 KB gzipped.
 
+## 2026-11-17 — M2 round 2: guided-trip UI (Developer, branch `dev/m2-engine`)
+
+**Visible changes (for Creative / QA review)**
+- **Flags:** `guide` and `help` are **on by default** (AC 1). `?ff=-guide` / `?ff=-help` turns one off for a tab; `?ff=live` still adds `live`.
+- **H3:** new secondary button **加一个地方 / Add a stop** under the From line (→ G2).
+- **H4:** **开始出发 / Start** is shown. A multi-stop plan opens **H4 journey** (今天的行程, one block per part, dwell rows, note, 改一改).
+- **H5 (new):** solid top band (结束 · voice toggle · 帮忙 pill; share pill, H11 banner, MRT pre-alert and the voice-unlock bar sit inside the band), a map window between the band and the step card, map controls (Follow / See whole trip, Share). The step card has a trip note, journey dots + "去第 k 个地方（共 n 个）", "第 n 步，共 m 步", ETA, the step icon tile, the headline (polite live region), sign chip, sub-line, bus badge / line tag, stops left + stop dots, progress bar and the G5 action rows (I'm on / I got off · Say it again · Pocket · Previous step / Next).
+- **H6 / H6b:** a saffron panel and an ink takeover with saffron type, edge glow, OK. Back opens the End-trip sheet over them.
+- **H11:** searching/found banner in the band. Re-route failed/offline is a trip note with Show the driver + 995.
+- **Trip notes:** weak GPS, offline, manual mode (+ "found you" for 4.2 s), wake lock failed, no voice (+ a link to the G7 voice help sheet).
+- **G1 pocket view** (black, dark tokens), **G3 waypoint** screen, **H12 arrival** (seal stamp, petals, 用了 N 分钟, Done, Route home).
+- **H9 Help sheet** (M2 subset) on H1, H3, H4 and H5. **H10 Show the driver** (always light card; tabs Where I'm going / My home / Where I am). **G6 End your current trip?** and the **G4 stale trip** sheet.
+- **G2 builder** screen (`/journey`), plus the dwell picker sheet and H2 in "Add a place" mode.
+- **Settings:** 语音提示 on/off, **试听 / Test voice** (with the "no Chinese voice" caption and link), 震动提示 on/off.
+- **Back on H5 / H6 / H6b / H11 / pocket / G3** opens the End-trip sheet (D8 guard history entry). Back on H12 goes to H1 and clears the trip.
+
+**Done.** All views render from `runtime.ui` + `store.trip` and call only runtime actions. No guidance logic in views.
+- `views/Guide.tsx`: H5 (Live), H6/H6b (GetOffAlert), trip notes, G1 Pocket, G3 Waypoint, H12 Arrival.
+- `views/guideModel.ts` (pure, unit-tested): step group/icon, note priority (6c.10), G5 action rows (6c.7), alert copy, pocket text, stop dots, next stop, card max height + puck padding (6c.0), heading choice (AC 14: compass when slow → course > 1 m/s → north-up), follow zoom (AC 18).
+- `map/GuideMap.tsx` + `map/map.ts` (`setFollow`, `setPadding`, `setFollowZoom`, `onGesture`, stale grey puck). The canvas is sized to the window between the band and the card, so labels are clipped to it. The puck sits at 66 % down that window. The follow mode is the runtime's (gesture → `mapGesture()`, Follow → `recentre()`, See whole trip → `overview()`, and a step change re-engages it). Nothing is timer-based.
+- `views/tripSheets.tsx`: H9, H10, G7 voice help, G6, G4 stale, G2 dwell. `views/Journey.tsx`: G2 + the pure list edits.
+- `views/TripDetail.tsx`: `useStartTrip()` is the single Start path (AC 2). It calls `heading.requestPermission()` inside the tap (AC 4), then `runtime.start`/`startJourney`, then `router.enterGuide()`. It shows G6 first when a trip is active (AC 5).
+- **Router:** `NavState.guard` + `enterGuide()` + `setGuard()`. A reload on `/guide` seeds Home → guard → guide. `reset(path, then?)` (H12 Route home → H1 + H3).
+- **main.tsx:** `DEFAULT_FLAGS`. After `resume()`: straight into H5, or G4 on H1 when stale.
+- i18n: 150 new keys (`ui.ts`, zh + en, copy verbatim from §6/§6c). 11 icons added (5 approved 6c icons + speaker, mute, bell, car, phone, eye from §1.4). The `c-pocket` token and `styles/guide.css` (values from the prototype).
+- `playwright.config.ts`: `E2E_PORT` (default 4173), so parallel worktrees don't share a preview server.
+
+**Tests**
+- vitest web: 109 (+ `test/guideModel.test.ts` 14 and 2 router guard tests).
+- e2e `e2e/guide.spec.ts` (12):
+  - bus trip zh: cue order, H6 → ack → H6b, Back over the alert, arrival, Back → H1 + trip cleared, spoken lines
+  - MRT trip en
+  - off route → found, then re-route failed note → H10 → ✕
+  - manual mode
+  - pocket: enter; the first touch only wakes the screen; alert breaks through
+  - resume after reload: same step, toast, guard
+  - Back/End + H9 subset + H10 Back → H9
+  - multi-stop 3 places (waypoints "第 k 个地方，共 3 个", Back → End sheet → Back → G3, continue ×2, arrival)
+  - entry points: Take me home, Home tile, recent
+  - AC 5 G6
+  - 200 % dark zh and light en: no clipping, ≥ 56 px, labelled and test-id'd controls on H5/H9/pocket/H6/H6b
+- M1 specs updated for M2 behaviour: Start visible; Help on by default; Back on H5/H12 per D8/AC 47; the `:4173` URL checks now accept any port.
+- **Baselines** (`e2e/baselines-m2.spec.ts`, 27, 390×844 DPR 1, the WebGL canvas hidden):
+  - `M2-H5-walk` ×4, `M2-H5-ride`, `M2-H5-manual-walk`
+  - `M2-H6-bus` ×3, `M2-H6-train`, `M2-H6b-bus` ×3, `M2-H6b-train`
+  - `M2-G1-pocket-walk` ×3 (dark), `M2-G1-pocket-ride`
+  - `M2-H11-failed`, `M2-H12-notshared` ×2, `M2-H9-m2-trip`, `M2-H10-dest`, `M2-G2-two` ×2, `M2-H4-journey-3`, `M2-G3-waypoint`
+  - Re-recorded M1: `H3-*`, `H4-*`, `M1-F3-close` (Add a stop / Start).
+
+**Deviations**
+- **H5 headline = the shared step sentence** (`step.text`, e.g. "坐 4 站，在 Tan Tock Seng Hosp 下车"), not the H5 example "坐着就好，还有 4 站". It is the line the runtime speaks, so screen = voice (AC 22). The H5 copy is in the sub-lines ("下一站：…", "下车前我会提醒你。", "还有 N 站"). The MRT estimate uses the 6c.12 headline. Creative to confirm, or the runtime should speak the H5 templates.
+- **Bus sign chip on H6/H6b** = "{stop} 巴士站" / "{stop} bus stop". There is no zh bus-stop name table yet (M3), so there is no "· {zh name}".
+- **End-trip sheet over pocket view:** opening any sheet leaves pocket view (runtime `setSheetOpen` → touch), so the sheet is drawn over H5 in the normal theme, not over a dark pocket view.
+- **G2 at 100 %:** the dwell chip and ↑ ↓ ✕ do not fit one row at 390 px in zh, so ↑ ↓ ✕ stay together on a second row (as at 200 %).
+- **H10 "Where I am"** shows the reverse-geocoded name (no address lines). It is always the "I am here" card.
+- **Not built:** the "全部步骤 / All steps" sheet (AC 12, Should); demo-mode buttons that play every new state (AC 50). The e2e drives those states through the fake platform instead. The H12 shared/told lines are M4 (AC 48).
+
+**Next steps**
+1. Creative review of the built M2 frames against §6c (baselines above). QA gate M2: map ACs to tests, and add the axe pass on H5/H6/H6b/H11/H12/G1/G3.
+2. AC 50 demo controls, and the AC 12 All-steps sheet.
+3. Owner phone test (thresholds, compass, voices, wake lock, pocket battery).
+4. The GPS replay variant with the real `web` adapter (`context.setGeolocation`) is still to do. The current e2e uses the fake platform + simulator.
+
+**Gate (`npm run gate`, once):** 7 PASS, 4 FAIL. Passed: typecheck, unit 334, i18n, build (app JS 93.2 KB gz, budget 150), static-pwa, dev-e2e 103/103 on the release build, artifact.
+- `secrets`: the known wrangler.toml KV id flag.
+- `deps`, `qa-e2e`, `lighthouse`: `qa/node_modules` is not installed in this worktree (`@axe-core/playwright`, `@playwright/test`, `lighthouse` are missing). These are environment failures, not code failures. Run `npm ci --prefix qa` before the QA gate.
 ## 2026-11-17 — Preview deploy without Workers Static Assets (dev/deploy-embed)
 - **Why:** the agent HTTPS proxy injects our Cloudflare API token on every api.cloudflare.com request, overwriting the short-lived JWT of wrangler's `/workers/assets/upload` → 401. Script, KV and DO uploads work, so the preview embeds the PWA in the Worker.
 - `src/worker/scripts/embed-assets.mjs` walks `src/web/dist` → `src/worker/src/generated/assets.ts` (gitignored): path → `{body (utf-8 text or base64), contentType, etag (sha-256)}` plus `_headers` parsed into a rules table; `_headers`/`_redirects` never embedded. Fails if dist is missing or > 5 MB (today 16 files, 1.3 MB raw / 408 KiB gzip bundle). `--if-missing` (pretest/pretypecheck) writes an empty map + `public/_headers` rules on a fresh checkout.
@@ -357,3 +501,55 @@ H1-default (light-100-zh/en, dark-100-zh, light-200-zh), H1-away, H1-desktop-144
 - `wrangler.preview.toml` = `wrangler.toml` minus `[assets]` (kept for later). vitest now runs on the preview config. `deploy:preview` = build:release → `npm run embed -w @howtogo/worker` → `wrangler deploy -c wrangler.preview.toml`. `npm run dev:preview -w @howtogo/worker` for local.
 - Tests: 99 pass (7 new in `test/static.test.ts`; `/nope` API-404 test now `/api/nope`, since `/nope` is a PWA route). Typecheck clean. Dry run OK (TRIP_SHARE DO, TOKEN_KV, 3 vars, no ASSETS). `wrangler dev -c wrangler.preview.toml` smoke: `/`, `/settings`, hashed JS, `/sw.js` headers as `_headers`; `/api/health` → `{"ok":true,"fixtureMode":true}`; `/_headers` 404; 304 works.
 - Note: `qa/scripts/secret-scan.mjs` flags the real KV id in wrangler.toml (pre-existing, since d97ce71; it does not check the preview config).
+
+## 2026-11-17 — M2 fix round: QA-21…27, Creative F1–F6/F12, AC 12 All-steps, AC 50 demo controls (Developer, branch `dev/m2-engine`)
+
+**Visible changes (written first, before code)**
+1. H5 headline + voice use new H5-register lines (`guide.*`, Creative F1): 走到 {stop} 巴士站 / 在这里等 {route} 号巴士 / 坐 {route} 号巴士，在 {stop} 下车 … No stop code and no stop count in the headline. H3/H4 keep the planner `step.*` text.
+2. Walk sign chip on H5 shows `{stop} · {code}` (e.g. `Toa Payoh Int · 52009`).
+3. H5 headline is 2rem (32 px) at 100 % (QA-22 ruling); never breaks inside a word at 200 %.
+4. Walk sub-line minutes are this walk's own time (`max(1, ceil(m / 67))`), not the whole trip's (F2).
+5. Voice says 你, never 您 (F5): 到了，这里是 {stop}。/ 好，你上车了。下车前我会提醒你。/ 好，你回到路上了。
+6. H6/H6b titles never orphan a character (two unbreakable phrases); at 200 % H6b shows title → sign chip → line, bell 72 px (F3).
+7. Train sign chip carries the station code: "Raffles Place NS26 站" / "Raffles Place NS26 station" (F4).
+8. Reduce motion: H6, H6b and pocket view cross-fade in 120 ms instead of snapping (F6).
+9. Back from pocket view: the End sheet fades in over H5 with the normal scrim (F12).
+10. Start asks once for notification permission with a one-line explainer on H5; denied → note "下车提醒要开着这个应用才收得到" (QA-21).
+11. Wake-lock note shows once per trip (QA-23).
+12. G3 and H12 content is keyboard-scrollable at 200 % (QA-24).
+13. Route home on H12 plans from where you are now (QA-25); any plan right after a trip starts from the trip's last position.
+14. A trip older than 24 h reloaded on /guide lands on H1 (QA-26).
+15. Version 0.2.0 in About / Report / SW (QA-27).
+16. New "全部步骤 / All steps" sheet from H5 (AC 12): remaining steps, current one marked, Back closes it.
+17. New demo controls panel in `?demo=1` on H5 (AC 50): buttons that play get-off alert, off route, weak GPS, skip to waypoint/arrival.
+
+**Fixed**
+- **QA-25 (S2)** `runtime.end()` sets `here` to the trip's last fix (≤ 15 min old), else clears it so the next plan locates afresh. H12 Route home → `api.route` start = the arrival position (QA check passes up to its own harness issue, below).
+- **QA-21 (AC 30)** New `platform.notifications` (`permission()` sync, `request()`); web wraps `Notification`, fake records requests. `runtime.start()` asks once ever (`howtogo.notify.asked`), synchronously inside the Start tap, with the trip note `notify-ask` while the prompt is up. Denied → note `notify-denied` "下车提醒要开着这个应用才收得到" (closable, per trip). Prompt dismissed without an answer → never asked again, no nag.
+- **QA-22 (AC 6)** `.steptx h2` 1.6rem = **32 px** on the 20 px root (the ruling's "2rem" assumes a 16 px root; 2rem here would be 40 px). `word-break:keep-all` + `overflow-wrap:break-word`, so 200 % breaks only at spaces/punctuation.
+- **QA-23 (AC 39)** the wake-lock note is set only on the first failure of a trip.
+- **QA-24 (AC 47)** G3 and H12 `main` get `tabIndex=0` (+ label on G3): axe clean at 200 %.
+- **QA-26 (AC 46)** `main.tsx`: no trip after resume while on `/guide` → `router.reset('/')`.
+- **QA-27** web 0.2.0 (`package.json`, `version.ts`, lockfile). The manifest has no version field.
+- **F1** `Step.say` (shared `guide.*` templates, exact Creative strings) drives the H5 headline, `step_changed` and every re-speak; H3/H4 keep `step.text`. Station codes ("(NS17)") are stripped from the spoken stop. Walk chip = `{stop} · {code}`.
+- **F2** walk sub-line minutes = `max(1, ceil(m / 67))`. **F3** H6/H6b titles as two `.ph` phrases; title size `min(2.4rem, 20vw)` (at 200 % a 96 px title cannot hold 到站了， on one 350 px line); 200 % H6b: bell 72 px, chip before line. **F4** chip text from the alighting stop's sign name + code (`sign`/`code` on the get-off cues and `AlertState`): "Raffles Place NS26 站". **F5** no 您 in zh cues (unit test). **F6** `!important` on the rm 120 ms fades. **F7** action labels nowrap at 100 %. **F12** the pocket view unmounts as soon as a sheet opens, so the End sheet scrim-fades over H5.
+- **AC 12** All-steps sheet (`sheet-all-steps`, a history entry) opened from the step counter "第 1 步，共 4 步 ›" (SR: "全部步骤，第 1 步，共 4 步"): remaining steps in the H4 timeline style, current one tagged 现在. A visible button in row C did not fit one line in en.
+- **AC 50** demo controls (`demo-controls`) at the bottom of H9 Help, only with `?demo=1` on a trip: 下车提醒, 走错了路, 位置不准, 跳到下一步, 直接到达.
+- Tests: shared +3 (say lines, no 您), web unit +8 (notify, wake note, here, walk minutes, note order), dev e2e +3 (AC 12, F1/F2, AC 50). Dev e2e `onboarded()` reports Notification permission as granted (headless Chromium says denied, which would put the denied note on every H5).
+
+**Not fixed (and why)**
+- QA check "AC 2 entry parity: arrival-route-home" still fails, **after** its QA-25 assertions pass: its second `runUntil(page, 'trip:arrived')` returns at once because the change-only log already holds `trip:arrived` from the first trip. Test harness issue → QA (qa/ is QA's).
+- QA's AC 12 and AC 50 checks are `test.fail` and look for visible text 全部步骤 on H5 / `demo-controls` on H1. Both features are built where the dev-log says; QA to replace those two checks.
+- Creative P2 F8 (step transition), F9 (nbsp in counts: QA regexes match plain spaces), F10, F11, F13 (missing baselines), F14/F15 (P3): polish round.
+
+**Baselines re-recorded (intentional, 12):** `M2-H5-walk-light-100-zh`, `-dark-100-zh`, `-light-200-zh`, `-light-100-en`, `M2-H5-ride-light-100-zh`, `M2-H5-manual-walk-light-100-zh`, `M2-H6-bus-light-200-zh`, `M2-H6-train-light-100-en`, `M2-H6b-bus-light-200-zh`, `M2-H6b-train-light-100-en`, `M2-H11-failed-light-100-zh` (H5 copy/size), `M2-H9-m2-trip-light-100-zh` (demo section). No M1 baseline changed.
+
+**Gate (`npm run gate`, once, c99e1c3, load 5–11 with the other worktree's Playwright):** 10 PASS, 2 FAIL. deps, typecheck, unit 352, i18n, build (app JS 95.4 KB gz / 150), static-pwa, platform-api, secrets, lighthouse (perf 83 / a11y 100 / bp 100), artifact `howtogo-web-0.2.0-dist.zip` sha256 `a2aa9cd8…5d93` PASS.
+- dev-e2e 105/106: `M2-H5-manual-walk-light-100-zh` failed under load; passes alone (just re-recorded).
+- qa-e2e 116/119: (1) `ac.spec` AC-42 expects `0.1.0` in the Report — needs QA update for QA-27; (2) `AC 2 … arrival-route-home` harness issue above; (3) `AC 13–17` follow-me timed out under load, passes alone. All QA-21…26 checks and the 200 %/axe checks pass.
+- The gate wrote `qa/reports/howtogo-web-0.2.0-dist.zip.sha256` (left untracked for QA; the M1 checksum file is untouched).
+
+**Next steps**
+1. QA: update AC-42 (version), the arrival-route-home `runUntil` (log already has `trip:arrived`), and replace the `test.fail` AC 12 / AC 50 checks; then targeted re-check.
+2. Creative: review the 12 re-recorded baselines (step counter as All-steps entry; H6b 200 % title size `min(2.4rem, 20vw)`); polish round F8–F11, F13–F15.
+3. Owner phone test (notification prompt at Start, Route home "从" = here).

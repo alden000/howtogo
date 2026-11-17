@@ -5,7 +5,7 @@
  *  - sessionStorage: the in-progress plan (from/to/options) so a reload on /routes works.
  */
 import { batch, effect, signal } from '@preact/signals';
-import type { GuidanceState, Itinerary, Lang, Place, RankedItinerary, RoutePreference } from '@howtogo/shared';
+import type { AlertState, GuidanceState, Itinerary, Journey, Lang, Place, RankedItinerary, RoutePreference, SegmentPlan } from '@howtogo/shared';
 import { local, readJSON, session, writeJSON, type KV } from './storage';
 
 export type UiLang = 'zh' | 'en';
@@ -29,6 +29,8 @@ export interface Settings {
   name: string;
   /** First-run language/size choice done (H1). */
   onboarded: boolean;
+  /** 震动提示: off silences all six haptics (6c.13). */
+  haptics: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 'auto',
   name: '',
   onboarded: false,
+  haptics: true,
 };
 
 export interface SavedPlaces {
@@ -64,6 +67,10 @@ export interface Plan {
   start?: Place;
   /** When the options were fetched. */
   fetchedAt?: number;
+  /** G2 multi-stop builder: places after the start (≤ 5), each with an optional dwell. */
+  stops?: Place[];
+  /** H4 journey: the planned multi-stop journey (from `runtime.planTrip`). */
+  journey?: Journey;
 }
 
 export interface ShareSession {
@@ -75,16 +82,43 @@ export interface ShareSession {
   status: 'travelling' | 'arrived' | 'paused' | 'help';
 }
 
+/** Multi-stop progress: segment k runs places[k] → places[k+1]. */
+export interface TripJourneyState {
+  segment: number;
+  /** Planned travel + dwell per segment (H4 estimate, total ETA). Index = segment. */
+  plans: SegmentPlan[];
+}
+
+/** guiding = H5 · waypoint = G3 (waiting for "continue") · arrived = H12. */
+export type TripPhase = 'guiding' | 'waypoint' | 'arrived';
+
 export interface ActiveTrip {
   id: string;
   /** [from, …waypoints, to]. */
   places: Place[];
+  /** Itinerary of the current segment. */
   itinerary: Itinerary;
+  /** Fixed at start (OQ10): steps and voice stay in this language. */
   lang: Lang;
+  /** Guidance of the current segment. */
   guidance: GuidanceState;
   startedAt: number;
   reroutes: number;
   share?: ShareSession;
+  // ---- M2 (all optional so a 0.1.0 stored trip still loads)
+  journey?: TripJourneyState;
+  phase?: TripPhase;
+  /** The get-off alert showing (survives a reload). */
+  alert?: AlertState | null;
+  /** When the current step was entered (MRT estimate). */
+  stepEnteredAt?: number;
+  /** Ride countdown floor for the current step (never counts up). */
+  stopsLeft?: number | null;
+  mrtStopsLeft?: number | null;
+  /** When the waypoint screen opened. */
+  waypointAt?: number;
+  /** Last write (resume diagnostics). */
+  updatedAt?: number;
 }
 
 export const MAX_RECENTS = 5;
@@ -122,7 +156,9 @@ export function createStore(kv: KV = local, ss: KV = session, opts: { tripWriteM
   disposers.push(
     effect(() => {
       const t = trip.value;
-      const key = t ? `${t.id}|${t.guidance.stepIndex}|${t.guidance.status}|${t.share?.id ?? ''}|${t.share?.status ?? ''}|${t.reroutes}` : '';
+      const key = t
+        ? `${t.id}|${t.guidance.stepIndex}|${t.guidance.status}|${t.share?.id ?? ''}|${t.share?.status ?? ''}|${t.reroutes}|${t.phase ?? ''}|${t.journey?.segment ?? 0}|${t.alert?.kind ?? ''}${t.alert?.escalated ? '!' : ''}`
+        : '';
       if (key !== lastKey || !t || Date.now() - lastWrite >= tripWriteMs) {
         lastKey = key;
         flushTrip();

@@ -2,7 +2,7 @@
  * F6 Settings (H13 extended to a full screen for M1) + its sheets (name, home, clear, install, report)
  * and the About & privacy screen. Voice/vibration rows stay hidden while flag `guide` is off.
  */
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { useServices, useT } from '../context';
 import { canInstall, promptInstall } from '../pwa/install';
 import { buildReport } from '../report';
@@ -70,8 +70,40 @@ export function DisplayRows() {
   );
 }
 
+/** H13 语音提示 / 震动提示 + 6c.11 "试听 / Test voice" (AC 24, 26). */
+function VoiceRows() {
+  const { runtime, platform, store, router } = useServices();
+  const t = useT();
+  const [voices, setVoices] = useState<{ zh: boolean; en: boolean } | null>(null);
+  useEffect(() => {
+    void platform.speech.voices().then(setVoices).catch(() => {});
+  }, []);
+  const lang = store.settings.value.lang;
+  const missing = voices && !(lang === 'en' ? voices.en : voices.zh);
+  return (
+    <>
+      <Seg name="muted" label={t('set_voice')} opts={[[false, t('on')], [true, t('off')]]} />
+      <div class="setrow">
+        <button type="button" class="btn btn-secondary small" data-testid="test-voice" onClick={() => runtime.testVoice()}>
+          <Icon name="speaker" />
+          {t('test_voice')}
+        </button>
+        {missing && (
+          <p class="t-caption" style={{ color: 'var(--c-ink-2)', margin: 'var(--s-2) 0 0' }} data-testid="no-zh-voice">
+            {t('no_zh_voice')}{' '}
+            <button type="button" class="btn-quiet" data-testid="voice-help" onClick={() => router.openSheet('voice-help')}>
+              {t('novoice_how')}
+            </button>
+          </p>
+        )}
+      </div>
+      <Seg name="haptics" label={t('set_vib')} opts={[[true, t('on')], [false, t('off')]]} />
+    </>
+  );
+}
+
 export function SettingsScreen() {
-  const { store, router } = useServices();
+  const { store, router, flags } = useServices();
   const t = useT();
   const s = store.settings.value;
   const home = store.places.value.home;
@@ -97,6 +129,7 @@ export function SettingsScreen() {
         </div>
         <h2 class="grp">{t('grp_display')}</h2>
         <DisplayRows />
+        {flags.has('guide') && <VoiceRows />}
         <h2 class="grp">{t('grp_history')}</h2>
         <Row icon="trash" label={t('clear_recent_row')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
         <h2 class="grp">{t('grp_app')}</h2>

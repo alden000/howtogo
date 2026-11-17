@@ -6,10 +6,14 @@ import {
   type HeadingApi,
   type LocationApi,
   type LocationFix,
+  type NotifyPermission,
   type Platform,
   type PlatformError,
   type RecognitionApi,
+  type SpeakOptions,
   type SpeechApi,
+  type PlatformCapabilities,
+  type VisibilityApi,
   type WakeLockApi,
 } from './types';
 
@@ -114,16 +118,26 @@ function createSpeech(): SpeechApi {
       await loaded();
       return { zh: !!pick('zh-CN'), en: !!pick('en-SG') };
     },
-    async speak(text: string, lang: Lang, priority: CuePriority) {
+    speak(text: string, lang: Lang, priority: CuePriority, opts: SpeakOptions = {}) {
       const s = synth();
-      if (muted || !s || !text) return;
+      if ((muted && !opts.force) || !s || !text) return Promise.resolve();
       if (priority === 'high') s.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = SPEECH_LANG_TAG[lang];
       const v = pick(lang);
       if (v) u.voice = v;
-      u.rate = 0.9; // slightly slower for elderly listeners (Creative may tune)
-      s.speak(u);
+      u.rate = lang === 'en-SG' ? 0.92 : 0.9; // STYLE-GUIDE §3: zh 0.9, en 0.92
+      return new Promise<void>((resolve) => {
+        // Some engines never fire `end`: fall back to a generous length-based timeout.
+        const fallback = setTimeout(resolve, 3000 + text.length * 250);
+        const done = () => {
+          clearTimeout(fallback);
+          resolve();
+        };
+        u.onend = done;
+        u.onerror = done;
+        s.speak(u);
+      });
     },
     async cancel() {
       synth()?.cancel();
@@ -138,16 +152,29 @@ function createSpeech(): SpeechApi {
 function createWakeLock(): WakeLockApi {
   let wanted = false;
   let sentinel: WakeLockSentinel | null = null;
-  const request = async (): Promise<boolean> => {
-    try {
-      if (!g.navigator.wakeLock) return false;
-      sentinel = await g.navigator.wakeLock.request('screen');
-      sentinel.addEventListener('release', () => (sentinel = null));
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  let inflight: Promise<boolean> | null = null;
+  const request = (): Promise<boolean> =>
+    (inflight ??= (async () => {
+      await Promise.resolve(); // let `inflight` be assigned before `finally` clears it
+      try {
+        if (!g.navigator.wakeLock) return false;
+        if (g.document?.visibilityState === 'hidden') return false;
+        const got = await g.navigator.wakeLock.request('screen');
+        got.addEventListener('release', () => {
+          if (sentinel === got) sentinel = null;
+        });
+        if (!wanted) {
+          await got.release().catch(() => {});
+          return false;
+        }
+        sentinel = got;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        inflight = null;
+      }
+    })());
   g.document?.addEventListener('visibilitychange', () => {
     if (wanted && !sentinel && g.document.visibilityState === 'visible') void request();
   });
@@ -241,10 +268,29 @@ function createRecognition(): RecognitionApi | undefined {
   };
 }
 
+function detectCapabilities(): PlatformCapabilities {
+  const nav = g.navigator as Navigator | undefined;
+  const ua = nav?.userAgent ?? '';
+  // iPadOS reports a Mac UA; touch points give it away.
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (nav?.maxTouchPoints ?? 0) > 1);
+  return { backgroundGuidance: false, speechNeedsGesture: ios, os: ios ? 'ios' : /Android/.test(ua) ? 'android' : 'other' };
+}
+
+const visibility: VisibilityApi = {
+  isVisible: () => g.document?.visibilityState !== 'hidden',
+  onChange(cb) {
+    const h = () => cb(g.document.visibilityState !== 'hidden');
+    g.document?.addEventListener('visibilitychange', h);
+    return () => g.document?.removeEventListener('visibilitychange', h);
+  },
+};
+
 export function createWebPlatform(): Platform {
   const battery = createBattery();
   const p: Platform = {
     kind: 'web',
+    capabilities: detectCapabilities(),
+    visibility,
     location,
     heading,
     speech: createSpeech(),
@@ -255,6 +301,23 @@ export function createWebPlatform(): Platform {
       } catch {
         /* unsupported (iOS) */
       }
+    },
+    notifications: {
+      permission() {
+        try {
+          return typeof Notification === 'undefined' ? 'unsupported' : (Notification.permission as NotifyPermission);
+        } catch {
+          return 'unsupported';
+        }
+      },
+      async request() {
+        try {
+          if (typeof Notification === 'undefined' || typeof Notification.requestPermission !== 'function') return 'unsupported';
+          return (await Notification.requestPermission()) as NotifyPermission;
+        } catch {
+          return 'denied';
+        }
+      },
     },
     async notify(cue) {
       // Web: only when hidden; the visible UI shows cues itself.

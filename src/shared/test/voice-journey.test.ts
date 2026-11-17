@@ -22,7 +22,7 @@ describe('cueToSpeech', () => {
   it('core phrases', () => {
     expect(cueToSpeech(cue('get_off_next_stop', { mode: 'train' }), 'zh-CN')).toBe('下一站下车。');
     expect(cueToSpeech(cue('get_off_next_stop', { mode: 'train' }), 'en-SG')).toBe('Get off at the next stop.');
-    expect(cueToSpeech(cue('get_off_now'), 'zh')).toBe('现在下车。');
+    expect(cueToSpeech(cue('get_off_now'), 'zh')).toBe('到站了，请下车。');
     expect(cueToSpeech(cue('turn', { direction: 'left', street: 'Lorong 1' }), 'en')).toBe('Turn left onto Lorong 1.');
     expect(cueToSpeech(cue('turn', { direction: 'right' }), 'en')).toBe('Turn right.');
     expect(cueToSpeech(cue('transfer', { mode: 'bus', route: '97' }), 'zh-CN')).toBe('请在这里换乘 97 号巴士。');

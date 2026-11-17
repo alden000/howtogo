@@ -1,6 +1,6 @@
 // QA suite (qa/tests) against the release build (qa/.out/dist) served by `vite preview`.
 import { defineConfig, devices } from '@playwright/test';
-const PORT = Number(process.env.QA_PORT ?? 4174);
+const PORT = Number(process.env.QA_PORT ?? 4184);
 export default defineConfig({
   testDir: 'tests',
   outputDir: '.out/qa-results',

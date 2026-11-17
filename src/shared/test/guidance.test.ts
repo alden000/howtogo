@@ -88,8 +88,8 @@ describe('guidance over simulated trips (all fixtures, several seeds)', () => {
       '3:arrived_destination',
     ]);
     const nextStop = cues.find((c) => c.type === 'get_off_next_stop')!;
-    expect(cueToSpeech(nextStop, 'zh-CN')).toBe('下一站下车，请按铃。');
-    expect(cueToSpeech(nextStop, 'en')).toBe('Get off at the next stop. Press the bell now.');
+    expect(cueToSpeech(nextStop, 'zh-CN')).toBe('下一站下车。');
+    expect(cueToSpeech(nextStop, 'en')).toBe('Get off at the next stop.');
     expect(cues.find((c) => c.type === 'get_off_now')!.priority).toBe('high');
   });
 
@@ -135,7 +135,7 @@ describe('off-route detection', () => {
     // declared on the 3rd far fix, not before
     expect(r.states[lastWalkStart + 1]!.status).toBe('active');
     expect(r.states[lastWalkStart + 2]!.status).toBe('off_route');
-    expect(toSharePayload(r.states[lastWalkStart + 5]!)!.status).toBe('off_route');
+    expect(toSharePayload(r.states[lastWalkStart + 5]!)!.status).toBe('travelling'); // Worker contract: off route is still travelling
   });
 
   it('two far fixes are not enough; poor-accuracy far fixes do not count', () => {
@@ -195,10 +195,10 @@ describe('GPS weak handling', () => {
     // position frozen at the last good fix during the spell
     expect(r.states[30]!.fix).toEqual(fixes[19]);
     expect(r.states[30]!.gpsWeak).toBe(true);
-    expect(toSharePayload(r.states[30]!)!.status).toBe('gps_weak');
+    expect(toSharePayload(r.states[30]!)!.status).toBe('travelling'); // Worker contract: weak GPS is still travelling
     expect(r.states[45]!.gpsWeak).toBe(false);
     expect(r.state.status).toBe('arrived');
-    expect(cueToSpeech(weak[0]!, 'zh-CN')).toBe('定位信号弱，请看屏幕上的步骤。');
+    expect(cueToSpeech(weak[0]!, 'zh-CN')).toBe('位置不太准，跟着站牌走。');
   });
 
   it('NaN coordinates are treated as weak, not as a position', () => {
@@ -260,10 +260,10 @@ describe('share payload', () => {
     expect(toSharePayload(s)).toBeNull();
     s = guidanceReducer(s, { type: 'fix', fix: { lat: 1.36721, lng: 103.84381, acc: 7.4, heading: 135.6, speed: 1.04, t: it0.startTime } });
     const p = toSharePayload(s)!;
-    expect(p).toMatchObject({ lat: 1.36721, lng: 103.84381, acc: 7, heading: 136, speed: 1, status: 'active' });
+    expect(p).toMatchObject({ lat: 1.36721, lng: 103.84381, acc: 7, heading: 136, speed: 1, status: 'travelling', updatedAt: it0.startTime });
     expect(p.etaISO).toMatch(/Z$/);
     expect(p.stepText).toBe('步行到巴士站 Blk 215（54261）');
-    expect(Object.keys(p).sort()).toEqual(['acc', 'etaISO', 'heading', 'lat', 'lng', 'speed', 'status', 'stepText']);
+    expect(Object.keys(p).sort()).toEqual(['acc', 'etaISO', 'heading', 'lat', 'lng', 'speed', 'status', 'stepText', 'updatedAt']);
   });
 });
 

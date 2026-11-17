@@ -49,7 +49,10 @@ if (existsSync(dist)) walk(dist, true); else findings.push(`dist missing: ${dist
 // wrangler.toml: [vars] must not hold credentials, ids must be placeholders.
 const wt = readFileSync(join(root, 'src/worker/wrangler.toml'), 'utf8');
 if (/^\s*(ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY)\s*=/m.test(wt)) findings.push('wrangler.toml: credential in [vars]');
-for (const m of wt.matchAll(/^\s*id\s*=\s*"([^"]*)"/gm)) if (/^[0-9a-f]{32}$/.test(m[1])) findings.push('wrangler.toml: real-looking KV id (not a secret, but confirm intended)');
+// KV namespace ids are not secrets (Director ruling, M2 gate): the reviewed TOKEN_KV id is allow-listed.
+// Any other real-looking id still needs QA review before it is added here.
+const KV_ID_OK = new Set(['0dc8a4714f234b5bb8d23ffe36cb2107']);
+for (const m of wt.matchAll(/^\s*id\s*=\s*"([^"]*)"/gm)) if (/^[0-9a-f]{32}$/.test(m[1]) && !KV_ID_OK.has(m[1])) findings.push('wrangler.toml: real-looking KV id (not a secret, but confirm intended)');
 // Files that must never be tracked.
 import { execSync } from 'node:child_process';
 const tracked = execSync('git ls-files', { cwd: root }).toString().split('\n');
