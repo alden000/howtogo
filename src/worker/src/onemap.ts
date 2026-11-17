@@ -4,9 +4,10 @@ import { HttpError, UpstreamError } from "./http";
 export const ONEMAP_BASE = "https://www.onemap.gov.sg";
 export const TOKEN_URL = `${ONEMAP_BASE}/api/auth/post/getToken`;
 export const TOKEN_KV_KEY = "onemap:token";
-/** Renew when less than this is left on the token (tokens last ~3 days). */
-export const RENEW_BEFORE_MS = 6 * 60 * 60 * 1000;
-const UPSTREAM_TIMEOUT_MS = 10_000;
+/** Renew when less than this is left on the token (tokens last ~3 days). AC 15: < 12 h. */
+export const RENEW_BEFORE_MS = 12 * 60 * 60 * 1000;
+/** AC 19: upstream timeout 8 s. */
+export const UPSTREAM_TIMEOUT_MS = 8_000;
 
 interface TokenRecord {
   token: string;

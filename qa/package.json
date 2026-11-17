@@ -1,0 +1,11 @@
+{
+  "name": "howtogo-qa",
+  "private": true,
+  "version": "0.1.0",
+  "description": "QA-only tooling (not part of the root workspace).",
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.63.0",
+    "lighthouse": "12.8.2"
+  }
+}

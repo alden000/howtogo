@@ -46,6 +46,7 @@ describe("GET /api/search", () => {
     await call("/api/search?q=Toa%20Payoh");
     const res = await call("/api/search?q=toa%20%20payoh%20");
     expect(res.headers.get("X-Cache")).toBe("HIT");
+    expect(res.headers.get("Cache-Control")).toBe("private, max-age=86400");
     expect(calls).toHaveLength(1);
   });
 
@@ -71,7 +72,7 @@ describe("GET /api/search", () => {
 
 describe("GET /api/route", () => {
   const q = "start=1.351019,103.850057&end=1.30008,103.84552&date=11-17-2026&time=10:15:00&mode=TRANSIT&numItineraries=3";
-  it("passes the raw OneMap body through and caches for 60 s", async () => {
+  it("passes the raw OneMap body through and caches for 2 min (AC 17)", async () => {
     const raw = JSON.stringify(route);
     const { calls } = stubFetch(() => jsonRes(raw));
     const r1 = await call(`/api/route?${q}`);
@@ -79,6 +80,7 @@ describe("GET /api/route", () => {
     const r2 = await call(`/api/route?${q.replace("10:15:00", "10:15:42").replace("1.351019", "1.351022")}`);
     expect(r2.headers.get("X-Cache")).toBe("HIT");
     expect(await r2.text()).toBe(raw);
+    expect(r1.headers.get("Cache-Control")).toBe("private, max-age=120");
     expect(calls).toHaveLength(1);
   });
   it("400 for out-of-bbox coordinates, without calling upstream", async () => {
@@ -112,7 +114,8 @@ describe("GET /api/revgeocode", () => {
       address: "51 Bishan Street 13 Bishan Community Club Singapore 579799",
       postal: "579799",
     });
-    expect(calls[0]!.url.searchParams.get("location")).toBe("1.3499,103.8471");
+    expect(calls[0]!.url.searchParams.get("location")).toBe("1.34989,103.84706");
+    expect(res.headers.get("Cache-Control")).toBe("private, max-age=3600");
     expect(calls[0]!.url.searchParams.get("buffer")).toBe("50");
     expect(calls[0]!.url.searchParams.get("addressType")).toBe("All");
   });

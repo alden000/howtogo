@@ -1,13 +1,20 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="auto">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>怎么去?</title>
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- TODO-creative: theme-color values (light/dark), apple-touch-icon, favicon -->
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <!-- Logo B master icons (creative/logo/final/, Director ruling 5). theme-color = c-canvas light/dark (STYLE-GUIDE §1.1). -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <meta name="theme-color" content="#FBF5EC" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14110E" media="(prefers-color-scheme: dark)" />
+    <!-- Fonts (§1.2): Google Fonts, display=swap, weights 400/700/900 only. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="app"></div>

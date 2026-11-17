@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resetMemoryCache } from "../src/cache";
-import { TOKEN_KV_KEY, getOneMapToken, parseExpiry, resetTokenCache } from "../src/onemap";
+import { RENEW_BEFORE_MS, TOKEN_KV_KEY, getOneMapToken, parseExpiry, resetTokenCache } from "../src/onemap";
 import route from "./fixtures/onemap-route.json";
 import { call, jsonRes, stubFetch, tokenResponse } from "./helpers";
 
@@ -49,11 +49,19 @@ describe("OneMap token manager", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("renews when less than 6 h are left", async () => {
-    await env.TOKEN_KV.put(TOKEN_KV_KEY, JSON.stringify({ token: "old", expiresAt: Date.now() + 5 * 3600_000 }));
+  it("renews when less than 12 h are left (AC 15)", async () => {
+    expect(RENEW_BEFORE_MS).toBe(12 * 3600_000);
+    await env.TOKEN_KV.put(TOKEN_KV_KEY, JSON.stringify({ token: "old", expiresAt: Date.now() + 11.5 * 3600_000 }));
     const { calls } = stubFetch(() => tokenResponse("new"));
     expect(await getOneMapToken(env)).toBe("new");
     expect(calls).toHaveLength(1);
+  });
+
+  it("keeps a token with just over 12 h left", async () => {
+    await env.TOKEN_KV.put(TOKEN_KV_KEY, JSON.stringify({ token: "old", expiresAt: Date.now() + 12.5 * 3600_000 }));
+    const { calls } = stubFetch(() => tokenResponse("new"));
+    expect(await getOneMapToken(env)).toBe("old");
+    expect(calls).toHaveLength(0);
   });
 
   it("falls back to a not-yet-expired token if renewal fails", async () => {

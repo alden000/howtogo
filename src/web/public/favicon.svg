@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="怎么去?">
+  <title>怎么去?</title>
+  <rect width="512" height="512" rx="96" fill="#9A3412"/>
+  <g class="qu ">
+    <path class="qu-v" d="M256 64V192" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="64"/>
+    <path class="qu-h1" d="M192 96H320" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="64"/>
+    <path class="qu-h2" d="M96 192H416" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="64"/>
+    <path class="qu-path" d="M256 288L160 416H288" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="64"/>
+    <circle class="qu-dot" cx="384" cy="408" r="48" fill="#FFD23F"/>
+  </g>
+</svg>

@@ -9,7 +9,7 @@
  */
 import { signal, computed } from '@preact/signals';
 import { log } from '../log';
-import { matchRoute, STANDALONE, type RouteMatch } from './routes';
+import { matchRoute, ROOTS, STANDALONE, type RouteMatch } from './routes';
 
 export interface NavState {
   howtogo: 1;
@@ -29,6 +29,10 @@ export interface Router {
   navigate(path: string, opts?: { replace?: boolean }): void;
   openSheet(name: string, data?: unknown): void;
   closeSheet(): void;
+  /** Swap the open sheet for another in the same history entry (e.g. explainer → denied help). */
+  replaceSheet(name: string, data?: unknown): void;
+  /** Drop the whole in-app stack and land on `path` as the new root (first run done). */
+  reset(path: string): void;
   back(): void;
   dispose(): void;
 }
@@ -40,7 +44,7 @@ export function createRouter(win: Window = window): Router {
   // Seed history on first load.
   if (!isNav(h.state)) {
     const m = matchRoute(href());
-    if (m.name !== 'home' && !STANDALONE.has(m.name)) {
+    if (!ROOTS.has(m.name) && !STANDALONE.has(m.name)) {
       const target = href();
       h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', '/');
       h.pushState({ howtogo: 1, idx: 1 } satisfies NavState, '', target);
@@ -95,9 +99,29 @@ export function createRouter(win: Window = window): Router {
     closeSheet() {
       if (state.value.sheet) h.back();
     },
+    replaceSheet(name, data) {
+      const next: NavState = { howtogo: 1, idx: state.value.idx, sheet: name };
+      if (data !== undefined) next.sheetData = data;
+      h.replaceState(next, '', href());
+      sync();
+    },
+    reset(path) {
+      const n = state.value.idx;
+      const land = () => {
+        h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', path);
+        sync();
+      };
+      if (n <= 0) return land();
+      const once = () => {
+        win.removeEventListener('popstate', once, true);
+        land();
+      };
+      win.addEventListener('popstate', once, true);
+      h.go(-n);
+    },
     back() {
       if (state.value.idx > 0) h.back();
-      else if (route.value.name !== 'home' && !STANDALONE.has(route.value.name)) {
+      else if (!ROOTS.has(route.value.name) && !STANDALONE.has(route.value.name)) {
         h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', '/');
         sync();
       }

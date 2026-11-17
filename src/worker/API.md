@@ -1,19 +1,23 @@
 # 怎么去? Worker API (v1)
 
-Base: same origin as the PWA (`/api/*`, via a Worker route or Pages Function), or the Worker's own domain.
+Base: same origin as the PWA. D-10: ONE Worker (`howtogo`) serves the PWA from Workers Static Assets (`src/web/dist`, SPA fallback, headers from `src/web/public/_headers`) and runs Worker code only for `/api/*` (`run_worker_first`). The PWA calls relative `/api/...` (`VITE_API_BASE` empty).
 All responses are JSON (`application/json; charset=utf-8`) unless noted.
 
 ## Common rules
 - **Errors:** `{"error":{"code":"<machine_code>","message":"<plain sentence>"}}`. Messages are plain English; the PWA should map `code` to its own zh/en text.
-- **Upstream failure** (OneMap/LTA down, timeout after 10 s, non-2xx, bad JSON, token renewal failed): `502 {"error":{"code":"upstream_unavailable",...}}`. Upstream bodies are never forwarded.
+- **Upstream failure** (OneMap/LTA down, timeout after 8 s, non-2xx, bad JSON, token renewal failed): `502 {"error":{"code":"upstream_unavailable",...}}`. Upstream bodies are never forwarded.
 - **Not configured** (secret missing): `503 not_configured`.
 - **CORS:** only origins in `ALLOWED_ORIGINS` get `Access-Control-Allow-Origin`. A request carrying any other `Origin` gets `403 origin_not_allowed`. Requests without `Origin` (same-origin GET, curl) are allowed.
 - **Singapore bbox** (all coordinate inputs): lat 1.13–1.48, lng 103.59–104.10 → otherwise `400 out_of_bounds`.
 - `X-Cache: HIT|MISS` tells whether the Worker cache answered.
+- **Rate limit (AC 20):** `/api/search`, `/api/route`, `/api/revgeocode`, `/api/bus-arrival`, `/api/alerts` allow **60 requests per minute per IP** (sliding window, kept in each isolate's memory, so the effective limit is per IP per isolate). Over the limit → `429 {"error":{"code":"rate_limited",...}}` with `Retry-After: <seconds>`. `/api/health` and `/api/share*` are not counted (share writes have their own 3 s limit; "help" must never be blocked). IPs are hashed with a random per-isolate salt, never logged, and forgotten when the window passes. Requests without `CF-Connecting-IP` (local dev) are not limited.
 - Other codes: `400 invalid_*` / `missing_query`, `404 not_found`, `405 method_not_allowed`, `413 payload_too_large` (bodies > 4 KB), `500 internal_error`.
 
+## GET /api/health
+`{"ok":true,"fixtureMode":true|false}`, `Cache-Control: no-store`, not rate-limited. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
+
 ## GET /api/search?q=
-OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 1 day per lower-cased, whitespace-collapsed query.
+OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 24 h per lower-cased, whitespace-collapsed query (`Cache-Control: private, max-age=86400`).
 ```json
 {"results":[{"name":"Bishan MRT Station","address":"17 Bishan Place Bishan MRT Station Singapore 579842","postal":"579842","lat":1.351018,"lng":103.850057}]}
 ```
@@ -24,11 +28,11 @@ OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 1 d
 `?start=lat,lng&end=lat,lng&date=MM-DD-YYYY&time=HH:MM:SS&mode=TRANSIT|BUS|RAIL&maxWalkDistance=<0..5000>&numItineraries=<1..5>`
 - `date`/`time` default to now in Singapore time; `mode` defaults to TRANSIT; `numItineraries` to 3; `maxWalkDistance` omitted if absent.
 - Proxies OneMap `api/public/routingsvc/route?routeType=pt&...` and returns the **raw OneMap JSON body unchanged** (the shared engine normalises it). Note: OneMap may answer 200 with an error object (e.g. no route); that is passed through too.
-- Cached 60 s keyed on coords rounded to 4 dp (~11 m), date, time truncated to the minute, mode, maxWalkDistance, numItineraries.
+- Cached 2 min (`max-age=120`) keyed on coords rounded to 4 dp (~11 m), date, time truncated to the minute, mode, maxWalkDistance, numItineraries.
 - Errors: `invalid_coordinates`, `out_of_bounds`, `invalid_date`, `invalid_time`, `invalid_mode`, `invalid_max_walk`, `invalid_num_itineraries`.
 
 ## GET /api/revgeocode?lat=&lng=
-OneMap revgeocode (`buffer=50&addressType=All`); the location is rounded to 4 dp before it is sent and cached (1 day).
+OneMap revgeocode (`buffer=50&addressType=All`); the location is rounded to 5 dp before it is sent and cached (1 h, `max-age=3600`).
 ```json
 {"name":"Bishan Community Club","address":"51 Bishan Street 13 Bishan Community Club Singapore 579799","postal":"579799"}
 ```
@@ -89,5 +93,14 @@ Reconnect with backoff. If the reconnect gets 404 or 410, show "trip ended". No 
 ### DELETE /api/share/:id   (Authorization: Bearer <ownerToken>)
 → `204`. The position is deleted immediately. A tombstone without coordinates is kept so viewers get `410 share_ended`, and the alarm deletes all storage at `expiresAt`.
 
+## Fixture mode (AC 21, dev/QA only)
+With `FIXTURE_MODE=1` (`npm run dev:fixtures -w @howtogo/worker`, i.e. `wrangler dev --var FIXTURE_MODE:1`) no credentials are needed and nothing is sent upstream. Input validation still applies. Responses carry `X-Fixture: 1` and `Cache-Control: no-store`.
+- `/api/route`: one of 5 SYNTHETIC OneMap plans (3 from `@howtogo/shared/fixtures`, 2 in `src/worker/fixtures/trips.ts`): Toa Payoh → TTSH, Bishan → Raffles Place, Ang Mo Kio → TTSH, Jurong East → NUH, Bedok → Changi General Hospital. The trip whose destination (then origin) is nearest the request is picked (`X-Fixture-Trip: <name>`) and re-timed to start at the requested date/time.
+- `/api/search`: the 9 fixture places, matched on name, address, postal code or Chinese alias (e.g. `陈笃生`, `樟宜`).
+- `/api/revgeocode`: the nearest fixture place.
+- `/api/bus-arrival`: the BusArrival v3 fixture for any stop, times moved so buses arrive in the next minutes.
+- `/api/alerts`: `normal`.
+Never set `FIXTURE_MODE` in the production `wrangler.toml`. Without it and without credentials, route/revgeocode answer `503 not_configured`.
+
 ## Privacy
-No coordinates, tokens, credentials or IPs are logged. Logs carry only an event name, the upstream path and the status. Share state lives only in its Durable Object and is deleted at end or expiry.
+No coordinates, tokens, credentials or IPs are logged. Logs carry only an event name, the upstream path and the status (checked by `test/logs.test.ts`, AC 18). Share state lives only in its Durable Object and is deleted at end or expiry.

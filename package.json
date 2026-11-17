@@ -2,9 +2,16 @@
   "name": "howtogo",
   "private": true,
   "version": "0.0.0",
-  "workspaces": ["src/shared", "src/web", "src/worker"],
+  "workspaces": [
+    "src/shared",
+    "src/web",
+    "src/worker"
+  ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "gate": "bash qa/gate.sh",
+    "build:release": "VITE_API_BASE= npm run build -w @howtogo/web",
+    "deploy:preview": "npm run build:release && cd src/worker && npx wrangler deploy"
   }
 }

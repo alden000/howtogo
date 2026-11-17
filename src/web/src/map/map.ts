@@ -18,7 +18,7 @@ export function loadMapLibre(): Promise<MapLibre> {
   return loading;
 }
 
-/** TODO-creative: every token below must be defined in the style guide's CSS. */
+/** Every token read here is defined in styles/tokens.css. */
 const FALLBACK = '#888888';
 export function cssColor(el: Element, token: string): string {
   const v = getComputedStyle(el).getPropertyValue(`--${token}`).trim();
@@ -30,6 +30,11 @@ export interface MapOptions {
   reducedMotion: boolean;
   /** Interactive gestures (false for small previews). */
   interactive?: boolean;
+  /**
+   * Where the OneMap attribution goes. It is kept outside the aria-hidden map node (QA-7: no focusable
+   * content inside aria-hidden) and pinned at the top so it stays on screen on short viewports (QA-12).
+   */
+  attributionHost?: HTMLElement;
 }
 
 export interface PuckInput {
@@ -75,6 +80,35 @@ export function stepsToFeatures(steps: Step[], el: Element): GeoJSON.FeatureColl
   };
 }
 
+/** Stops where the user boards or gets off, plus the destination. Colours from map tokens (tokens.css). */
+export function stepsToMarks(steps: Step[], el: Element): GeoJSON.FeatureCollection {
+  const pt = (p: LatLng, kind: 'stop' | 'dest') => ({
+    type: 'Feature' as const,
+    properties: { kind, fill: cssColor(el, kind === 'dest' ? 'dest-fill' : 'stop-fill'), ring: cssColor(el, kind === 'dest' ? 'dest-ring' : 'stop-ring') },
+    geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] },
+  });
+  const rides = steps.filter((s) => s.kind.startsWith('ride') && s.geometry.length >= 1);
+  const features = rides.flatMap((s) => [pt(s.start, 'stop'), pt(s.end, 'stop')]);
+  const last = steps[steps.length - 1];
+  if (last) features.push(pt(last.end, 'dest'));
+  return { type: 'FeatureCollection', features };
+}
+
+/** "walk=2 transit=1 stops=2 dest=1": the counts of drawn lines and markers (AC 38 log hook). */
+export function routeSummary(lines: GeoJSON.FeatureCollection, marks: GeoJSON.FeatureCollection): string {
+  const n = (fc: GeoJSON.FeatureCollection, k: string, v: (p: Record<string, unknown>) => boolean) => `${k}=${fc.features.filter((f) => v(f.properties ?? {})).length}`;
+  return [
+    n(lines, 'walk', (p) => p.mode === 'walk'),
+    n(lines, 'transit', (p) => p.mode !== 'walk'),
+    n(marks, 'stops', (p) => p.kind === 'stop'),
+    n(marks, 'dest', (p) => p.kind === 'dest'),
+  ].join(' ');
+}
+
+/** Line widths in CSS px (map-only; the prototype's SVG map draws bus/MRT 16 and casing 26 at its own scale). */
+const ROUTE_W = 6;
+const CASE_EXTRA = 4;
+
 function baseStyle(dark: boolean): StyleSpecification {
   return {
     version: 8,
@@ -109,8 +143,18 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     interactive: opts.interactive ?? true,
     pitchWithRotate: false,
   });
-  map.addControl(new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION }), 'bottom-left');
+  const attribution = new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION });
+  const host = opts.attributionHost;
+  if (host) {
+    host.appendChild(attribution.onAdd(map));
+    // AC 44: every visible control has a test id. MapLibre sanitises the attribution HTML, so tag its links here.
+    const tag = () => host.querySelectorAll('a').forEach((a, i) => a.getAttribute('data-testid') || a.setAttribute('data-testid', `attrib-link-${i}`));
+    new MutationObserver(tag).observe(host, { subtree: true, childList: true });
+    tag();
+  }
+  else map.addControl(attribution, 'bottom-left');
   container.setAttribute('aria-hidden', 'true'); // the step list is the accessible source of truth (M1 AC 40)
+  map.getCanvas().setAttribute('tabindex', '-1'); // QA-7: nothing focusable inside the aria-hidden map
 
   const follow = signal<FollowMode>('follow');
   let lastPuck: PuckInput | null = null;
@@ -124,9 +168,15 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     if (map.getSource('route')) return;
     map.addSource('route', { type: 'geojson', data: EMPTY });
     map.addSource('puck', { type: 'geojson', data: EMPTY });
-    const w = Number(getComputedStyle(container).getPropertyValue('--route-line-width')) || 6; // TODO-creative
+    map.addSource('marks', { type: 'geojson', data: EMPTY });
+    const w = ROUTE_W;
+    // Casing under transit lines (prototype .m-route-case: surface colour).
+    map.addLayer({ id: 'route-case', type: 'line', source: 'route', filter: ['!=', ['get', 'mode'], 'walk'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': cssColor(container, 'route-case'), 'line-width': w + CASE_EXTRA } });
     map.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['==', ['get', 'mode'], 'walk'], layout: { 'line-cap': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': w, 'line-dasharray': [1, 1.5] } });
     map.addLayer({ id: 'route-transit', type: 'line', source: 'route', filter: ['!=', ['get', 'mode'], 'walk'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': w } });
+    // Boarding/alighting stops (.m-stop) and the saffron destination dot (.m-dest; never a teardrop pin, §1.4).
+    map.addLayer({ id: 'mark-stop', type: 'circle', source: 'marks', filter: ['==', ['get', 'kind'], 'stop'], paint: { 'circle-radius': 6, 'circle-color': ['get', 'fill'], 'circle-stroke-width': 3, 'circle-stroke-color': ['get', 'ring'] } });
+    map.addLayer({ id: 'mark-dest', type: 'circle', source: 'marks', filter: ['==', ['get', 'kind'], 'dest'], paint: { 'circle-radius': 10, 'circle-color': ['get', 'fill'], 'circle-stroke-width': 3, 'circle-stroke-color': ['get', 'ring'] } });
     map.addLayer({ id: 'puck-acc', type: 'fill', source: 'puck', filter: ['==', ['get', 'kind'], 'acc'], paint: { 'fill-color': cssColor(container, 'puck-accuracy'), 'fill-opacity': 0.2 } });
     map.addLayer({ id: 'puck-cone', type: 'fill', source: 'puck', filter: ['==', ['get', 'kind'], 'cone'], paint: { 'fill-color': cssColor(container, 'puck'), 'fill-opacity': 0.35 } });
     map.addLayer({ id: 'puck-dot', type: 'circle', source: 'puck', filter: ['==', ['get', 'kind'], 'dot'], paint: { 'circle-radius': 9, 'circle-color': cssColor(container, 'puck'), 'circle-stroke-width': 3, 'circle-stroke-color': cssColor(container, 'puck-ring') } });
@@ -149,6 +199,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
 
   await ready;
   addOverlays();
+  log('map:ready');
 
   function renderPuck() {
     const src = map.getSource('puck') as GeoJSONSource | undefined;
@@ -172,7 +223,28 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     follow,
     setRoute(steps: Step[]) {
       routeSteps = steps;
-      (map.getSource('route') as GeoJSONSource | undefined)?.setData(stepsToFeatures(steps, container));
+      const lines = stepsToFeatures(steps, container);
+      const marks = stepsToMarks(steps, container);
+      (map.getSource('route') as GeoJSONSource | undefined)?.setData(lines);
+      (map.getSource('marks') as GeoJSONSource | undefined)?.setData(marks);
+      // AC 38 test hook: what was drawn (walk = dashed layer, transit = solid layer over a casing). No coordinates.
+      log(`map:route ${routeSummary(lines, marks)}`);
+      if (map.getLayer('route-case')) map.setPaintProperty('route-case', 'line-color', cssColor(container, 'route-case'));
+    },
+    /** Static "you are here" dot + accuracy circle for the route overview (AC 39). Never moves the camera. */
+    showMe(p: PuckInput) {
+      lastPuck = p;
+      renderPuck();
+      log(`map:me acc=${p.acc && p.acc > 5 ? 'circle' : 'none'}`);
+    },
+    /** Overview recentre button: centre on the dot (AC 39). */
+    centerOnMe() {
+      if (!lastPuck) return;
+      map.easeTo({ center: [lastPuck.pos.lng, lastPuck.pos.lat], zoom: Math.max(map.getZoom(), 16), duration });
+      log('map:centre-me');
+    },
+    resize() {
+      map.resize();
     },
     /** Snapped position + heading. Moves the camera only while following. */
     setPuck(p: PuckInput) {

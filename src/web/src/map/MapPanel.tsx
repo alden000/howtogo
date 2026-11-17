@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { LatLng, Step } from '@howtogo/shared';
 import { useServices, useT } from '../context';
 import type { MapController } from './map';
+import { Icon } from '../ui/kit';
 
 export interface MapPanelProps {
   steps: Step[];
@@ -13,6 +14,10 @@ export interface MapPanelProps {
   puck?: { pos: LatLng; acc?: number; heading?: number | null } | null;
   /** Changes when the guidance step changes → follow-me resumes. */
   stepIndex?: number;
+  /** Route overview: static my-location dot + accuracy circle and a recentre button (AC 39). */
+  me?: { pos: LatLng; acc?: number } | null;
+  /** Route overview: 56 px "Bigger map" toggle (AC 41). */
+  toggle?: boolean;
 }
 
 export function isDark(theme: 'auto' | 'light' | 'dark'): boolean {
@@ -20,10 +25,12 @@ export function isDark(theme: 'auto' | 'light' | 'dark'): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-export function MapPanel({ steps, puck, stepIndex }: MapPanelProps) {
+export function MapPanel({ steps, puck, stepIndex, me, toggle }: MapPanelProps) {
   const { store } = useServices();
   const t = useT();
   const el = useRef<HTMLDivElement>(null);
+  const attrib = useRef<HTMLDivElement>(null);
+  const [big, setBig] = useState(false);
   const [ctl, setCtl] = useState<MapController | null>(null);
   const [failed, setFailed] = useState(false);
   const dark = isDark(store.settings.value.theme);
@@ -31,9 +38,9 @@ export function MapPanel({ steps, puck, stepIndex }: MapPanelProps) {
   useEffect(() => {
     let c: MapController | null = null;
     let dead = false;
-    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = document.documentElement.classList.contains('rm'); // OS setting or H13 override (main.tsx)
     import('./map')
-      .then((m) => m.createMapController(el.current!, { dark, reducedMotion: reduced }))
+      .then((m) => m.createMapController(el.current!, { dark, reducedMotion: reduced, attributionHost: attrib.current! }))
       .then((m) => {
         if (dead) return m.destroy();
         c = m;
@@ -58,22 +65,45 @@ export function MapPanel({ steps, puck, stepIndex }: MapPanelProps) {
   useEffect(() => {
     if (ctl && stepIndex !== undefined) ctl.stepChanged();
   }, [ctl, stepIndex]);
+  useEffect(() => {
+    if (ctl && me && !puck) ctl.showMe(me);
+  }, [ctl, me?.pos.lat, me?.pos.lng, me?.acc]);
+  useEffect(() => {
+    if (!ctl) return;
+    ctl.resize();
+    if (!puck) ctl.fitRoute();
+  }, [big]);
 
   return (
-    <section>
-      {/* TODO-creative: map height, collapsed 30% / "bigger map" toggle (M1 AC 41) */}
-      <div ref={el} data-testid="map" style={{ height: '40vh' }} />
-      {failed && <p>{t('error_generic')}</p>}
-      {ctl && puck && ctl.follow.value === 'free' && (
-        <button type="button" data-testid="map-recentre" onClick={() => ctl.recentre()}>
-          {t('recentre')}
-        </button>
+    <>
+      <section class={`mapbox${big ? ' big' : ''}`} data-testid="map-box">
+        <div ref={el} data-testid="map" aria-hidden="true" style={{ position: 'absolute', inset: 0 }} />
+        <div ref={attrib} class="attribhost" />
+        {failed && <p class="t-caption" style={{ position: 'absolute', inset: 'auto var(--s-4) var(--s-4)' }}>{t('error_generic')}</p>}
+        {ctl && puck && ctl.follow.value === 'free' && (
+          <button type="button" class="iconbtn" style={{ position: 'absolute', top: 'var(--s-3)', right: 'var(--s-3)' }} data-testid="map-recentre" onClick={() => ctl.recentre()}>
+            {t('recentre')}
+          </button>
+        )}
+        {ctl && puck && (
+          <button type="button" class="iconbtn" style={{ position: 'absolute', top: 'var(--s-3)', left: 'var(--s-3)' }} data-testid="map-overview" onClick={() => ctl.fitRoute()}>
+            {t('overview')}
+          </button>
+        )}
+        {ctl && me && !puck && (
+          <button type="button" class="iconbtn sq mapbtn" data-testid="map-recentre" aria-label={t('recentre')} title={t('recentre')} onClick={() => ctl.centerOnMe()}>
+            <Icon name="loc" />
+          </button>
+        )}
+      </section>
+      {toggle && (
+        <div class="maptoggle">
+          <button type="button" class="btn btn-secondary small" data-testid="toggle-map" aria-pressed={big} onClick={() => setBig((b) => !b)}>
+            <Icon name="search" />
+            {t(big ? 'map_smaller' : 'map_bigger')}
+          </button>
+        </div>
       )}
-      {ctl && (
-        <button type="button" data-testid="map-overview" onClick={() => ctl.fitRoute()}>
-          {t('overview')}
-        </button>
-      )}
-    </section>
+    </>
   );
 }

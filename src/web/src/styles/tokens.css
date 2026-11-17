@@ -1,0 +1,88 @@
+/*
+ * Design tokens — copied verbatim from creative/prototype/index.html :root (STYLE-GUIDE §1–2).
+ * Do not edit values here without a STYLE-GUIDE change; new tokens need Director approval.
+ * Theme: html[data-theme="light|dark|auto"]; auto follows prefers-color-scheme.
+ * Text size: html[data-text-size] sets --ts (100/125/150/200 %).
+ * Reduce motion: html.rm (OS setting or H13 override, set in main.tsx).
+ */
+:root{
+  --ts:1;
+  --font:"Atkinson Hyperlegible","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  /* colour — light */
+  --c-canvas:#FBF5EC; --c-surface:#FFFFFF; --c-surface-2:#F3EADC; --c-line:#D9CBB6;
+  --c-ink:#1D1915; --c-ink-2:#4A4038; --c-ink-inv:#FBF5EC;
+  --c-primary:#9A3412; --c-on-primary:#FFFFFF; --c-primary-soft:#FBE3D3; --c-on-primary-soft:#6E2409; --c-primary-text:#8A2E0B;
+  --c-jade:#0E5B49; --c-on-jade:#FFFFFF; --c-jade-soft:#D6EDE4; --c-on-jade-soft:#0A3F33;
+  --c-saffron:#FFD23F; --c-on-saffron:#1D1915; --c-saffron-soft:#FFF1C2;
+  --c-danger:#A4161A; --c-on-danger:#FFFFFF;
+  --c-scrim:rgba(29,25,21,.55); --c-focus:#1D1915;
+  --tint-home:#FBE3D3; --tint-clinic:#D6EDE4; --tint-market:#FFF1C2; --tint-family:#EADFF3;
+  --ink-home:#6E2409; --ink-clinic:#0A3F33; --ink-market:#5C4300; --ink-family:#4B2A63;
+  --line-ns:#D42E12; --line-ew:#009645; --line-ne:#9900AA; --line-cc:#FA9E0D; --line-dt:#005EC4; --line-te:#9D5B25; --line-lrt:#748477;
+  /* map */
+  --m-land:#F1E9DC; --m-block:#E3D6C2; --m-park:#CFE3C2; --m-water:#B9D9E4; --m-road:#FFFFFF; --m-casing:#D8C8B0; --m-exp:#F6D7A4; --m-label:#4A4038; --m-halo:#F1E9DC; --m-done:#B5A792;
+  /* elevation */
+  --e-1:0 1px 2px rgba(60,40,20,.08),0 2px 8px rgba(60,40,20,.06);
+  --e-2:0 2px 4px rgba(60,40,20,.08),0 8px 24px rgba(60,40,20,.10);
+  --e-3:0 8px 16px rgba(60,40,20,.12),0 24px 56px rgba(60,40,20,.18);
+  /* space (4pt base) */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  /* radii */
+  --r-s:12px; --r-m:20px; --r-l:28px; --r-xl:36px; --r-pill:999px;
+  /* targets */
+  --tap:56px; --tap-hero:72px;
+  /* motion */
+  --ease-out:cubic-bezier(.2,.8,.2,1); --ease-spring:cubic-bezier(.34,1.36,.64,1); --ease-in:cubic-bezier(.4,0,1,1);
+  --d-fast:160ms; --d-base:280ms; --d-slow:420ms; --d-sheet:460ms;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --c-canvas:#14110E; --c-surface:#1F1A16; --c-surface-2:#2A231D; --c-line:#43392F;
+  --c-ink:#F6EEE4; --c-ink-2:#CFC3B5; --c-ink-inv:#14110E;
+  --c-primary:#FF9466; --c-on-primary:#1D1915; --c-primary-soft:#4A2414; --c-on-primary-soft:#FFD9C6; --c-primary-text:#FFA77F;
+  --c-jade:#5FD3B0; --c-on-jade:#0A1F19; --c-jade-soft:#123A30; --c-on-jade-soft:#BDEFDF;
+  --c-saffron:#FFD23F; --c-on-saffron:#1D1915; --c-saffron-soft:#3D3212;
+  --c-danger:#FF8A80; --c-on-danger:#1D1915;
+  --c-scrim:rgba(0,0,0,.66); --c-focus:#F6EEE4;
+  --tint-home:#4A2414; --tint-clinic:#123A30; --tint-market:#3D3212; --tint-family:#33224A;
+  --ink-home:#FFD9C6; --ink-clinic:#BDEFDF; --ink-market:#FFE9A3; --ink-family:#E6D4F7;
+  --m-land:#1C1815; --m-block:#2B241E; --m-park:#1E2B20; --m-water:#162A33; --m-road:#3B332C; --m-casing:#2B241E; --m-exp:#4A3A22; --m-label:#CFC3B5; --m-halo:#1C1815; --m-done:#5E544A;
+  --e-1:0 1px 2px rgba(0,0,0,.4); --e-2:0 4px 16px rgba(0,0,0,.45); --e-3:0 16px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){
+  :root[data-theme="auto"]{
+    --c-canvas:#14110E; --c-surface:#1F1A16; --c-surface-2:#2A231D; --c-line:#43392F;
+    --c-ink:#F6EEE4; --c-ink-2:#CFC3B5; --c-ink-inv:#14110E;
+    --c-primary:#FF9466; --c-on-primary:#1D1915; --c-primary-soft:#4A2414; --c-on-primary-soft:#FFD9C6; --c-primary-text:#FFA77F;
+    --c-jade:#5FD3B0; --c-on-jade:#0A1F19; --c-jade-soft:#123A30; --c-on-jade-soft:#BDEFDF;
+    --c-saffron:#FFD23F; --c-on-saffron:#1D1915; --c-saffron-soft:#3D3212;
+    --c-danger:#FF8A80; --c-on-danger:#1D1915;
+    --c-scrim:rgba(0,0,0,.66); --c-focus:#F6EEE4;
+    --tint-home:#4A2414; --tint-clinic:#123A30; --tint-market:#3D3212; --tint-family:#33224A;
+    --ink-home:#FFD9C6; --ink-clinic:#BDEFDF; --ink-market:#FFE9A3; --ink-family:#E6D4F7;
+    --m-land:#1C1815; --m-block:#2B241E; --m-park:#1E2B20; --m-water:#162A33; --m-road:#3B332C; --m-casing:#2B241E; --m-exp:#4A3A22; --m-label:#CFC3B5; --m-halo:#1C1815; --m-done:#5E544A;
+    --e-1:0 1px 2px rgba(0,0,0,.4); --e-2:0 4px 16px rgba(0,0,0,.45); --e-3:0 16px 48px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+
+/* Text size (§1.2: html font-size = 20px × --ts; H13 offers 100/125/150/200 %). */
+:root[data-text-size="large"]{--ts:1.25}
+:root[data-text-size="xlarge"]{--ts:1.5}
+:root[data-text-size="xxlarge"]{--ts:2}
+
+/*
+ * Map tokens read by src/map/map.ts (names from the web-shell TODO-creative list).
+ * All are aliases of the tokens above, mirroring the prototype's map marks:
+ * .m-route-walk = ink-2, .m-route-bus = primary, .m-route-case = surface, .m-stop = surface/primary,
+ * .m-dest = saffron/on-saffron, .m-me = primary with a #fff ring, .m-me-halo = primary.
+ * CE (Circle extension) and CG (Changi branch) use their parent lines' official colours.
+ */
+:root{
+  --route-walk:var(--c-ink-2); --route-bus:var(--c-primary); --route-train:var(--c-ink-2); --route-case:var(--c-surface);
+  --line-ce:var(--line-cc); --line-cg:var(--line-ew);
+  --stop-fill:var(--c-surface); --stop-ring:var(--c-primary);
+  --dest-fill:var(--c-saffron); --dest-ring:var(--c-on-saffron);
+  --puck:var(--c-primary); --puck-ring:#fff; --puck-accuracy:var(--c-primary);
+}

@@ -6,6 +6,9 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: true,
   reporter: [['line']],
+  // Screenshot baselines live next to the specs with the frames' baseline names (STYLE-GUIDE §6/§6b).
+  snapshotPathTemplate: '{testDir}/baselines/{arg}{ext}',
+  expect: { toHaveScreenshot: { animations: 'disabled', caret: 'hide', maxDiffPixelRatio: 0.02 } },
   use: {
     baseURL: `http://localhost:${PORT}`,
     ...devices['Pixel 7'],

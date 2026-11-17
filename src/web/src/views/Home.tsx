@@ -1,102 +1,222 @@
-import { useState } from 'preact/hooks';
+/** H1 Home (STYLE-GUIDE §6 H1). Saved places beyond Home are M4. */
+import { useEffect, useState } from 'preact/hooks';
+import { haversine, type Place } from '@howtogo/shared';
 import { useServices, useT } from '../context';
-import { log } from '../log';
+import { applyUpdate, updateReady } from '../pwa/register';
+import { here, locate } from '../state/location';
+import { TEXT_SCALE, TEXT_SIZES } from '../state/store';
+import { HomeConfirm } from './HomeConfirm';
+import { Icon, showToast, useStateHook, Wordmark } from '../ui/kit';
+
+/** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
+export const NEAR_HOME_M = 200;
+
+export function greetingKey(hour: number): 'greet_morning' | 'greet_afternoon' | 'greet_evening' {
+  return hour < 12 ? 'greet_morning' : hour < 18 ? 'greet_afternoon' : 'greet_evening';
+}
+
+/** Hour in Singapore time (the app is SG-only). */
+export const sgHour = (d = new Date()) =>
+  Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Singapore' }).format(d));
 
 export function Home() {
-  const { store, router, platform, api } = useServices();
+  const { store, router, platform, api, flags } = useServices();
   const t = useT();
-  const plan = store.plan.value;
+  const s = store.settings.value;
   const home = store.places.value.home;
   const trip = store.trip.value;
-  const [locMsg, setLocMsg] = useState<string | null>(null);
+  const recents = store.recents.value;
+  const near = here.value;
+  const plan = store.plan.value;
+  const [bannerOff, setBannerOff] = useState(false);
 
-  const useMyLocation = async () => {
-    try {
-      const f = await platform.location.current();
-      log('loc:ok');
-      const label = await api.revgeocode(f).then((r) => r.name).catch(() => t('my_location'));
-      store.setPlan({ from: { name: label, lat: f.lat, lng: f.lng } });
-      setLocMsg(null);
-    } catch {
-      log('loc:fail');
-      setLocMsg(t('location_denied'));
-    }
+  // "你在：…附近" — reverse-geocode only if permission is already granted; never prompt from Home (AC 25, F2).
+  useEffect(() => {
+    if (here.value) return;
+    platform.location
+      .permission()
+      .then((p) => (p === 'granted' ? locate(platform, api) : null))
+      .catch(() => null);
+  }, []);
+
+  const nearHome = !!(home && near && haversine(home, near) < NEAR_HOME_M);
+  // F8: the location pill is the From field. Typed origin > "near {label}" > "From: My location".
+  const pillText = plan.from
+    ? t('from_here', { p: plan.from.name })
+    : nearHome
+      ? t('you_are_near', { p: t('home_tile') })
+      : near?.label
+        ? t('you_are_near', { p: near.label })
+        : t('from_here', { p: t('my_location') });
+  const fromLabel = plan.from?.name ?? (nearHome ? t('home_tile') : near?.label ?? t('my_location'));
+  useStateHook(nearHome ? 'home-at-home' : near ? 'home-away' : 'home-default');
+
+  const go = (to: Place) => {
+    store.setPlan({ to, options: [] });
+    router.navigate('/routes');
   };
+  const takeMeHome = () => {
+    if (!home) return;
+    if (nearHome) return showToast('already-home', t('already_home'));
+    go(home);
+  };
+  const greet = t(greetingKey(sgHour()));
+  const pct = Math.round(TEXT_SCALE[s.textSize] * 100);
+  const nextSize = TEXT_SIZES[(TEXT_SIZES.indexOf(s.textSize) + 1) % TEXT_SIZES.length]!;
+  const today = new Date().toLocaleDateString(s.lang === 'zh' ? 'zh-CN' : 'en-SG', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'Asia/Singapore',
+  });
 
   return (
-    <main>
-      <h1>{t('app_name')}</h1>
-      {trip && trip.guidance.status !== 'arrived' && (
-        <p>
-          <button type="button" data-testid="continue-trip" onClick={() => router.navigate('/guide')}>
-            {t('continue_trip')}
-          </button>
-        </p>
-      )}
-      <section>
-        <p>
-          {t('from')}:{' '}
-          <button type="button" data-testid="from-field" onClick={() => router.navigate('/search?field=from')}>
-            {plan.from?.name ?? t('my_location')}
-          </button>{' '}
-          <button type="button" data-testid="use-my-location" onClick={useMyLocation}>
-            {t('use_my_location')}
-          </button>
-        </p>
-        {locMsg && <p role="alert">{locMsg}</p>}
-        <p>
-          {t('to')}:{' '}
-          <button type="button" data-testid="to-field" onClick={() => router.navigate('/search?field=to')}>
-            {plan.to?.name ?? t('choose_destination')}
-          </button>
-        </p>
-        <button type="button" data-testid="find-route" disabled={!plan.to} onClick={() => router.navigate('/routes')}>
-          {t('find_route')}
+    <>
+      <header class="bar">
+        <Wordmark name={t('app_name')} />
+        <span class="grow" />
+        <button
+          type="button"
+          class="iconbtn"
+          data-testid="lang-toggle"
+          aria-label={t('lang_label')}
+          lang={s.lang === 'zh' ? 'en' : 'zh'}
+          onClick={() => store.updateSettings({ lang: s.lang === 'zh' ? 'en' : 'zh' })}
+        >
+          {t('lang_btn')}
         </button>
-      </section>
-      {home && (
-        <p>
+        <button
+          type="button"
+          class="iconbtn"
+          data-testid="text-size"
+          aria-label={t('text_btn_label', { n: pct })}
+          onClick={() => store.updateSettings({ textSize: nextSize })}
+        >
+          <span aria-hidden="true" style={{ fontSize: '.8em' }}>
+            A
+          </span>
+          <span aria-hidden="true" style={{ fontSize: '1.15em' }}>
+            A
+          </span>
+        </button>
+        <button type="button" class="iconbtn sq" data-testid="nav-settings" aria-label={t('settings')} onClick={() => router.navigate('/settings')}>
+          <Icon name="sliders" />
+        </button>
+      </header>
+      <main class="scroll">
+        {updateReady.value && !bannerOff && (
+          <div class="banner" data-testid="update-banner">
+            <button type="button" data-testid="sw-update" aria-label={t('upd_sr')} onClick={applyUpdate}>
+              <Icon name="refresh" />
+              <span>{t('upd_banner')}</span>
+            </button>
+            <button type="button" class="iconbtn sq" data-testid="update-later" aria-label={t('upd_later')} onClick={() => setBannerOff(true)}>
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
+        <HomeConfirm />
+        <div class="greet">
+          <h2 class="t-display" data-testid="greeting">
+            {s.name ? t('greet_named', { g: greet, n: s.name }) : greet}
+          </h2>
+          <p>{t('where_today')}</p>
+          <button type="button" class="where" data-testid="from-field" aria-label={t('from_sr', { p: fromLabel })} onClick={() => router.navigate('/search?field=from')}>
+            <span class="dot" aria-hidden="true" />
+            {pillText}
+          </button>
+        </div>
+        {trip && trip.guidance.status !== 'arrived' && (
           <button
             type="button"
-            data-testid="take-me-home"
-            onClick={() => {
-              store.setPlan({ from: null, to: home, options: [] });
-              router.navigate('/routes');
-            }}
+            class="btn btn-secondary small"
+            style={{ marginBottom: 'var(--s-4)' }}
+            data-testid="continue-trip"
+            onClick={() => router.navigate('/guide')}
           >
+            <Icon name="nav" />
+            {t('continue_trip')}
+          </button>
+        )}
+        <button type="button" class="searchbtn" data-testid="to-field" onClick={() => router.navigate('/search')}>
+          <span class="mic" aria-hidden="true">
+            <Icon name="mic" />
+          </span>
+          <span class="grow">{t('search_cta')}</span>
+          <Icon name="search" />
+        </button>
+        {home && (
+          <>
+            <div class="sect">
+              <h2>{t('my_places')}</h2>
+              <span class="t-caption">{today}</span>
+            </div>
+            <div class="tiles">
+              <button
+                type="button"
+                class="tile"
+                data-k="home"
+                data-testid="tile-home"
+                aria-label={`${t('home_tile')}${t('sr_sep')}${home.name}`}
+                onClick={() => go(home)}
+              >
+                <span class="ic">
+                  <Icon name="home" />
+                </span>
+                <span class="nm">{t('home_tile')}</span>
+                <span class="sub">{home.name}</span>
+              </button>
+            </div>
+          </>
+        )}
+        {recents.length > 0 && (
+          <>
+            <div class="sect">
+              <h2>{t('recent')}</h2>
+            </div>
+            <ul class="rlist" data-testid="home-recent">
+              {recents.map((r, i) => (
+                <li key={`${r.to.name}-${i}`}>
+                  <button type="button" class="ritem" data-testid={`recent-${i}`} onClick={() => go(r.to)}>
+                    <span class="ic" aria-hidden="true">
+                      <Icon name="clock" />
+                    </span>
+                    <span class="tx">
+                      <b>{r.to.name}</b>
+                      {r.to.address && <span>{r.to.address}</span>}
+                    </span>
+                    <Icon name="chev" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {flags.has('help') && (
+        <button type="button" class="helprow" data-testid="nav-help" onClick={() => router.navigate('/help')}>
+          <span class="ic" aria-hidden="true">
+            <Icon name="help" />
+          </span>
+          <span>
+            <b>{t('help_row_t')}</b>
+            <span>{t('help_row_s')}</span>
+          </span>
+        </button>
+        )}
+      </main>
+      <div class="dock">
+        {home ? (
+          <button type="button" class="btn btn-primary" data-testid="take-me-home" onClick={takeMeHome}>
+            <Icon name="home" />
             {t('take_me_home')}
           </button>
-        </p>
-      )}
-      {store.recents.value.length > 0 && (
-        <section>
-          <h2>{t('recent')}</h2>
-          <ul>
-            {store.recents.value.map((r, i) => (
-              <li key={i}>
-                <button
-                  type="button"
-                  data-testid={`recent-${i}`}
-                  onClick={() => {
-                    store.setPlan({ to: r.to, options: [] });
-                    router.navigate('/routes');
-                  }}
-                >
-                  {r.to.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      <nav>
-        <button type="button" data-testid="nav-settings" onClick={() => router.navigate('/settings')}>
-          {t('settings')}
-        </button>{' '}
-        <button type="button" data-testid="nav-help" onClick={() => router.navigate('/help')}>
-          {t('help')}
-        </button>
-      </nav>
-    </main>
+        ) : (
+          <button type="button" class="btn btn-primary" data-testid="set-your-home" onClick={() => router.navigate('/search?mode=home')}>
+            <Icon name="home" />
+            {t('set_your_home')}
+          </button>
+        )}
+      </div>
+    </>
   );
 }
