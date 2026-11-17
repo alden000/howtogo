@@ -115,7 +115,7 @@ const zh = {
   min: "分钟",
   arrive_at: "{t} 到达",
   walk_min: "走路 {n} 分钟",
-  no_change: "不用转车",
+  no_change: "不用换车",
   stops_n: "{n} 站",
   stop_1: "1 站",
   choose: "选这条路",

@@ -46,12 +46,14 @@ test('QA-30: H3 Options → Route options sheet; preference persists and re-rank
   const sheet = page.getByTestId('sheet-route-prefs');
   await expect(sheet).toContainText('路线选项');
   await expect(sheet.getByTestId('setting-preference-least_walk')).toHaveAttribute('aria-pressed', 'true');
-  await expect(sheet.getByTestId('pref-liftfriendly')).toBeVisible();
+  // Creative m34-fix-a F2: Lift-friendly is not in the sheet until its ranking ships (M5).
+  await expect(sheet.getByTestId('pref-liftfriendly')).toHaveCount(0);
   await sheet.getByTestId('setting-preference-fewest_transfers').click();
-  await expect(sheet.getByTestId('setting-preference-fewest_transfers')).toHaveAttribute('aria-pressed', 'true');
+  // F7: the pick is announced and the sheet closes by itself.
+  await expect(page.getByTestId('live')).toHaveText('现在先给你看：最少换车');
+  await expect(sheet).toHaveCount(0);
   await expect.poll(() => logOf(page)).toContainEqual(expect.stringMatching(/^route:n=\d+ pref=fewest_transfers$/));
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('howtogo.settings')!).preference)).toBe('fewest_transfers');
-  await page.getByTestId('sheet-close').click();
   await page.goto('/settings');
   await expect(page.getByTestId('setting-preference-fewest_transfers')).toHaveAttribute('aria-pressed', 'true');
 });
@@ -92,7 +94,8 @@ test('QA-33/35: About links the Singapore Open Data Licence and shows the data d
   const link = page.getByRole('link', { name: 'Singapore Open Data Licence version 1.0' });
   await expect(link).toHaveAttribute('href', 'https://data.gov.sg/open-data-licence');
   await expect(link).toHaveAttribute('rel', /noopener/);
-  await expect(page.getByTestId('about-data')).toHaveText(/^data: \d{4}-\d{2}-\d{2}$/);
+  // Creative m34-fix-a F4: the data date in plain words (the problem report keeps `data: YYYY-MM-DD`).
+  await expect(page.getByTestId('about-data')).toHaveText(/^交通资料日期：\d{4}年\d{1,2}月\d{1,2}日$/);
 });
 
 test('QA-34: exit:hidden is logged when the alight station has no exit hint', async ({ page }) => {

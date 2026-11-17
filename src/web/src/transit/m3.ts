@@ -248,6 +248,14 @@ const sgDate = (ms: number) => new Date(ms + 8 * 3600_000);
 /** A stored recent-trip date (`YYYY-MM-DD`, Singapore) as relative text (AC 35 stores the date only). */
 export const relDate = (date: string, now: number, lang: Lang) => relDay(Date.parse(`${date}T12:00:00+08:00`), now, lang);
 
+/** Creative m34-fix-a F4: a YYYY-MM-DD data date in plain words: zh 2026年11月17日 · en 17 Nov 2026. */
+export function dataDate(iso: string, lang: 'zh' | 'en'): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  return lang === 'zh' ? `${y}年${mo}月${d}日` : `${d} ${MON_EN[mo - 1]} ${y}`;
+}
+
 /** 6d.9 relative dates: 今天 · 昨天 · 星期X (≤ 6 days, this week) · 上星期X · 11月3日. */
 export function relDay(at: number, now: number, lang: Lang): string {
   const zh = lang === 'zh-CN';

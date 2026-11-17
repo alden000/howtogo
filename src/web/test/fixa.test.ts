@@ -7,7 +7,7 @@ import { logLines, resetLog } from '../src/log';
 import { buildReport } from '../src/report';
 import { createStore, DEFAULT_SETTINGS, HOME_RECENTS, MAX_RECENTS, sgDateOf } from '../src/state/store';
 import { memoryKV } from '../src/state/storage';
-import { lastRailLeg, relDate } from '../src/transit/m3';
+import { dataDate, lastRailLeg, relDate } from '../src/transit/m3';
 import { APP_VERSION } from '../src/version';
 import pkgRaw from '../package.json?raw';
 import { timeline } from '../src/views/present';
@@ -102,6 +102,14 @@ describe('QA-31/32 recents (AC 34/35)', () => {
     const now = Date.parse('2026-11-18T10:00:00+08:00');
     expect(relDate('2026-11-18', now, 'zh-CN')).toBe('今天');
     expect(relDate('2026-11-17', now, 'en-SG')).toBe('Yesterday');
+  });
+});
+
+describe('Creative m34-fix-a F4: About data date in plain words', () => {
+  it('zh 2026年11月17日 · en 17 Nov 2026', () => {
+    expect(dataDate('2026-11-17', 'zh')).toBe('2026年11月17日');
+    expect(dataDate('2026-01-05', 'en')).toBe('5 Jan 2026');
+    expect(dataDate('bad', 'en')).toBe('bad');
   });
 });
 

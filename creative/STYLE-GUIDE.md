@@ -66,7 +66,13 @@ Bus services use the **bus badge**: an `c-ink` block with the bus icon and numbe
 Map tokens (`m-*`): land `#F1E9DC`/`#1C1815`, block `#E3D6C2`/`#2B241E`, park `#CFE3C2`/`#1E2B20`, water `#B9D9E4`/`#162A33`, road `#FFF`/`#3B332C`, casing `#D8C8B0`/`#2B241E`, expressway `#F6D7A4`/`#4A3A22`, label = ink-2 with a 5px land-colour halo, travelled route `m-done` `#B5A792`/`#5E544A`. With OneMap tiles: Default (light) and Night (dark), overlays unchanged.
 
 ### 1.2 Type
-Font stack: `"Atkinson Hyperlegible", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif` (Google Fonts, `display=swap`). Weights are **400 / 700 / 900 only**. Numerals use Atkinson and `tabular-nums`.
+- Font stack `"Atkinson Hyperlegible", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif`.
+- Atkinson is **self-hosted** (Latin subset, woff2, 400/700, `font-display: swap`, 700 preloaded). No third-party font request.
+- **CJK comes from the device font**, never a web font.
+- Only 400 and 700 really render, so a `900` role shows at 700. Hierarchy comes from size, never from 900 against 700.
+- **Wording:** in zh, "transfer" is always **换车** (最少换车, 不用换车, 换 [CC] …), never 转车.
+
+Numerals use Atkinson and `tabular-nums`.
 `html { font-size: calc(20px * var(--ts)) }`, where `--ts` ∈ {1, 1.25, 1.5, 2}. All type is in rem.
 
 | Role | Size (rem / px @100%) | Weight | Line height | Use |
@@ -138,6 +144,11 @@ There is no "reject" buzz: we never punish. Settings → 震动提示 turns all 
 - Screen readers: step changes go to a polite live region. Get-off goes to an assertive live region plus `role="alertdialog"`.
 
 ## 5. Components
+
+### 5.0 Segmented choice (`.seg`)
+- Labels never break inside a word (`keep-all`).
+- A set whose labels exceed 3 CJK characters, or that sits in a sheet, stacks as one column of full-width 56 px rows with the check on the right.
+- Every `.seg` stacks at 150 % and 200 %.
 
 ### 5.1 Big destination tile (`.tile`)
 A 2-column grid using `repeat(auto-fit, minmax(min(100%, 8rem), 1fr))`, so it becomes 1 column automatically at 200%. Min height 148px, `r-l`, `e-1`, padding 18. Contents: a 60px tinted icon square (`r` 20, 34px icon), name (`tile` role), sub-line (`caption`).
@@ -218,6 +229,8 @@ Shared rules for every frame:
 - Loading, no route, too close, outside SG, error, busy, offline: see **6b F3**.
 - No route (build): see 6b F3 `none` (M4 adds the "show a driver" option → H10).
 - **Back goes to:** H2 (or H1 if opened from a tile). Baselines: `H3-two`, `H3-one`, `H3-loading`, `H3-none`.
+
+- **Route options (M3):** the **选项 / Options** secondary button (`sliders`) sits under the From line, after 加一个地方. It opens the **路线选项 / Route options** sheet, which holds **先给我看 / Show first**: 最少走路 / Least walking (default) · 最少换车 / Fewest changes · 最快 / Fastest. A pick closes the sheet, re-ranks the cards and announces `现在先给你看：{label}` / `Now showing first: {label}`. The Lift-friendly switch joins the sheet only when its ranking ships (M5).
 
 ### H4 Trip overview
 - Title 去 陈笃生医院 / To Tan Tock Seng Hospital · 23 分钟 · 上午 10:39 到达.
@@ -410,6 +423,8 @@ Groups in this order; each row is 56px+ with label, current value in `c-ink-2`, 
     - 你随时可以在设置里删除称呼、家和最近去过的地方。/ You can remove your name, Home and recent places in Settings at any time.
     - 有问题请联系：{contact} / Questions? Contact {contact}. (**Owner to supply** the contact, the PDPA contact point.)
   - **No open-source licences screen** (owner preference).
+- **出行 / Travel (M3):** the rows are 先给我看 (stacked seg) · 我用轮椅或助行器 · 我有乐龄卡 · 少走楼梯，用电梯. 少走楼梯，用电梯 has the sub `路上会提醒你跟着电梯标志走。` / `On the way, I'll remind you to follow the lift signs.`
+- **About (M3):** the licence sentence links "Singapore Open Data Licence version 1.0" (`.inlink`, new tab). Under it, a `caption` reads `交通资料日期：2026年11月17日` / `Transit data date: 17 Nov 2026`.
 - **Back goes to:** sub-sheets → Settings; Settings → H1; About → Settings.
 - Baselines: `F6-settings`, `F6-name`, `F6-clear`, `F6-install-android`, `F6-install-ios`, `F6-report`, `F6-about`.
 
@@ -827,6 +842,7 @@ The CCL has no terminus, and 顺时针 / 逆时针 ("clockwise / anticlockwise")
 
 ### 6d.7 T7 Station names display rule (zh name + code + English sign text)
 Singapore station signs show the **English name**, the **Chinese name** and the **code**. Seniors must be able to match the screen to the sign. Rule:
+- Interim for M3: H4 rows may read `碧山 Bishan (NS17)` (zh, English, code in brackets). The full T7 primary-mention layout on H4 is M5.
 
 | Context | zh UI | en UI |
 |---|---|---|
@@ -854,7 +870,7 @@ Only when the OneMap itinerary has a fare (`fare` string); otherwise nothing is 
 
 ### 6d.9 T9 Recent trips (H1, H2)
 Stored on the device only (max 10, newest first; a trip is recorded when it **starts**, deduped on from+to).
-- **H1:** a section under the tiles, before the help row: header `最近的行程 / Recent trips` (`label`, ink-2) + up to **3** rows (`.ritem`, 72 px): `clock` icon · `去 陈笃生医院 / To Tan Tock Seng Hospital` (`headline`) · `从 家 · 上星期二 / From Home · last Tuesday` (`caption`) · chevron. Tap → H3 to that destination **from where the user is now** (the row's From is a memory aid). If the user is within 300 m of the destination → the F5 "already here" toast pattern: `你现在就在 {dest} 附近。/ You're already near {dest}.`
+- **H1:** a section under the tiles, before the help row: header `最近的行程 / Recent trips` (`label`, ink-2) + up to **5** rows (`.ritem`, 72 px): `clock` icon · `去 陈笃生医院 / To Tan Tock Seng Hospital` (`headline`) · `从 家 · 上星期二 / From Home · last Tuesday` (`caption`) · chevron. Tap → H3 to that destination **from where the user is now** (the row's From is a memory aid). If the user is within 300 m of the destination → the F5 "already here" toast pattern: `你现在就在 {dest} 附近。/ You're already near {dest}.`
 - Rows whose route uses a disrupted line show the line tag + `有些站没有地铁 / No trains at some stations` as a second caption line (T3).
 - Hidden when empty (no empty state on H1). Saved places (tiles) never appear as recent rows (no duplication); trips **to** a saved place do, because the From differs.
 - **H2:** the existing `最近去过 / Recent` list shows recent **destinations** (from the same store), max 5.

@@ -3,8 +3,9 @@
  * Atkinson Hyperlegible (§1.2 Latin + numerals), Latin subset, woff2, 400 and 700 (the only weights
  * it has; 900 text uses the 700 face, as with the former Google Fonts CSS). SIL OFL 1.1, see
  * src/fonts/OFL-Atkinson-Hyperlegible.txt. Source: @fontsource/atkinson-hyperlegible 5.3.0.
- * CJK glyphs come from the device (the rest of the §1.2 stack: Noto Sans SC / PingFang SC /
- * Hiragino Sans GB / Microsoft YaHei / system-ui): a web CJK font is ~700 KB even subset.
+ * CJK glyphs come from the device (the rest of the §1.2 stack, Creative m34-fix-a F5: PingFang SC /
+ * Hiragino Sans GB on Apple, Noto Sans CJK SC on Android/ChromeOS/Linux, Noto Sans SC / Source Han
+ * Sans SC if installed, Microsoft YaHei on Windows, then system-ui): a web CJK font is ~700 KB even subset.
  */
 @font-face {
   font-family: 'Atkinson Hyperlegible';

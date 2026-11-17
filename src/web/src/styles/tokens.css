@@ -7,7 +7,7 @@
  */
 :root{
   --ts:1;
-  --font:"Atkinson Hyperlegible","Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --font:"Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Source Han Sans SC","Microsoft YaHei",system-ui,sans-serif;
   /* colour — light */
   --c-canvas:#FBF5EC; --c-surface:#FFFFFF; --c-surface-2:#F3EADC; --c-line:#D9CBB6;
   --c-ink:#1D1915; --c-ink-2:#4A4038; --c-ink-inv:#FBF5EC;

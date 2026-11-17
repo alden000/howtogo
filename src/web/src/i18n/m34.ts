@@ -249,7 +249,10 @@ export const M34_ZH = {
   pref_btn: '选项',
   pref_sheet_t: '路线选项',
   pref_h: '先给我看',
-  ab_data: 'data: {d}',
+  ab_data: '交通资料日期：{d}',
+  // Creative m34-fix-a F2 / F7
+  set_liftfriendly_s: '路上会提醒你跟着电梯标志走。',
+  pref_now: '现在先给你看：{label}',
   // M3/M4 fix B (Developer B, 2026-11-18) — new keys for Creative review, see dev-log "Visible changes".
   hp_share: '让家人看到我在哪里',
   hp_share_s: '用 WhatsApp 发链接给{fam}，说你需要帮忙',
@@ -511,7 +514,10 @@ export const M34_EN: Shape = {
   pref_btn: 'Options',
   pref_sheet_t: 'Route options',
   pref_h: 'Show first',
-  ab_data: 'data: {d}',
+  ab_data: 'Transit data date: {d}',
+  // Creative m34-fix-a F2 / F7
+  set_liftfriendly_s: "On the way, I'll remind you to follow the lift signs.",
+  pref_now: 'Now showing first: {label}',
   // M3/M4 fix B (Developer B, 2026-11-18) — new keys for Creative review, see dev-log "Visible changes".
   hp_share: 'Let family see where I am',
   hp_share_s: 'Send {fam} a link by WhatsApp to say you need help',
