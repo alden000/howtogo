@@ -86,4 +86,30 @@ describe('router history', () => {
     r = createRouter();
     expect(r.depth.value).toBe(0);
   });
+
+  it('replaceSheet swaps the sheet in place (explainer → denied help); one Back closes it', async () => {
+    r = createRouter();
+    r.navigate('/routes');
+    r.openSheet('loc-explain');
+    r.replaceSheet('loc-denied');
+    expect(r.sheet.value).toBe('loc-denied');
+    expect(r.depth.value).toBe(2);
+    r.back();
+    await popped();
+    expect(r.sheet.value).toBeNull();
+    expect(r.route.value.name).toBe('routes');
+  });
+
+  it('first run is a root (no Home seeded); reset() lands on Home as the new root', async () => {
+    history.replaceState(null, '', '/welcome?p=1');
+    r = createRouter();
+    expect(r.depth.value).toBe(0);
+    r.navigate('/welcome?p=2');
+    r.navigate('/welcome?p=3');
+    r.reset('/');
+    await popped();
+    expect(r.route.value.name).toBe('home');
+    expect(r.depth.value).toBe(0);
+    expect(matchRoute('/about').name).toBe('about');
+  });
 });
