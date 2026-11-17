@@ -16,6 +16,9 @@ export default defineConfig({
           // wrangler.toml turns fixture mode on for the preview (D-10); unit tests start from real mode.
           FIXTURE_MODE: "0",
         },
+        // wrangler.preview.toml binds LTA_PROXY to the owner's whereisthebus-lta-proxy Worker, which does
+        // not exist locally; stand in a dead service (tests pass their own fake via env, test/lta-proxy.test.ts).
+        serviceBindings: { LTA_PROXY: () => new Response("LTA_PROXY not available in tests", { status: 502 }) },
       },
     }),
   ],

@@ -813,3 +813,20 @@ Spec §L script, items 1–11: screen-off fixes (≥ 3 min, gap ≤ 2 × interva
 - dev-e2e 140/141: AC 50 demo controls failed once under load; passes 3/3 alone.
 - lighthouse: all three runs failed to start (host load); re-run alone on another port: perf 83–85, a11y 100, bp 96–100.
 Fixes in the follow-up commit; gate not re-run (one-run budget).
+
+## 2026-11-17 — Developer: LTA key reuse via service binding (dev/lta-binding)
+
+**Why.** The owner's existing Worker `whereisthebus-lta-proxy` (same Cloudflare account we move to) holds an LTA DataMall key. Worker secrets cannot be read back, so we reach it through a **service binding** `LTA_PROXY` instead of copying the key. That Worker is not modified.
+
+**How it works.**
+- `wrangler.toml` and `wrangler.preview.toml` (not `[env.test]`): `[[services]] binding = "LTA_PROXY", service = "whereisthebus-lta-proxy"`. `Env.LTA_PROXY?: Fetcher` (optional).
+- `src/lta.ts` `ltaSource(env)`: `key` if `LTA_ACCOUNT_KEY` is set (always wins, unchanged direct DataMall path), else `proxy` if the binding exists, else `none`.
+- `/api/bus-arrival` without a key: `env.LTA_PROXY.fetch("https://lta-proxy/bus-arrival?BusStopCode=<code>")` (one code per call), take `body[code]` (raw BusArrival v3 + `PolledAt`) and run the same `normaliseBusArrival` (etaMin against now, `monitored` live/timetable). Our own 20 s cache key `bus:v1:<stop>` is kept. Proxy non-2xx, bad JSON or missing code → `upstream_unavailable` 502 (not cached). `fetchedAt` = the proxy's `PolledAt` when earlier than our fetch, so the PWA's existing age/stale rules (> 60 s → stale) see the true age. Logs: only `lta_proxy_error /bus-arrival <status|missing_stop>` — no stop codes or times.
+- `/api/alerts` and `/api/lifts` without a key: 503 `not_configured` (the proxy does not serve TrainServiceAlerts or FacilitiesMaintenance; the PWA's no-data states apply). Nothing faked.
+- `/api/health` adds `lta: "key" | "proxy" | "none"` (API.md updated).
+
+**Still needs the raw `LTA_ACCOUNT_KEY`:** train service alerts (`/api/alerts`, disruption banner/sheet) and lift outages (`/api/lifts`). Bus stops/services/routes are on the proxy too but we don't use them.
+
+**Deploy note.** The binding only resolves when `howtogo` is deployed to the **same account** as `whereisthebus-lta-proxy`; `wrangler deploy` errors if that Worker does not exist in the target account (e.g. the current preview account) — remove the `[[services]]` block there or deploy to the owner's account. `FIXTURE_MODE` still overrides everything; set it to `"0"` for the proxy to be used. Local tests: `vitest.config.ts` stands in a dead `LTA_PROXY` service (miniflare refuses an undefined one); tests pass their own fake Fetcher.
+
+**Tests** worker 170/170 (+8 `test/lta-proxy.test.ts`: multi-stop body, own cache, missing code, proxy 502, stale PolledAt, key wins, alerts/lifts 503 with proxy, health key/proxy/none); two health assertions loosened to `toMatchObject`. Typecheck green. No push/deploy.

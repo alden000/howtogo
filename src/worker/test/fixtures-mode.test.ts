@@ -23,11 +23,11 @@ describe("AC 21 fixture mode (FIXTURE_MODE=1)", () => {
     const on = await get("/api/health");
     expect(on.status).toBe(200);
     expect(on.headers.get("Cache-Control")).toBe("no-store");
-    expect(await on.json()).toEqual({ ok: true, fixtureMode: true });
+    expect(await on.json()).toMatchObject({ ok: true, fixtureMode: true });
     const off = await get("/api/health", { ...fxEnv, FIXTURE_MODE: "0" });
-    expect(await off.json()).toEqual({ ok: true, fixtureMode: false });
+    expect(await off.json()).toMatchObject({ ok: true, fixtureMode: false });
     const unset = await get("/api/health", { ...fxEnv, FIXTURE_MODE: undefined });
-    expect(await unset.json()).toEqual({ ok: true, fixtureMode: false });
+    expect(await unset.json()).toMatchObject({ ok: true, fixtureMode: false });
   });
 
   it("is off by default: without credentials /api/route is not_configured", async () => {
