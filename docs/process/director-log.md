@@ -135,3 +135,7 @@ Owner: "Go with all your recommended defaults. No need android play store."
 ## 2026-11-17 — M2 0.2.0 released to preview
 - QA re-check 0.2.1: gate 12/12, all M2 bugs fixed; AC 36/41 await the owner's phone test. Merged dev/m2-engine → session branch; deployed version 728d70b4 (fixture mode). Config allows howtogo.wwweeeiii.com (origins + CSP wss) ahead of the owner adding the custom domain.
 - M2 actual: ~5 h wall clock (runtime round, UI round, QA, fix, re-check), overlapped with M3/M4/M6 tracks.
+
+## 2026-11-17 — Hosting move + M6 round 1
+- Owner: the domain is in a different Cloudflare account; "don't use raus-ums". Owner saved a Cloudflare token for the domain's account as an environment network secret. Plan: redeploy the Worker + KV + DOs there, attach howtogo.wwweeeiii.com via the API, then (owner's OK) delete the old raus-ums deployment and KV.
+- M6 round 1 (dev/m6): signed R8 release APK 0.2.0, com.wwweeeiii.howtogo, versionCode 20000, 1.6 MB; keystore outside the repo at /home/user/keys (to hand to the owner). Rulings: WAKE_LOCK not needed (FGS keeps the CPU awake for location) → allow-list updated to drop it; the extra non-exported Play services activity is accepted (no exported surface). ALLOWED_ORIGINS gains https://localhost (Capacitor origin) on the next deploy.
