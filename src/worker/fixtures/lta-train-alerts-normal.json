@@ -1,0 +1,1 @@
+{ "odata.metadata": "https://datamall2.mytransport.sg/ltaodataservice/$metadata#TrainServiceAlerts", "value": { "Status": 1, "AffectedSegments": [], "Message": [] } }

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "dev": "wrangler dev"
+    "dev": "wrangler dev",
+    "dev:fixtures": "wrangler dev --var FIXTURE_MODE:1"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.8.3",

@@ -7,6 +7,9 @@ compatibility_date = "2026-11-01"
 [vars]
 ALLOWED_ORIGINS = "https://REPLACE-WITH-PAGES-DOMAIN.pages.dev"
 SHARE_TTL_HOURS = "4"
+# FIXTURE_MODE: "1" makes search/route/revgeocode/bus-arrival/alerts answer from bundled
+# SYNTHETIC fixtures (AC 21). Dev/QA only — never set it here for production. Use:
+#   npm run dev:fixtures -w @howtogo/worker   (= wrangler dev --var FIXTURE_MODE:1)
 
 [[kv_namespaces]]
 binding = "TOKEN_KV"
