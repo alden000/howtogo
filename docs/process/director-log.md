@@ -65,3 +65,12 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - 50 unit + 52 e2e pass, app JS 58 KB gz, 36 baselines. ~? min (report arrived while Creative round 3 ran).
 - Rulings: (1) bus-times "live" note is hidden in M1 (live bus data is M3). (2) The 8 §6b icons are approved (same set as Creative's list). (3) Build the Swap button on Route options in the fix round (F8). (4) H2 From-mode title: Creative supplies exact copy in its review. (5) Logo B icons go into the PWA manifest in the fix round (copy from creative/logo/final/).
 - Next: Creative review of built screens (read-only) + QA gate in parallel → one batched fix round.
+
+## 2026-11-17 — Creative round 3 (M2 frames, prototype v1.2) merged
+- Approved: token `c-pocket` #000000 (pocket view only), 5 icons (exit, moon, plus, arrow-up, arrow-down), trip-note component, copy "第 2 个地方 / Place 2 of 4" (avoids clash with bus "站"), Creative's wording for AC 13 puck and AC 10 "Previous step" (PM to align M2 ACs). Canonical haptic names = STYLE-GUIDE 6c.13; the shell renames in the M2 round.
+- D-8 S4 (H5 top bar over map label) fixed in the prototype.
+
+## 2026-11-17 — M1 QA gate 1: PASS WITH FIXES (qa/reports/0.1.0-m1.md on dev/m1-ui)
+- Gate 8/11 steps pass; 30/42 Must ACs pass; 19 bugs (1 S2, 11 S3, 7 S4). Creative review: 3 High, 10 Medium, 9 Low.
+- Rulings: QA-1 (S2, empty Help): hide the Help row/button in the M1 release behind flag `help` (M2 builds the partial Help sheet per M2 OQ4). Kept as S2 until fixed. Worker items QA-15/17/18: follow the M1 ACs exactly; per-IP rate limit is in-memory only, IPs never logged or stored beyond the window. Flaky baseline: fix the root cause, don't retry-mask it. AC 38 (map canvas) BLOCKED accepted: assert via the map module's test log hook instead.
+- Next: ONE batched Developer fix round (all Creative High+Medium, all QA S2/S3, known items Swap + logo icons + manifest), then targeted QA re-check.
