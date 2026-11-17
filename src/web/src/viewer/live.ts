@@ -10,6 +10,8 @@ export interface LiveHandlers {
   terminal(t: Exclude<Terminal, null>): void;
   /** Viewer's own network: true = socket down and GET failed. */
   offline(down: boolean): void;
+  /** QA-43 (AC 25): true = the socket was refused because the share already has 50 viewers. */
+  full?(on: boolean): void;
 }
 
 export const POLL_MS = 15_000;
@@ -101,6 +103,7 @@ export function connectLive(base: string, id: string, h: LiveHandlers): { close(
         clearInterval(pollTimer);
         pollTimer = undefined;
         h.offline(false);
+        h.full?.(false);
       }
       if (msg.type === 'expired') return finish('expired');
       if (msg.type === 'state' && msg.state) {
@@ -115,9 +118,25 @@ export function connectLive(base: string, id: string, h: LiveHandlers): { close(
     s.onclose = () => {
       clearInterval(pingTimer);
       if (ws === s) ws = null;
+      if (!gotData && !done) void probeFull();
       if (!done) scheduleReconnect();
     };
     s.onerror = () => { /* onclose follows */ };
+  }
+
+  /**
+   * A refused upgrade hides its HTTP status from the WebSocket API. A plain GET on `/live` answers
+   * 429 `too_many_viewers` when the share is full (else 426), so the page can say so (AC 25).
+   */
+  async function probeFull() {
+    try {
+      const r = await fetch(httpUrl + '/live', { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
+      let code: string | undefined;
+      try { code = ((await r.json()) as { error?: { code?: string } }).error?.code; } catch { /* ignore */ }
+      if (!done) h.full?.(r.status === 429 && code === 'too_many_viewers');
+    } catch {
+      /* offline: the GET path reports it */
+    }
   }
 
   function scheduleReconnect() {

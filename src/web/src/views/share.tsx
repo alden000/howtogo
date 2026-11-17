@@ -10,6 +10,8 @@ import { log } from '../log';
 import { family, waDigits, type Contact } from '../state/family';
 import { Icon, Sheet, showToast } from '../ui/kit';
 import { clock } from './present';
+import { tf } from '../i18n/ui';
+import { failKind, type FailKind } from '../api/errors';
 
 /** Opens another app (wa.me, sms:, tel:, maps). One place so tests can stub `window.open`. */
 export function openExternal(url: string) {
@@ -32,21 +34,19 @@ export function senderFor(c: Contact | null, greetingName: string): { senderName
   return { ...(name ? { senderName: name } : {}), ...(p.sendPhone && p.myPhone ? { senderPhone: p.myPhone } : {}) };
 }
 
+/**
+ * QA-46 (Director ruling 2026-11-18, M4 AC 5): no times in the message — a forwarded message must not leak a
+ * schedule. Destination name + link only; the viewer page shows the live ETA instead.
+ * Message language = the contact's (6e.4), which may differ from the UI language.
+ */
 function useShareMsg() {
-  const { store, runtime } = useServices();
-  return (url: string, lang: 'zh' | 'en', t: TFn) => {
+  const { store } = useServices();
+  return (url: string, lang: 'zh' | 'en', _t?: TFn) => {
     const trip = store.trip.peek();
     const dest = trip?.places[trip.places.length - 1]?.name ?? '';
-    const eta = runtime.eta();
-    // Message language = the contact's (6e.4); copy keys are per UI language, so build per `lang`.
-    const tl = (k: 'sh_msg' | 'sh_msg_not', p: Record<string, string>) => (lang === store.settings.peek().lang ? t(k, p) : MSG[lang][k].replace(/\{(\w+)\}/g, (_, x: string) => p[x] ?? ''));
-    return eta ? tl('sh_msg', { dest, t: clock(eta, lang), url }) : tl('sh_msg_not', { dest, url });
+    return tf(lang, 'sh_msg_not', { dest, url });
   };
 }
-const MSG = {
-  zh: { sh_msg: '我正在去 {dest}，大约 {t} 到。按这里看我在哪里：{url} （我到了以后，这个链接会自己停止。）——怎么去?', sh_msg_not: '我正在去 {dest}。按这里看我在哪里：{url} （我到了以后，这个链接会自己停止。）——怎么去?' },
-  en: { sh_msg: "I'm on my way to {dest}, arriving about {t}. See where I am: {url} (The link stops by itself after I arrive.) — 怎么去?", sh_msg_not: "I'm on my way to {dest}. See where I am: {url} (The link stops by itself after I arrive.) — 怎么去?" },
-};
 
 /** Who the current share was sent to (for pill copy); session memory only. */
 let sharedWith: string | null = null;
@@ -64,7 +64,7 @@ export function ShareSheet() {
   const data = (router.sheetData.value ?? {}) as { also?: boolean };
   const [pick, setPick] = useState<number>(contacts.length ? 0 : -1);
   const [busy, setBusy] = useState<Channel | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<FailKind | null>(null);
   const msgOf = useShareMsg();
   const lang = store.settings.value.lang;
   const canShare = typeof navigator !== 'undefined' && !!navigator.share;
@@ -74,7 +74,7 @@ export function ShareSheet() {
   const send = async (ch: Channel) => {
     const c = pick >= 0 ? (contacts[pick] ?? null) : null;
     setBusy(ch);
-    setFailed(false);
+    setFailed(null);
     try {
       const s = store.trip.peek()?.share ?? (await runtime.startShare(senderFor(c, store.settings.peek().name)));
       if (!s) throw new Error('no trip');
@@ -92,8 +92,8 @@ export function ShareSheet() {
       router.closeSheet();
       void platform.vibrate('confirm');
       if (ch !== 'copy') afterSend(c ? t('sh_sent', { fam: c.name }) : t('sh_sent_any'));
-    } catch {
-      setFailed(true);
+    } catch (e) {
+      setFailed(failKind(e));
       log('state:share-failed');
     } finally {
       setBusy(null);
@@ -137,8 +137,9 @@ export function ShareSheet() {
       {failed ? (
         <div class="statepanel" role="alert" data-testid="share-failed">
           <b>{t('sh_fail_t')}</b>
-          <p>{t('sh_fail_b')}</p>
-          <button type="button" class="btn btn-primary" data-testid="share-retry" onClick={() => setFailed(false)}>
+          {/* QA-45 (AC 47): a rate-limited create says "try again in a minute", not "check your internet". */}
+          <p>{failed === 'rate' ? t('err_rate') : t('sh_fail_b')}</p>
+          <button type="button" class="btn btn-primary" data-testid="share-retry" onClick={() => setFailed(null)}>
             {t('try_again')}
           </button>
           {pick >= 0 && contacts[pick] && (
@@ -165,7 +166,7 @@ export function ShareSheet() {
 }
 
 /** Toast once we're back in the app (page visible again), or after a moment if it never left. */
-function afterSend(text: string) {
+export function afterSend(text: string) {
   let done = false;
   const show = () => {
     if (done) return;
@@ -258,6 +259,8 @@ export function SharePill({ onOpen }: { onOpen: () => void }) {
 }
 
 export const sharedWithName = () => sharedWith;
+/** Help's "let family see me" row (QA-37) sends the trip share to the first contact. */
+export const setSharedWith = (name: string | null) => void (sharedWith = name);
 
 /** H12 (6e.1): honest lines — "{fam}'s page shows you've arrived" when shared; otherwise a one-off WhatsApp "I've arrived". */
 export function ArrivedFamily({ shared, dest }: { shared: boolean; dest: string }) {

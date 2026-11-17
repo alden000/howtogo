@@ -56,7 +56,7 @@
 .telrow .pre{display:grid;place-items:center;padding:0 12px;border-radius:var(--r-m);background:var(--c-surface-2);font-weight:700}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips button{min-height:var(--tap);padding:0 14px;border-radius:var(--r-pill);border:2px solid var(--c-line);background:var(--c-surface);font-weight:700}
-.chips button[aria-pressed=true]{background:var(--c-primary);color:var(--c-on-primary);border-color:var(--c-primary)}
+.chips button[aria-checked=true]{background:var(--c-primary);color:var(--c-on-primary);border-color:var(--c-primary)}
 .dashed{border:2px dashed var(--c-line);background:none;min-height:72px}
 .qrcard{background:#FFFFFF;color:#1D1915;border-radius:var(--r-m);padding:16px;display:grid;place-items:center;margin:var(--s-4) auto;max-width:300px}
 .qrcard svg{width:100%;height:auto;max-width:280px}
@@ -95,3 +95,13 @@
 .whead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:var(--s-3) var(--s-5)}
 .whead .iconbtn{min-height:56px}
 .wsec{font-size:1.05rem;font-weight:900;margin:0 0 var(--s-2)}
+
+/* M3/M4 fix B (QA-40): My places editor rows (G2 stop-list rows with the 5.1 tile tints) and plain tiles. */
+.tile[data-k=other] .ic{background:var(--c-surface-2);color:var(--c-ink)}
+.placelist .num svg.i{width:24px;height:24px}
+.placelist .num[data-k=home]{background:var(--tint-home);color:var(--ink-home)}
+.placelist .num[data-k=clinic]{background:var(--tint-clinic);color:var(--ink-clinic)}
+.placelist .num[data-k=market]{background:var(--tint-market);color:var(--ink-market)}
+.placelist .num[data-k=daughter]{background:var(--tint-family);color:var(--ink-family)}
+.placelist .num[data-k=other]{background:var(--c-surface-2);color:var(--c-ink)}
+.placelist .head .iconbtn{flex:none}

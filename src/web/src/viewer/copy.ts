@@ -119,6 +119,9 @@ export function copy(c: CopyCtx) {
     titleArrived: T(`${me}到了`, `${Me} has arrived`),
     titleExpired: T('链接过期了', 'Link expired'),
     titleInvalid: T('找不到链接', 'Link not found'),
+    // M3/M4 fix B: AC 25 (zh verbatim from the AC; en for Creative review), AC 26 (zh/en from the AC).
+    tooMany: T('看的人太多了，请稍后再试', 'Too many people are watching. Please try again later.'),
+    openMaps: T('在地图上打开', 'Open in Maps'),
   };
 }
 export type Copy = ReturnType<typeof copy>;

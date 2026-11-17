@@ -155,6 +155,11 @@ if (!SHARE_ID_RE.test(id)) {
       mem = { ...mem, offline: down };
       render();
     },
+    full(on) {
+      if (mem.full === on) return;
+      mem = { ...mem, full: on };
+      render();
+    },
   });
   addEventListener('online', () => live.kick());
   // "Updated n min ago", the 2-min signal-lost rule and the 5-min help-cleared note are time-based.

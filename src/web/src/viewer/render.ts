@@ -29,6 +29,10 @@ export function renderParts(v: View, lang: Lang, near: string | null): Parts {
   const c = copy({ lang, me, dest: s?.destName ?? '' });
   const initial = esc([...me][0] ?? '');
   const avatar = `<span class="avatar" aria-hidden="true">${initial}</span>`;
+  // QA-44 (AC 26): secondary link under the call button; opens the maps app at the current position.
+  const mapsBtn = v.mapsUrl
+    ? `<a class="btn btn-secondary" href="${esc(v.mapsUrl)}" target="_blank" rel="noopener noreferrer" data-testid="viewer-maps">${ic('locate')}<span>${esc(c.openMaps)}</span></a>`
+    : '';
   const callBtn = (cls = 'btn btn-jade') =>
     v.phone ? `<a class="${cls}" href="tel:${esc(v.phone)}" data-testid="viewer-call">${ic('phone')}<span>${esc(c.call)}</span></a>` : '';
   const updated = (off: boolean) =>
@@ -133,6 +137,9 @@ export function renderParts(v: View, lang: Lang, near: string | null): Parts {
   if (v.base === 'ended' || v.base === 'endedArrived' || v.base === 'expired') P.foot = `<div class="foot"><p>${esc(c.foot2)}</p>${details}</div>`;
   // Review P3 #7: break zh "这个链接 / 已经过期了" at the word boundary.
   if (v.base === 'expired') P.status = P.status.replace('这个链接已经', '这个链接<wbr>已经');
+  P.call += mapsBtn;
+  // QA-43 (AC 25): the 51st viewer — the last state stays (GET polling), with this note on top.
+  if (v.full) P.note = `<div class="note" role="status" data-testid="viewer-full">${ic('clock')}<div><b>${esc(c.tooMany)}</b></div></div>`;
   if (v.kind === 'offline') {
     P.note = `<div class="note" role="status" data-testid="viewer-offline"><span class="spin" aria-hidden="true"></span><div><b>${esc(c.offline)}</b></div></div>`;
     P.upd = updated(true);

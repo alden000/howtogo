@@ -929,3 +929,104 @@ Branch `dev/m34-fix-a` (worktree `howtogo-dev-a`), started from 75cbcda. Scope: 
 2. Creative: review the new copy in items 1–2, and items 5, 6 and 7. Decide whether §1.2 should say "Atkinson self-hosted; CJK from the device".
 3. After A and B merge: rebuild, then re-record the dev baselines in Docker with the command above. Then decide whether the 3 container-only timing failures need longer waits in those specs, or `QA_DEV_WORKERS=1` in the gate.
 4. M5: remove `RecentTrips` from `views/transit.tsx`. It is unused because Home renders its own list.
+
+## 2026-11-18 — Developer B: M3/M4 fix round
+
+Branch `dev/m34-fix-b` (worktree `howtogo-dev-b`), on top of the Director rulings of 2026-11-18. Scope: QA-36…46 (M4). Not touched: fonts, version, `qa/gate.sh`, `qa/scripts`, screenshot baselines (Developer A's scope, or re-recorded after the merge).
+
+**Per QA id**
+- **QA-36 (AC 1):** the H2 Search bar has the Help button (`HelpButton`, `bar-help`, still behind flag `help`).
+- **QA-37 (AC 32/35, ruling: §6e.3 order + the share row):**
+  - Help keeps the §6e.3 order. New row `help-share-loc` **让家人看到我在哪里** sits after 帮我重新找路 / 带我回家 and before 995. That is the AC 32 slot; §6e.3 names no position, so Creative should confirm it.
+  - The row shows only while nothing is shared.
+  - On a trip: `runtime.startShare({help:true})`. It PUTs `help` at once, the pill shows `help`, and the existing "我没事了" note sets the share back to travelling.
+  - Not on a trip: new `state/helpShare.ts` makes a help-only share: `destName` 我在这里 / Where I am, `status: help`, and one fix. The token is kept in `localStorage howtogo.helpshare.v1`, and expired shares are dropped. Home shows the same help note, and "我没事了" **ends** that share (DELETE, toast `sh_stopped`).
+  - Either way, WhatsApp then opens to the first contact (or `wa.me/?text=`) with `我需要帮忙，我在这里：<link>`.
+  - Offline, 429 or a failed create (AC 47): WhatsApp still opens, with `我需要帮忙。我在这里：<address or coords> <maps link>`, or `我需要帮忙。` when there is no fix.
+  - Limitation: a help-only share sends one position, at the tap. It does not track after that.
+- **QA-38 (AC 36):**
+  - `locate()` now keeps `address` and `postal`.
+  - H10 "here" tab: the street address in huge type (trailing "Singapore 123456" stripped), the postal chip, and `Near · 附近：<building>` when OneMap's building name isn't already in the address.
+  - The tab now always takes a fresh fix, because a cached one can be stale, or a trip fix with no address. Offline, the coordinates fallback shows.
+- **QA-39 (AC 38):** offline, the sub-lines of 帮我重新找路 and 让家人看到我在哪里 read 需要网络. Both rows stay tappable: re-route retries when the network is back, and share falls back to the plain text.
+- **QA-40 (AC 39/40, ruling: 5 family members):**
+  - Contacts were already capped at 5 everywhere (`MAX_CONTACTS`, W, setup sanitize), so no change there.
+  - New **Settings → 常去的地方 / My places** screen (`/places`, `views/places.tsx`, `state/places.ts`):
+    - Home row first: edit opens the existing Home sheet, or 设好你的家 when there is no Home.
+    - Up to 5 other places (6 tiles with Home).
+    - Add via `/search?mode=place`; rename in the 改名字 sheet; ↑↓ to reorder (focus follows the moved place); remove with a P4-style confirm.
+    - At the cap the add row becomes `最多 6 个地方`.
+  - Home now shows the other places as 5.1 tiles after Home. The tint comes from the label: 诊所/clinic, 巴刹/market, 女儿/family and so on, else plain.
+  - The store now copes with old `places` data that has no `others`.
+- **QA-41 (AC 50):** the privacy list adds:
+  - contacts, places and the share key stay on the phone;
+  - what a share sends, and that anyone with the link can see it;
+  - sharing stops 30 min after arrival or at 4 h, and the position is deleted when it stops;
+  - the setup box: encrypted on the family phone, opens once, deleted at 24 h, key only in the link;
+  - "清除所有资料".
+
+  Error counts are **not** mentioned: telemetry is M5 and not built.
+- **QA-42:** relation chips now use `aria-checked` only (no `aria-pressed`), a roving tabindex, and arrow keys to move the choice (`radioStep`). The CSS selector moved to `[aria-checked=true]`.
+- **QA-43 (AC 25):**
+  - A browser can't read the status of a refused WebSocket upgrade. So the Worker's `/live` now answers a plain GET with `429 too_many_viewers` when the share is full, else 426 (API.md updated).
+  - The viewer probes `/live` when a socket closes before any message. If the share is full, it shows the note `看的人太多了，请稍后再试` over the last state.
+  - GET polling continues, and the note clears when a socket gets data.
+- **QA-44 (AC 26):** the viewer shows "在地图上打开 / Open in Maps" (secondary 56, `locate` icon) under the call button whenever a position is shown. It opens `https://maps.google.com/?q=lat,lng` in a new tab (noopener, noreferrer).
+- **QA-45 (AC 44/47):** new `failKind()` in api/errors.
+  - W `/setup`: 429 → `请稍后再试。`; offline → `需要网络，连上网络再试一次。`; anything else keeps the old line.
+  - Share sheet: 429 → body `请稍后再试。`.
+  - The mock gains `scn=share:rate_limited`.
+- **QA-46 (AC 5, ruling):** the share message never has a time. `sh_msg` (with `{t}`) is removed; the app always sends `sh_msg_not` in the contact's language.
+
+**Tests**
+- **Unit and static checks:**
+  - Web unit 194/195: +13 in `test/m34-fixb.test.ts`, +2 viewer, and 2 viewer assertions updated for the maps link. The one failure is QA-49's 5 s timeout (Developer A's scope).
+  - Worker 171/171 (+1 for the QA-43 probe). Shared 139/139. Typecheck green.
+  - On the release build, platform-grep, secret-scan, size (135.6 KB gz) and static-pwa are OK.
+- **Dev e2e:**
+  - New `e2e/fixb.spec.ts`, 9/9: H2 Help, Home help-only share + "我没事了", trip help share, offline 需要网络 + plain fallback, share 429, where-am-I postal, My places flow + cap, radiogroup keys.
+  - Existing specs: m34/ui/fixround 44/44, demo/guide/sample 24/24. Screenshot specs were not run.
+- **QA specs** (release build + local `wrangler dev --local`):
+  - `m4.spec.ts`: 35/38 on the first run. After the QA-38 fresh-fix change, the AC 1/5/25/26/35/36/38/44-47/50/axe subset all pass.
+  - Still failing **by ruling** (QA to amend): AC 32 expects a `taxi` row in Help, but §6e.3 has none (taxi lives in H10); AC 39 expects max 3 contacts, but the ruling is 5.
+  - AC 25 is timing-sensitive on this host: once, only 12 of 50 sockets opened in its 2.5 s window. It passes on re-run.
+  - QA ac/m2/matrix/recheck, Help/Settings/About subset: 35/35.
+
+**Visible changes (Creative pre-flight).** Please review. None of this copy is given word for word by a spec unless marked "spec", "AC" or another source.
+
+| Where | zh | en | Components / tokens |
+|---|---|---|---|
+| H2 Search bar | 帮忙 (existing) | Help | `HelpButton` (`.iconbtn`), as H3/H4 |
+| H9 Help row (not sharing) | **让家人看到我在哪里** (AC 35) · sub `用 WhatsApp 发链接给{fam}` / no contact `用 WhatsApp 发一个链接` | **Let family see where I am** (AC 35) · `Send {fam} a link by WhatsApp` / `Send a link by WhatsApp` | `.opt` row, `share` icon on `c-jade-soft`/`c-on-jade-soft` disc, chevron; position after find-my-way/take-me-home, before 995 |
+| H9 offline sub-line (re-route, share row) | 需要网络 (spec) | Needs internet (spec) | existing `hp_needs_net` |
+| WhatsApp text, help share | `我需要帮忙，我在这里：{url}` (AC 35) | `I need help. See where I am: {url}` | — |
+| WhatsApp text, AC 47 fallback | `我需要帮忙。我在这里：{address} {maps link}` / `我需要帮忙。` | `I need help. I'm here: {address} {maps link}` / `I need help.` | — |
+| Help-only share destName (viewer "要去 …") | 我在这里 (API.md) | Where I am | — |
+| Home, help-only share live | note `{fam} 的页面显示你需要帮忙。` + **我没事了** (6e.3); toast `已经停止分享。{fam} 现在看不到你了。` (6e.1) | same keys | `.tripnote.helpnote` (`c-saffron-soft`), above the Home help row |
+| H10 Where I am | address huge + saffron postal chip + `Near · 附近：{building}` | (card is bilingual) | `.addr .zh` line style (1.3 rem 700, `#4A4038`); only when the building differs |
+| Settings → 我 | row **常去的地方** (value = count) | **My places** | `Row`, `loc` icon, under 家 |
+| My places screen `/places` | title 常去的地方 · lead `家永远在第一个。最多 6 个地方。` · `改名字` · `加一个地方` · cap `最多 6 个地方` · rename sheet `改名字` / label `名字` / placeholder `比如：诊所` / `保存` · remove confirm `要删掉 {name} 吗？` 删掉 / 不用了 · toasts 存好了 / 删掉了 | My places · `Home always comes first. Up to 6 places.` · Rename · Add a place · `Up to 6 places` · `e.g. Clinic` · Save · `Remove {name}?` | G2 `.stoplist` rows + `.addrow` (dashed) + `.iconbtn` ↑↓ / trash / edit; 44 px icon disc with the 5.1 tints (`tint-home/clinic/market/family`, `c-surface-2` for other); SR `往前移：{p}` / `往后移：{p}` / `删掉：{p}` / `改名字：{p}` / `换一个家` |
+| H1 tiles | other places after Home: label + place name | | `.tile` 5.1, `data-k` clinic/market/daughter; new `data-k=other` = `c-surface-2` / `c-ink` |
+| Share sheet failed (429) | body `请稍后再试。` (AC 47) | `Please try again in a minute.` (AC 47) | 6b state panel |
+| W `/setup` failed | 429 `请稍后再试。` · offline `需要网络，连上网络再试一次。` | `Please try again in a minute.` · `Needs internet. Connect and try again.` | existing `.note` |
+| Viewer, 51st viewer | `看的人太多了，请稍后再试` (AC 25) | `Too many people are watching. Please try again later.` | `.note` (`c-surface-2`), `clock` icon, top of page |
+| Viewer | **在地图上打开** (AC 26) | **Open in Maps** (AC 26) | new viewer `.btn-secondary` (56 px, `c-surface`, 2 px `c-line`, `e-1`), `locate` icon, under the call button |
+| About → privacy | 6 new bullets (`priv_m4_*` in `i18n/m34.ts`) | same | `.bullets` |
+| Share message | time removed (ruling): `我正在去 {dest}。按这里看我在哪里：{url} （我到了以后，这个链接会自己停止。）——怎么去?` | `I'm on my way to {dest}. See where I am: {url} …` | — |
+| Relation chips | no visual change | | selected style now keyed on `aria-checked` |
+
+**Next steps**
+1. **QA:**
+   - Amend `m4.spec.ts` AC 32 to the §6e.3 order: drop `taxi`, keep the `help-share-loc` id.
+   - Amend AC 39 to max 5.
+   - Widen AC 25's 2.5 s socket window (host timing).
+   - Re-check QA-36…46.
+2. **Creative:** review the table above, especially the row position and sub-line, the en help message, the places lead, the `Near · 附近` line, the viewer en copy and the maps button style.
+3. **Re-record after the A/B merge** (Linux / Docker):
+   - `M4-P2-*` (new row);
+   - `M1-F6-settings-*` (My places row);
+   - H2 search;
+   - H1 Home with places;
+   - `M4-V-*` with a position (maps button);
+   - H10-here.
+4. **Director/PM:** should a help-only share keep sending positions? Today it sends one fix, at the tap. This would be a follow-up if wanted.

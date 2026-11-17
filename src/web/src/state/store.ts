@@ -197,7 +197,8 @@ export const toLang = (l: UiLang): Lang => (l === 'en' ? 'en-SG' : 'zh-CN');
 
 export function createStore(kv: KV = local, ss: KV = session, opts: { tripWriteMs?: number } = {}) {
   const settings = signal<Settings>({ ...DEFAULT_SETTINGS, ...readJSON<Partial<Settings>>(kv, 'settings', {}) });
-  const places = signal<SavedPlaces>(readJSON<SavedPlaces>(kv, 'places', { others: [] }));
+  // QA-40: older data may lack `others` (Home only); the My places editor and Home tiles rely on it.
+  const places = signal<SavedPlaces>({ others: [], ...readJSON<Partial<SavedPlaces>>(kv, 'places', {}) });
   const recents = signal<RecentTrip[]>(loadRecents(kv));
   const plan = signal<Plan>({ ...EMPTY_PLAN, ...readJSON<Partial<Plan>>(ss, 'plan', {}) });
   const trip = signal<ActiveTrip | null>(
