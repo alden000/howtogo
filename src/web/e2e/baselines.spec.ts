@@ -92,6 +92,8 @@ const FRAMES: { name: string; variants: Variant[]; places?: unknown; recents?: u
     go: async (p) => {
       await p.getByTestId('take-me-home').click();
       await expect(p.getByTestId('route-option-0')).toBeVisible();
+      // M3: the first bus card's live line arrives async; wait for it so the frame is stable
+      if (await p.locator('.card .busbadge').count()) await p.getByTestId('arr-h3').first().waitFor({ timeout: 3000 }).catch(() => {});
       const n = await p.locator('.card').count();
       return `H3-${['one', 'two', 'three'][n - 1]}`;
     },

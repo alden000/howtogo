@@ -116,10 +116,10 @@ function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
           <p class="t-headline num" style={{ margin: '6px 0 0', color: 'var(--c-ink-2)' }} data-testid="trip-summary">
             {minutes(it.durationS)} {t('min')} · {t('arrive_at', { t: clock(it.endTime, lang) })}
           </p>
-          <H4Extras it={it} />
         </div>
         <MapPanel steps={steps} me={me ? { pos: me, ...(me.acc !== undefined ? { acc: me.acc } : {}) } : null} toggle />
         <div style={{ padding: '0 var(--s-5) var(--s-6)' }}>
+          <H4Extras it={it} />
           <ol class="timeline" data-testid="step-list">
             {timeline(it, plan.to, t).map((row) => (
               <li class={row.kind === 'bus' || row.kind === 'train' ? 'ride' : ''}>
