@@ -2,10 +2,12 @@
 # Lighthouse (mobile) on the release build: median of 3 runs per URL (QA-20); a11y ≥ 95, perf ≥ 80, best-practices reported.
 # Lighthouse ≥ 12 has no PWA category → installability is covered by tests/pwa.spec.ts (Chrome's own verdict).
 set -uo pipefail
-QA="$(cd "$(dirname "$0")/.." && pwd)"; PORT=${LH_PORT:-4186}; OUT="$QA/.out/lighthouse"; mkdir -p "$OUT"
-export CHROME_PATH="${CHROME_PATH:-$(ls -d /opt/pw-browsers/chromium-*/chrome-linux*/chrome 2>/dev/null | head -1)}"
+QA="$(cd "$(dirname "$0")/.." && { pwd -W 2>/dev/null || pwd; })"; PORT=${LH_PORT:-4186}; OUT="$QA/.out/lighthouse"; mkdir -p "$OUT"
+CP="${CHROME_PATH:-$(ls -d /opt/pw-browsers/chromium-*/chrome-linux*/chrome 2>/dev/null | head -1)}"
+if [ -n "$CP" ]; then export CHROME_PATH="$CP"; else unset CHROME_PATH; fi # Windows: chrome-launcher finds installed Chrome
 (cd "$QA/../src/web" && exec npx vite preview --outDir "$QA/.out/dist" --port $PORT --strictPort >/dev/null 2>&1) & SRV=$!
-trap 'kill $SRV 2>/dev/null' EXIT
+# Kill the whole tree on exit: on Windows `kill` of the msys pid leaves the npx → node vite child orphaned.
+trap 'kill $SRV 2>/dev/null; bash "$QA/scripts/free-ports.sh" $PORT >/dev/null' EXIT
 for i in $(seq 1 30); do curl -sf "http://localhost:$PORT/" >/dev/null && break; sleep 0.5; done
 # QA-20 (Director ruling): host noise can swing perf by ±10, so each URL is run RUNS times (default 3)
 # and the gate judges the MEDIAN of each category. Every run's scores are printed for the record.

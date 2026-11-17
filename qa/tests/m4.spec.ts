@@ -238,19 +238,26 @@ test('AC 7: Stop sharing → DELETE + toast; End trip also ends the share and it
   await expect(page.getByTestId('sheet-end-trip').or(page.locator('.sheet').last())).toContainText('分享也会停止');
   await page.getByTestId('end-trip-yes').click();
   await expect.poll(() => page.evaluate((i) => JSON.parse(localStorage.getItem(`howtogo.mockshare.${i}`) ?? '{}').status, id)).toBe('ended');
-  expect(await page.evaluate(() => JSON.stringify(localStorage)), 'owner token deleted when the trip ends').not.toMatch(/ownerToken\\?"\s*:\s*\\?"[^"\\]{8,}/);
+  // Polled: End clears the stored trip right after the share DELETE, so give it the usual 5 s.
+  await expect
+    .poll(() => page.evaluate(() => JSON.stringify(localStorage)), { message: 'owner token deleted when the trip ends' })
+    .not.toMatch(/ownerToken\\?"\s*:\s*\\?"[^"\\]{8,}/);
 });
 
-test('AC 8: a share can be created on H4 before Start (status travelling, no position until the first fix)', async ({ page }) => {
+test('AC 8: a share can be created on H4 before Start (approved deviation: it starts the trip, sheet opens on H5)', async ({ page }) => {
+  // Creative M34 review "Share before Start (starts the trip): Approved", accepted by the Director (director-log
+  // 2026-11-17, "Deviation rulings accepted as Creative ruled"). The family-side "not started yet" state before the
+  // first fix is covered by the live test (AC 3/10/…/28: waiting state).
   await senior(page, { contacts: [MEI] });
   await page.getByTestId('to-field').click();
   await page.getByTestId('search-input').fill('tan tock');
   await page.getByTestId('search-result-0').click();
   await page.getByTestId('route-option-0').click();
   await page.getByTestId('share-before').click();
-  // Spec: the share sheet opens on H4 and the trip has NOT started yet.
   await expect(page.getByTestId('sheet-share')).toBeVisible();
-  await expect(page.getByTestId('guide'), 'trip not started by sharing').toHaveCount(0);
+  await expect(page.getByTestId('guide'), 'trip started by the H4 share entry (ruling)').toHaveCount(1);
+  await page.getByTestId('share-copy').click();
+  await expect(page.getByTestId('share-pill')).toBeVisible();
 });
 
 // ================================================================ C/D. live two-browser share (real Worker)
@@ -447,17 +454,23 @@ test('AC 25: 51st viewer of one link sees "看的人太多了，请稍后再试"
   await f.ctx.close();
 });
 
-test('AC 26 / AC 30: viewer offers "在地图上打开" (Should) and "到了通知我" (Must, foreground Notification + chime)', async ({ browser }) => {
-  const ctx = await liveCtx(browser);
-  const s = await apiShare(ctx);
-  await apiPut(ctx, s, { status: 'travelling', lat: 1.3346, lng: 103.8491, acc: 12 });
-  const f = await family(browser, s.viewPath);
-  await expect(f.v).toHaveAttribute('data-state', /walk|wait|bus|train/);
-  expect.soft(await f.page.getByText(/在地图上打开|Open in Maps/).count(), 'AC 26 Open in Maps').toBeGreaterThan(0);
-  expect.soft(await f.page.getByText(/到了通知我|Notify me/).count(), 'AC 30 Notify me').toBeGreaterThan(0);
-  await ctx.close();
-  await f.ctx.close();
-});
+for (const [ac, re, why] of [
+  ['AC 26 (Should): viewer offers "在地图上打开 / Open in Maps"', /在地图上打开|Open in Maps/, ''],
+  ['AC 30: viewer offers "到了通知我 / Notify me" (DEFERRED: dropped from M4, Creative M34 review)', /到了通知我|Notify me/, 'deferred'],
+] as const) {
+  test(ac, async ({ browser }) => {
+    // AC 30 notify-me was dropped from M4 with Web Push (Creative M34 review, Director-accepted) → known, flags when built.
+    test.fail(why === 'deferred', 'DEFERRED to M5');
+    const ctx = await liveCtx(browser);
+    const s = await apiShare(ctx);
+    await apiPut(ctx, s, { status: 'travelling', lat: 1.3346, lng: 103.8491, acc: 12 });
+    const f = await family(browser, s.viewPath);
+    await expect(f.v).toHaveAttribute('data-state', /walk|wait|bus|train/);
+    expect(await f.page.getByText(re).count(), ac).toBeGreaterThan(0);
+    await ctx.close();
+    await f.ctx.close();
+  });
+}
 
 test('AC 51: share inputs render as text only; over-long destName refused server-side', async ({ browser }) => {
   const ctx = await liveCtx(browser);
@@ -655,12 +668,22 @@ test('AC 40/41/43/44: /setup on the family phone → encrypted one-time box → 
   await fam.close();
 });
 
-test('AC 42: delivery — QR code on the family phone; senior side "用家人的设置" with Scan QR and Paste link', async ({ page }) => {
+test('AC 42: delivery — senior side "用家人的设置" with Paste link; family side gets the link', async ({ page }) => {
   await senior(page);
   await page.goto('/settings');
   await page.getByTestId('row-setup').click();
   await expect(page.getByTestId('setup-paste')).toBeVisible();
   const fp = await page.context().newPage();
+  await fp.goto('/setup?mock=1');
+  await fp.getByTestId('w-name').fill('林阿姨');
+  await fp.getByTestId('w-you').fill('美玲');
+  await fp.getByTestId('w-send').click();
+  await expect(fp.getByTestId('setup-link')).toBeVisible();
+});
+
+test('AC 42: QR code on the family phone (DEFERRED to M5: Creative M34 review, Director decides the dependency)', async ({ page }) => {
+  test.fail(true, 'DEFERRED to M5');
+  const fp = page;
   await fp.goto('/setup?mock=1');
   await fp.getByTestId('w-name').fill('林阿姨');
   await fp.getByTestId('w-you').fill('美玲');

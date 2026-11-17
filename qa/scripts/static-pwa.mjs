@@ -1,7 +1,8 @@
 // Static check of the built manifest + service worker against the M1 allow-list.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-const dist = process.argv[2] ?? new URL('../.out/dist', import.meta.url).pathname;
+const dist = process.argv[2] ?? fileURLToPath(new URL('../.out/dist', import.meta.url));
 const fails = [], warns = [];
 const m = JSON.parse(readFileSync(join(dist, 'manifest.webmanifest'), 'utf8'));
 const need = (c, msg) => { if (!c) fails.push(msg); };

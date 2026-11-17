@@ -9,6 +9,11 @@ set -uo pipefail
 wpwd() { pwd -W 2>/dev/null || pwd; }
 QA="$(cd "$(dirname "$0")" && wpwd)"; ROOT="$(cd "$QA/.." && wpwd)"; WEB="$ROOT/src/web"
 LOG="$QA/.out/logs"; mkdir -p "$LOG"
+# No orphans: after every step and on exit (incl. Ctrl-C), kill whatever still listens on the QA-owned
+# ports (4183 dev-e2e, 4184 qa-e2e, 4186 lighthouse, 18797 qa worker = wrangler/workerd).
+QA_PORTS="4183 4184 4186 18797"
+freeports() { bash "$QA/scripts/free-ports.sh" $QA_PORTS; }
+trap 'freeports >/dev/null' EXIT
 VER=$(node -p "require('$WEB/package.json').version")
 declare -a NAMES=() RESULTS=() NOTES=()
 skip() { [[ ",${SKIP:-}," == *",$1,"* ]]; }
@@ -16,6 +21,7 @@ step() { # step <name> <note-extractor> <cmd...>
   local name=$1 extract=$2; shift 2
   if skip "$name"; then NAMES+=("$name"); RESULTS+=(SKIP); NOTES+=("skipped"); printf '%-12s SKIP\n' "$name"; return; fi
   local t0=$SECONDS; "$@" >"$LOG/$name.log" 2>&1; local rc=$?
+  freeports >>"$LOG/$name.log" 2>&1
   local note; note=$(eval "$extract" <"$LOG/$name.log" 2>/dev/null | tr '\n' ' ' | cut -c1-110)
   NAMES+=("$name"); RESULTS+=($([ $rc -eq 0 ] && echo PASS || echo FAIL)); NOTES+=("$note ($((SECONDS - t0))s)")
   printf '%-12s %s  %s\n' "$name" "${RESULTS[-1]}" "${NOTES[-1]}"

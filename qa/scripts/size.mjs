@@ -1,8 +1,9 @@
 // Bundle budget (AC 46): app JS excl. MapLibre ≤ 150 KB gz; MapLibre must be a separate (lazy) chunk not referenced by index.html.
+import { fileURLToPath } from 'node:url';
 import { readdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
-const dist = process.argv[2] ?? new URL('../.out/dist', import.meta.url).pathname;
+const dist = process.argv[2] ?? fileURLToPath(new URL('../.out/dist', import.meta.url));
 let app = 0, map = 0;
 for (const f of readdirSync(join(dist, 'assets')).filter((f) => f.endsWith('.js'))) {
   const gz = gzipSync(readFileSync(join(dist, 'assets', f))).length;

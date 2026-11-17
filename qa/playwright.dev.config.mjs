@@ -3,7 +3,9 @@
 // No @playwright/test import here: the suite resolves it from the root workspace.
 // updateSnapshots 'none' → baselines are compared, never written.
 const PORT = Number(process.env.QA_DEV_PORT ?? 4183); // not 4173: other worktrees run the dev suite there
-const here = new URL('.', import.meta.url).pathname;
+import { fileURLToPath } from 'node:url';
+// fileURLToPath, not .pathname: on Windows .pathname is /D:/… which node resolves to D:\D:\….
+const here = fileURLToPath(new URL('.', import.meta.url)).replace(/\\/g, '/');
 export default {
   testDir: here + '../src/web/e2e',
   outputDir: here + '.out/dev-results',

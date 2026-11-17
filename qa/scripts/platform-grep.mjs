@@ -1,9 +1,10 @@
 // M2 AC 37 (D-4): device APIs only through the Platform adapter.
 // Fails on navigator.geolocation, speechSynthesis, navigator.wakeLock, navigator.vibrate or Notification
 // in code outside src/web/src/platform/ (comments are stripped first). Also checks the six haptic names.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
-const root = new URL('../..', import.meta.url).pathname;
+import { join, relative, sep } from 'node:path';
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const BAD = /navigator\s*\.\s*geolocation|speechSynthesis|navigator\s*\.\s*wakeLock|navigator\s*\.\s*vibrate|\bNotification\b/;
 const findings = [];
 let files = 0;
@@ -11,7 +12,7 @@ function walk(d) {
   for (const n of readdirSync(d)) {
     const p = join(d, n);
     if (n === 'node_modules' || n === 'dist') continue;
-    if (statSync(p).isDirectory()) { if (relative(root, p) !== 'src/web/src/platform') walk(p); continue; }
+    if (statSync(p).isDirectory()) { if (relative(root, p).split(sep).join('/') !== 'src/web/src/platform') walk(p); continue; }
     if (!/\.(ts|tsx|js|mjs)$/.test(n)) continue;
     files++;
     const code = readFileSync(p, 'utf8').replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' ')).replace(/(^|[^:'"`])\/\/.*$/gm, '$1');

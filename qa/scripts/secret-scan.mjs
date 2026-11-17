@@ -1,9 +1,10 @@
 // Secret scan: src/ (tracked + untracked, excl. node_modules/.wrangler) and the built dist/.
 // Fails on: JWTs, private keys, AWS/Google-style keys, credential assignments with real-looking values,
 // e-mail addresses outside an allow-list, and real values in wrangler.toml [vars]/ids.
+import { fileURLToPath } from 'node:url';
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
-import { join, relative } from 'node:path';
-const root = new URL('../..', import.meta.url).pathname;
+import { join, relative, sep } from 'node:path';
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const dist = process.argv[2] ?? join(root, 'qa/.out/dist');
 const SKIP = new Set(['node_modules', '.wrangler', 'dist', 'test-results', 'playwright-report', 'baselines']);
 const BIN = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|zip|gz)$/i;
@@ -31,7 +32,7 @@ function walk(dir, inDist) {
   }
 }
 function scan(p, txt, inDist) {
-  const rel = relative(root, p);
+  const rel = relative(root, p).split(sep).join('/'); // posix-style on Windows too
   for (const [id, re] of rules) for (const m of txt.matchAll(re)) findings.push(`${id}: ${rel} "${m[0].slice(0, 16)}…"`);
   for (const m of txt.matchAll(ASSIGN)) if (!PLACEHOLDER.test(m[2]) && !(KNOWN_TEST_VALUES.has(m[2]) && !inDist) && !/example\.com$/.test(m[2])) {
     // Test files may assign obviously fake values; only flag them in dist or non-test files.
@@ -51,7 +52,8 @@ const wt = readFileSync(join(root, 'src/worker/wrangler.toml'), 'utf8');
 if (/^\s*(ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY)\s*=/m.test(wt)) findings.push('wrangler.toml: credential in [vars]');
 // KV namespace ids are not secrets (Director ruling, M2 gate): the reviewed TOKEN_KV id is allow-listed.
 // Any other real-looking id still needs QA review before it is added here.
-const KV_ID_OK = new Set(['0dc8a4714f234b5bb8d23ffe36cb2107']);
+// 1e51…: TOKEN_KV recreated on the owner's account (3e27b40), reviewed by QA at the M3/M4 gate.
+const KV_ID_OK = new Set(['0dc8a4714f234b5bb8d23ffe36cb2107', '1e514bcf1539494db863191de13f5d3c']);
 for (const m of wt.matchAll(/^\s*id\s*=\s*"([^"]*)"/gm)) if (/^[0-9a-f]{32}$/.test(m[1]) && !KV_ID_OK.has(m[1])) findings.push('wrangler.toml: real-looking KV id (not a secret, but confirm intended)');
 // Files that must never be tracked.
 import { execSync } from 'node:child_process';
