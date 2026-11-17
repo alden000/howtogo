@@ -422,3 +422,52 @@ for (const v of [
     const ack = await page.getByTestId('getoff-now-ack').boundingBox();
     expect(ack!.y + ack!.height).toBeLessThanOrEqual(844 + 1);
   });
+
+// ---------------------------------------------------------------- M2 fix round
+test('AC 12: All steps sheet from the step counter — remaining steps, current marked, Back closes it', async ({ page }) => {
+  await boot(page);
+  await startTo(page, 'tan tock');
+  await page.getByTestId('all-steps-btn').click();
+  const sheet = page.getByTestId('sheet-all-steps');
+  await expect(sheet).toContainText('全部步骤');
+  await expect(sheet.locator('li')).toHaveCount(4);
+  await expect(sheet.locator('li[aria-current=step]')).toContainText('走到 Toa Payoh Int 巴士站');
+  await expect(sheet.locator('li[aria-current=step]')).toContainText('现在');
+  await page.goBack();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByTestId('guide')).toBeVisible();
+  await page.getByTestId('step-next').click();
+  await page.getByTestId('all-steps-btn').click();
+  await expect(page.getByTestId('sheet-all-steps').locator('li')).toHaveCount(3);
+});
+
+test('F1/F2: H5 headline is the spoken guidance line, ≥ 32 px; walk chip has the stop code; walk minutes are the walk\'s own', async ({ page }) => {
+  await boot(page);
+  await startTo(page, 'tan tock');
+  const h = page.getByTestId('current-step');
+  await expect(h).toHaveText('走到 Toa Payoh Int 巴士站');
+  expect(parseFloat(await h.evaluate((e) => getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(32);
+  await expect(page.getByTestId('walk-sign')).toHaveText('Toa Payoh Int · 52009');
+  const sub = await page.getByTestId('step-sub').innerText();
+  const [, m, n] = sub.match(/还有 (\d+) 米，大约 (\d+) 分钟/)!;
+  expect(Number(n)).toBe(Math.max(1, Math.ceil(Number(m) / 67)));
+});
+
+test('AC 50: demo controls in Help (demo mode only) play the get-off alert, off route, weak GPS and arrival', async ({ page }) => {
+  await boot(page);
+  await startTo(page, 'tan tock');
+  const play = async (id: string) => {
+    await page.getByTestId('guide-help').click();
+    await expect(page.getByTestId('demo-controls')).toBeVisible();
+    await page.getByTestId(`demo-${id}`).click();
+  };
+  await play('weak');
+  await expect(page.locator('[data-testid=trip-note][data-note=weak]')).toBeVisible();
+  await play('offroute');
+  await expect.poll(() => logOf(page)).toContain('cue:off_route');
+  await play('getoff');
+  await expect(page.getByTestId('getoff-next')).toBeVisible();
+  await page.getByTestId('getoff-ack').click();
+  await play('arrive');
+  await expect(page.getByTestId('arrived')).toBeVisible({ timeout: 15_000 });
+});

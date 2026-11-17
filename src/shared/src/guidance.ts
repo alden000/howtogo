@@ -126,7 +126,7 @@ export function createGuidance(steps: Step[], t?: number): GuidanceState {
   if (t !== undefined) s.t = t;
   if (steps[0]) {
     s.onBoard = isRide(steps[0]);
-    emit(s, 'step_changed', { text: steps[0].text }, undefined, true);
+    emit(s, 'step_changed', { text: steps[0].say ?? steps[0].text }, undefined, true);
   }
   return derive(s);
 }
@@ -170,7 +170,7 @@ function enterStep(s: GuidanceState, idx: number, manual: boolean): void {
   if (step.kind === 'walk_transfer' || (isBoard(step) && step.isTransfer && prev && isRide(prev))) {
     emit(s, 'transfer', transferParams(step.kind === 'walk_transfer' ? (s.steps[idx + 1] ?? step) : step));
   }
-  emit(s, 'step_changed', { text: step.text }, undefined, manual);
+  emit(s, 'step_changed', { text: step.say ?? step.text }, undefined, manual);
 }
 
 /**
@@ -269,12 +269,17 @@ function evalRide(s: GuidanceState, step: Step, fix: Fix, cfg: GuidanceConfig): 
   if (inter.length > 0) nowM = Math.min(nowM, 0.6 * (step.lengthM - inter[inter.length - 1]!.alongM));
   const now = nextStop && remaining <= nowM;
   const nextStopId = `${step.id}:get_off_next_stop`;
+  // Sign chip (Creative F4): the stop's sign text (never a zh name) and, for trains, the station code.
+  const alight = stops[stops.length - 1];
+  const sign = String(alight?.displayName || alight?.name || step.params.stop || '');
+  const code = !bus && alight?.code && /^[A-Z]{1,3}\d{1,3}$/.test(alight.code) ? alight.code : '';
+  const signP: MessageParams = code ? { sign, code } : { sign };
   if (onPath && now) {
     // Never say "next stop" after "now": if both become true on one fix, only "now" is spoken.
     if (!s.fired.includes(nextStopId)) s.fired = [...s.fired, nextStopId];
-    emit(s, 'get_off_now', { stop: String(step.params.stop ?? '') });
+    emit(s, 'get_off_now', { stop: String(step.params.stop ?? ''), ...signP });
   } else if (onPath && nextStop) {
-    emit(s, 'get_off_next_stop', { stop: String(step.params.stop ?? ''), mode: bus ? 'bus' : 'train' });
+    emit(s, 'get_off_next_stop', { stop: String(step.params.stop ?? ''), mode: bus ? 'bus' : 'train', ...signP });
   }
 
   let advance = remaining <= 30 || haversine(fix, step.end) <= 30;

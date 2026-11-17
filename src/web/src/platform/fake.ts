@@ -4,7 +4,7 @@
  * back on a timer or stepped manually. Everything else records what it was asked.
  */
 import type { CuePriority, Lang } from '@howtogo/shared';
-import type { LocationFix, NotifyCue, PermissionState, Platform, PlatformCapabilities, PlatformError, ShareOutcome, Unsubscribe, VibratePattern, VoiceSupport } from './types';
+import type { LocationFix, NotifyCue, NotifyPermission, PermissionState, Platform, PlatformCapabilities, PlatformError, ShareOutcome, Unsubscribe, VibratePattern, VoiceSupport } from './types';
 
 export interface FakeControls {
   /** Load a fix script; playback resumes from `startIndex`. */
@@ -30,6 +30,9 @@ export interface FakeControls {
   setVisible(visible: boolean): void;
   /** Make the next wake-lock requests succeed or fail. */
   setWakeLockOk(ok: boolean): void;
+  /** Notification permission (and what a request answers). */
+  setNotifyPermission(p: NotifyPermission, answer?: NotifyPermission): void;
+  readonly notifyRequests: number;
   /** Location permission reported by `location.permission()`. */
   setPermission(p: PermissionState): void;
   /** Deliver a watch error to every watcher (e.g. denied). */
@@ -59,6 +62,7 @@ export interface FakePlatformOptions {
   voices?: VoiceSupport;
   wakeLockOk?: boolean;
   permission?: PermissionState;
+  notifyPermission?: NotifyPermission;
 }
 
 export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform {
@@ -79,6 +83,9 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
   let muted = false;
   let visible = true;
   let permission: PermissionState = opts.permission ?? 'granted';
+  let notifyPerm: NotifyPermission = opts.notifyPermission ?? 'granted';
+  let notifyAnswer: NotifyPermission = 'granted';
+  let notifyRequests = 0;
   const visWatchers = new Set<(v: boolean) => void>();
   const errWatchers = new Set<(e: PlatformError) => void>();
   const watchIntervals: (number | undefined)[] = [];
@@ -145,6 +152,13 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
       visible = v;
       if (!v) wakeLockHeld = false; // the browser drops the lock when hidden
       for (const w of [...visWatchers]) w(v);
+    },
+    setNotifyPermission(p, answer) {
+      notifyPerm = p;
+      if (answer) notifyAnswer = answer;
+    },
+    get notifyRequests() {
+      return notifyRequests;
     },
     setWakeLockOk(ok) {
       wakeLockOk = ok;
@@ -228,6 +242,14 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
     },
     async notify(cue) {
       notifications.push(cue);
+    },
+    notifications: {
+      permission: () => notifyPerm,
+      async request() {
+        notifyRequests++;
+        notifyPerm = notifyAnswer;
+        return notifyPerm;
+      },
     },
     async share(url, text) {
       shares.push({ url, text });

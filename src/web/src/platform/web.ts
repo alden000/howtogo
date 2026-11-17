@@ -6,6 +6,7 @@ import {
   type HeadingApi,
   type LocationApi,
   type LocationFix,
+  type NotifyPermission,
   type Platform,
   type PlatformError,
   type RecognitionApi,
@@ -300,6 +301,23 @@ export function createWebPlatform(): Platform {
       } catch {
         /* unsupported (iOS) */
       }
+    },
+    notifications: {
+      permission() {
+        try {
+          return typeof Notification === 'undefined' ? 'unsupported' : (Notification.permission as NotifyPermission);
+        } catch {
+          return 'unsupported';
+        }
+      },
+      async request() {
+        try {
+          if (typeof Notification === 'undefined' || typeof Notification.requestPermission !== 'function') return 'unsupported';
+          return (await Notification.requestPermission()) as NotifyPermission;
+        } catch {
+          return 'denied';
+        }
+      },
     },
     async notify(cue) {
       // Web: only when hidden; the visible UI shows cues itself.

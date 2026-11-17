@@ -67,6 +67,10 @@ export interface AlertState {
   /** Ride step the alert belongs to; the alert ends with that step. */
   stepId: string;
   stop: string;
+  /** Sign chip text as on the physical sign (F4); absent on alerts stored before 0.2.0. */
+  sign?: string;
+  /** Train station code for the chip ("NS26"). */
+  code?: string;
   mode: 'bus' | 'train';
   shownAt: number;
   escalated: boolean;
@@ -101,6 +105,8 @@ export function alertReducer(a: AlertState | null, ev: AlertEvent): AlertResult 
       // H6 never after H6b on the same ride.
       if (kind === 'next' && a?.kind === 'now' && a.stepId === ev.cue.stepId) return { alert: a, effect: null };
       const alert: AlertState = { kind, stepId: ev.cue.stepId, stop: String(ev.cue.params.stop ?? ''), mode: ev.mode, shownAt: ev.t, escalated: false };
+      if (ev.cue.params.sign) alert.sign = String(ev.cue.params.sign);
+      if (ev.cue.params.code) alert.code = String(ev.cue.params.code);
       const grow = kind === 'now' && a?.kind === 'next' && a.stepId === ev.cue.stepId;
       return { alert, effect: grow ? 'grow' : 'show' };
     }

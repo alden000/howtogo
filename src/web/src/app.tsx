@@ -20,7 +20,7 @@ import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
 import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
 import { JourneyBuilder } from './views/Journey';
-import { DriverSheet, DwellSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
+import { AllStepsSheet, DriverSheet, DwellSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
 import { Confirm995Sheet, HelpSheet } from './views/helpSheet';
 import { ShareSheet } from './views/share';
 import { DisruptionOfferSheet, LtaNoticeSheet } from './views/transit';
@@ -161,6 +161,7 @@ export function App() {
       {sheet === 'lta-notice' && <LtaNoticeSheet />}
       {sheet === 'delete-all' && <DeleteAllSheet />}
       {sheet === 'dis-offer' && <DisruptionOfferSheet />}
+      {sheet === 'all-steps' && <AllStepsSheet />}
       {sheet === 'driver' && <DriverSheet />}
       {sheet === 'voice-help' && <VoiceHelpSheet />}
       {sheet === 'stale-trip' && <StaleSheet />}

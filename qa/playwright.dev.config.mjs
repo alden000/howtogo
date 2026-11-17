@@ -1,8 +1,8 @@
 // Runs the Developer's e2e suite (src/web/e2e) READ-ONLY against the QA release build
-// (qa/.out/dist served by `vite preview` on :4173 — the suite's URL asserts expect that port).
+// (qa/.out/dist served by `vite preview` on :4183; since M2 the suite's URL asserts accept any port).
 // No @playwright/test import here: the suite resolves it from the root workspace.
 // updateSnapshots 'none' → baselines are compared, never written.
-const PORT = 4173;
+const PORT = Number(process.env.QA_DEV_PORT ?? 4183); // not 4173: other worktrees run the dev suite there
 const here = new URL('.', import.meta.url).pathname;
 export default {
   testDir: here + '../src/web/e2e',

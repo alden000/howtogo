@@ -338,7 +338,7 @@ test('AC-27 set Home via search, Take me home routes in one tap, stored on devic
   await page.getByTestId('take-me-home').click();
   await expect(page.getByTestId('route-option-0')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('howtogo.places'))).toContain('Tan Tock Seng');
-  expect(net.filter((u) => /Tan%20Tock|Tan Tock|1\.32135/.test(u) && !u.startsWith('http://localhost:4174/assets'))).toEqual([]);
+  expect(net.filter((u) => /Tan%20Tock|Tan Tock|1\.32135/.test(u) && !/^http:\/\/localhost:\d+\/assets/.test(u))).toEqual([]);
 });
 
 test('AC-28 last 5 destinations under To; clearable in Settings', async ({ page }) => {
@@ -450,7 +450,7 @@ test('AC-42 report: version, UA, language, font size; no coordinates/addresses',
   await page.getByTestId('report').click();
   await page.getByTestId('report-see').click();
   const txt = await page.getByTestId('report-text').innerText();
-  expect(txt).toMatch(/0\.1\.0/);
+  expect(txt).toMatch(/0\.2\.0/); // M2 (QA-27)
   expect(txt).toMatch(/Mozilla|Chrome/);
   expect(txt).toMatch(/zh/);
   expect(txt).toMatch(/125|large/);
@@ -486,9 +486,10 @@ test('AC-47 About: OneMap attribution, LTA line, privacy in zh and en', async ({
   expect(en).toMatch(/privacy|Privacy/);
 });
 
-test('AC-35 Start trip hidden in the M1 release (flag guide off)', async ({ page }) => {
+// M2: `guide` is on by default (M2 AC 1); the M1 behaviour stays reachable with ?ff=-guide.
+test('AC-35 Start trip hidden when flag guide is off (?ff=-guide; on by default since M2)', async ({ page }) => {
   await setup(page);
-  await page.goto('/?demo=1');
+  await page.goto('/?demo=1&ff=-guide');
   await toRoutes(page);
   await page.getByTestId('route-option-0').click();
   await expect(page.getByTestId('step-list')).toBeVisible();
@@ -551,9 +552,10 @@ test('AC-9 layout at 150 % on route states (close, error)', async ({ page }) => 
 void TTSH;
 
 // QA-1 ruling (Director, gate 1): Help row/pill hidden in the M1 release behind flag `help`.
-test('QA-1: Help row and Help pill do not render in M1 (flag off); ?ff=help brings them back', async ({ page }) => {
+// M2: `help` is on by default (M2 OQ4 subset); ?ff=-help still hides it.
+test('QA-1: Help row and Help pill do not render with flag help off (?ff=-help); default (M2) shows them', async ({ page }) => {
   await setup(page);
-  await page.goto('/?demo=1');
+  await page.goto('/?demo=1&ff=-help');
   await expect(page.locator('h1').first()).toBeVisible();
   await expect(page.getByTestId('nav-help')).toHaveCount(0);
   await expect(page.getByText('需要帮忙')).toHaveCount(0);
@@ -563,8 +565,8 @@ test('QA-1: Help row and Help pill do not render in M1 (flag off); ?ff=help brin
   await page.getByTestId('route-option-0').click();
   await expect(page.getByTestId('step-list')).toBeVisible();
   await expect(page.getByTestId('bar-help')).toHaveCount(0);
-  // Flag override (per tab): the row returns.
-  await page.goto('/?demo=1&ff=help');
+  // M2 default: the row is there.
+  await page.goto('/?demo=1&ff=');
   await expect(page.getByTestId('nav-help')).toBeVisible();
 });
 

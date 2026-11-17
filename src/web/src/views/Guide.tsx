@@ -32,6 +32,7 @@ import {
   stepGroup,
   stepIcon,
   stopDots,
+  walkMinutes,
   type NoteId,
 } from './guideModel';
 
@@ -137,7 +138,8 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
   // ---- step card text
   const icon = stepIcon(step, isLast);
   const mrt = group === 'ride' && step?.mode !== 'bus' ? ui.mrt : null;
-  const headline = mrt ? t('g_mrt_head', { n: mrt.stopsLeft }) : (step?.text ?? '');
+  // F1: the H5 headline is the spoken guidance line (`say`); H3/H4 keep the planner sentence (`text`).
+  const headline = mrt ? t('g_mrt_head', { n: mrt.stopsLeft }) : (step?.say ?? step?.text ?? '');
   const etaMs = Date.now() + g.remainingS * 1000;
   const minLeft = minutesLeft(g.remainingS);
   const acts = stepActions(group, { manual: ui.manual, gpsWeak: ui.gpsWeak });
@@ -270,7 +272,17 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
           </div>
         )}
         <div class="stepmeta">
-          <span>{t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}</span>
+          {/* AC 12: the step counter opens the All-steps sheet (a history entry; Back closes it). */}
+          <button
+            type="button"
+            class="stepof"
+            data-testid="all-steps-btn"
+            aria-label={`${t('all_steps')}，${t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}`}
+            onClick={() => router.openSheet('all-steps')}
+          >
+            {t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}
+            <Icon name="chev" />
+          </button>
           <span class="num" data-testid="guide-eta">
             {t('g_arrive_left', { t: clock(etaMs, lang), n: minLeft })}
           </span>
@@ -283,7 +295,12 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
             <h2 aria-live="polite" tabIndex={-1} data-testid="current-step" lang={trip.lang}>
               {headline}
             </h2>
-            {group === 'walk' && step?.kind === 'walk_to_stop' && <span class="sign">{String(step.params.stop ?? '')}</span>}
+            {group === 'walk' && (step?.kind === 'walk_to_stop' || step?.kind === 'walk_transfer') && (
+              <span class="sign" data-testid="walk-sign">
+                {String(step.params.stop ?? '')}
+                {step.params.code ? <span class="num">{` · ${step.params.code}`}</span> : null}
+              </span>
+            )}
             <StepSub step={step} group={group} t={t} stopsLeft={ui.stopsLeft} mrt={!!mrt} metres={metresLeft(g)} minutes={minLeft} />
             <StepExtras step={step} itinerary={trip.itinerary} pocket={ui.pocket} />
           </div>
@@ -337,7 +354,8 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
       </section>
 
       {trip.alert && <GetOffAlert alert={trip.alert} t={t} />}
-      {ui.pocket && !trip.alert && <Pocket trip={trip} t={t} />}
+      {/* F12: a sheet over pocket view (Back → End) unmounts the pocket view first; the sheet fades in over H5. */}
+      {ui.pocket && !trip.alert && !sheet && <Pocket trip={trip} t={t} />}
     </div>
   );
 }
@@ -345,7 +363,8 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
 function StepSub(p: { step: Step | undefined; group: 'walk' | 'wait' | 'ride'; t: TFn; stopsLeft: number | null; mrt: boolean; metres: number; minutes: number }) {
   const { step, t } = p;
   if (!step) return null;
-  if (p.group === 'walk') return <p data-testid="step-sub">{t('g_walk_s', { m: p.metres, n: p.minutes })}</p>;
+  // F2: this walk's own minutes, not the whole trip's (the ETA row keeps those).
+  if (p.group === 'walk') return <p data-testid="step-sub">{t('g_walk_s', { m: p.metres, n: walkMinutes(p.metres) })}</p>;
   if (p.group === 'wait') {
     if (step.mode === 'bus')
       return (
@@ -412,6 +431,8 @@ const NOTE: Record<NoteId, { icon: IconName; title: Parameters<TFn>[0]; line?: P
   manual: { icon: 'loc', title: 'note_manual' },
   'found-you': { icon: 'loc', title: 'note_found_you' },
   wakelock: { icon: 'eye', title: 'note_wake_t', line: 'note_wake_s' },
+  'notify-ask': { icon: 'bell', title: 'note_notify_ask' },
+  'notify-denied': { icon: 'bell', title: 'note_notify_denied', line: 'note_notify_denied_s' },
   novoice: { icon: 'mute', title: 'note_novoice_zh' },
 };
 
@@ -420,7 +441,15 @@ function TripNote({ id, trip, t, onNoVoiceOff }: { id: NoteId; trip: ActiveTrip;
   const n = NOTE[id];
   const title = id === 'novoice' && trip.lang === 'en-SG' ? t('note_novoice_en') : t(n.title);
   const reroute = id === 'reroute-failed' || id === 'reroute-offline';
-  const close = reroute ? () => runtime.dismissRerouteNote() : id === 'wakelock' ? () => runtime.dismissWakeNote() : id === 'novoice' ? onNoVoiceOff : null;
+  const close = reroute
+    ? () => runtime.dismissRerouteNote()
+    : id === 'wakelock'
+      ? () => runtime.dismissWakeNote()
+      : id === 'notify-denied'
+        ? () => runtime.dismissNotifyNote()
+        : id === 'novoice'
+          ? onNoVoiceOff
+          : null;
   return (
     <div class="tripnote" role="status" data-testid="trip-note" data-note={id}>
       <Icon name={n.icon} />
@@ -457,7 +486,7 @@ function TripNote({ id, trip, t, onNoVoiceOff }: { id: NoteId; trip: ActiveTrip;
 // ------------------------------------------------------------------ H6 / H6b
 
 function GetOffAlert({ alert, t }: { alert: AlertState; t: TFn }) {
-  const { runtime } = useServices();
+  const { runtime, store } = useServices();
   const c = alertCopy(alert);
   const now = alert.kind === 'now';
   const title = useRef<HTMLHeadingElement>(null);
@@ -482,12 +511,18 @@ function GetOffAlert({ alert, t }: { alert: AlertState; t: TFn }) {
         <div class="bellwrap" aria-hidden="true" key={alert.escalated ? 'e' : 'n'}>
           <Icon name={c.icon} />
         </div>
-        <h2 id="ga-t" tabIndex={-1} ref={title}>
-          {t(c.title)}
+        {/* F3: two unbreakable phrases, so a title never orphans one character. */}
+        <h2 id="ga-t" tabIndex={-1} ref={title} aria-label={t(c.title)}>
+          <span class="ph">{t(c.t1)}</span>
+          {store.settings.value.lang === 'en' ? ' ' : ''}
+          <span class="ph">{t(c.t2)}</span>
         </h2>
         <div id="ga-d">
           <p>{t(c.line)}</p>
-          <span class="sign">{t(c.sign, { s: alert.stop })}</span>
+          {/* F4 / ruling 2: the chip shows the sign text (English), plus the code on train signs. */}
+          <span class="sign" data-testid="getoff-sign">
+            {alert.code && alert.mode === 'train' ? t('sign_train_code', { s: alert.sign ?? alert.stop, code: alert.code }) : t(c.sign, { s: alert.sign ?? alert.stop })}
+          </span>
         </div>
         {now && <div class="grow" />}
         <button type="button" class="btn" data-testid={now ? 'getoff-now-ack' : 'getoff-ack'} onClick={ack}>
@@ -600,7 +635,7 @@ function Waypoint({ trip }: { trip: ActiveTrip }) {
   }
   return (
     <div class="wpscreen" data-testid="waypoint">
-      <main class="arrive wp">
+      <main class="arrive wp" tabIndex={0} aria-label={t('wp_t', { p: here?.name ?? '' })}>
         <p class="t-label eyebrow" data-testid="waypoint-count">
           {t('wp_eyebrow', { k: seg + 1, n: places })}
         </p>
@@ -657,7 +692,7 @@ function Arrival({ trip }: { trip: ActiveTrip }) {
   };
   return (
     <div class="wpscreen">
-      <main class="arrive" role="region" aria-label={t('arr_t')}>
+      <main class="arrive" role="region" aria-label={t('arr_t')} tabIndex={0}>
         {!rm &&
           Array.from({ length: 18 }, (_, i) => {
             const a = (i / 18) * Math.PI * 2;

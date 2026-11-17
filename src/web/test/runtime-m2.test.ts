@@ -195,7 +195,7 @@ describe('resume window (OQ5)', () => {
     expect(b.runtime.ui.value.voiceUnlockNeeded).toBe(false);
     expect(b.platform.fake.wakeLockHeld).toBe(true);
     expect(has('resume:voice')).toBe(true);
-    expect(b.platform.fake.spoken.at(-1)?.text).toBe(b.store.trip.value!.guidance.steps[b.store.trip.value!.guidance.stepIndex]!.text);
+    expect(b.platform.fake.spoken.at(-1)?.text).toBe(b.store.trip.value!.guidance.steps[b.store.trip.value!.guidance.stepIndex]!.say);
   });
 
   it('a refused wake lock on resume also needs the tap', async () => {
@@ -570,5 +570,79 @@ describe('MRT soft estimate (OQ3)', () => {
     // the strong alert never comes from time alone
     expect(has('alert:now')).toBe(false);
     expect(has('alert:next')).toBe(false);
+  });
+});
+
+describe('M2 fix round (QA-21, QA-23, QA-25)', () => {
+  it('QA-23: a dismissed wake-lock note stays closed after later failed re-acquires', async () => {
+    const env = setup({ platform: { wakeLockOk: false } });
+    const it0 = itinerary();
+    await env.runtime.start(it0, placesFor(it0));
+    expect(env.runtime.ui.value.wakeLockFailed).toBe(true);
+    env.runtime.dismissWakeNote();
+    env.platform.fake.setVisible(false);
+    env.platform.fake.setVisible(true);
+    await flush();
+    expect(env.runtime.ui.value.wakeLockFailed).toBe(false);
+    expect(count('state:wakelock-failed')).toBe(1);
+  });
+
+  it('QA-21: notification permission asked once ever at Start (explainer while asking); denied → note', async () => {
+    localStorage.clear();
+    const env = setup({ platform: { notifyPermission: 'default' } });
+    env.platform.fake.setNotifyPermission('default', 'denied');
+    const it0 = itinerary();
+    const p = env.runtime.start(it0, placesFor(it0));
+    expect(env.platform.fake.notifyRequests).toBe(1); // inside the tap (synchronous part of start)
+    expect(env.runtime.ui.value.notify).toBe('asking');
+    await p;
+    await flush();
+    expect(env.runtime.ui.value.notify).toBe('denied');
+    env.runtime.dismissNotifyNote();
+    expect(env.runtime.ui.value.notify).toBe('idle');
+    await env.runtime.end();
+    await env.runtime.start(it0, placesFor(it0)); // still denied → note again, no prompt
+    expect(env.platform.fake.notifyRequests).toBe(1);
+    expect(env.runtime.ui.value.notify).toBe('denied');
+    await env.runtime.end();
+    env.platform.fake.setNotifyPermission('default', 'granted'); // prompt dismissed earlier: never asked twice, no nag
+    await env.runtime.start(it0, placesFor(it0));
+    expect(env.platform.fake.notifyRequests).toBe(1);
+    expect(env.runtime.ui.value.notify).toBe('idle');
+    localStorage.clear();
+  });
+
+  it('QA-21: granted → no prompt, no note', async () => {
+    localStorage.clear();
+    const env = setup();
+    const it0 = itinerary();
+    await env.runtime.start(it0, placesFor(it0));
+    expect(env.platform.fake.notifyRequests).toBe(0);
+    expect(env.runtime.ui.value.notify).toBe('idle');
+  });
+
+  it('QA-25: End sets "here" to the trip\'s last fix, so Route home plans from where the senior is', async () => {
+    const { here } = await import('../src/state/location');
+    here.value = { lat: 1, lng: 103, label: 'old' };
+    const env = setup();
+    const it0 = itinerary();
+    const fixes = simulateFixes(it0, { seed: 3 });
+    env.timers.set(fixes[0]!.t);
+    await env.runtime.start(it0, placesFor(it0));
+    await feed(env, fixes.slice(0, 20));
+    const last = env.store.trip.value!.guidance.fix!;
+    await env.runtime.end();
+    expect(here.value).toMatchObject({ lat: last.lat, lng: last.lng, label: null });
+  });
+
+  it('QA-25: a stale trip ended without recent fixes clears "here" (the next plan locates afresh)', async () => {
+    const { here } = await import('../src/state/location');
+    here.value = { lat: 1, lng: 103, label: 'old' };
+    const env = setup();
+    const it0 = itinerary();
+    await env.runtime.start(it0, placesFor(it0));
+    env.timers.advance(60 * 60_000);
+    await env.runtime.end();
+    expect(here.value).toBeNull();
   });
 });

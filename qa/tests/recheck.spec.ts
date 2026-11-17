@@ -34,7 +34,7 @@ test.describe('no SW', () => {
         await page.goto('/?demo=1');
         await expect(page.getByTestId('to-field')).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.lang)).toMatch(c.lang === 'zh' ? /^zh/ : /^en/);
-        await expect(page.getByTestId('nav-help')).toHaveCount(0);
+        await expect(page.getByTestId('nav-help')).toBeVisible(); // M2: help flag on by default
         await toRoutes(page);
         await expect(page.getByTestId('route-option-0')).toBeVisible();
         await expect(page.getByTestId('routes-swap')).toBeVisible();

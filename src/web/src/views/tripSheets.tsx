@@ -12,8 +12,107 @@ import { announce, Bar, Icon, NumSteps, Sheet } from '../ui/kit';
 import { log } from '../log';
 import { dwellLabel } from './Guide';
 import { HereFallback, SendMyLocation, TaxiButtons } from './helpSheet';
+import { stepGroup, vehicleIcon } from './guideModel';
+import type { FakePlatform } from '../platform';
 
-/** H9 Help is the full M4 sheet in helpSheet.tsx. */
+/** H9 Help is the full M4 sheet in helpSheet.tsx (it renders DemoControls below on a trip). */
+/**
+ * AC 50: demo mode (`?demo=1`) controls that play every new state without walking. Shown only in demo
+ * mode, at the bottom of H9 on a trip, so H5 itself looks exactly like the real app.
+ */
+export function DemoControls() {
+  const { mode, platform, store, router, runtime } = useServices();
+  const t = useT();
+  const fake = (platform as Partial<FakePlatform>).fake;
+  if (!mode.demo || !fake) return null;
+  const yieldNow = () => new Promise((r) => setTimeout(r, 0));
+  /** Play the scripted trip forward, fix by fix, until `done()` (or the script ends). */
+  const until = async (done: () => boolean) => {
+    for (let i = 0; i < 5000 && !done(); i++) {
+      if (!fake.step()) break;
+      if (i % 4 === 3) await yieldNow();
+    }
+  };
+  /** Fixes next to the last one: `dLat` off the line (wrong way) or with poor accuracy (weak location). */
+  const burst = async (dLat: number, acc: number) => {
+    for (let i = 1; i <= 4; i++) {
+      const g = store.trip.peek()?.guidance;
+      const p = g?.fix ?? g?.steps[0]?.start;
+      if (!p) return;
+      fake.emit({ lat: p.lat + dLat, lng: p.lng + (dLat ? i * 2e-5 : 0), acc, t: (g?.fix?.t ?? Date.now()) + 1000, speed: 1 });
+      await yieldNow();
+    }
+  };
+  const run = (name: string, f: () => Promise<void> | void) => () => {
+    log(`demo:${name}`);
+    router.closeSheet();
+    setTimeout(() => void f(), 0);
+  };
+  const busy = () => store.trip.peek()?.alert != null;
+  const items: [string, Parameters<typeof t>[0], IconNameLike, () => Promise<void> | void][] = [
+    ['getoff', 'demo_getoff', 'bell', () => until(busy)],
+    ['offroute', 'demo_offroute', 'route', () => burst(0.004, 8)],
+    ['weak', 'demo_weak', 'loc', () => burst(0, 180)],
+    ['skip', 'demo_skip', 'chev', () => void runtime.next()],
+    ['arrive', 'demo_arrive', 'check', () => until(() => runtime.ui.peek().phase !== 'guiding' || !store.trip.peek())],
+  ];
+  return (
+    <div class="democtl" data-testid="demo-controls" role="group" aria-labelledby="demo-t">
+      <h3 class="t-label" id="demo-t" style={{ margin: 'var(--s-5) 0 var(--s-1)' }}>
+        {t('demo_t')}
+      </h3>
+      <p class="lead">{t('demo_s')}</p>
+      <div class="opts">
+        {items.map(([id, label, icon, f]) => (
+          <button type="button" class="btn btn-secondary" data-testid={`demo-${id}`} onClick={run(id, f)}>
+            <Icon name={icon} />
+            {t(label)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type IconNameLike = Parameters<typeof Icon>[0]['name'];
+
+/** AC 12: "全部步骤 / All steps" — the remaining steps in the H4 timeline style, the current one marked. A history entry. */
+export function AllStepsSheet() {
+  const { store } = useServices();
+  const t = useT();
+  const trip = store.trip.value;
+  if (!trip) return null;
+  const g = trip.guidance;
+  const rest = g.steps.slice(g.stepIndex);
+  const dest = trip.places[trip.places.length - 1]?.name ?? '';
+  return (
+    <Sheet id="all-steps" title={t('all_steps')}>
+      <ol class="timeline allsteps" data-testid="all-steps" lang={trip.lang}>
+        {rest.map((st, i) => {
+          const grp = stepGroup(st);
+          const veh = grp !== 'walk';
+          const cls = st.mode === 'bus' ? 'bus' : 'train';
+          return (
+            <li class={`${grp === 'ride' ? 'ride' : ''}${i === 0 ? ' cur' : ''}`} aria-current={i === 0 ? 'step' : undefined} data-testid={`all-step-${g.stepIndex + i}`}>
+              <span class={`ic${veh ? ` ${cls}` : ''}`} aria-hidden="true">
+                <Icon name={veh ? vehicleIcon(st) : 'walk'} />
+              </span>
+              <div>
+                <b>
+                  {st.say ?? st.text}
+                  {i === 0 && <span class="nowtag">{t('all_steps_now')}</span>}
+                </b>
+                <span>{st.detail}</span>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      {dest && <p class="lead">{t('all_steps_done', { p: dest })}</p>}
+    </Sheet>
+  );
+}
+
 type DriverTab = 'dest' | 'home' | 'here';
 
 /** H10 Show the driver: always-light card, tabs dest (trip only) / home / here. Back → H9 (the sheet underneath). */

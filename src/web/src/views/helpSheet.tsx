@@ -11,6 +11,7 @@ import { log } from '../log';
 import { family } from '../state/family';
 import { Icon, Sheet, showToast } from '../ui/kit';
 import { openExternal } from './share';
+import { DemoControls } from './tripSheets';
 
 export function HelpSheet() {
   const { router, store, runtime, platform } = useServices();
@@ -137,6 +138,7 @@ export function HelpSheet() {
           {t('hp_995')}
         </button>
       </div>
+      {guiding && <DemoControls />}
     </Sheet>
   );
 }

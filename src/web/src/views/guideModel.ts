@@ -17,7 +17,7 @@ export function stepGroup(step: Step | undefined): StepGroup {
   return 'walk';
 }
 
-const vehicleIcon = (s: Step): IconName => (s.mode === 'bus' ? 'bus' : 'train');
+export const vehicleIcon = (s: Step): IconName => (s.mode === 'bus' ? 'bus' : 'train');
 
 /** §5.3 icon tile: walk = primary-soft · waiting = ink · arrive = saffron. */
 export function stepIcon(step: Step | undefined, isLast: boolean): { icon: IconName; cls: '' | 'wait' | 'arrive' } {
@@ -32,6 +32,11 @@ export function metresLeft(g: Pick<GuidanceState, 'distanceToNextActionM'>): num
   return Math.max(0, Math.round(g.distanceToNextActionM / 10) * 10);
 }
 
+/** F2: minutes for this walk alone, from the metres left at ≈ 4 km/h (67 m/min, the planner's walk speed). */
+export function walkMinutes(metres: number): number {
+  return Math.max(1, Math.ceil(metres / 67));
+}
+
 /** Whole minutes left (at least 1 while not arrived). */
 export function minutesLeft(remainingS: number): number {
   return Math.max(1, Math.ceil(remainingS / 60));
@@ -39,23 +44,26 @@ export function minutesLeft(remainingS: number): number {
 
 // ------------------------------------------------------------------ trip notes (6c.10)
 
-export type NoteId = 'reroute-failed' | 'reroute-offline' | 'offline' | 'weak' | 'manual' | 'found-you' | 'wakelock' | 'novoice';
+export type NoteId = 'reroute-failed' | 'reroute-offline' | 'notify-ask' | 'offline' | 'weak' | 'manual' | 'found-you' | 'wakelock' | 'notify-denied' | 'novoice';
 
 /**
- * One note at a time, by priority: re-route failed/offline > offline > weak GPS >
- * manual mode (or its 4.2 s "found you" follow-up) > wake lock > no voice.
+ * One note at a time, by priority: re-route failed/offline > notification explainer (only while the
+ * prompt is up) > offline > weak GPS > manual mode (or its 4.2 s "found you" follow-up) > wake lock >
+ * notifications denied > no voice.
  */
 export function pickNote(
-  ui: Pick<TripUi, 'reroute' | 'gpsWeak' | 'manual' | 'wakeLockFailed' | 'noVoice'>,
+  ui: Pick<TripUi, 'reroute' | 'gpsWeak' | 'manual' | 'wakeLockFailed' | 'noVoice'> & Partial<Pick<TripUi, 'notify'>>,
   o: { online: boolean; foundYou: boolean; noVoiceDismissed: boolean },
 ): NoteId | null {
   if (ui.reroute === 'failed') return 'reroute-failed';
   if (ui.reroute === 'offline') return 'reroute-offline';
+  if (ui.notify === 'asking') return 'notify-ask';
   if (!o.online) return 'offline';
   if (ui.gpsWeak && !ui.manual) return 'weak';
   if (ui.manual) return 'manual';
   if (o.foundYou) return 'found-you';
   if (ui.wakeLockFailed) return 'wakelock';
+  if (ui.notify === 'denied') return 'notify-denied';
   if (ui.noVoice && !o.noVoiceDismissed) return 'novoice';
   return null;
 }
@@ -85,10 +93,10 @@ export function stepActions(group: StepGroup, o: { manual: boolean; gpsWeak: boo
 
 // ------------------------------------------------------------------ get-off alert (H6 / H6b)
 
-export function alertCopy(a: AlertState): { title: UiKey; line: UiKey; sign: UiKey; icon: IconName } {
+export function alertCopy(a: AlertState): { title: UiKey; t1: UiKey; t2: UiKey; line: UiKey; sign: UiKey; icon: IconName } {
   const bus = a.mode === 'bus';
-  if (a.kind === 'now') return { title: 'now_t', line: bus ? 'now_bus' : 'now_train', sign: bus ? 'sign_bus' : 'sign_train', icon: 'exit' };
-  return { title: 'getoff_t', line: bus ? 'getoff_bell' : 'getoff_train', sign: bus ? 'sign_bus' : 'sign_train', icon: bus ? 'bell' : 'train' };
+  if (a.kind === 'now') return { title: 'now_t', t1: 'now_t1', t2: 'now_t2', line: bus ? 'now_bus' : 'now_train', sign: bus ? 'sign_bus' : 'sign_train', icon: 'exit' };
+  return { title: 'getoff_t', t1: 'getoff_t1', t2: 'getoff_t2', line: bus ? 'getoff_bell' : 'getoff_train', sign: bus ? 'sign_bus' : 'sign_train', icon: bus ? 'bell' : 'train' };
 }
 
 // ------------------------------------------------------------------ pocket view (G1)

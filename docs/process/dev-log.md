@@ -595,3 +595,54 @@ Scope: Worker-side ACs only (`src/worker/`). 136 tests pass (was 91), typecheck 
 3. Lift-friendly ranking, Bus-routes-only re-query, lastgone/notrunning (needs BusRoutes data), lazy-load the M4 screens.
 
 **Gate (`npm run gate`, last run):** 8 PASS / 3 FAIL. PASS: deps, typecheck, unit 449, i18n, build (app JS 126.4 KB gz), static-pwa, **dev-e2e 132/132** on the release build, artifact. FAIL, none from this round: `secrets` (known: `Bearer wrong-tok…` literal in `src/worker/test/logs.test.ts` and the wrangler.toml KV id); `qa-e2e` 6 = QA's M1-release specs (AC-35 "Start hidden", QA-1 "Help hidden", recheck smoke expects no `nav-help`) that contradict the M2 flags; `lighthouse` "run failed" inside the gate on this host, though a manual `npx --prefix qa lighthouse` run against the same dist works (needs a look by QA). `npm run e2e:viewer` 44 + `e2e-viewer/app-share.spec.ts` 1 pass (not in the gate yet). Under heavy parallel load, `demo.spec` / `guide.spec` MRT trip / `fixround` exit-motion failed once each and passed on rerun.
+## 2026-11-17 — M2 fix round: QA-21…27, Creative F1–F6/F12, AC 12 All-steps, AC 50 demo controls (Developer, branch `dev/m2-engine`)
+
+**Visible changes (written first, before code)**
+1. H5 headline + voice use new H5-register lines (`guide.*`, Creative F1): 走到 {stop} 巴士站 / 在这里等 {route} 号巴士 / 坐 {route} 号巴士，在 {stop} 下车 … No stop code and no stop count in the headline. H3/H4 keep the planner `step.*` text.
+2. Walk sign chip on H5 shows `{stop} · {code}` (e.g. `Toa Payoh Int · 52009`).
+3. H5 headline is 2rem (32 px) at 100 % (QA-22 ruling); never breaks inside a word at 200 %.
+4. Walk sub-line minutes are this walk's own time (`max(1, ceil(m / 67))`), not the whole trip's (F2).
+5. Voice says 你, never 您 (F5): 到了，这里是 {stop}。/ 好，你上车了。下车前我会提醒你。/ 好，你回到路上了。
+6. H6/H6b titles never orphan a character (two unbreakable phrases); at 200 % H6b shows title → sign chip → line, bell 72 px (F3).
+7. Train sign chip carries the station code: "Raffles Place NS26 站" / "Raffles Place NS26 station" (F4).
+8. Reduce motion: H6, H6b and pocket view cross-fade in 120 ms instead of snapping (F6).
+9. Back from pocket view: the End sheet fades in over H5 with the normal scrim (F12).
+10. Start asks once for notification permission with a one-line explainer on H5; denied → note "下车提醒要开着这个应用才收得到" (QA-21).
+11. Wake-lock note shows once per trip (QA-23).
+12. G3 and H12 content is keyboard-scrollable at 200 % (QA-24).
+13. Route home on H12 plans from where you are now (QA-25); any plan right after a trip starts from the trip's last position.
+14. A trip older than 24 h reloaded on /guide lands on H1 (QA-26).
+15. Version 0.2.0 in About / Report / SW (QA-27).
+16. New "全部步骤 / All steps" sheet from H5 (AC 12): remaining steps, current one marked, Back closes it.
+17. New demo controls panel in `?demo=1` on H5 (AC 50): buttons that play get-off alert, off route, weak GPS, skip to waypoint/arrival.
+
+**Fixed**
+- **QA-25 (S2)** `runtime.end()` sets `here` to the trip's last fix (≤ 15 min old), else clears it so the next plan locates afresh. H12 Route home → `api.route` start = the arrival position (QA check passes up to its own harness issue, below).
+- **QA-21 (AC 30)** New `platform.notifications` (`permission()` sync, `request()`); web wraps `Notification`, fake records requests. `runtime.start()` asks once ever (`howtogo.notify.asked`), synchronously inside the Start tap, with the trip note `notify-ask` while the prompt is up. Denied → note `notify-denied` "下车提醒要开着这个应用才收得到" (closable, per trip). Prompt dismissed without an answer → never asked again, no nag.
+- **QA-22 (AC 6)** `.steptx h2` 1.6rem = **32 px** on the 20 px root (the ruling's "2rem" assumes a 16 px root; 2rem here would be 40 px). `word-break:keep-all` + `overflow-wrap:break-word`, so 200 % breaks only at spaces/punctuation.
+- **QA-23 (AC 39)** the wake-lock note is set only on the first failure of a trip.
+- **QA-24 (AC 47)** G3 and H12 `main` get `tabIndex=0` (+ label on G3): axe clean at 200 %.
+- **QA-26 (AC 46)** `main.tsx`: no trip after resume while on `/guide` → `router.reset('/')`.
+- **QA-27** web 0.2.0 (`package.json`, `version.ts`, lockfile). The manifest has no version field.
+- **F1** `Step.say` (shared `guide.*` templates, exact Creative strings) drives the H5 headline, `step_changed` and every re-speak; H3/H4 keep `step.text`. Station codes ("(NS17)") are stripped from the spoken stop. Walk chip = `{stop} · {code}`.
+- **F2** walk sub-line minutes = `max(1, ceil(m / 67))`. **F3** H6/H6b titles as two `.ph` phrases; title size `min(2.4rem, 20vw)` (at 200 % a 96 px title cannot hold 到站了， on one 350 px line); 200 % H6b: bell 72 px, chip before line. **F4** chip text from the alighting stop's sign name + code (`sign`/`code` on the get-off cues and `AlertState`): "Raffles Place NS26 站". **F5** no 您 in zh cues (unit test). **F6** `!important` on the rm 120 ms fades. **F7** action labels nowrap at 100 %. **F12** the pocket view unmounts as soon as a sheet opens, so the End sheet scrim-fades over H5.
+- **AC 12** All-steps sheet (`sheet-all-steps`, a history entry) opened from the step counter "第 1 步，共 4 步 ›" (SR: "全部步骤，第 1 步，共 4 步"): remaining steps in the H4 timeline style, current one tagged 现在. A visible button in row C did not fit one line in en.
+- **AC 50** demo controls (`demo-controls`) at the bottom of H9 Help, only with `?demo=1` on a trip: 下车提醒, 走错了路, 位置不准, 跳到下一步, 直接到达.
+- Tests: shared +3 (say lines, no 您), web unit +8 (notify, wake note, here, walk minutes, note order), dev e2e +3 (AC 12, F1/F2, AC 50). Dev e2e `onboarded()` reports Notification permission as granted (headless Chromium says denied, which would put the denied note on every H5).
+
+**Not fixed (and why)**
+- QA check "AC 2 entry parity: arrival-route-home" still fails, **after** its QA-25 assertions pass: its second `runUntil(page, 'trip:arrived')` returns at once because the change-only log already holds `trip:arrived` from the first trip. Test harness issue → QA (qa/ is QA's).
+- QA's AC 12 and AC 50 checks are `test.fail` and look for visible text 全部步骤 on H5 / `demo-controls` on H1. Both features are built where the dev-log says; QA to replace those two checks.
+- Creative P2 F8 (step transition), F9 (nbsp in counts: QA regexes match plain spaces), F10, F11, F13 (missing baselines), F14/F15 (P3): polish round.
+
+**Baselines re-recorded (intentional, 12):** `M2-H5-walk-light-100-zh`, `-dark-100-zh`, `-light-200-zh`, `-light-100-en`, `M2-H5-ride-light-100-zh`, `M2-H5-manual-walk-light-100-zh`, `M2-H6-bus-light-200-zh`, `M2-H6-train-light-100-en`, `M2-H6b-bus-light-200-zh`, `M2-H6b-train-light-100-en`, `M2-H11-failed-light-100-zh` (H5 copy/size), `M2-H9-m2-trip-light-100-zh` (demo section). No M1 baseline changed.
+
+**Gate (`npm run gate`, once, c99e1c3, load 5–11 with the other worktree's Playwright):** 10 PASS, 2 FAIL. deps, typecheck, unit 352, i18n, build (app JS 95.4 KB gz / 150), static-pwa, platform-api, secrets, lighthouse (perf 83 / a11y 100 / bp 100), artifact `howtogo-web-0.2.0-dist.zip` sha256 `a2aa9cd8…5d93` PASS.
+- dev-e2e 105/106: `M2-H5-manual-walk-light-100-zh` failed under load; passes alone (just re-recorded).
+- qa-e2e 116/119: (1) `ac.spec` AC-42 expects `0.1.0` in the Report — needs QA update for QA-27; (2) `AC 2 … arrival-route-home` harness issue above; (3) `AC 13–17` follow-me timed out under load, passes alone. All QA-21…26 checks and the 200 %/axe checks pass.
+- The gate wrote `qa/reports/howtogo-web-0.2.0-dist.zip.sha256` (left untracked for QA; the M1 checksum file is untouched).
+
+**Next steps**
+1. QA: update AC-42 (version), the arrival-route-home `runUntil` (log already has `trip:arrived`), and replace the `test.fail` AC 12 / AC 50 checks; then targeted re-check.
+2. Creative: review the 12 re-recorded baselines (step counter as All-steps entry; H6b 200 % title size `min(2.4rem, 20vw)`); polish round F8–F11, F13–F15.
+3. Owner phone test (notification prompt at Start, Route home "从" = here).
