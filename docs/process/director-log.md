@@ -74,3 +74,21 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Gate 8/11 steps pass; 30/42 Must ACs pass; 19 bugs (1 S2, 11 S3, 7 S4). Creative review: 3 High, 10 Medium, 9 Low.
 - Rulings: QA-1 (S2, empty Help): hide the Help row/button in the M1 release behind flag `help` (M2 builds the partial Help sheet per M2 OQ4). Kept as S2 until fixed. Worker items QA-15/17/18: follow the M1 ACs exactly; per-IP rate limit is in-memory only, IPs never logged or stored beyond the window. Flaky baseline: fix the root cause, don't retry-mask it. AC 38 (map canvas) BLOCKED accepted: assert via the map module's test log hook instead.
 - Next: ONE batched Developer fix round (all Creative High+Medium, all QA S2/S3, known items Swap + logo icons + manifest), then targeted QA re-check.
+- Worker fix round done (dev/m1-worker-fix e1873a3, 91 tests). Ruling: without credentials and without FIXTURE_MODE the Worker answers 503 — never silently serves sample routes (a senior following a fake route is a safety issue). AC 21 amended accordingly. Merge into dev/m1-ui after the web fix round finishes (don't touch a tree an agent is working in).
+
+## 2026-11-17 — Owner: speed up with more parallelism (D-9)
+- Owner: "Speed up the development process by doing things in parallel. Ok to use more tokens for today." Logged as authorisation to run ahead on later milestones' independent work today.
+- New parallel tracks: PM specs M3+M4; Creative frames M3+M4 (+ family viewer page); Dev data round (zh station names, MRT exits, line termini) in src/shared/data; Dev M6 spike (Capacitor Android debug APK feasibility in this container). Running alongside: QA M1 re-check, Dev M2 engine round.
+- Host contention rule: Android/Gradle builds wait while Playwright runs (4 CPUs).
+- Deployment: owner pre-approved hosting on their Cloudflare account (D-6). The M1 preview will deploy to pages.dev in fixture mode once the re-check passes; the owner will be told before anything goes live.
+
+## 2026-11-17 — M1 re-check: PASS WITH FIXES → release prep
+- QA re-check (qa/reports/0.1.1-m1-recheck.md): 42/42 Must ACs pass, QA-1…19 fixed. QA-20 (S4): approved — gate Lighthouse uses the median of 3 runs.
+- Hosting ruling (D-10): the Cloudflare token can manage Workers/KV/DO but not Pages → serve the PWA and API from ONE Worker using Workers Static Assets (`assets` = src/web/dist, SPA fallback, `/api/*` → Worker code). Preview runs with FIXTURE_MODE=1 and a clear "示范路线 / Sample routes" banner until the owner's OneMap/LTA keys are in, so nobody mistakes sample routes for real ones.
+- Release-prep round: Creative R1–R3, QA-20, Worker static-assets deploy config, sample-mode banner (Creative copy below).
+
+## 2026-11-17 — M3 + M4 requirements (PM)
+- M3: 45 ACs, 6–7 h. Lift data source found (LTA v2/FacilitiesMaintenance) → lift warnings + "no repairs reported" fact in; "No stairs" stays hidden (D-8). M4: 52 ACs, 8–10 h. Roadmap total now ~41–50 h.
+- Rulings: M3 OQ1–OQ9 and M4 OQ1–OQ11 accepted at PM defaults (owner's standing D-6 instruction). M4 OQ3 (send the senior's own number with a share, only if set, off switch) and OQ4 (destination name only, no coordinates) are privacy calls → accepted at the privacy-protective defaults and flagged to the owner as FYI.
+- Conflict M4 AC 14 vs M2 AC 41: **sharing continues in pocket view** (safety over battery) at the OQ7 cadence (15 s moving / 60 s still).
+- Bugs found by PM: share status enum mismatch → folded into the running M2 engine round (small, specified). D-7 help write-limit bypass not built → M4 Worker round.

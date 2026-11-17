@@ -19,3 +19,11 @@
 - Estimate 8–10 h straight through (ROADMAP said 7–8 h; +1.5 h for multi-stop moved in from M3, needs Director ruling OQ1).
 - Found: shell `VibratePattern` names differ from STYLE-GUIDE §3 haptics (AC 37). No M1 QA report yet, so lessons come from round logs.
 - Missing Creative frames: H6b Get off now, pocket view, waypoint + multi-stop builder, resume/voice-unlock bar, manual mode, re-route failed, no-voice note.
+
+## 2026-11-17 — M3 and M4 requirements (parallel track, D-9)
+- Wrote `docs/requirements/M3-sg-transit-smarts.md`: 45 ACs (bus chip with load/WAB/`Monitored`, disruption banner + re-route offer, zh station names, exit hint, transfer copy, fare + concession note, lift-friendly + lift warnings, preferences, recent trips), parity table, testability, gate, OQ1–OQ9, frames. Estimate 6–7 h (unchanged).
+- Wrote `docs/requirements/M4-share-and-safety.md`: 52 ACs (share create/send/runtime, family page `/t/:id` with 9 states, arrival notify, full Help, contacts/places, caregiver setup, taxi, privacy/abuse), two-browser Playwright plan, owner+family script, OQ1–OQ11, frames. Estimate 8–10 h (ROADMAP said 6–7 h).
+- Research: LTA DataMall guide v6.11 (30 Oct 2026) confirms `v2/FacilitiesMaintenance` (Line, StationCode, StationName, LiftID, LiftDesc), so lift warnings are real (D-8 "No stairs" stays hidden). BusArrival v3 has `Monitored` (0 = timetable) which the Worker drops. Exits: LTA GeospatialWholeIsland `TrainStationExit` layer, or data.gov.sg exit GeoJSON.
+- **Bug found:** shared `SharePayload.status` (`active|off_route|arrived|gps_weak`) ≠ Worker statuses (`travelling|arrived|paused|help`); every live share would get 400. M4 AC 10. Also D-7 help bypass is not implemented yet (M4 AC 13).
+- M2 AC 41 ("share paused in pocket view") is superseded by M4 AC 14 — needs a Director nod.
+- ROADMAP: M3 drops multi-stop and gains recents/zh names; M4 row 8–10 h; total ~41–50 h.
