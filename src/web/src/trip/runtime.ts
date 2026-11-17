@@ -84,7 +84,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   let stopHeading: Unsubscribe | null = null;
   let tick: unknown = null;
   let attached = false;
-  let muteEffect: (() => void) | null = null;
+  // Mute follows the setting for the runtime's lifetime (also covers the first cue at start).
+  const muteEffect = effect(() => platform.speech.setMuted(store.settings.value.muted));
 
   // share throttle state
   let lastShareAt = -Infinity;
@@ -126,7 +127,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     if (next.status === 'arrived' && prev.status !== 'arrived') onArrived();
     else if (event.type === 'fix') scheduleShare(false);
     // Off-route that persists after a failed attempt: retry on later fixes, at most every REROUTE_RETRY_MS.
-    if (event.type === 'fix' && next.status === 'off_route' && !rerouteInflight && now() - lastRerouteAt >= REROUTE_RETRY_MS) void reroute();
+    if (event.type === 'fix' && next.status === 'off_route' && !next.cues.some((c) => c.type === 'off_route')) void reroute();
     return next;
   }
 
@@ -147,7 +148,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   async function reroute(_cue?: Cue) {
     const t = trip();
     const fix = t?.guidance.fix;
-    if (!t || !fix || rerouteInflight) return;
+    if (!t || !fix || rerouteInflight || now() - lastRerouteAt < REROUTE_RETRY_MS) return;
     rerouteInflight = true;
     rerouting.value = true;
     lastRerouteAt = now();
@@ -244,6 +245,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     }
     // A forced (help) update that arrived while in flight goes out now.
     if (shareDirty && trip()?.share?.status === 'help' && body.status !== 'help') scheduleShare(true);
+    else if (shareDirty && shareTimer === null && trip()?.share) scheduleShare(false);
   }
 
   function setShareStatus(status: ShareSession['status']) {
@@ -259,7 +261,6 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     if (!t || attached) return;
     attached = true;
     log(resumed ? 'trip:resumed' : 'trip:started');
-    muteEffect = effect(() => platform.speech.setMuted(store.settings.value.muted));
     void platform.wakeLock.acquire();
     o.onAttach?.(t, resumed);
     stopWatch = await platform.location.watch(onFix, (e) => {
@@ -278,8 +279,6 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     if (tick !== null) timers.clearInterval(tick);
     if (shareTimer !== null) timers.clearTimeout(shareTimer);
     tick = shareTimer = null;
-    muteEffect?.();
-    muteEffect = null;
     void platform.wakeLock.release();
     void platform.speech.cancel();
   }
@@ -364,7 +363,10 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     clearHelp() {
       setShareStatus('travelling');
     },
-    dispose: detach,
+    dispose() {
+      detach();
+      muteEffect();
+    },
   };
 }
 
