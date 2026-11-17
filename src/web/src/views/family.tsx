@@ -287,7 +287,9 @@ export function SetupImport({ code }: { code: string }) {
   useEffect(() => {
     if (once.current) return;
     once.current = true;
-    const key = /#k=([A-Za-z0-9_-]+)/.exec(location.hash)?.[1] ?? '';
+    const g = globalThis as { __setupKey?: string };
+    const key = /#k=([A-Za-z0-9_-]+)/.exec(location.hash)?.[1] ?? g.__setupKey ?? '';
+    delete g.__setupKey;
     // The key leaves the address bar at once (it never goes to the server anyway).
     history.replaceState(history.state, '', location.pathname);
     if (!key) return setSt({ k: 'error', msg: 'su_broken' });

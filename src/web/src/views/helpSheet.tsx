@@ -35,6 +35,7 @@ export function HelpSheet() {
             onClick={() => {
               setHelp();
               void platform.vibrate('confirm');
+              router.closeSheet();
               openExternal(`tel:${first.phone}`);
             }}
           >
