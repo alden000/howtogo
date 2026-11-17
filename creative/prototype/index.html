@@ -38,6 +38,7 @@
   --r-s:12px; --r-m:20px; --r-l:28px; --r-xl:36px; --r-pill:999px;
   /* targets */
   --tap:56px; --tap-hero:72px;
+  --c-pocket:#000000; /* 6c.2, pocket view only (new token, Director approval) */
   /* motion */
   --ease-out:cubic-bezier(.2,.8,.2,1); --ease-spring:cubic-bezier(.34,1.36,.64,1); --ease-in:cubic-bezier(.4,0,1,1);
   --d-fast:160ms; --d-base:280ms; --d-slow:420ms; --d-sheet:460ms;
@@ -242,10 +243,14 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 
 /* ============ GUIDE (H5) ============ */
 .guide{position:absolute;inset:0;background:var(--m-land)}
-.guide .top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 12px) 14px 30px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;background:linear-gradient(to bottom,color-mix(in srgb,var(--m-land) 92%,transparent) 50%,transparent);z-index:3}
+.guide .top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 12px) 14px 12px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;background:var(--c-canvas);box-shadow:var(--e-1);z-index:3}
+/* 6c.0: the map viewport sits between the solid top band and the step card; nothing overlays labels or the puck */
+.guide .mapwin{position:absolute;left:0;right:0;top:0;bottom:0;overflow:hidden}
+.bandrow{flex:1 1 100%;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.bandrow:empty{display:none}
 .guide .top .grow{flex:1}
 .helppill{min-height:var(--tap);padding:0 18px 0 12px;border-radius:var(--r-pill);background:var(--c-ink);color:var(--c-ink-inv);display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;box-shadow:var(--e-2)}
-.sharepill{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 84px);z-index:3;display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 16px 6px 12px;border-radius:var(--r-pill);background:var(--c-jade);color:var(--c-on-jade);font-weight:700;font-size:.85rem;box-shadow:var(--e-2);white-space:nowrap;max-width:calc(100% - 28px)}
+.sharepill{align-self:center;display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 16px 6px 12px;border-radius:var(--r-pill);background:var(--c-jade);color:var(--c-on-jade);font-weight:700;font-size:.85rem;box-shadow:var(--e-2);white-space:nowrap;max-width:calc(100% - 28px)}
 .sharepill .live{width:10px;height:10px;border-radius:50%;background:currentColor;animation:blink 1.6s ease-in-out infinite}
 @keyframes blink{50%{opacity:.25}}
 .mapctl{position:absolute;right:14px;z-index:3;display:flex;flex-direction:column;gap:10px;transition:bottom var(--d-base) var(--ease-out)}
@@ -293,9 +298,55 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .edgeglow{position:absolute;inset:0;z-index:5;pointer-events:none;box-shadow:inset 0 0 0 10px var(--c-saffron);animation:glow 1.2s ease-in-out infinite}
 @keyframes glow{50%{box-shadow:inset 0 0 0 4px var(--c-saffron)}}
 /* off-route banner (H10) */
-.banner{position:absolute;left:14px;right:14px;top:calc(env(safe-area-inset-top) + 84px);z-index:5;display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-3);border-left:8px solid var(--c-jade);animation:dropIn var(--d-slow) var(--ease-spring) both}
+.banner{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 16px;border-radius:var(--r-m);background:var(--c-surface);box-shadow:var(--e-3);border-left:8px solid var(--c-jade);animation:dropIn var(--d-slow) var(--ease-spring) both}
 .banner b{display:block;font-size:1.05rem}
 .banner span{font-size:.9rem;color:var(--c-ink-2)}
+.banner .tx{flex:1 1 10rem;min-width:0}
+.banner .bacts{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px}
+.banner .bacts .btn{flex:1 1 9rem;min-height:var(--tap);font-size:.95rem;padding:8px 14px}
+.banner .x{width:var(--tap);padding:0;flex:none}
+/* trip note (6c.10) */
+.tripnote{display:flex;gap:10px;align-items:center;padding:var(--s-3);border-radius:var(--r-m);background:var(--c-surface-2);margin-bottom:10px;flex-wrap:wrap}
+.tripnote>svg{width:28px;height:28px;flex:none}
+.tripnote .tx{flex:1 1 0;min-width:0}
+.tripnote b{display:block;font-size:.9rem;line-height:1.3}
+.tripnote span{display:block;font-size:.85rem;color:var(--c-ink-2)}
+/* step actions (6c.7) */
+.stepacts{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.stepacts .row{display:flex;gap:10px;flex-wrap:wrap}
+.stepacts .row>*{flex:1 1 7rem}
+.stepacts .row.quiet>*{flex:1 1 5rem}
+.tripnote .bacts{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px}
+.tripnote .bacts .btn{flex:1 1 8rem;min-height:var(--tap);font-size:.95rem;padding:8px 12px}
+.tripnote .btn-danger-outline{background:var(--c-surface)}
+.tripnote .x{width:var(--tap);padding:0;flex:none;box-shadow:none;background:transparent}
+.stepacts .btn-secondary{min-height:var(--tap);font-size:1rem;padding:8px 14px}
+.stepacts .btn-quiet{min-height:var(--tap);padding:8px 10px}
+.stepacts [aria-disabled=true]{opacity:.4}
+/* H6b get off now (6c.1) */
+.alert.now{top:var(--band,84px);border-radius:0;box-shadow:none;display:flex;flex-direction:column;overflow-y:auto;background:var(--c-on-saffron);color:var(--c-saffron);padding-bottom:0;animation:nowIn var(--d-sheet) var(--ease-spring) both}
+@keyframes nowIn{from{background:var(--c-saffron);clip-path:inset(52% 0 0 0 round 36px 36px 0 0)}to{background:var(--c-on-saffron);clip-path:inset(0 0 0 0 round 0)}}
+.alert.now .bellwrap{flex:none;width:112px;height:112px;background:var(--c-saffron);color:var(--c-on-saffron)}
+.alert.now .bellwrap svg{width:64px;height:64px;animation:none}
+.alert.now .bellwrap::before,.alert.now .bellwrap::after{border-color:var(--c-saffron)}
+.alert.now p{font-size:1.2rem}
+.alert.now .sign{background:var(--c-saffron);color:var(--c-on-saffron);align-self:flex-start}
+.alert.now .grow{flex:1 0 12px}
+.alert.now .btn{position:sticky;bottom:0;margin:18px 0 0;background:var(--c-saffron);color:var(--c-on-saffron);box-shadow:0 -14px 0 var(--c-on-saffron),0 calc(env(safe-area-inset-bottom) + 20px) 0 var(--c-on-saffron)}
+.alert.now .pad{height:calc(env(safe-area-inset-bottom) + 20px);flex:none}
+.edgeglow.now{z-index:7}
+/* G1 pocket view (6c.2): dark only, scoped dark tokens */
+.pocket{--c-ink-2:#CFC3B5;--c-primary:#FF9466;--c-focus:#F6EEE4;position:absolute;inset:0;z-index:8;background:var(--c-pocket);color:var(--c-ink-2);display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top) + 48px) var(--s-5) calc(env(safe-area-inset-bottom) + 24px);overflow-y:auto;animation:fadeIn var(--d-slow) linear both;cursor:pointer}
+.pocket .glyph{width:160px;height:160px;color:var(--c-primary);flex:none;margin-top:auto}
+.pocket .glyph svg{width:100%;height:100%;stroke-width:1.6}
+.pocket .line{font-size:1.5rem;font-weight:700;line-height:1.2;margin:24px 0 0;text-wrap:balance}
+.pocket .count{font-size:2.1rem;font-weight:900;line-height:1.15;margin:8px 0 0}
+.pocket .muted{display:flex;gap:8px;align-items:center;font-size:.85rem;margin:20px 0 0}
+.pocket .muted svg{width:24px;height:24px;flex:none}
+.pocket .btn{margin-top:auto;background:transparent;color:var(--c-ink-2);border:2px solid var(--c-ink-2);flex:none}
+.pocket .hint{font-size:.85rem;margin:10px 0 0}
+:root.ts2 .pocket .glyph{width:96px;height:96px}
+:root.rm .pocket{animation:fadeIn 120ms linear both}
 .spinner{width:36px;height:36px;border-radius:50%;border:4px solid var(--c-jade-soft);border-top-color:var(--c-jade);animation:spin .9s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes dropIn{from{transform:translateY(-30px);opacity:0}}
@@ -424,6 +475,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 :root.rm .exit-push,:root.rm .exit-pop{animation:fadeOut 120ms linear both!important}
 :root.rm .petal,:root.rm .m-pulse,:root.rm .ringout,:root.rm .inkring,:root.rm .dotring{display:none}
 :root.rm .edgeglow{animation:none}
+:root.rm .alert.now{animation:fadeIn 120ms linear both}
 </style>
 </head>
 <body>
@@ -460,6 +512,11 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-steps" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
+  <symbol id="i-exit" viewBox="0 0 24 24"><path d="M13 4H6.5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1H13"/><path d="M10.5 12H20M16.5 8.5L20 12l-3.5 3.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
   <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
 </svg>
 
@@ -503,6 +560,7 @@ function applyPrefs(){
   r.dataset.theme=S.theme;
   r.lang = S.lang==='zh'?'zh-Hans':'en-SG';
   r.classList.toggle('rm',rm());
+  r.classList.toggle('ts2',S.ts>=2);
   persist();
 }
 /* ================= COPY ================= */
@@ -692,7 +750,38 @@ const C = {
   demoOff:{zh:'模拟走错路',en:'Simulate going off route'},
   demoGetOff:{zh:'跳到“下一站下车”',en:'Jump to “Get off next stop”'},
   demoOffNeed:{zh:'请在走路的步骤时再试。',en:'Try this during a walking step.'},
-  speaking:{zh:'正在说话',en:'Speaking'}
+  speaking:{zh:'正在说话',en:'Speaking'},
+  /* M2 (STYLE-GUIDE 6c) */
+  nowT:{zh:'到站了，请下车',en:'This is your stop. Get off now'},
+  nowBus:{zh:'车停稳了再站起来，慢慢下车。',en:'Wait until the bus stops, then get off slowly.'},
+  nowTrain:{zh:'车门开了就下车，小心空隙。',en:'Get off when the doors open. Mind the gap.'},
+  imOn:{zh:'我上车了',en:"I'm on"},
+  gotOff:{zh:'我下车了',en:'I got off'},
+  nextStep:{zh:'下一步',en:'Next'},
+  prevStep:{zh:'上一步',en:'Previous step'},
+  pocketBtn:{zh:'放口袋',en:'Pocket'},
+  pocketL:{zh:'口袋模式',en:'Pocket view'},
+  pocketOn:{zh:'屏幕调暗了。按任何地方都可以回来。',en:'Screen dimmed. Touch anywhere to come back.'},
+  pocketShow:{zh:'打开',en:'Show'},
+  pocketShowL:{zh:'打开地图',en:'Show the map'},
+  pocketHint:{zh:'按任何地方都可以回来',en:'Touch anywhere to come back'},
+  pocketMuted:{zh:'声音关着，提醒只会震动。',en:'Voice is off. Reminders will only vibrate.'},
+  pkWalk:{zh:'走到 {p}',en:'Walk to {p}'},
+  pkBus:{zh:'坐 {s} 号巴士',en:'On bus {s}'},
+  pkTrain:{zh:'坐地铁',en:'On the train'},
+  pkM:{zh:'还有 {m} 米',en:'{m} m to go'},
+  pkN:{zh:'还有 {n} 站',en:'{n} stops to go'},
+  pkN1:{zh:'还有 1 站',en:'1 stop to go'},
+  manualNote:{zh:'没有位置信息，请自己按“下一步”',en:'No location, so tap Next yourself'},
+  manualSay:{zh:'没有位置信息，请自己按“下一步”。',en:'No location, so tap Next yourself.'},
+  okL:{zh:'知道了',en:'OK'},
+  rfT:{zh:'暂时找不到新的路',en:'No new way found yet'},
+  rfS:{zh:'先跟着地图上的线走。',en:'Follow the line on the map for now.'},
+  showDriver:{zh:'给司机看地址',en:'Show the driver'},
+  demoManual:{zh:'模拟没有位置（手动模式）',en:'Simulate no location (manual mode)'},
+  demoNow:{zh:'跳到“到站了，请下车”',en:'Jump to “Get off now”'},
+  demoPocket:{zh:'口袋模式',en:'Pocket view'},
+  demoRF:{zh:'模拟找不到新的路',en:'Simulate no new way found'}
 };
 const T=(k,v)=>{let s=(C[k]||{})[S.lang]; if(s==null) s=k; if(v) for(const x in v) s=s.split('{'+x+'}').join(v[x]); return s;};
 const L=o=>o?(typeof o==='string'?o:o[S.lang]):'';
@@ -891,7 +980,18 @@ const ACT={
   mute:()=>{S.muted=!S.muted;applyPrefs();tick();if(S.muted){try{speechSynthesis.cancel()}catch(e){};toast(T('muteL'),'mute');}else{replay();}GUIDE.paintControls();},
   replay:()=>{tick();replay(true);},
   follow:()=>{GUIDE.follow=!GUIDE.follow;tick();GUIDE.paintControls();announce(GUIDE.follow?T('followL'):T('overviewL'));},
-  ackAlert:()=>{GUIDE.alertAck=true;buzz('confirm');GUIDE.paintAlert();},
+  ackAlert:()=>{GUIDE.alertAck=true;clearTimeout(GUIDE.escT);buzz('confirm');GUIDE.paintAlert();GUIDE.focusCard();},
+  ackNow:()=>{GUIDE.nowAck=true;clearTimeout(GUIDE.escT);buzz('confirm');try{speechSynthesis.cancel()}catch(e){};GUIDE.paintAlert();GUIDE.focusCard();},
+  imOn:()=>{if(TRIP.running&&TRIP.step().k==='wait') TRIP.next();},
+  gotOff:()=>{if(TRIP.running&&TRIP.step().k==='ride') TRIP.next();},
+  stepNext:()=>{if(TRIP.running) TRIP.next();},
+  stepPrev:()=>{if(!TRIP.running||TRIP.si===0) return; TRIP.si--; if(TRIP.steps[TRIP.si].k!=='wait') TRIP.doneLegs.pop(); buzz('confirm'); TRIP.enterStep();},
+  pocket:()=>{GUIDE.pocketOn();},
+  closeBanner:()=>{tick();GUIDE.rfail=false;GUIDE.paintActs();GUIDE.focusCard();GUIDE.layout();},
+  demoManual:()=>DEMO.manual(),
+  demoNow:()=>DEMO.getOffNow(),
+  demoPocket:()=>DEMO.pocket(),
+  demoRF:()=>{ if(!TRIP.running||TRIP.step().k!=='walk'){ S.manual=false; FRAMES.H5.go(); setTimeout(()=>DEMO.offRoute(true),900);} else DEMO.offRoute(true); },
   endTrip:()=>{tick();push('endq');},
   endYes:()=>{TRIP.stop();buzz('confirm');resetTo([['home']]);},
   pickShare:(k)=>{S.shareTo=k;tick();const el=document.querySelector('.sheetwrap:last-child');const en=NAV.stack[NAV.stack.length-1];if(el&&en) renderEntry(en,el);},
@@ -973,13 +1073,13 @@ class MapView{
     const k=Math.max(W,H)/1000; // svg units per css px (slice)
     const visW=W/k, visH=H/k; // in viewBox units
     const pad=this.live?0.62:0.78;
-    const z=Math.min(visW*pad/Math.max(x1-x0,60), visH*(this.live?0.42:pad)/Math.max(y1-y0,60));
-    this.tgt={x:(x0+x1)/2,y:(y0+y1)/2,z:Math.min(z,1.4),r:0,oy:this.live?0.36:0.5};
+    const z=Math.min(visW*pad/Math.max(x1-x0,60), visH*pad/Math.max(y1-y0,60));
+    this.tgt={x:(x0+x1)/2,y:(y0+y1)/2,z:Math.min(z,1.4),r:0,oy:0.5};
     if(snap) this.cam={...this.tgt};
   }
   setMe(p,hd){this.mePos=p;this.meHd=hd;this.me.style.display='';}
   frame(dt){
-    if(this.follow && this.mePos){ this.tgt={x:this.mePos[0],y:this.mePos[1],z:1.25,r:-90-this.meHd*180/Math.PI,oy:0.34}; }
+    if(this.follow && this.mePos){ this.tgt={x:this.mePos[0],y:this.mePos[1],z:1.25,r:-90-this.meHd*180/Math.PI,oy:0.66}; }
     else if(this.live && !this.follow){ this.fit(false); }
     const k=rm()?1:Math.min(1,dt*3.2), c=this.cam, t=this.tgt;
     c.x+=(t.x-c.x)*k; c.y+=(t.y-c.y)*k; c.z+=(t.z-c.z)*k; c.oy=(c.oy||.5)+((t.oy||.5)-(c.oy||.5))*k;
@@ -1016,15 +1116,16 @@ const TRIP={
     this.steps=[]; this.route.legs.forEach((l,li)=>{ if(l.t==='walk') this.steps.push({k:'walk',li}); else {this.steps.push({k:'wait',li});this.steps.push({k:'ride',li});} });
     this.si=0; this.d=0; this.waitLeft=0; this.phase=''; this.running=true; this.t0=Date.now(); this.total=tripMin(this.route);
     this.doneLegs=[]; this.alerted=false; this.off=null; S.toldArrive=false;
-    GUIDE.alertAck=false; GUIDE.follow=true; GUIDE.lastKey='';
+    GUIDE.alertAck=false; GUIDE.follow=true; GUIDE.lastKey=''; GUIDE.actKey=''; GUIDE.lastTouch=performance.now(); GUIDE.pocketOff();
     this.enterStep();
   },
-  stop(){this.running=false; try{speechSynthesis.cancel()}catch(e){}},
+  stop(){this.running=false; clearTimeout(GUIDE.escT); GUIDE.pocketOff(); try{speechSynthesis.cancel()}catch(e){}},
   step(){return this.steps[this.si];},
   leg(){return this.route.legs[this.step().li];},
   enterStep(){
     const st=this.step(), l=this.leg(); this.d=0; this.phase='';
     if(st.k==='wait'){this.waitLeft=l.wait; this.phase='wait';}
+    this.nowOn=false; GUIDE.nowAck=false; GUIDE.rfail=false; clearTimeout(GUIDE.escT);
     if(st.k==='ride'){this.passed=0; this.alerted=false; GUIDE.alertAck=false;}
     GUIDE.onStep();
   },
@@ -1035,6 +1136,7 @@ const TRIP={
     buzz('confirm'); this.enterStep();
   },
   finish(){
+    GUIDE.pocketOff(); clearTimeout(GUIDE.escT);
     this.running=false; buzz('arrive'); const mins=Math.max(1,Math.round(this.total));
     S.here=this.dest==='home'?'home':this.dest; const wasSharing=S.sharing; S.sharing=null;
     resetTo([['home'],['arrive',{dest:this.dest,mins,shared:wasSharing}]]);
@@ -1049,11 +1151,11 @@ const TRIP={
   update(dt){
     if(!this.running) return;
     const blocked=NAV.stack.some(x=>x.v==='endq');
-    if(blocked) return;
+    if(blocked || S.manual) return; /* manual mode: no position, the user steps through */
     const st=this.step(), l=this.leg(), sp=S.speed;
     if(this.off){ // off-route drama
       this.off.t+=dt;
-      if(this.off.stage===0){this.off.a=Math.min(1,this.off.t/2); if(this.off.t>2.6){this.off.stage=1;this.reroute();}}
+      if(this.off.stage===0){this.off.a=Math.min(1,this.off.t/2); if(this.off.t>2.6){this.off.stage=1; if(this.off.fail){ this.off=null; GUIDE.onRerouteFailed(); } else this.reroute();}}
       return;
     }
     if(st.k==='walk'){ this.d+=dt*24*sp; if(this.d>=segLen(l.pts)) this.next(); }
@@ -1062,7 +1164,7 @@ const TRIP={
       else if(this.phase==='here'){ this.hereT+=dt*sp; if(this.hereT>3.6) this.next(); }
     }
     else if(st.k==='ride'){
-      if(this.phase==='alight'){ this.hereT+=dt*sp; if(this.hereT>3.4) this.next(); return; }
+      if(this.phase==='alight'){ this.hereT+=dt*sp; if((GUIDE.nowAck&&this.hereT>3.4)||this.hereT>40) this.next(); return; }
       const L=segLen(l.pts); const v=(l.t==='bus'?62:58)*sp;
       if(this.alerted && !GUIDE.alertAck && this.d>L*0.97){ /* hold just before the stop until acknowledged or 6s */ this.hold=(this.hold||0)+dt; if(this.hold<6) return; }
       this.d=Math.min(L,this.d+dt*v);
@@ -1070,7 +1172,7 @@ const TRIP={
       const left=n-Math.min(n,passed);
       if(left===1 && !this.alerted && this.d> L*(n-1)/n + (L/n)*0.15){this.alerted=true;this.hold=0;GUIDE.onGetOff();}
       if(n===1 && !this.alerted && this.d>L*0.25){this.alerted=true;this.hold=0;GUIDE.onGetOff();}
-      if(this.d>=L){this.phase='alight';this.hereT=0;GUIDE.alertAck=true;buzz('attention');GUIDE.onPhase();}
+      if(this.d>=L){this.phase='alight';this.hereT=0;GUIDE.alertAck=true;this.nowOn=true;GUIDE.nowAck=false;GUIDE.onPhase();GUIDE.onGetOffNow();}
     }
   },
   reroute(){
@@ -1084,16 +1186,19 @@ const TRIP={
   }
 };
 const DEMO={
-  offRoute(){
+  offRoute(fail){
     if(!TRIP.running || TRIP.step().k!=='walk'){ toast(T('demoOffNeed'),'walk'); return; }
-    const r=TRIP.pos(); const hd=r.hd; TRIP.off={v:[Math.cos(hd+Math.PI/2)*70,Math.sin(hd+Math.PI/2)*70],a:0,t:0,stage:0};
+    const r=TRIP.pos(); const hd=r.hd; TRIP.off={v:[Math.cos(hd+Math.PI/2)*70,Math.sin(hd+Math.PI/2)*70],a:0,t:0,stage:0,fail:!!fail};
     buzz('gentle'); GUIDE.onOff();
   },
   getOff(){
     const go=()=>{ const i=TRIP.steps.findIndex(s=>s.k==='ride'); if(i<0)return; TRIP.si=i; TRIP.enterStep(); const l=TRIP.leg(),L=segLen(l.pts),n=l.stops.length; TRIP.d=n>1?L*(n-2)/n+L/n*0.9:L*0.2; TRIP.passed=Math.floor(TRIP.d/L*n); TRIP.doneLegs=TRIP.route.legs.slice(0,l===TRIP.route.legs[1]?1:0).map(x=>x.pts); GUIDE.onPhase(); };
     if(TRIP.running && NAV.stack.some(x=>x.v==='guide')){ while(NAV.stack[NAV.stack.length-1].v!=='guide'){ /* close sheets */ NAV.stack.pop(); } resetTo(NAV.stack.map(x=>[x.v,x.p])); go(); }
     else { TRIP.begin('ttsh',0); resetTo([['home'],['routes',{dest:'ttsh'}],['overview',{dest:'ttsh',ri:0}],['guide',{dest:'ttsh',ri:0}]]); go(); }
-  }
+  },
+  getOffNow(){ S.manual=false; DEMO.getOff(); const l=TRIP.leg(), L=segLen(l.pts), n=l.stops.length; TRIP.alerted=true; GUIDE.alertAck=true; TRIP.d=L*0.996; TRIP.passed=n-1; GUIDE.paintAlert(); },
+  manual(on){ S.manual=on==null?!S.manual:on; GUIDE.actKey=''; if(TRIP.running){ GUIDE.pocketOff(); GUIDE.paintActs(); GUIDE.layout(); if(S.manual) say('manualSay'); } renderSide(); },
+  pocket(){ if(!TRIP.running||NAV.stack[NAV.stack.length-1].v!=='guide') FRAMES.H5.go(); setTimeout(()=>GUIDE.pocketOn(),400); }
 };
 /* ================= GUIDE CONTROLLER ================= */
 const GUIDE={
@@ -1101,7 +1206,8 @@ const GUIDE={
   el(){const en=NAV.stack.find(x=>x.v==='guide');return en?document.getElementById('s'+en.id):null;},
   map(){const e=this.el();if(!e)return null;for(const m of MAPS) if(e.contains(m.svg)) return m;return null;},
   relayout(){const m=this.map(); if(m){m.fit(false);} this.paintControls();},
-  forceStep(){this.lastKey='';this.paintStep();},
+  forceStep(){this.lastKey='';this.actKey='';this.paintStep();},
+  focusCard(){ const h=this.el()?.querySelector('.stepcard h2'); if(h){h.tabIndex=-1;h.focus({preventScroll:true});} },
   onStep(){ this.lastKey=''; this.paintStep(); const st=TRIP.step(), l=TRIP.leg();
     if(st.k==='walk') say('gWalkT',{p:PL[l.to].full||PL[l.to]});
     else if(st.k==='wait') l.t==='bus'?say('gWaitT',{s:l.svc}):say('gWaitMrtT');
@@ -1110,18 +1216,48 @@ const GUIDE={
   },
   onPhase(){ this.lastKey=''; this.paintStep(); const st=TRIP.step(),l=TRIP.leg();
     if(st.k==='wait'&&TRIP.phase==='here') l.t==='bus'?say('busHereT',{s:l.svc}):say('trainHereT');
-    if(st.k==='ride'&&TRIP.phase==='alight') say('alightT');
   },
-  onGetOff(){ buzz('getoff'); const l=TRIP.leg(); say(l.t==='bus'?'getOffT':'getOffT'); setTimeout(()=>{ if(TRIP.running&&!this.alertAck) say(l.t==='bus'?'getOffBell':'getOffTrain'); },2200); announce(T('getOffT')+' '+(l.t==='bus'?T('getOffBell'):T('getOffTrain')),true); this.paintAlert(); },
-  onOff(){ const e=this.el(); if(!e)return; say('offT'); this.banner(true); },
+  onGetOff(){ this.pocketOff(); const sp=()=>{ buzz('getoff'); const l=TRIP.leg(); say('getOffT'); setTimeout(()=>{ if(TRIP.running&&!this.alertAck&&!TRIP.nowOn) say(l.t==='bus'?'getOffBell':'getOffTrain'); },2200); announce(T('getOffT')+' '+(l.t==='bus'?T('getOffBell'):T('getOffTrain')),true); };
+    sp(); this.escalate('next',sp); this.paintAlert(); },
+  onGetOffNow(){ this.pocketOff(); const sp=()=>{ const l=TRIP.leg(), k=l.t==='bus'?'nowBus':'nowTrain'; buzz('getoff'); setTimeout(()=>buzz('getoff'),1000); say('nowT'); setTimeout(()=>{ if(TRIP.running&&TRIP.nowOn&&!this.nowAck) say(k); },2200); announce(T('nowT')+' '+T(k),true); };
+    sp(); this.escalate('now',sp); this.paintAlert(); },
+  escalate(kind,fn){ clearTimeout(this.escT); const si=TRIP.si; this.escT=setTimeout(()=>{ if(!TRIP.running||TRIP.si!==si) return; if(kind==='next'&&(this.alertAck||TRIP.nowOn)) return; if(kind==='now'&&(this.nowAck||!TRIP.nowOn)) return;
+      fn(); const r=this.el()?.querySelector('.alert .bellwrap'); if(r){ r.style.animation='none'; r.offsetWidth; r.style.animation=''; } },20000/Math.max(1,S.speed)); },
+  onOff(){ const e=this.el(); if(!e)return; this.pocketOff(); say('offT'); this.banner(true); },
+  onRerouteFailed(){ say('rfT'); setTimeout(()=>{ if(TRIP.running) say('rfS'); },2200); this.el()?.querySelector('.banner')?.remove(); this.rfail=true; this.paintActs(); this.layout(); },
   onReroute(){ const m=this.map(); if(m){m.route=TRIP.route;m.drawRoute();} buzz('confirm'); say('offDoneT'); this.banner(false); this.lastKey='';this.paintStep(); },
-  banner(searching){ const e=this.el(); if(!e)return; e.querySelector('.banner')?.remove(); const b=document.createElement('div'); b.className='banner'; b.setAttribute('role','status');
-    b.innerHTML=searching?`<div class="spinner" aria-hidden="true"></div><div><b>${T('offT')}</b><span>${T('offS')}</span></div>`:`<div class="avatar" style="width:44px;height:44px;background:var(--c-jade);color:var(--c-on-jade)">${ic('check')}</div><div><b>${T('offDoneT')}</b><span>${T('offDoneS')}</span></div>`;
-    e.querySelector('.guide').appendChild(b); if(!searching) setTimeout(()=>b.remove(),4200); },
-  paintAlert(){ const e=this.el(); if(!e)return; const g=e.querySelector('.guide'); g.querySelector('.alert')?.remove(); g.querySelector('.edgeglow')?.remove();
-    if(!TRIP.running) return; const st=TRIP.step(); if(st.k!=='ride'||!TRIP.alerted||this.alertAck||TRIP.phase==='alight') return;
+  banner(state){ const e=this.el(); if(!e)return; e.querySelector('.banner')?.remove(); const b=document.createElement('div'); b.className='banner'; b.setAttribute('role','status');
+    if(state===true) b.innerHTML=`<div class="spinner" aria-hidden="true"></div><div class="tx"><b>${T('offT')}</b><span>${T('offS')}</span></div>`;
+    else b.innerHTML=`<div class="avatar" style="width:44px;height:44px;background:var(--c-jade);color:var(--c-on-jade)">${ic('check')}</div><div class="tx"><b>${T('offDoneT')}</b><span>${T('offDoneS')}</span></div>`;
+    e.querySelector('.bandrow').appendChild(b); bind(b); if(state===false) setTimeout(()=>{b.remove();this.layout();},4200); this.layout(); },
+  layout(){ const e=this.el(); if(!e)return; const g=e.querySelector('.guide'), band=g.querySelector('.top'), card=g.querySelector('.stepcard'), win=g.querySelector('.mapwin'), ctl=g.querySelector('.mapctl');
+    const H=g.getBoundingClientRect().height, bh=Math.ceil(band.getBoundingClientRect().height);
+    card.style.maxHeight=Math.max(160,Math.min(H*0.62,H-bh-160))+'px'; /* 6c.0: the map window never drops below 160px */
+    const ch=Math.ceil(card.getBoundingClientRect().height); g.style.setProperty('--band',bh+'px'); win.style.top=bh+'px'; win.style.bottom=ch+'px'; if(ctl) ctl.style.bottom=(ch+14)+'px'; },
+  touched(){ this.lastTouch=performance.now(); },
+  pocketOn(){ const e=this.el(); if(!e||this.pocket) return; this.pocket=true; const d=document.createElement('div'); d.className='pocket'; d.setAttribute('role','region'); d.setAttribute('aria-label',T('pocketL')); d.tabIndex=-1;
+    e.querySelector('.guide').appendChild(d); this.pkKey=''; this.paintPocket(); d.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();this.pocketOff(true);});
+    d.addEventListener('keydown',ev=>{ev.preventDefault();this.pocketOff(true);}); setTimeout(()=>d.focus({preventScroll:true}),30); announce(T('pocketOn')); },
+  pocketOff(byTouch){ if(!this.pocket) return; this.pocket=false; this.el()?.querySelector('.pocket')?.remove(); this.lastTouch=performance.now(); if(byTouch){ tick(); const h=this.el()?.querySelector('.stepcard h2'); if(h){h.tabIndex=-1;h.focus({preventScroll:true});} } },
+  paintPocket(){ const d=this.el()?.querySelector('.pocket'); if(!d) return; const st=TRIP.step(), l=TRIP.leg(); let glyph='walk',line='',count='';
+    if(st.k==='walk'){ const L0=segLen(l.pts); const m=Math.max(0,Math.round((L0-TRIP.d)*0.9/10)*10); line=T('pkWalk',{p:esc(fullName(PL[l.to]))}); count=T('pkM',{m}); }
+    else { glyph=l.t==='bus'?'bus':'train'; line=l.t==='bus'?T('pkBus',{s:l.svc}):T('pkTrain'); const n=l.stops.length-Math.min(l.stops.length,TRIP.passed||0); count=st.k==='wait'?'':(n<=1?T('pkN1'):T('pkN',{n})); }
+    const key=[glyph,line,count,S.muted,S.lang].join('|'); if(key===this.pkKey) return; this.pkKey=key;
+    d.innerHTML=`<div class="glyph" aria-hidden="true">${ic(glyph)}</div><p class="line">${line}</p><p class="count num">${count}</p>${S.muted?`<p class="muted">${ic('mute')}<span>${T('pocketMuted')}</span></p>`:''}<button class="btn" aria-label="${T('pocketShowL')}">${ic('eye')}${T('pocketShow')}</button><p class="hint">${T('pocketHint')}</p>`; },
+  canPocket(){ if(!TRIP.running||this.pocket||S.manual) return false; const st=TRIP.step(); if(st.k!=='walk'&&st.k!=='ride') return false;
+    const top=NAV.stack[NAV.stack.length-1]; if(!top||top.v!=='guide') return false; const e=this.el(); if(!e||e.querySelector('.alert,.banner')) return false; return true; },
+  paintAlert(){ const e=this.el(); if(!e)return; const g=e.querySelector('.guide');
+    const st0=TRIP.running?TRIP.step():null; const want=!st0||st0.k!=='ride'?'':(TRIP.nowOn&&!this.nowAck)?'now':(TRIP.alerted&&!this.alertAck&&TRIP.phase!=='alight')?'next':'';
+    const cur=g.querySelector('.alert'); if(cur&&cur.dataset.kind===want&&cur.dataset.lang===S.lang) return; if(!cur&&!want) return;
+    g.querySelector('.alert')?.remove(); g.querySelector('.edgeglow')?.remove(); if(!want) return;
+    if(!TRIP.running) return; const st=TRIP.step();
+    if(st.k==='ride'&&TRIP.nowOn&&!this.nowAck){ const l=TRIP.leg(), goal=PL[l.to];
+      const chip=l.t==='bus'?(S.lang==='zh'?`${esc(goal.sign)} · ${esc(goal.zh)}`:`${esc(goal.sign)} bus stop`):(S.lang==='zh'?`${esc(goal.sign)} ${esc(goal.code||'')} · ${esc(goal.zh)}`:`${esc(goal.sign)} ${esc(goal.code||'')} station`);
+      g.insertAdjacentHTML('beforeend',`<div class="edgeglow now" aria-hidden="true"></div><div class="alert now" data-kind="now" data-lang="${S.lang}" role="alertdialog" aria-labelledby="gn" aria-describedby="gnd" data-testid="getoff-now"><div class="bellwrap" aria-hidden="true">${ic('exit')}</div><h2 id="gn">${T('nowT')}</h2><div id="gnd"><p>${l.t==='bus'?T('nowBus'):T('nowTrain')}</p><span class="sign">${chip}</span></div><div class="grow"></div><button class="btn" data-act="ackNow" data-testid="getoff-now-ack">${ic('check')}${T('ok')}</button><div class="pad"></div></div>`);
+      bind(g.querySelector('.alert')); const h=g.querySelector('.alert h2'); h.tabIndex=-1; setTimeout(()=>h.focus?.({preventScroll:true}),50); return; }
+    if(st.k!=='ride'||!TRIP.alerted||this.alertAck||TRIP.phase==='alight') return;
     const l=TRIP.leg(); const goal=PL[l.to];
-    g.insertAdjacentHTML('beforeend',`<div class="edgeglow" aria-hidden="true"></div><div class="alert" role="alertdialog" aria-labelledby="ga"><div class="bellwrap" aria-hidden="true">${ic(l.t==='bus'?'bell':'train')}</div><h2 id="ga">${T('getOffT')}</h2><p>${l.t==='bus'?T('getOffBell'):T('getOffTrain')}</p><span class="sign">${esc(goal.sign)}${S.lang==='zh'?' · '+esc(goal.zh):''}</span><button class="btn" data-act="ackAlert">${ic('check')}${T('ok')}</button></div>`);
+    g.insertAdjacentHTML('beforeend',`<div class="edgeglow" aria-hidden="true"></div><div class="alert" data-kind="next" data-lang="${S.lang}" role="alertdialog" aria-labelledby="ga"><div class="bellwrap" aria-hidden="true">${ic(l.t==='bus'?'bell':'train')}</div><h2 id="ga">${T('getOffT')}</h2><p>${l.t==='bus'?T('getOffBell'):T('getOffTrain')}</p><span class="sign">${esc(goal.sign)}${S.lang==='zh'?' · '+esc(goal.zh):''}</span><button class="btn" data-act="ackAlert">${ic('check')}${T('ok')}</button></div>`);
     bind(g.querySelector('.alert')); setTimeout(()=>g.querySelector('.alert h2')?.focus?.(),50); g.querySelector('.alert h2').tabIndex=-1;
   },
   paintControls(){ const e=this.el(); if(!e)return;
@@ -1129,7 +1265,23 @@ const GUIDE={
     const fb=e.querySelector('[data-act=follow]'); if(fb){fb.classList.toggle('on',this.follow);fb.innerHTML=ic(this.follow?'nav':'route');fb.setAttribute('aria-label',this.follow?T('overviewL'):T('followL'));}
     const m=this.map(); if(m){m.follow=this.follow;}
     const sp=e.querySelector('.sharepill'); if(sp){sp.hidden=!S.sharing; if(S.sharing) sp.querySelector('span').textContent=T('sharingWith',{n:T(S.sharing)});}
-    const card=e.querySelector('.stepcard'), ctl=e.querySelector('.mapctl'); if(card&&ctl){ctl.style.bottom=(card.offsetHeight+14)+'px';}
+    this.layout();
+  },
+  paintActs(){ const e=this.el(); if(!e||!TRIP.running) return; const box=e.querySelector('.stepacts'), notes=e.querySelector('.tripnotes'); if(!box) return; const st=TRIP.step(), l=TRIP.leg(), man=!!S.manual;
+    const key=[st.k,TRIP.si,man,S.lang,TRIP.phase==='alight',!!this.rfail].join('|'); if(key===this.actKey) return; this.actKey=key;
+    notes.innerHTML=this.rfail?`<div class="tripnote" role="status" data-testid="trip-note">${ic('route')}<div class="tx"><b>${T('rfT')}</b><span>${T('rfS')}</span></div><button class="iconbtn x" data-act="closeBanner" aria-label="${T('okL')}">${ic('close')}</button>
+      <div class="bacts"><button class="btn btn-secondary" data-act="addr" data-arg="dest">${ic('car')}${T('showDriver')}</button><button class="btn btn-danger-outline" data-act="e995">${ic('phone')}${T('emergency')}</button></div></div>`
+      :man?`<div class="tripnote" role="status" data-testid="trip-note">${ic('loc')}<div class="tx"><b>${T('manualNote')}</b></div></div>`:'';
+    const sec=man?'btn btn-primary':'btn btn-secondary';
+    let A='';
+    if(st.k==='wait') A=`<button class="${sec}" data-act="imOn" data-testid="im-on">${ic(l.t==='bus'?'bus':'train')}${T('imOn')}</button>`;
+    else if(st.k==='ride') A=`<button class="${sec}" data-act="gotOff" data-testid="got-off">${ic('exit')}${T('gotOff')}</button>`;
+    else if(man) A=`<button class="btn btn-primary" data-act="stepNext" data-testid="step-next">${T('nextStep')}${ic('chev')}</button>`;
+    const pocket=!man&&(st.k==='walk'||st.k==='ride');
+    const B=`<button class="btn btn-secondary" data-act="replay" data-testid="say-again">${ic('speaker')}${T('sayAgain')}</button>${pocket?`<button class="btn btn-secondary" data-act="pocket" data-testid="pocket-btn">${ic('moon')}${T('pocketBtn')}</button>`:''}`;
+    const first=TRIP.si===0;
+    const C=`<button class="btn btn-quiet" data-act="stepPrev" data-testid="step-prev" ${first?'aria-disabled="true"':''}>${ic('back')}${T('prevStep')}</button>${man&&st.k==='walk'?'':`<button class="btn btn-quiet" data-act="stepNext" data-testid="step-next">${T('nextStep')}${ic('chev')}</button>`}`;
+    box.innerHTML=`${A?`<div class="row">${A}</div>`:''}<div class="row">${B}</div><div class="row quiet">${C}</div>`; bind(box); bind(notes);
   },
   paintStep(){
     const e=this.el(); if(!e||!TRIP.running) return; const st=TRIP.step(), l=TRIP.leg(), card=e.querySelector('.stepcard'); if(!card) return;
@@ -1159,10 +1311,14 @@ const GUIDE={
     card.querySelector('.stepbody').innerHTML=`<div class="stepmeta"><span>${T('stepOf',{a:TRIP.si+1,b:total})}</span><span data-eta class="num">${T('arriveLeft',{t:at(rem),n:rem})}</span></div>
       <div class="steprow"><div class="stepicon ${cls}" aria-hidden="true">${ic(icon)}</div><div class="steptx"><h2 aria-live="polite">${title}</h2>${st.k==='walk'?extra:''}<p>${sub}</p></div></div>
       ${st.k!=='walk'?extra:''}<div class="prog" aria-hidden="true"><i></i></div>`;
-    this.paintAlert(); this.paintControls();
+    this.paintActs(); this.paintAlert(); this.paintControls();
   },
   frame(dt){
-    if(!TRIP.running) return; const m=this.map(); const r=TRIP.pos();
+    if(!TRIP.running){ if(this.pocket) this.pocketOff(); return; }
+    if(this.lastTouch==null) this.lastTouch=performance.now();
+    if(!this.pocket && this.canPocket() && performance.now()-this.lastTouch>45000) this.pocketOn();
+    if(this.pocket){ this.paintPocket(); return; } /* map render loop paused in pocket view */
+    const m=this.map(); const r=TRIP.pos();
     if(m){ m.setMe(r.p,r.hd); const done=[...TRIP.doneLegs.flat()].length?TRIP.doneLegs:[]; const pts=[]; done.forEach(x=>pts.push(...x)); if(TRIP.step().k!=='wait') pts.push(...r.done); else pts.push(r.p); m.setDone(pts); }
     this.paintStep();
     FAM.frame(r);
@@ -1260,15 +1416,17 @@ VIEWS.overview=(en)=>{const r=ROUTES[en.p.dest][en.p.ri], m=tripMin(r), p=PL[en.
     <div style="padding:0 20px">${timeline(r)}</div></div>
   <div class="dock"><button class="btn btn-primary" data-act="start" data-focus>${ic('nav')}${T('start')}</button><button class="btn btn-quiet" data-act="go" data-arg="share">${ic('share')}${T('tellFirst')}</button></div>`;};
 VIEWS.overview_after=(el,en)=>{new MapView(el.querySelector('[data-map]'),ROUTES[en.p.dest][en.p.ri],{label:T('goTo',{p:fullName(PL[en.p.dest])})});};
-VIEWS.guide=()=>`<div class="guide"><div data-map style="position:absolute;inset:0"></div>
-  <div class="top"><button class="iconbtn" data-act="endTrip" aria-label="${T('endTripL')}">${ic('close')}${T('endTrip')}</button><span class="grow"></span>
+VIEWS.guide=()=>`<div class="guide"><div class="mapwin" data-map></div>
+  <div class="top" data-band><button class="iconbtn" data-act="endTrip" aria-label="${T('endTripL')}">${ic('close')}${T('endTrip')}</button><span class="grow"></span>
     <button class="iconbtn" data-act="mute" data-speak style="width:56px;padding:0"></button>
-    <button class="helppill" data-act="go" data-arg="help">${ic('help')}${T('help')}</button></div>
-  <button class="sharepill" data-act="go" data-arg="share" hidden><span class="live" aria-hidden="true"></span><span></span></button>
+    <button class="helppill" data-act="go" data-arg="help">${ic('help')}${T('help')}</button>
+    <div class="bandrow"><button class="sharepill" data-act="go" data-arg="share" hidden><span class="live" aria-hidden="true"></span><span></span></button></div></div>
   <div class="mapctl"><button class="iconbtn" data-act="follow"></button><button class="iconbtn" data-act="go" data-arg="share" aria-label="${T('shareL')}">${ic('share')}</button></div>
-  <section class="stepcard" aria-label="${T('stepOf',{a:'',b:''}).replace(/\s+/g,' ')}"><div class="grab" aria-hidden="true"></div><div class="stepbody"></div>
-    <div class="steprow2"><button class="btn btn-secondary" data-act="replay" style="min-height:56px;font-size:1rem">${ic('speaker')}${T('sayAgain')}</button></div></section></div>`;
-VIEWS.guide_after=(el)=>{new MapView(el.querySelector('[data-map]'),TRIP.route||ROUTES.ttsh[0],{follow:GUIDE.follow,live:true,label:S.lang==='zh'?'跟随地图':'Follow-me map'}); GUIDE.lastKey=''; requestAnimationFrame(()=>{GUIDE.paintStep();GUIDE.paintControls();});};
+  <section class="stepcard" aria-label="${T('stepOf',{a:'',b:''}).replace(/\s+/g,' ')}"><div class="grab" aria-hidden="true"></div><div class="tripnotes"></div><div class="stepbody"></div><div class="stepacts"></div></section></div>`;
+VIEWS.guide_after=(el)=>{new MapView(el.querySelector('[data-map]'),TRIP.route||ROUTES.ttsh[0],{follow:GUIDE.follow,live:true,label:S.lang==='zh'?'跟随地图':'Follow-me map'}); GUIDE.lastKey=''; GUIDE.actKey='';
+  const g=el.querySelector('.guide'); g.addEventListener('pointerdown',()=>GUIDE.touched(),true); g.addEventListener('keydown',()=>GUIDE.touched(),true);
+  try{ const ro=new ResizeObserver(()=>GUIDE.layout()); ro.observe(g.querySelector('.top')); ro.observe(g.querySelector('.stepcard')); }catch(e){}
+  requestAnimationFrame(()=>{GUIDE.paintStep();GUIDE.paintControls();});};
 VIEWS.share=()=>{
   if(S.sharing) return `<div class="sheethead"><h2>${T('sharingNow',{n:T(S.sharing)})}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div>
     <p class="lead">${T('sharingUntil')}</p><div class="opts">
@@ -1326,7 +1484,9 @@ VIEWS.settings=()=>{const sg=(k,opts)=>`<div class="seg" role="group">${opts.map
   <div class="setrow"><h3>${T('setVib')}</h3>${sg('haptics',[[true,T('on')],[false,T('off')]])}</div>
   <div class="setrow"><h3>${T('setMotion')}</h3>${sg('rmForce',[['auto',T('auto')],['on',T('on')],['off',T('off')]])}</div>
   <div class="proto"><h3>${T('protoT')}</h3><p>${T('protoS')}</p><div class="setrow" style="margin-bottom:10px"><h3>${T('demoSpeed')}</h3>${sg('speed',[[0.6,T('slow')],[1,T('normal')],[2,T('fast')]])}</div>
-   <div class="opts"><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoGetOff">${ic('bell')}${T('demoGetOff')}</button><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoOff">${ic('route')}${T('demoOff')}</button></div></div>`;};
+   <div class="opts"><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoGetOff">${ic('bell')}${T('demoGetOff')}</button><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoOff">${ic('route')}${T('demoOff')}</button>
+   <button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoNow">${ic('exit')}${T('demoNow')}</button><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoPocket">${ic('moon')}${T('demoPocket')}</button>
+   <button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoManual">${ic('loc')}${T('demoManual')}</button><button class="btn btn-secondary" style="min-height:56px;font-size:1rem" data-act="demoRF">${ic('route')}${T('demoRF')}</button></div></div>`;};
 VIEWS.endq=()=>`<div class="sheethead"><h2>${T('endQ')}</h2></div><p class="lead">${T('endLead')}</p>
   <div class="opts"><button class="btn btn-primary" data-act="back">${ic('nav')}${T('keepGoing')}</button><button class="btn btn-secondary" data-act="endYes">${ic('close')}${T('endYes')}</button></div>`;
 function openCall(who){const o=document.getElementById('overlay');o.querySelector('.call')?.remove();const name=who==='mum'?(S.lang==='zh'?'妈妈':'Mum'):T('meiling');
@@ -1340,20 +1500,24 @@ const FRAMES={
   H2:{n:'Search',go:()=>{TRIP.stop();resetTo([['home'],['search']]);}},
   H3:{n:'Route options',go:()=>{TRIP.stop();resetTo([['home'],['routes',{dest:'ttsh'}]]);}},
   H4:{n:'Trip overview',go:()=>{TRIP.stop();resetTo([['home'],['routes',{dest:'ttsh'}],['overview',{dest:'ttsh',ri:0}]]);}},
-  H5:{n:'Live guidance',go:()=>{TRIP.begin('ttsh',0);resetTo([['home'],['routes',{dest:'ttsh'}],['overview',{dest:'ttsh',ri:0}],['guide',{dest:'ttsh',ri:0}]]);}},
-  H6:{n:'Get off next stop',go:()=>DEMO.getOff()},
+  H5:{n:'Live guidance',go:()=>{S.manual=false;TRIP.begin('ttsh',0);resetTo([['home'],['routes',{dest:'ttsh'}],['overview',{dest:'ttsh',ri:0}],['guide',{dest:'ttsh',ri:0}]]);}},
+  H6:{n:'Get off next stop',go:()=>{S.manual=false;DEMO.getOff();}},
+  H6b:{n:'Get off now',go:()=>DEMO.getOffNow()},
+  G1:{n:'Pocket view',go:()=>DEMO.pocket()},
+  G5:{n:'Manual mode',go:()=>{FRAMES.H5.go();DEMO.manual(true);}},
   H7:{n:'Share my trip',go:()=>{if(!TRIP.running)FRAMES.H5.go();S.sharing=null;push('share');}},
   H8:{n:'What family sees',go:()=>{if(!TRIP.running)FRAMES.H5.go();push('family');}},
   H9:{n:'Help',go:()=>{if(!TRIP.running)FRAMES.H5.go();push('help');}},
   H10:{n:'Show the driver',go:()=>{if(!TRIP.running)FRAMES.H5.go();push('address',{mode:'dest'});}},
   H11:{n:'Off-route re-route',go:()=>{FRAMES.H5.go();setTimeout(()=>DEMO.offRoute(),900);}},
+  H11f:{n:'Re-route failed',go:()=>{FRAMES.H5.go();setTimeout(()=>DEMO.offRoute(true),900);}},
   H12:{n:'Arrival',go:()=>{TRIP.stop();S.here='ttsh';resetTo([['home'],['arrive',{dest:'ttsh',mins:23,shared:'meiling'}]]);}},
   H13:{n:'Settings',go:()=>{TRIP.stop();resetTo([['home'],['settings']]);}}
 };
 function renderSide(){
   const f=document.getElementById('frames'); f.innerHTML=Object.entries(FRAMES).map(([k,v])=>`<button data-act="frame" data-arg="${k}"><b>${k}</b>${v.n}</button>`).join(''); bind(f);
   const c=document.getElementById('sidectl');
-  c.innerHTML=`<button data-act="lang">中 / EN</button><button data-act="set" data-arg="ts:${S.ts>=2?1:2}">Text ${S.ts>=2?'100%':'200%'}</button><button data-act="set" data-arg="theme:${S.theme==='dark'?'light':'dark'}">${S.theme==='dark'?'Light':'Dark'} mode</button><button data-act="set" data-arg="speed:${S.speed>1?1:2}">Speed ${S.speed>1?'normal':'fast'}</button><button data-act="demoOff">Go off route</button><button data-act="demoGetOff">Get off alert</button>`; bind(c);
+  c.innerHTML=`<button data-act="lang">中 / EN</button><button data-act="set" data-arg="ts:${S.ts>=2?1:2}">Text ${S.ts>=2?'100%':'200%'}</button><button data-act="set" data-arg="theme:${S.theme==='dark'?'light':'dark'}">${S.theme==='dark'?'Light':'Dark'} mode</button><button data-act="set" data-arg="speed:${S.speed>1?1:2}">Speed ${S.speed>1?'normal':'fast'}</button><button data-act="demoOff">Go off route</button><button data-act="demoGetOff">Get off alert</button><button data-act="demoNow">Get off now</button><button data-act="demoPocket">Pocket view</button><button data-act="demoManual">Manual ${S.manual?'off':'on'}</button>`; bind(c);
 }
 /* ================= BOOT ================= */
 applyPrefs(); mqRM.addEventListener?.('change',applyPrefs);

@@ -1,7 +1,7 @@
 # 怎么去? — Creative direction
 
-**Version:** v1.1 (2026-11-17) · **Owner:** Creative · **Status:** signed off by the owner (D-8); v1.1 applies the owner's choices
-Companion files: `creative/STYLE-GUIDE.md` (tokens, components, frames H1–H13), `creative/logo/`, `creative/prototype/index.html`.
+**Version:** v1.2 (2026-11-17) · **Owner:** Creative · **Status:** signed off by the owner (D-8); v1.1 applies the owner's choices; v1.2 adds the M2 guided-trip frames (D19–D21, pending Director review)
+Companion files: `creative/STYLE-GUIDE.md` (tokens, components, frames H1–H13, 6b M1 states, 6c M2 guided-trip frames), `creative/logo/`, `creative/prototype/index.html`.
 
 ---
 
@@ -87,6 +87,9 @@ Visual personality: **warm paper, persimmon and saffron.** The palette comes fro
 | D16 | Route options show at most **3 cards**, labelled by what seniors care about: 最少走路 Least walking (recommended, persimmon border), 最快 Fastest, 最少转车 Fewest changes. ~~Each card also shows "No stairs" or "Lifts all the way".~~ v1.1: those facts are hidden until a data source exists (owner, D-8; research in M3). | Walking distance and stairs matter more than 4 minutes saved. |
 | D17 | **Logo: B, the 去 seal** (owner's pick over the recommended A). Refined into a white-on-persimmon chop: 土 over 厶, whose last arm is a path rising to the saffron dot (the 点 of 去 = "arrived"). Pixel-grid favicon geometry so it reads at 16px; maskable, mono and wordmark variants. Spec in STYLE-GUIDE §0. | The owner prefers the Chinese character. Making the dot the destination keeps A's best idea, and a solid seal (not an outline frame) fixes B's 16px weakness. |
 | D18 | **M1 states** (STYLE-GUIDE 6b): one calm state panel for every empty, error and offline case, never red; first run of at most 3 skippable pages; a location explainer before the browser prompt; the "Start" button exists only behind flag `guide` (OQ5), with no preview badge. | Seniors read errors as "I did something wrong". One familiar layout plus "try again" keeps them calm. |
+| D19 | **Two-stage get-off (M2):** "下一站下车" stays the saffron panel (get ready); "到站了，请下车" (H6b) is a full **ink** takeover with saffron type and a saffron edge glow (go now), plus a doubled `getoff` vibration. One repeat after 20 s if not acknowledged, never more. | The change of colour tells the user that the moment has moved on, even without sound. Saffron on ink is still 12.1:1, and the glow stays visible around an ink sheet, which it would not around a saffron one. |
+| D20 | **Nothing covers the map (M2):** the guidance top bar is a solid band, the map lives only between the band and the step card, and the puck sits 66% down that window. Banners and notes go in the band or the card, never on the map. Pocket view is a black, map-free screen with one glyph, one line and "打开". | The D-8 review found a station label under the End button. A layout rule fixes the whole class of bug, at every text size, instead of nudging one label. |
+| D21 | **One haptic vocabulary:** `tick, confirm, attention, getoff, arrive, gentle` (STYLE-GUIDE 6c.13) everywhere, the web shell included. | Two sets of names had already drifted apart. Feel is part of the brand: one strongest pattern, used only for getting off. |
 
 ## 5. Open questions for the owner
 Answered at sign-off (D-8): logo → **B, 去 seal** (D17); palette and type approved; name asked once at first run, optional; WhatsApp + SMS + link sharing as recommended.
@@ -95,5 +98,6 @@ Still open: the contact line for the About & privacy screen (PDPA contact point)
 ## Change log
 | Version | Date | Change |
 |---|---|---|
+| v1.2 | 2026-11-17 | M2 guided-trip frames (STYLE-GUIDE 6c): H6b get off now (D19), pocket view, multi-stop builder, H4 journey and waypoint arrival, resume and voice unlock, manual controls, re-route failed/offline, no-voice help, weak GPS and MRT estimate, canonical haptic map (D21); H5 layout rule (D20). Prototype v1.2 adds H6b, pocket view, manual mode and re-route failed. |
 | v1.1 | 2026-11-17 | Owner sign-off applied: logo B master (D17), arrival moment rebuilt around the seal (D13), stairs/lift facts hidden (D16), M1 state frames (D18, STYLE-GUIDE 6b). |
 | v1.0 | 2026-11-17 | First creative run: brand idea, principles, voice, D1–D16, logo concepts, tokens, motion and haptics, components, frames H1–H13, interactive prototype. |
