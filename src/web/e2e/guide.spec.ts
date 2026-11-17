@@ -287,8 +287,11 @@ test('Back/End confirm on H5; End stops the trip; Help sheet M2 subset', async (
   await expect(page.getByTestId('help-driver')).toBeVisible();
   await expect(page.getByTestId('help-where')).toBeVisible();
   await expect(page.getByTestId('help-reroute')).toBeVisible();
-  await expect(page.getByTestId('help-995')).toHaveAttribute('href', 'tel:995');
   await auditControls(page);
+  // M4 (6e.3): 995 asks once; the only c-danger fill is the confirm button
+  await page.getByTestId('help-995').click();
+  await expect(page.getByTestId('call-995')).toHaveAttribute('href', 'tel:995');
+  await page.goBack();
   await page.getByTestId('help-driver').click();
   await expect(page.getByTestId('driver-tab-dest')).toHaveAttribute('aria-pressed', 'true');
   await page.goBack();
