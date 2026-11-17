@@ -15,3 +15,14 @@
 - Owner asked whether a PWA wrapped in an APK can guide with the screen off. Answer: a TWA (Bubblewrap) cannot (it is Chrome; geolocation stops when hidden). A Capacitor shell can (location foreground service, native TTS, lock-screen alerts).
 - Ruling D-4: The web UI must put location, speech, wake-lock, vibration and notifications behind one `platform` adapter interface (web implementation now; Capacitor implementation later). Recommended an optional "Android app" milestone after M2 — awaiting the owner's yes.
 - 2026-11-17 Ruling D-5: Owner said yes → M6 Android app (Capacitor) added to ROADMAP, 6–8 h, can start after M2 in parallel with M3–M5.
+
+## 2026-11-17 — Owner accepts all recommended defaults (D-6)
+Owner: "Go with all your recommended defaults. No need android play store."
+- Languages: Simplified Chinese (default) + English.
+- OneMap account and LTA DataMall key: the owner registers them with their own email and adds them as Cloudflare secrets. Until then we build and test on recorded/synthetic sample routes.
+- Hosting: the owner's Cloudflare account, free plan; `*.pages.dev` address, custom domain later.
+- Share link: ends 30 min after arrival, at most 4 h, stoppable any time. Worker default SHARE_TTL_HOURS=4, plus auto-end 30 min after status "arrived".
+- Default route preference: least walking.
+- Screen stays on (dimmed pocket view) during a web trip; accepted.
+- Taxi fallback: show the address in big text, open Grab if installed, link the CDG Zig site.
+- Architecture D-1 confirmed. M6 Android: **sideload APK only, no Play Store** (drop the closed-test track).

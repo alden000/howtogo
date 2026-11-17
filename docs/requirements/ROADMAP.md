@@ -118,7 +118,7 @@ Added 2026-11-17 at the owner's request (director-log D-4/D-5).
   - System Back follows the in-app page stack (process §7); predictive back on;
   - release signing, versionCode ranges (release N, test ≥ N+10, hotfix N+1), R8 off or keep rules plus a release smoke test;
   - battery: GPS interval adapts to the leg (walk 2 s, bus/MRT 5–10 s, near alight 2 s); Samsung/OEM battery-optimisation guidance screen;
-  - distribution: a sideload APK on the review site first. Play Store optional: a new personal account needs a 12-tester × 14-day closed test (start early) plus a location FGS declaration.
+  - distribution: sideload APK only (owner ruling D-6: no Play Store).
 - **Testability:** an emulator with a mocked GPS route (adb `emu geo fix` script) and the screen locked; then a real-device walk/bus test with the owner's phone under the device rules.
 - **Exit:** a locked-screen bus trip on a real phone gives voice and lock-screen "get off next stop" at the right stop; the release APK passes the gate; no battery drain above budget (≤ 8%/h during guidance).
 - **Later:** an iOS app via the same Capacitor shell (needs a Mac or cloud macOS, plus TestFlight).
