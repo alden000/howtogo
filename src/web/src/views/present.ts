@@ -48,9 +48,12 @@ export function stopsText(n: number, t: T): string {
   return n === 1 ? t('stop_1') : t('stops_n', { n });
 }
 
+/** Walking distance for the card (AC 31): metres, rounded to 10, at least 10. */
+export const walkMetres = (m: number) => Math.max(10, Math.round(m / 10) * 10);
+
 /** Facts row: walk total, "no changes", stops per ride. No stairs/lifts facts (owner decision D-8). */
 export function facts(it: Itinerary, t: T): { icon: 'walk' | 'check' | 'bus' | 'train'; text: string }[] {
-  const out: { icon: 'walk' | 'check' | 'bus' | 'train'; text: string }[] = [{ icon: 'walk', text: t('walk_min', { n: minutes(it.walkTimeS) }) }];
+  const out: { icon: 'walk' | 'check' | 'bus' | 'train'; text: string }[] = [{ icon: 'walk', text: t('walk_m', { m: walkMetres(it.walkDistanceM) }) }];
   const rides = it.legs.filter(isTransit);
   if (rides.length === 1) out.push({ icon: 'check', text: t('no_change') });
   for (const l of rides) out.push({ icon: l.mode === 'bus' ? 'bus' : 'train', text: stopsText(rideStops(l), t) });
@@ -91,6 +94,8 @@ export interface TimelineItem {
   kind: 'walk' | 'bus' | 'train' | 'dest';
   title: string;
   sub: string;
+  /** Train rows: the line tag (D7) and the title split around it, so the tag renders inline. */
+  line?: { code: string; token: string; before: string; after: string };
 }
 
 /** H4 timeline: one row per leg, then the arrival row. */
@@ -101,11 +106,19 @@ export function timeline(it: Itinerary, dest: { name: string; address?: string |
       return { kind: 'walk', title: t('st_walk', { p: last ? dest.name : l.to.displayName }), sub: t('st_walk_s', { n: minutes(l.durationS) }) };
     }
     const n = stopsText(rideStops(l), t);
-    const towards = l.headsign ? ` · ${t('towards', { p: l.headsign })}` : '';
+    if (l.mode === 'bus') {
+      const towards = l.headsign ? ` · ${t('towards', { p: l.headsign })}` : '';
+      return { kind: 'bus', title: t('st_bus', { s: l.route ?? '', n }), sub: `${t('st_ride_s', { p: l.to.displayName })}${towards}` };
+    }
+    // Train: "坐地铁 [NS]，往 {dir} 方向，坐 4 站" with the line tag inline (Creative #12).
+    const code = lineCode(l);
+    const raw = l.headsign ? t('st_mrt_dir', { l: '\u0000', d: l.headsign, n }) : t('st_mrt', { l: '\u0000', n });
+    const [before = '', after = ''] = raw.split('\u0000');
     return {
-      kind: l.mode === 'bus' ? 'bus' : 'train',
-      title: l.mode === 'bus' ? t('st_bus', { s: l.route ?? '', n }) : t('st_mrt', { l: lineCode(l), n }),
-      sub: `${t('st_ride_s', { p: l.to.displayName })}${towards}`,
+      kind: 'train',
+      title: `${before}${code}${after}`,
+      sub: t('st_ride_s', { p: l.to.displayName }),
+      line: { code, token: l.line?.colorToken ?? 'route-train', before, after },
     };
   });
   items.push({ kind: 'dest', title: t('st_arrive', { p: dest.name }), sub: dest.address ?? '' });

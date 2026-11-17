@@ -20,7 +20,7 @@ export const sgHour = (d = new Date()) =>
   Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Singapore' }).format(d));
 
 export function Home() {
-  const { store, router, platform, api } = useServices();
+  const { store, router, platform, api, flags } = useServices();
   const t = useT();
   const s = store.settings.value;
   const home = store.places.value.home;
@@ -192,6 +192,7 @@ export function Home() {
             </ul>
           </>
         )}
+        {flags.has('help') && (
         <button type="button" class="helprow" data-testid="nav-help" onClick={() => router.navigate('/help')}>
           <span class="ic" aria-hidden="true">
             <Icon name="help" />
@@ -201,6 +202,7 @@ export function Home() {
             <span>{t('help_row_s')}</span>
           </span>
         </button>
+        )}
       </main>
       <div class="dock">
         {home ? (

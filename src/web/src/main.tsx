@@ -23,6 +23,7 @@ import { cacheTripTiles, clearTripTiles, registerServiceWorker } from './pwa/reg
 import { corridorTiles, styleForTheme } from './map/onemap';
 import { isDark } from './map/MapPanel';
 import { createRouter } from './router/router';
+import { parseRouteLink } from './router/deeplink';
 import { session } from './state/storage';
 import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
@@ -65,6 +66,12 @@ async function boot() {
   }
 
   const store = createStore();
+  // AC 6: the shared deep link `/#/route?from=lat,lng&to=lat,lng` restores Route options (from is optional = my location).
+  const deep = await parseRouteLink(location.hash, api);
+  if (deep) {
+    store.setPlan({ from: deep.from, to: deep.to, options: [], selected: 0, fetchedAt: 0 });
+    history.replaceState(null, '', '/routes');
+  }
   // F1: first launch opens the first run (root of the stack) instead of Home; never again after Skip or Done.
   if (!store.settings.peek().onboarded && location.pathname === '/' && !(history.state as { howtogo?: number } | null)?.howtogo) {
     history.replaceState(null, '', '/welcome?p=1');

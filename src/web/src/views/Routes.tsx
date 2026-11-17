@@ -70,31 +70,40 @@ export const TOO_CLOSE_M = 200;
 const WALK_MPS = 1;
 const SLOW_MS = 6000;
 
+export const WALK_ONLY_ID = 'walk-only';
+/** Below this straight-line distance a single option is "close by" (Creative #11); otherwise it is just the only one found. */
+const ONLY_ONE_NEAR_M = 1000;
+/** F3 close: metres rounded to 10 (min 10); under this, "you're already nearby" (Creative #18). */
+const NEARBY_M = 30;
+export const roundM = (m: number) => Math.max(10, Math.round(m / 10) * 10);
+
 /** A one-leg walking itinerary for "Show the walking way" (F3 close). */
 export function walkOnly(start: Place, end: Place, now = Date.now()): RankedItinerary {
   const distanceM = Math.round(haversine(start, end));
   const durationS = Math.max(60, Math.round(distanceM / WALK_MPS));
   const stop = (p: Place) => ({ name: p.name, displayName: p.name, lat: p.lat, lng: p.lng });
   const leg: Leg = { mode: 'walk', from: stop(start), to: stop(end), startTime: now, endTime: now + durationS * 1000, durationS, distanceM, geometry: [start, end], intermediateStops: [], turns: [] };
-  const itinerary: Itinerary = { id: 'walk-only', startTime: now, endTime: leg.endTime, durationS, walkTimeS: durationS, transitTimeS: 0, waitingTimeS: 0, walkDistanceM: distanceM, transfers: 0, legs: [leg] };
+  const itinerary: Itinerary = { id: WALK_ONLY_ID, startTime: now, endTime: leg.endTime, durationS, walkTimeS: durationS, transitTimeS: 0, waitingTimeS: 0, walkDistanceM: distanceM, transfers: 0, legs: [leg] };
   return { itinerary, score: 0, labels: [], summary: summarize(itinerary) };
 }
 
 export function Routes() {
-  const { store, router, api, platform } = useServices();
+  const { store, router, api, platform, flags } = useServices();
   const t = useT();
   const plan = store.plan.value;
   const settings = store.settings.value;
   const lang = settings.lang;
   const me = here.value;
-  const [phase, setPhase] = useState<Phase>(plan.options.length ? 'idle' : 'loading');
+  // The F3 "walking way" plan is shown on Route detail only; back here, the too-close state is worked out again (QA-9).
+  const walkOnlyPlan = plan.options[0]?.itinerary.id === WALK_ONLY_ID;
+  const [phase, setPhase] = useState<Phase>(plan.options.length && !walkOnlyPlan ? 'idle' : 'loading');
   const [attempt, setAttempt] = useState(0);
   const [slow, setSlow] = useState(false);
   const [closeM, setCloseM] = useState(0);
 
   useEffect(() => {
     if (!plan.to) return;
-    if (plan.options.length && plan.fetchedAt && Date.now() - plan.fetchedAt < FRESH_MS && attempt === 0) return;
+    if (plan.options.length && !walkOnlyPlan && plan.fetchedAt && Date.now() - plan.fetchedAt < FRESH_MS && attempt === 0) return;
     let cancelled = false;
     (async () => {
       setPhase('loading');
@@ -169,6 +178,14 @@ export function Routes() {
   useStateHook(phase === 'idle' ? `routes-${options.length === 1 ? 'one' : 'some'}` : phase === 'loading' || phase === 'need_loc' ? `routes-${phase}` : null);
   const from = plan.from ?? (me ? { name: me.label ?? t('my_location') } : plan.start);
   const retry = () => setAttempt((a) => a + 1);
+  // F8 Swap (AC 22 as amended): the destination becomes the start and vice versa. "My location" swaps as the resolved start.
+  const swapFrom: Place | null = plan.from ?? plan.start ?? (me ? { name: me.label ?? t('my_location'), lat: me.lat, lng: me.lng } : null);
+  const swap = () => {
+    if (!swapFrom || !plan.to) return;
+    log('swap');
+    store.setPlan({ from: plan.to, to: swapFrom, options: [], selected: 0, fetchedAt: 0 });
+    setAttempt((a) => a + 1);
+  };
   const retryBtn = (
     <button type="button" class="btn btn-primary" data-testid="routes-retry" onClick={retry}>
       {t('try_again')}
@@ -189,6 +206,10 @@ export function Routes() {
     <>
       <Bar>
         <HelpButton />
+        <button type="button" class="iconbtn" data-testid="routes-swap" aria-label={t('swap_sr')} disabled={!swapFrom} onClick={swap}>
+          <Icon name="route" cls="rot90" />
+          {t('swap')}
+        </button>
       </Bar>
       <main class="scroll">
         <div class="q">
@@ -198,7 +219,7 @@ export function Routes() {
           {from && (
             <div class="from" data-testid="routes-from">
               <Icon name="loc" />
-              {t('from_here', { p: from.name })}
+              <span>{t('from_here', { p: from.name })}</span>
             </div>
           )}
         </div>
@@ -236,7 +257,12 @@ export function Routes() {
           </StatePanel>
         )}
         {phase === 'close' && (
-          <StatePanel id="routes-close" icon="walk" title={t('r_close_t')} body={t('r_close_b', { m: closeM, min: Math.max(1, Math.round(closeM / WALK_MPS / 60)) })}>
+          <StatePanel
+            id="routes-close"
+            icon="walk"
+            title={t('r_close_t')}
+            body={closeM < NEARBY_M ? t('r_close_here') : t('r_close_b', { m: roundM(closeM), min: Math.max(1, Math.round(closeM / WALK_MPS / 60)) })}
+          >
             <button
               type="button"
               class="btn btn-primary"
@@ -329,10 +355,11 @@ export function Routes() {
         {options.length === 1 && (
           <div class="honest" data-testid="note-only-one">
             <Icon name="check" />
-            <span>{t('only_one')}</span>
+            <span>{t(plan.start && plan.to && haversine(plan.start, plan.to) < ONLY_ONE_NEAR_M ? 'only_one' : 'only_one_far')}</span>
           </div>
         )}
-        {options.some((o) => hasBus(o.itinerary)) && (
+        {/* Director ruling 1: M1 has schedules only, so the "live" note waits for flag `live` (M3). */}
+        {flags.has('live') && options.some((o) => hasBus(o.itinerary)) && (
           <div class="honest" data-testid="note-honest">
             <Icon name="clock" />
             <span>{t('honest')}</span>

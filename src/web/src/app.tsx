@@ -18,7 +18,8 @@ import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, Set
 import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
 import { Bar, IconSprite, Toast } from './ui/kit';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
+import { ghost } from './ui/ghost';
 import { connectivityToasts } from './ui/toasts';
 
 export function App() {
@@ -30,8 +31,26 @@ export function App() {
   useEffect(() => connectivityToasts(t), [t]);
   // Screen push/pop (§2): direction from the in-app history depth; the key remounts the screen so it animates in.
   const prev = useRef({ path: r.path, depth, dir: 'push' as 'push' | 'pop' });
-  if (prev.current.path !== r.path) prev.current = { path: r.path, depth, dir: depth < prev.current.depth ? 'pop' : 'push' };
-  else prev.current.depth = depth;
+  const stage = useRef<HTMLDivElement>(null);
+  const lastSheet = useRef(sheet);
+  if (prev.current.path !== r.path) {
+    prev.current = { path: r.path, depth, dir: depth < prev.current.depth ? 'pop' : 'push' };
+    // Exit motion: the old screen is still in the DOM during this render (ui/ghost.ts).
+    ghost(stage.current?.querySelector(':scope > .screen') ?? null, `leave-${prev.current.dir}`);
+  } else prev.current.depth = depth;
+  if (lastSheet.current !== sheet) {
+    if (lastSheet.current) ghost(stage.current?.querySelector(':scope > .sheetwrap') ?? null, 'closing', { over: true });
+    lastSheet.current = sheet;
+  }
+  // QA-6: on a new screen, move focus to its heading so screen readers announce it (not on first load).
+  const first = useRef(true);
+  useLayoutEffect(() => {
+    if (first.current) return void (first.current = false);
+    const h = stage.current?.querySelector<HTMLElement>(':scope > .screen h1') ?? stage.current?.querySelector<HTMLElement>(':scope > .screen main');
+    if (!h) return;
+    if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
+    h.focus({ preventScroll: true });
+  }, [r.path]);
   let view;
   switch (r.name) {
     case 'home':
@@ -78,7 +97,8 @@ export function App() {
       );
   }
   return (
-    <div class="stage">
+    <div class="stage" ref={stage}>
+      <div class="ghosts" />
       <IconSprite />
       <div class={`screen enter-${prev.current.dir}`} key={r.path} data-screen={r.name}>
         {!online.value && r.name === 'home' && (
@@ -97,6 +117,7 @@ export function App() {
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
       <Toast />
+      <div class="ghosts over" />
     </div>
   );
 }

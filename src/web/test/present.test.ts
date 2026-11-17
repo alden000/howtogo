@@ -6,8 +6,8 @@ import { tf, UI, type UiKey } from '../src/i18n/ui';
 import { inSingapore } from '../src/state/location';
 import { createStore, TEXT_SCALE } from '../src/state/store';
 import { greetingKey } from '../src/views/Home';
-import { cardLabel, chips, clock, facts, tagText, timeline } from '../src/views/present';
-import { walkOnly } from '../src/views/Routes';
+import { cardLabel, chips, clock, facts, tagText, timeline, walkMetres } from '../src/views/present';
+import { roundM, walkOnly } from '../src/views/Routes';
 import { itinerary } from './helpers';
 
 const T = (lang: 'zh' | 'en') => (k: UiKey, p?: Record<string, string | number>) => tf(lang, k, p);
@@ -45,7 +45,7 @@ describe('presentation helpers (H3/H4)', () => {
   it('facts never mention stairs or lifts (D-8)', () => {
     for (const o of ranked('toaPayohToTTSH')) {
       const text = facts(o.itinerary, T('zh')).map((f) => f.text).join(' ');
-      expect(text).toMatch(/^走路 \d+ 分钟/);
+      expect(text).toMatch(/^走路 \d+0 米/);
       expect(text).not.toMatch(/楼梯|电梯/);
     }
   });
@@ -67,6 +67,30 @@ describe('presentation helpers (H3/H4)', () => {
     expect(rows.at(-1)).toEqual({ kind: 'dest', title: '到达 陈笃生医院', sub: '11 Jalan Tan Tock Seng' });
     expect(rows.at(-2)!.title).toBe('走到 陈笃生医院');
     expect(rows.find((r) => r.kind === 'bus')!.title).toMatch(/^坐 \d+ 号巴士，坐 \d+ 站$/);
+  });
+
+  it('MRT rows carry the line tag inline, the direction and the stop count (Creative #12)', () => {
+    for (const name of ['bishanToRafflesPlace', 'angMoKioToNovena'] as const) {
+      const p = normalizeOneMapPlan(FIXTURES[name]);
+      if (!p.ok) throw new Error('fixture');
+      const it0 = p.itineraries.find((i) => i.legs.some((l) => l.mode !== 'walk' && l.mode !== 'bus'));
+      if (!it0) continue;
+      const leg = it0.legs.find((l) => l.mode !== 'walk' && l.mode !== 'bus')!;
+      const row = timeline(it0, { name: 'X' }, T('zh')).find((r) => r.kind === 'train')!;
+      expect(row.line?.code).toBe(leg.line?.code ?? leg.route);
+      expect(row.title).toBe(`${row.line!.before}${row.line!.code}${row.line!.after}`);
+      expect(row.title).toMatch(leg.headsign ? /^坐地铁 \w+，往 .+ 方向，坐 \d+ 站$/ : /^坐地铁 \w+，坐 \d+ 站$/);
+      const en = timeline(it0, { name: 'X' }, T('en')).find((r) => r.kind === 'train')!;
+      expect(en.title).toMatch(/^Take the \w+ train(, | towards .+, )\d+ stops?$/);
+      return;
+    }
+    throw new Error('no MRT fixture');
+  });
+
+  it('card walking fact is in metres, rounded to 10 (AC 31)', () => {
+    expect(walkMetres(3)).toBe(10);
+    expect(walkMetres(347)).toBe(350);
+    expect(roundM(4)).toBe(10);
   });
 
   it('walkOnly builds a single walk leg for the too-close state', () => {
@@ -93,5 +117,22 @@ describe('small pure bits', () => {
     const s = createStore(kv, kv);
     expect(s.settings.value).toMatchObject({ motion: 'auto', name: '', textSize: 'standard', onboarded: false });
     s.dispose();
+  });
+});
+
+describe('fix round M1', () => {
+  it('deep link #/route?from=&to= resolves names, falls back to coordinates (AC 6)', async () => {
+    const { parseRouteLink } = await import('../src/router/deeplink');
+    const api = { revgeocode: async (p: { lat: number }) => (p.lat > 1.33 ? { name: 'Toa Payoh Central' } : Promise.reject(new Error('404'))) } as never;
+    expect(await parseRouteLink('#/home', api)).toBeNull();
+    expect(await parseRouteLink('#/route?from=1.33465,103.8491', api)).toBeNull();
+    const r = await parseRouteLink('#/route?from=1.33465,103.8491&to=1.32135,103.8465', api);
+    expect(r).toEqual({ from: { name: 'Toa Payoh Central', lat: 1.33465, lng: 103.8491 }, to: { name: '1.32135, 103.84650', lat: 1.32135, lng: 103.8465 } });
+    expect((await parseRouteLink('#/route?to=1.32135,103.8465', api))!.from).toBeNull();
+  });
+  it('map route summary counts drawn lines and markers (AC 38 log hook)', async () => {
+    const { routeSummary } = await import('../src/map/map');
+    const f = (props: Record<string, unknown>[]) => ({ type: 'FeatureCollection' as const, features: props.map((p) => ({ type: 'Feature' as const, properties: p, geometry: { type: 'Point' as const, coordinates: [0, 0] } })) });
+    expect(routeSummary(f([{ mode: 'walk' }, { mode: 'bus' }, { mode: 'walk' }]), f([{ kind: 'stop' }, { kind: 'stop' }, { kind: 'dest' }]))).toBe('walk=2 transit=1 stops=2 dest=1');
   });
 });

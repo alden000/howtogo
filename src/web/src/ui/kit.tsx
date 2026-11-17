@@ -44,7 +44,7 @@ const PATHS: Record<IconName, string> = {
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".9"/>',
   trash: '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 12.5a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5L17.5 7M10 11v6M14 11v6"/>',
   person: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/>',
-  report: '<path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v3.5"/><circle cx="12" cy="13.6" r=".6"/>',
+  report: '<path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v3"/><circle cx="12" cy="13.8" r=".9"/>',
 };
 
 /** One hidden sprite per page; icons reference it with <use>. */
@@ -61,21 +61,27 @@ export function Icon({ name, cls = '' }: { name: IconName; cls?: string }) {
   );
 }
 
-/** Logo B "去 seal" (owner's pick, D-8) from creative/logo/b-qu-seal.svg, next to the wordmark. Creative is refining the master mark. */
-export function Seal({ pulse = false }: { pulse?: boolean }) {
+/**
+ * Logo B "去 seal" master at small sizes: the favicon geometry (creative/logo/final/favicon.svg, STYLE-GUIDE §0).
+ * Hex values are literal on purpose: the seal is the same in both themes.
+ */
+function SealSvg({ pulse = false, cls }: { pulse?: boolean; cls?: string }) {
   return (
-    <svg viewBox="0 0 512 512" aria-hidden="true" class="seal">
-      <rect width="512" height="512" rx="116" fill="#FBF5EC" />
-      <rect x="36" y="36" width="440" height="440" rx="88" fill="none" stroke="#9A3412" stroke-width="20" />
-      <g fill="none" stroke="#9A3412" stroke-width="42" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M186 160H326" />
-        <path d="M256 104V236" />
-        <path d="M136 236H376" />
-        <path d="M246 276C226 316 198 350 166 380H300" />
+    <svg viewBox="0 0 512 512" aria-hidden="true" class={cls}>
+      <rect width="512" height="512" rx="96" fill="#9A3412" />
+      <g fill="none" stroke="#FBF5EC" stroke-width="64" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M256 64V192" />
+        <path d="M192 96H320" />
+        <path d="M96 192H416" />
+        <path d="M256 288L160 416H288" />
       </g>
-      <circle cx="352" cy="380" r="30" fill="#E0A100" class={pulse ? 'seal-dot' : undefined} />
+      <circle cx="384" cy="408" r="48" fill="#FFD23F" class={pulse ? 'seal-dot' : undefined} />
     </svg>
   );
+}
+
+export function Seal({ pulse = false }: { pulse?: boolean }) {
+  return <SealSvg pulse={pulse} cls="seal" />;
 }
 
 /** §6b state panel: icon tile → headline (polite live region) → body → buttons. */
@@ -109,17 +115,7 @@ export function NumSteps({ items }: { items: string[] }) {
 export function Wordmark({ name }: { name: string }) {
   return (
     <h1 class="wordmark">
-      <svg viewBox="0 0 512 512" aria-hidden="true">
-        <rect width="512" height="512" rx="116" fill="#FBF5EC" />
-        <rect x="36" y="36" width="440" height="440" rx="88" fill="none" stroke="#9A3412" stroke-width="20" />
-        <g fill="none" stroke="#9A3412" stroke-width="42" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M186 160H326" />
-          <path d="M256 104V236" />
-          <path d="M136 236H376" />
-          <path d="M246 276C226 316 198 350 166 380H300" />
-        </g>
-        <circle cx="352" cy="380" r="30" fill="#E0A100" />
-      </svg>
+      <SealSvg />
       <span>{name}</span>
     </h1>
   );
@@ -141,10 +137,11 @@ export function Bar({ children }: { children?: ComponentChildren }) {
   );
 }
 
-/** Help button for bars (only while the help route exists; its content is M4). */
+/** Help button for bars. Behind flag `help`: hidden in the M1 release (QA-1 ruling); M2 builds the Help sheet. */
 export function HelpButton() {
-  const { router } = useServices();
+  const { router, flags } = useServices();
   const t = useT();
+  if (!flags.has('help')) return null;
   return (
     <button type="button" class="iconbtn" data-testid="bar-help" onClick={() => router.navigate('/help')}>
       <Icon name="help" />
@@ -154,7 +151,7 @@ export function HelpButton() {
 }
 
 /** Bottom sheet (§5.8 shell): scrim + rising sheet; a history entry, so Back or the scrim closes it. */
-export function Sheet(props: { id: string; title: string; close?: boolean; children: ComponentChildren }) {
+export function Sheet(props: { id: string; title: string; close?: boolean; top?: ComponentChildren; children: ComponentChildren }) {
   const { router } = useServices();
   const t = useT();
   const ref = useRef<HTMLElement>(null);
@@ -169,6 +166,7 @@ export function Sheet(props: { id: string; title: string; close?: boolean; child
     <div class="sheetwrap">
       <div class="scrim" aria-hidden="true" onClick={() => router.closeSheet()} />
       <section ref={ref} class="sheet" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} data-testid={`sheet-${props.id}`}>
+        {props.top}
         <div class="sheethead">
           <h2 id={titleId}>{props.title}</h2>
           {props.close !== false && (

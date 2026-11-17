@@ -27,10 +27,12 @@ function Seg<K extends keyof Settings>(props: { name: K; label: string; opts: [S
           <button
             type="button"
             aria-pressed={cur === v}
+            lang={props.name === 'lang' ? (v === 'en' ? 'en' : 'zh-CN') : undefined}
             data-testid={`setting-${String(props.name)}-${String(v)}`}
             onClick={() => store.updateSettings({ [props.name]: v } as Partial<Settings>)}
           >
             {l}
+            {cur === v && <Icon name="check" />}
           </button>
         ))}
       </div>
@@ -277,7 +279,8 @@ export function About() {
   return (
     <>
       <Bar />
-      <main class="scroll">
+      {/* QA-12: the long About text scrolls; keyboard users can focus and scroll it (axe scrollable-region-focusable). */}
+      <main class="scroll" tabIndex={0} aria-label={t('about_row')} data-testid="about-scroll">
         <h1 class="t-title" style={{ margin: '0 0 var(--s-3)' }}>
           {t('about_row')}
         </h1>

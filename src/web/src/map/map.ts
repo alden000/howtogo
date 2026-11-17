@@ -30,6 +30,11 @@ export interface MapOptions {
   reducedMotion: boolean;
   /** Interactive gestures (false for small previews). */
   interactive?: boolean;
+  /**
+   * Where the OneMap attribution goes. It is kept outside the aria-hidden map node (QA-7: no focusable
+   * content inside aria-hidden) and pinned at the top so it stays on screen on short viewports (QA-12).
+   */
+  attributionHost?: HTMLElement;
 }
 
 export interface PuckInput {
@@ -89,6 +94,17 @@ export function stepsToMarks(steps: Step[], el: Element): GeoJSON.FeatureCollect
   return { type: 'FeatureCollection', features };
 }
 
+/** "walk=2 transit=1 stops=2 dest=1": the counts of drawn lines and markers (AC 38 log hook). */
+export function routeSummary(lines: GeoJSON.FeatureCollection, marks: GeoJSON.FeatureCollection): string {
+  const n = (fc: GeoJSON.FeatureCollection, k: string, v: (p: Record<string, unknown>) => boolean) => `${k}=${fc.features.filter((f) => v(f.properties ?? {})).length}`;
+  return [
+    n(lines, 'walk', (p) => p.mode === 'walk'),
+    n(lines, 'transit', (p) => p.mode !== 'walk'),
+    n(marks, 'stops', (p) => p.kind === 'stop'),
+    n(marks, 'dest', (p) => p.kind === 'dest'),
+  ].join(' ');
+}
+
 /** Line widths in CSS px (map-only; the prototype's SVG map draws bus/MRT 16 and casing 26 at its own scale). */
 const ROUTE_W = 6;
 const CASE_EXTRA = 4;
@@ -127,8 +143,11 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     interactive: opts.interactive ?? true,
     pitchWithRotate: false,
   });
-  map.addControl(new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION }), 'bottom-left');
+  const attribution = new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION });
+  if (opts.attributionHost) opts.attributionHost.appendChild(attribution.onAdd(map));
+  else map.addControl(attribution, 'bottom-left');
   container.setAttribute('aria-hidden', 'true'); // the step list is the accessible source of truth (M1 AC 40)
+  map.getCanvas().setAttribute('tabindex', '-1'); // QA-7: nothing focusable inside the aria-hidden map
 
   const follow = signal<FollowMode>('follow');
   let lastPuck: PuckInput | null = null;
@@ -173,6 +192,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
 
   await ready;
   addOverlays();
+  log('map:ready');
 
   function renderPuck() {
     const src = map.getSource('puck') as GeoJSONSource | undefined;
@@ -196,9 +216,28 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     follow,
     setRoute(steps: Step[]) {
       routeSteps = steps;
-      (map.getSource('route') as GeoJSONSource | undefined)?.setData(stepsToFeatures(steps, container));
-      (map.getSource('marks') as GeoJSONSource | undefined)?.setData(stepsToMarks(steps, container));
+      const lines = stepsToFeatures(steps, container);
+      const marks = stepsToMarks(steps, container);
+      (map.getSource('route') as GeoJSONSource | undefined)?.setData(lines);
+      (map.getSource('marks') as GeoJSONSource | undefined)?.setData(marks);
+      // AC 38 test hook: what was drawn (walk = dashed layer, transit = solid layer over a casing). No coordinates.
+      log(`map:route ${routeSummary(lines, marks)}`);
       if (map.getLayer('route-case')) map.setPaintProperty('route-case', 'line-color', cssColor(container, 'route-case'));
+    },
+    /** Static "you are here" dot + accuracy circle for the route overview (AC 39). Never moves the camera. */
+    showMe(p: PuckInput) {
+      lastPuck = p;
+      renderPuck();
+      log(`map:me acc=${p.acc && p.acc > 5 ? 'circle' : 'none'}`);
+    },
+    /** Overview recentre button: centre on the dot (AC 39). */
+    centerOnMe() {
+      if (!lastPuck) return;
+      map.easeTo({ center: [lastPuck.pos.lng, lastPuck.pos.lat], zoom: Math.max(map.getZoom(), 16), duration });
+      log('map:centre-me');
+    },
+    resize() {
+      map.resize();
     },
     /** Snapped position + heading. Moves the camera only while following. */
     setPuck(p: PuckInput) {

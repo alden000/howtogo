@@ -90,6 +90,7 @@ export function Welcome() {
                   onClick={() => store.updateSettings({ lang: l })}
                 >
                   {l === 'zh' ? '中文' : 'English'}
+                  {s.lang === l && <Icon name="check" />}
                 </button>
               ))}
             </div>
@@ -112,6 +113,7 @@ export function Welcome() {
                     </span>{' '}
                     / <span lang="en">{tf('en', SIZE_KEY[z])}</span>
                   </span>
+                  {s.textSize === z && <Icon name="check" />}
                 </button>
               ))}
             </div>

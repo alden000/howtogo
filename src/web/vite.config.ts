@@ -19,6 +19,8 @@ function serviceWorker(): Plugin {
         .filter((f) => f !== 'sw.js' && !f.endsWith('.map'))
         // MapLibre is big: cached at runtime on first map view, not precached.
         .filter((f) => !/maplibre/i.test(f))
+        // QA-19: demo/mock fixtures are not shell: never precached; `?demo=1`/`?mock=1` loads them on demand (runtime cache).
+        .filter((f) => !/(^|\/)mock-/i.test(f))
         .map((f) => '/' + f);
       const precache = ['/', '/manifest.webmanifest', ...files.filter((f) => f !== '/index.html')];
       let h = 0;

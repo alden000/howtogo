@@ -15,10 +15,16 @@ export function LocExplainSheet() {
   const s = useServices();
   const t = useT();
   return (
-    <Sheet id="loc-explain" title={t('loc_t')} close={false}>
-      <span class="bigtile" aria-hidden="true">
-        <Icon name="loc" />
-      </span>
+    <Sheet
+      id="loc-explain"
+      title={t('loc_t')}
+      close={false}
+      top={
+        <span class="bigtile" aria-hidden="true">
+          <Icon name="loc" />
+        </span>
+      }
+    >
       <p class="lead">{t('loc_b')}</p>
       <p class="lockline">
         <Icon name="lock" />

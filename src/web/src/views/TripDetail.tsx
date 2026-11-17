@@ -4,6 +4,7 @@ import { buildSteps } from '@howtogo/shared';
 import { useServices, useT } from '../context';
 import { MapPanel } from '../map/MapPanel';
 import { toLang } from '../state/store';
+import { here } from '../state/location';
 import { Bar, HelpButton, Icon, useStateHook } from '../ui/kit';
 import { clock, minutes, timeline } from './present';
 
@@ -13,6 +14,7 @@ export function TripDetail() {
   const { store, router, runtime, flags } = useServices();
   const t = useT();
   const plan = store.plan.value;
+  const me = here.value;
   const lang = store.settings.value.lang;
   const option = plan.options[plan.selected];
   const steps = useMemo(
@@ -52,16 +54,27 @@ export function TripDetail() {
             {minutes(it.durationS)} {t('min')} · {t('arrive_at', { t: clock(it.endTime, lang) })}
           </p>
         </div>
-        <MapPanel steps={steps} />
+        <MapPanel steps={steps} me={me ? { pos: me, ...(me.acc !== undefined ? { acc: me.acc } : {}) } : null} toggle />
         <div style={{ padding: '0 var(--s-5) var(--s-6)' }}>
           <ol class="timeline" data-testid="step-list">
             {timeline(it, plan.to, t).map((row) => (
               <li class={row.kind === 'bus' || row.kind === 'train' ? 'ride' : ''}>
-                <span class={`ic${row.kind === 'bus' ? ' bus' : row.kind === 'dest' ? ' dest' : ''}`} aria-hidden="true">
+                <span class={`ic${row.kind === 'walk' ? '' : ` ${row.kind}`}`} aria-hidden="true">
                   <Icon name={ICON[row.kind]} />
                 </span>
                 <div>
-                  <b>{row.title}</b>
+                  {row.line ? (
+                    <b>
+                      {row.line.before}
+                      <span class="linetag inline">
+                        <span class="sw" style={{ background: `var(--${row.line.token})` }} />
+                        <span class="cd">{row.line.code}</span>
+                      </span>
+                      {row.line.after}
+                    </b>
+                  ) : (
+                    <b>{row.title}</b>
+                  )}
                   {row.sub && <span>{row.sub}</span>}
                 </div>
               </li>

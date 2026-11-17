@@ -121,7 +121,7 @@ export function Search() {
       <Bar />
       <main class="scroll">
         <h1 class="t-title" style={{ margin: '0 0 4px' }}>
-          {t(mode === 'home' ? 'find_home' : mode === 'from' ? 'type_start' : 'search_title')}
+          {t(mode === 'home' ? 'find_home' : mode === 'from' ? 'from_title' : 'search_title')}
         </h1>
         <div class="field">
           <label for="q" class="sr">
@@ -225,12 +225,8 @@ export function Search() {
         )}
 
         {phase === 'empty' && (
-          <div class="empty" data-testid="search-empty">
-            <div class="bubble" aria-hidden="true">
-              <Icon name="search" />
-            </div>
-            <b class="t-headline">{t('none_t', { q: q.trim() })}</b>
-            <p class="t-caption">{t('none_s')}</p>
+          <div data-testid="search-empty">
+            <StatePanel id="search-empty" icon="search" title={t('none_t', { q: q.trim() })} body={t('none_s')} />
           </div>
         )}
 

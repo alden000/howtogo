@@ -11,6 +11,8 @@ import type { Platform } from '../platform/types';
 export interface Here extends LatLng {
   /** Reverse-geocoded label, or null when that failed (UI falls back to "我的位置", AC 26). */
   label: string | null;
+  /** Horizontal accuracy in metres (AC 39 accuracy circle). */
+  acc?: number;
 }
 
 export const here = signal<Here | null>(null);
@@ -29,7 +31,7 @@ export async function locate(platform: Platform, api: Api): Promise<'ok' | 'deni
       .revgeocode(f)
       .then((r) => r.name || null)
       .catch(() => null);
-    here.value = { lat: f.lat, lng: f.lng, label };
+    here.value = { lat: f.lat, lng: f.lng, label, acc: f.acc };
     locFailure.value = null;
     return 'ok';
   } catch (e) {
