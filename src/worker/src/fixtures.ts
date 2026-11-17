@@ -6,8 +6,8 @@
  * The fixture data is loaded with a dynamic import, so it is not evaluated when the mode is off.
  */
 import type { Env } from "./env";
-import { json, rawJson } from "./http";
-import { normaliseBusArrival, normaliseTrainAlerts, type Place } from "./normalise";
+import { HttpError, json, rawJson } from "./http";
+import { normaliseBusArrival, normaliseLifts, normaliseTrainAlerts, type Place } from "./normalise";
 import type { RouteParams } from "./api";
 
 export function fixtureMode(env: Env): boolean {
@@ -25,18 +25,27 @@ interface RawPlan {
 }
 
 async function load() {
-  const [shared, extra, bus, alerts] = await Promise.all([
+  const [shared, extra, bus, alerts, alertsDisrupted, alertsMinor, lifts] = await Promise.all([
     import("@howtogo/shared/fixtures"),
     import("../fixtures/trips"),
     import("../fixtures/lta-bus-arrival-v3.json"),
     import("../fixtures/lta-train-alerts-normal.json"),
+    import("../fixtures/lta-train-alerts-disrupted.json"),
+    import("../fixtures/lta-train-alerts-minor.json"),
+    import("../fixtures/lta-facilities-maintenance-v2.json"),
   ]);
   const trips: Record<string, unknown> = {
     ...shared.FIXTURES,
     jurongEastToNUH: extra.jurongEastToNUH,
     bedokToCGH: extra.bedokToCGH,
   };
-  return { t0: shared.FIXTURE_T0, trips, bus: bus.default as unknown, alerts: alerts.default as unknown };
+  return {
+    t0: shared.FIXTURE_T0,
+    trips,
+    bus: bus.default as unknown,
+    alerts: { normal: alerts.default, disrupted: alertsDisrupted.default, minor: alertsMinor.default } as Record<string, unknown>,
+    lifts: lifts.default as unknown,
+  };
 }
 
 /** Real Singapore places at the fixture trips' ends (addresses are public; coords from the fixtures). */
@@ -111,10 +120,35 @@ export async function fixtureRoute(p: RouteParams): Promise<Response> {
   return rawJson(JSON.stringify(body), 200, { ...HEADERS, "X-Fixture-Trip": best.name });
 }
 
+/**
+ * M3 AC 39: `?fixture=<scenario>` picks a recorded variant, honoured ONLY in fixture mode (ignored otherwise).
+ * Unknown scenario → 400 invalid_fixture. "not_configured" replays the no-key 503.
+ */
+export function fixtureScenario(url: URL, allowed: readonly string[], fallback: string): string {
+  const v = url.searchParams.get("fixture");
+  if (v === null || v === "") return fallback;
+  if (!allowed.includes(v)) throw new HttpError(400, "invalid_fixture", `fixture must be one of: ${allowed.join(", ")}.`);
+  if (v === "not_configured") throw new HttpError(503, "not_configured", "This feature is not set up yet.", HEADERS);
+  return v;
+}
+
+export const BUS_SCENARIOS = ["live", "empty", "not_configured"] as const;
+export const ALERT_SCENARIOS = ["normal", "minor", "disrupted", "not_configured"] as const;
+export const LIFT_SCENARIOS = ["outage", "none", "not_configured"] as const;
+
 /** Recorded-format LTA BusArrival; arrival times are moved so the first bus is ~1 min away now. */
-export async function fixtureBusArrival(stop: string, service: string | undefined, now = Date.now()): Promise<Response> {
+export async function fixtureBusArrival(
+  stop: string,
+  service: string | undefined,
+  now = Date.now(),
+  scenario = "live",
+): Promise<Response> {
   const { bus } = await load();
   const data = structuredClone(bus) as { BusStopCode: string; Services: Record<string, Record<string, string>>[] };
+  if (scenario === "empty") {
+    // Every service listed but no bus times: the chip must show the no-data state (M3 AC 6).
+    for (const svc of data.Services) for (const k of ["NextBus", "NextBus2", "NextBus3"]) svc[k] = { EstimatedArrival: "" };
+  }
   const ref = Date.parse("2026-11-17T13:58:40+08:00");
   data.BusStopCode = stop;
   for (const svc of data.Services) {
@@ -126,8 +160,15 @@ export async function fixtureBusArrival(stop: string, service: string | undefine
   return json(normaliseBusArrival(data, { stop, now, fetchedAt: now, service }), 200, HEADERS);
 }
 
-export async function fixtureAlerts(): Promise<Response> {
+export async function fixtureAlerts(scenario = "normal"): Promise<Response> {
   const { alerts } = await load();
-  return json(normaliseTrainAlerts(alerts), 200, HEADERS);
+  return json(normaliseTrainAlerts(alerts[scenario] ?? alerts.normal), 200, HEADERS);
+}
+
+/** SYNTHETIC lift outages at Bishan (NS17), Buona Vista (CC22) and Serangoon (NE12); "none" = empty list. */
+export async function fixtureLifts(scenario = "outage", now = Date.now()): Promise<Response> {
+  const { lifts } = await load();
+  const value = scenario === "none" ? { lifts: [] } : normaliseLifts(lifts);
+  return json({ fetchedAt: new Date(now).toISOString(), ...value }, 200, HEADERS);
 }
 

@@ -1,10 +1,12 @@
 import type { Env } from "./env";
-import { handleAlerts, handleBusArrival, handleRevGeocode, handleRoute, handleSearch } from "./api";
+import { handleAlerts, handleBusArrival, handleLifts, handleRevGeocode, handleRoute, handleSearch } from "./api";
 import { HttpError, errorResponse, finalize, originAllowed, preflight } from "./http";
 import { checkRateLimit } from "./ratelimit";
+import { handleCreateSetup, handleSetupByCode } from "./setup";
 import { handleCreateShare, handleShareById } from "./share";
 
 export { TripShare } from "./share";
+export { SetupBox } from "./setup";
 
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
@@ -14,20 +16,28 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (path === "/api/share" && method === "POST") return handleCreateShare(request, env);
   const share = /^\/api\/share\/([^/]+)(?:\/([^/]+))?$/.exec(path);
   if (share) return handleShareById(request, env, share[1]!, share[2]);
+  if (path === "/api/setup") {
+    if (method === "POST") return handleCreateSetup(request, env);
+    return errorResponse(405, "method_not_allowed", "Method not allowed.");
+  }
+  const setup = /^\/api\/setup\/([^/]+)$/.exec(path);
+  if (setup) return handleSetupByCode(request, env, setup[1]!);
 
   const getRoutes: Record<string, () => Promise<Response>> = {
     "/api/search": () => handleSearch(url, env, ctx),
     "/api/route": () => handleRoute(url, env, ctx),
     "/api/revgeocode": () => handleRevGeocode(url, env, ctx),
     "/api/bus-arrival": () => handleBusArrival(url, env, ctx),
-    "/api/alerts": () => handleAlerts(env, ctx),
+    "/api/alerts": () => handleAlerts(url, env, ctx),
+    "/api/lifts": () => handleLifts(url, env, ctx),
     "/api/health": async () => new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }),
   };
   const h = getRoutes[path];
   if (h) {
     if (method !== "GET" && method !== "HEAD") return errorResponse(405, "method_not_allowed", "Method not allowed.");
     if (path !== "/api/health") {
-      // AC 20. Share endpoints are excluded: they have their own write limit, and "help" must never be blocked (D-7).
+      // AC 20. Share and setup endpoints are excluded here: they have their own limits (M4 AC 47), and
+      // a "help" share update must never be blocked (D-7).
       const wait = await checkRateLimit(request.headers.get("CF-Connecting-IP"));
       if (wait !== null) {
         return errorResponse(429, "rate_limited", "Too many requests. Please wait a moment and try again.", {

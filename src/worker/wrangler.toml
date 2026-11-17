@@ -25,3 +25,40 @@ new_sqlite_classes = ["TripShare"]
 
 [observability]
 enabled = false
+
+# ---------------------------------------------------------------------------
+# M3/M4 Worker round (dev/m34-worker) — additions only, appended so they merge cleanly with
+# the static-assets change. Director: keep this block at the end when merging.
+# ---------------------------------------------------------------------------
+# M4 AC 41: one-time caregiver setup box (ciphertext only, 24 h).
+[[durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["SetupBox"]
+
+# M4 OQ6: test-only environment for the two-browser e2e (`wrangler dev --local --env test`).
+# SHARE_TEST_TTL_SECONDS is honoured ONLY when ENVIRONMENT = "test"; test/config.test.ts fails if
+# either appears outside this block. Bindings are not inherited by environments, so they are repeated.
+[env.test]
+name = "howtogo-api-test"
+
+[env.test.vars]
+ENVIRONMENT = "test"
+SHARE_TEST_TTL_SECONDS = "90"
+SHARE_TTL_HOURS = "4"
+ALLOWED_ORIGINS = "http://localhost:4173,http://localhost:5173"
+
+[[env.test.kv_namespaces]]
+binding = "TOKEN_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[env.test.durable_objects.bindings]]
+name = "TRIP_SHARE"
+class_name = "TripShare"
+
+[[env.test.durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"

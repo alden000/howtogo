@@ -2,9 +2,21 @@ import type { Env } from "./env";
 import { cached } from "./cache";
 import { inSingapore, parseLatLng, round } from "./geo";
 import { HttpError, UpstreamError, json, rawJson } from "./http";
-import { fixtureAlerts, fixtureBusArrival, fixtureMode, fixtureRevGeocode, fixtureRoute, fixtureSearch } from "./fixtures";
+import {
+  ALERT_SCENARIOS,
+  BUS_SCENARIOS,
+  LIFT_SCENARIOS,
+  fixtureAlerts,
+  fixtureBusArrival,
+  fixtureLifts,
+  fixtureMode,
+  fixtureRevGeocode,
+  fixtureRoute,
+  fixtureScenario,
+  fixtureSearch,
+} from "./fixtures";
 import { ltaGet } from "./lta";
-import { normaliseBusArrival, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
+import { normaliseBusArrival, normaliseLifts, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
 import { oneMapGet } from "./onemap";
 
 type Ctx = Pick<ExecutionContext, "waitUntil">;
@@ -22,7 +34,7 @@ function bad(code: string, message: string): never {
 }
 
 /** AC 17 cache lifetimes (seconds). */
-export const TTL = { search: 86_400, route: 120, revgeocode: 3_600 } as const;
+export const TTL = { search: 86_400, route: 120, revgeocode: 3_600, bus: 20, alerts: 60, lifts: 300 } as const;
 
 const cacheHeaders = (maxAge: number, hit: boolean) => ({
   "Cache-Control": `private, max-age=${maxAge}`,
@@ -181,25 +193,38 @@ export async function handleBusArrival(url: URL, env: Env, ctx?: Ctx): Promise<R
   if (!/^\d{5}$/.test(stop)) bad("invalid_stop", "The bus stop number must have 5 digits.");
   const service = url.searchParams.get("service") ?? undefined;
   if (service !== undefined && !/^[0-9A-Za-z]{1,5}$/.test(service)) bad("invalid_service", "The bus number is not valid.");
-  if (fixtureMode(env)) return fixtureBusArrival(stop, service);
+  if (fixtureMode(env)) return fixtureBusArrival(stop, service, Date.now(), fixtureScenario(url, BUS_SCENARIOS, "live"));
   const { body, storedAt, hit } = await cached(
     `bus:v1:${stop}`,
-    20,
+    TTL.bus,
     () => ltaGet(env, `/v3/BusArrival?BusStopCode=${stop}`),
     ctx,
   );
   const value = normaliseBusArrival(parseJson(body), { stop, now: Date.now(), fetchedAt: storedAt, service });
-  return json(value, 200, cacheHeaders(20, hit));
+  return json(value, 200, cacheHeaders(TTL.bus, hit));
 }
 
 // ---------- /api/alerts ----------
-export async function handleAlerts(env: Env, ctx?: Ctx): Promise<Response> {
-  if (fixtureMode(env)) return fixtureAlerts();
+export async function handleAlerts(url: URL, env: Env, ctx?: Ctx): Promise<Response> {
+  if (fixtureMode(env)) return fixtureAlerts(fixtureScenario(url, ALERT_SCENARIOS, "normal"));
   const { body, hit } = await cached(
-    "alerts:v1",
-    60,
+    "alerts:v2",
+    TTL.alerts,
     async () => JSON.stringify(normaliseTrainAlerts(parseJson(await ltaGet(env, "/TrainServiceAlerts")))),
     ctx,
   );
-  return rawJson(body, 200, cacheHeaders(60, hit));
+  return rawJson(body, 200, cacheHeaders(TTL.alerts, hit));
+}
+
+// ---------- /api/lifts (M3 AC 30) ----------
+export async function handleLifts(url: URL, env: Env, ctx?: Ctx): Promise<Response> {
+  if (fixtureMode(env)) return fixtureLifts(fixtureScenario(url, LIFT_SCENARIOS, "outage"));
+  const { body, storedAt, hit } = await cached(
+    "lifts:v1",
+    TTL.lifts,
+    async () => JSON.stringify(normaliseLifts(parseJson(await ltaGet(env, "/v2/FacilitiesMaintenance")))),
+    ctx,
+  );
+  const value = JSON.parse(body) as ReturnType<typeof normaliseLifts>;
+  return json({ fetchedAt: new Date(storedAt).toISOString(), ...value }, 200, cacheHeaders(TTL.lifts, hit));
 }

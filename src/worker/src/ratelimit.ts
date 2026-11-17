@@ -7,15 +7,31 @@
  * only in this isolate's memory, and each entry is dropped once its window has passed.
  */
 export const RATE_LIMIT = { max: 60, windowMs: 60_000 } as const;
+
+/**
+ * M4 AC 47 limits (per IP, same in-memory sliding window and privacy rules as RATE_LIMIT).
+ * `shareView` is keyed on IP + share id (1 GET per 5 s per viewer per share); the WebSocket is not counted.
+ */
+export const LIMITS = {
+  read: RATE_LIMIT,
+  shareCreate: { max: 10, windowMs: 3_600_000 },
+  setupCreate: { max: 5, windowMs: 3_600_000 },
+  setupRead: { max: 30, windowMs: 3_600_000 },
+  shareView: { max: 1, windowMs: 5_000 },
+} as const;
+export type LimitName = keyof typeof LIMITS;
 /** Upper bound on tracked clients per isolate, so memory stays small under abuse. */
 const MAX_KEYS = 10_000;
 
 const hits = new Map<string, number[]>();
+/** Window of each tracked key, so sweep() can tell when an entry is stale. */
+const windows = new Map<string, number>();
 let salt: Uint8Array | null = null;
 
 /** Test hook. */
 export function resetRateLimit(): void {
   hits.clear();
+  windows.clear();
   salt = null;
 }
 
@@ -39,7 +55,10 @@ async function keyFor(ip: string): Promise<string> {
 
 function sweep(now: number): void {
   for (const [k, ts] of hits) {
-    if (ts[ts.length - 1]! <= now - RATE_LIMIT.windowMs) hits.delete(k);
+    if (ts.length === 0 || ts[ts.length - 1]! <= now - (windows.get(k) ?? RATE_LIMIT.windowMs)) {
+      hits.delete(k);
+      windows.delete(k);
+    }
   }
 }
 
@@ -49,9 +68,18 @@ function sweep(now: number): void {
  * (local dev, tests) are not limited.
  */
 export async function checkRateLimit(ip: string | null, now = Date.now()): Promise<number | null> {
+  return checkLimit("read", ip, now);
+}
+
+/**
+ * Same as checkRateLimit for a named limit. `scope` narrows the key (e.g. a share id for shareView);
+ * it is hashed together with the IP and never stored in clear.
+ */
+export async function checkLimit(name: LimitName, ip: string | null, now = Date.now(), scope = ""): Promise<number | null> {
   if (!ip) return null;
-  const key = await keyFor(ip);
-  const cutoff = now - RATE_LIMIT.windowMs;
+  const { max, windowMs } = LIMITS[name];
+  const key = await keyFor(`${name}\u0000${scope}\u0000${ip}`);
+  const cutoff = now - windowMs;
   let ts = hits.get(key);
   if (ts) {
     let i = 0;
@@ -61,13 +89,17 @@ export async function checkRateLimit(ip: string | null, now = Date.now()): Promi
     if (hits.size >= MAX_KEYS) sweep(now);
     if (hits.size >= MAX_KEYS) {
       const oldest = hits.keys().next().value;
-      if (oldest !== undefined) hits.delete(oldest);
+      if (oldest !== undefined) {
+        hits.delete(oldest);
+        windows.delete(oldest);
+      }
     }
     ts = [];
     hits.set(key, ts);
+    windows.set(key, windowMs);
   }
-  if (ts.length >= RATE_LIMIT.max) {
-    return Math.max(1, Math.ceil((ts[0]! + RATE_LIMIT.windowMs - now) / 1000));
+  if (ts.length >= max) {
+    return Math.max(1, Math.ceil((ts[0]! + windowMs - now) / 1000));
   }
   ts.push(now);
   return null;
