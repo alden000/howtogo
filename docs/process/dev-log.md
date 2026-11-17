@@ -490,3 +490,7 @@ The trip and its step still come from `store.trip` (`guidance`, `journey {segmen
 2. AC 50 demo controls, and the AC 12 All-steps sheet.
 3. Owner phone test (thresholds, compass, voices, wake lock, pocket battery).
 4. The GPS replay variant with the real `web` adapter (`context.setGeolocation`) is still to do. The current e2e uses the fake platform + simulator.
+
+**Gate (`npm run gate`, once):** 7 PASS, 4 FAIL. Passed: typecheck, unit 334, i18n, build (app JS 93.2 KB gz, budget 150), static-pwa, dev-e2e 103/103 on the release build, artifact.
+- `secrets`: the known wrangler.toml KV id flag.
+- `deps`, `qa-e2e`, `lighthouse`: `qa/node_modules` is not installed in this worktree (`@axe-core/playwright`, `@playwright/test`, `lighthouse` are missing). These are environment failures, not code failures. Run `npm ci --prefix qa` before the QA gate.
