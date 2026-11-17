@@ -82,7 +82,7 @@ export function Search() {
     store.setPlan(mode === 'to' ? { to: p, options: [], stops: undefined, journey: undefined } : { [mode]: p, options: [] });
     if (mode === 'to') {
       // Destination picked → straight to route options (replacing Search, so Back from H3 returns to H1).
-      store.addRecent(p);
+      // Not recorded here: a recent trip is recorded when it starts (M3 AC 35).
       router.navigate('/routes', { replace: true });
     } else router.back();
   };
@@ -112,7 +112,8 @@ export function Search() {
     }
   };
 
-  const recents = store.recents.value;
+  // 6d.9 H2: the recent trips' destinations, newest first, each place once, max 5.
+  const recents = store.recents.value.filter((r, i, all) => all.findIndex((o) => o.to.name === r.to.name && o.to.lat === r.to.lat && o.to.lng === r.to.lng) === i).slice(0, 5);
   const row = (p: { name: string; address?: string | undefined }, icon: 'clock' | 'loc', onClick: () => void, testid: string) => (
     <button type="button" class="ritem" data-testid={testid} onClick={onClick}>
       <span class="ic" aria-hidden="true">

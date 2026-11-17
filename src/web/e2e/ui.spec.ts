@@ -110,8 +110,8 @@ test.describe('journeys', () => {
     await expect(page).toHaveURL(/\/routes$/);
     await page.getByTestId('back').click();
     await expect(page).toHaveURL(/:\d+\/(\?.*)?$/);
-    // Recent destination now on Home (F8)
-    await expect(page.getByTestId('recent-0')).toContainText('Tan Tock Seng Hospital');
+    // M3 AC 35: browsing routes records nothing; a recent trip is recorded when a trip starts.
+    await expect(page.getByTestId('recent-trips')).toHaveCount(0);
     const screens = (await logOf(page)).filter((l) => l.startsWith('screen:'));
     expect(screens.slice(-4)).toEqual(['screen:/routes', 'screen:/trip', 'screen:/routes', 'screen:/']);
   });

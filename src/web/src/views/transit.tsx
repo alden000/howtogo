@@ -10,8 +10,8 @@ import { lineByCode } from '@howtogo/shared';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
 import { family } from '../state/family';
-import { toLang } from '../state/store';
-import { affectedBy, alertKey, alertLineCode, busChip, lineCodesOf, exitHint, fareText, isDelay, liftDetail, liftIssues, liftsOk, lineName, relDay, stationText, type Chip, type ExitHint } from '../transit/m3';
+import { HOME_RECENTS, toLang } from '../state/store';
+import { affectedBy, alertKey, alertLineCode, busChip, lineCodesOf, exitHint, fareText, isDelay, liftDetail, liftIssues, liftsOk, lastRailLeg, lineName, relDate, stationText, type Chip, type ExitHint } from '../transit/m3';
 import { ALERTS_TRIP_MS, alerts, lifts, refreshAlerts, useBusArrival, useNow } from '../transit/live';
 import { announce, Icon, Sheet, showToast, type IconName } from '../ui/kit';
 
@@ -410,6 +410,8 @@ export function StepExtras({ step, itinerary, pocket }: { step: Step | undefined
   const hint = exitHint(itinerary, lang, issues);
   if (hint && step.kind === 'ride_train' && step.legIndex === hint.legIndex) out.push(<ExitLine hint={hint} kind="alight" />);
   if (hint && step.kind === 'walk_to_destination' && step.legIndex === hint.legIndex + 1) out.push(<ExitLine hint={hint} kind="walk" />);
+  // QA-34 (AC 42): the alight step with no exit from the table logs `exit:hidden` (change-only).
+  if (!hint && step.kind === 'ride_train' && step.legIndex === lastRailLeg(itinerary)) out.push(<ExitHidden />);
   if (step.mode === 'mrt' || step.mode === 'lrt') {
     const leg = itinerary.legs[step.legIndex];
     for (const i of issues) {
@@ -444,11 +446,17 @@ export function ExitLine({ hint, kind }: { hint: ExitHint; kind: 'alight' | 'wal
   );
 }
 
+/** Nothing on screen: the exit table has no hint for this alight (never guessed). Logs `exit:hidden`. */
+function ExitHidden() {
+  useEffect(() => log('exit:hidden'), []);
+  return null;
+}
+
 /** H4 overview line: exit hint (AC 15 parity). */
 export function ExitForTrip({ itinerary }: { itinerary: Itinerary }) {
   const lang = useLang();
   const hint = exitHint(itinerary, lang, liftIssues(itinerary, lifts.value));
-  return hint ? <ExitLine hint={hint} kind="h4" /> : null;
+  return hint ? <ExitLine hint={hint} kind="h4" /> : lastRailLeg(itinerary) >= 0 ? <ExitHidden /> : null;
 }
 
 // ---------------------------------------------------------------- T9 recents
@@ -459,7 +467,7 @@ export function RecentTrips({ onPick }: { onPick: (i: number) => void }) {
   const saved = store.places.value;
   const list = store.recents.value
     .filter((r) => r.to.name !== saved.home?.name && !saved.others.some((o) => o.name === r.to.name && Math.abs(o.lat - r.to.lat) < 1e-4))
-    .slice(0, 3);
+    .slice(0, HOME_RECENTS);
   if (!list.length) return null;
   const now = Date.now();
   return (
@@ -470,7 +478,7 @@ export function RecentTrips({ onPick }: { onPick: (i: number) => void }) {
       {list.map((r) => {
         const i = store.recents.value.indexOf(r);
         const from = r.from?.name ?? t('my_location');
-        const d = relDay(r.at, now, lang);
+        const d = relDate(r.date, now, lang);
         return (
           <div class="rrow">
             <button type="button" class="ritem" data-testid={`recent-trip-${i}`} onClick={() => onPick(i)}>

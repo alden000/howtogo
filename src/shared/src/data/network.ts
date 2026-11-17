@@ -135,6 +135,28 @@ export function stationForStop(stop: StopLike): Station | undefined {
   return stationByCode(stop.code) ?? stationByStopId(stop.id) ?? stationByName(stop.name);
 }
 
+/**
+ * M3 AC 42 / QA-34: a rail stop shown in the zh UI without a zh name in the table falls back to
+ * English and is reported here (the PWA logs `zh_name_missing:<code>` once per code). Never translated.
+ */
+let zhMissingHook: ((code: string) => void) | undefined;
+export function onZhNameMissing(fn: ((code: string) => void) | undefined): void {
+  zhMissingHook = fn;
+}
+/** Report a rail stop with no zh name (only its station code is passed on; nothing when it has none). */
+export function reportZhNameMissing(stop: StopLike): void {
+  const c = normalizeStationCode(stop.code) ?? normalizeStationCode(stop.id?.split(':').pop());
+  if (c) zhMissingHook?.(c);
+}
+
+/** zh rail stop name for step text: the sign-style label, or the given fallback (reported) when the table has no entry. */
+export function zhRailStopName(stop: StopLike, fallback: string): string {
+  const st = stationForStop(stop);
+  if (st) return stationLabel(st, 'zh-CN', stop.code);
+  reportZhNameMissing(stop);
+  return fallback;
+}
+
 /** Official Chinese name for a station code ("NS17" → "碧山"). */
 export function zhStationName(code: string): string | undefined {
   return stationByCode(code)?.zh;

@@ -196,8 +196,7 @@ export const EXIT_AMBIGUOUS_M = 30;
  * of each other in distance-to-destination. Never guessed.
  */
 export function exitHint(it: Itinerary, lang: Lang, lifts: LiftIssue[] = []): ExitHint | null {
-  let idx = -1;
-  for (let i = it.legs.length - 1; i >= 0; i--) if (isRail(it.legs[i]!)) { idx = i; break; }
+  const idx = lastRailLeg(it);
   if (idx < 0) return null;
   const leg = it.legs[idx]!;
   const walk = it.legs[idx + 1];
@@ -222,6 +221,12 @@ export function exitHint(it: Itinerary, lang: Lang, lifts: LiftIssue[] = []): Ex
   return out;
 }
 
+/** Index of the last MRT/LRT leg (the alight leg the exit hint is for), or -1. */
+export function lastRailLeg(it: Itinerary): number {
+  for (let i = it.legs.length - 1; i >= 0; i--) if (isRail(it.legs[i]!)) return i;
+  return -1;
+}
+
 // ------------------------------------------------------------------ T6 transfer
 /** Engine walk_transfer between two different stations = out-of-system (exit and re-enter the gates). */
 export function outOfSystem(walk: Leg): boolean {
@@ -239,6 +244,9 @@ const WD_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
 const MON_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const sgDay = (ms: number) => Math.floor((ms + 8 * 3600_000) / 86_400_000);
 const sgDate = (ms: number) => new Date(ms + 8 * 3600_000);
+
+/** A stored recent-trip date (`YYYY-MM-DD`, Singapore) as relative text (AC 35 stores the date only). */
+export const relDate = (date: string, now: number, lang: Lang) => relDay(Date.parse(`${date}T12:00:00+08:00`), now, lang);
 
 /** 6d.9 relative dates: 今天 · 昨天 · 星期X (≤ 6 days, this week) · 上星期X · 11月3日. */
 export function relDay(at: number, now: number, lang: Lang): string {

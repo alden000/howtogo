@@ -8,6 +8,7 @@ import { useServices, useT } from '../context';
 import { canInstall, promptInstall } from '../pwa/install';
 import { buildReport } from '../report';
 import { TEXT_SCALE, TEXT_SIZES, type Settings } from '../state/store';
+import { DATA_AS_OF } from '@howtogo/shared';
 import { APP_VERSION } from '../version';
 import { Bar, Icon, NumSteps, Sheet, showToast, Wordmark, type IconName } from '../ui/kit';
 import { HomeConfirm } from './HomeConfirm';
@@ -331,8 +332,11 @@ export function About() {
           <img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" alt="OneMap" width={28} height={28} />
           <span>{t('ab_mapdata')}</span>
         </p>
-        <p class="t-caption">
-          {t('ab_lta')}
+        <p class="t-caption" data-testid="about-lta">
+          <LtaLine text={t('ab_lta')} />
+        </p>
+        <p class="t-caption" data-testid="about-data">
+          {t('ab_data', { d: DATA_AS_OF })}
         </p>
         <h2 class="grp">{t('ab_priv_h')}</h2>
         <ul class="bullets" data-testid="privacy">
@@ -359,13 +363,61 @@ function Switch(props: { label: string; sub?: string; on: boolean; testid: strin
   );
 }
 
-/** M3 Settings → 出行 / Travel (6d.2, 6d.8, AC 28). */
+/** M3 AC 41: the licence sentence (English in both UIs) with the Singapore Open Data Licence linked. */
+export const ODL_URL = 'https://data.gov.sg/open-data-licence';
+const ODL_TEXT = 'Singapore Open Data Licence version 1.0';
+function LtaLine({ text }: { text: string }) {
+  const [a, b] = text.split(ODL_TEXT);
+  if (b === undefined) return <>{text}</>;
+  return (
+    <>
+      {a}
+      <a class="inlink" href={ODL_URL} target="_blank" rel="noopener noreferrer" lang="en">
+        {ODL_TEXT}
+      </a>
+      {b}
+    </>
+  );
+}
+
+/** M3 AC 33 / QA-30: route preference (least walking default, fewest changes, fastest); persisted in settings. */
+function PrefRow() {
+  const t = useT();
+  return (
+    <Seg
+      name="preference"
+      label={t('pref_h')}
+      opts={[
+        ['least_walk', t('label_least_walk')],
+        ['fewest_transfers', t('label_fewest')],
+        ['fastest', t('label_fastest')],
+      ]}
+    />
+  );
+}
+
+/** H3 Route options sheet (AC 33): the preference + the Lift-friendly toggle (its ranking is M5). */
+export function RoutePrefsSheet() {
+  const t = useT();
+  const p = family.prefs.value;
+  return (
+    <Sheet id="route-prefs" title={t('pref_sheet_t')}>
+      <PrefRow />
+      <div class="opts">
+        <Switch label={t('set_liftfriendly')} on={p.liftFriendly} testid="pref-liftfriendly" onChange={(v) => family.setPrefs({ liftFriendly: v })} />
+      </div>
+    </Sheet>
+  );
+}
+
+/** M3 Settings → 出行 / Travel (6d.2, 6d.8, AC 28, AC 33). */
 function TravelRows() {
   const t = useT();
   const p = family.prefs.value;
   return (
     <>
       <h2 class="grp">{t('set_travel')}</h2>
+      <PrefRow />
       <div class="opts">
         <Switch label={t('set_wheelchair')} on={p.wheelchair} testid="set-wheelchair" onChange={(v) => family.setPrefs({ wheelchair: v })} />
         <Switch label={t('set_concession')} on={p.concession} testid="set-concession" onChange={(v) => family.setPrefs({ concession: v })} />

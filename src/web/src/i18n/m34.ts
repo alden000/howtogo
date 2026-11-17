@@ -246,6 +246,11 @@ export const M34_ZH = {
   w_qr_sr: '设置用的二维码',
   w_link: '或者把链接发给 TA',
   w_failed: '现在发不了，请再试一次。',
+  // M3/M4 fix A (Developer A, 2026-11-18): QA-30 route preference, QA-35 data date
+  pref_btn: '选项',
+  pref_sheet_t: '路线选项',
+  pref_h: '先给我看',
+  ab_data: 'data: {d}',
 };
 
 type Shape = { [K in keyof typeof M34_ZH]: string };
@@ -480,4 +485,9 @@ export const M34_EN: Shape = {
   w_qr_sr: 'Setup code',
   w_link: 'Or send them the link',
   w_failed: "Couldn't send. Please try again.",
+  // M3/M4 fix A (Developer A, 2026-11-18): QA-30 route preference, QA-35 data date
+  pref_btn: 'Options',
+  pref_sheet_t: 'Route options',
+  pref_h: 'Show first',
+  ab_data: 'data: {d}',
 };

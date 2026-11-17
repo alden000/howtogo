@@ -27,9 +27,9 @@ describe('store', () => {
     expect(JSON.parse(kv.data['settings']!).lang).toBe('en');
   });
 
-  it('keeps the last 5 recent destinations, newest first, deduped', () => {
+  it('keeps the last MAX_RECENTS recent trips, newest first, deduped', () => {
     const s = createStore(memoryKV(), memoryKV());
-    for (let i = 0; i < 7; i++) s.addRecent({ name: `P${i}`, lat: 1.3 + i / 100, lng: 103.8 }, undefined, i);
+    for (let i = 0; i < 12; i++) s.addRecent({ name: `P${i}`, lat: 1.3 + i / 100, lng: 103.8 }, undefined, i);
     s.addRecent({ name: 'P3', lat: 1.33, lng: 103.8 }, undefined, 99);
     expect(s.recents.value).toHaveLength(MAX_RECENTS);
     expect(s.recents.value[0]!.to.name).toBe('P3');

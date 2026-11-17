@@ -121,7 +121,7 @@ function SingleOverview({ guide, t }: { guide: boolean; t: TFn }) {
         <div style={{ padding: '0 var(--s-5) var(--s-6)' }}>
           <H4Extras it={it} />
           <ol class="timeline" data-testid="step-list">
-            {timeline(it, plan.to, t).map((row) => (
+            {timeline(it, plan.to, t, lang).map((row) => (
               <li class={row.kind === 'bus' || row.kind === 'train' ? 'ride' : ''}>
                 <span class={`ic${row.kind === 'walk' ? '' : ` ${row.kind}`}`} aria-hidden="true">
                   <Icon name={ICON[row.kind]} />

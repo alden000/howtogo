@@ -110,7 +110,7 @@ const zh = {
   from_here: "从：{p}",
   label_least_walk: "最少走路",
   label_fastest: "最快",
-  label_fewest: "最少转车",
+  label_fewest: "最少换车",
   label_best: "推荐",
   min: "分钟",
   arrive_at: "{t} 到达",

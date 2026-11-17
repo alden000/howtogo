@@ -253,6 +253,13 @@ export function Routes() {
               {t('add_stop')}
             </button>
           )}
+          {plan.to && (
+            // M3 AC 33 / QA-30: Route options sheet (preference + Lift-friendly).
+            <button type="button" class="btn btn-secondary small" style={{ marginTop: 'var(--s-3)' }} data-testid="route-prefs" onClick={() => router.openSheet('route-prefs')}>
+              <Icon name="sliders" />
+              {t('pref_btn')}
+            </button>
+          )}
         </div>
 
         {(phase === 'loading' || phase === 'need_loc') && (

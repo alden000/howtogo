@@ -704,6 +704,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   function onArrived() {
     log('trip:arrived');
     const t = trip();
+    const dest = t?.places[t.places.length - 1];
+    if (dest) store.markRecentDone(dest);
     store.patchTrip((tr) => ({ ...tr, phase: 'arrived', alert: null }));
     if (t?.share && t.share.status !== 'help') setShareStatus('arrived');
     else scheduleShare(true);
@@ -1068,7 +1070,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     askNotify();
     const to = places[places.length - 1];
     const lines = [...new Set([itinerary, ...(j?.segments ?? []).map((sg) => sg?.itinerary)].flatMap((it) => it?.legs ?? []).flatMap((g) => (g.line?.code ? [g.line.code] : [])))];
-    if (to) store.addRecent(to, places[0], now(), lines);
+    // M3 AC 35: recorded on start. From = the planned start place; "my location" stores no start (no GPS).
+    if (to) store.addRecent(to, store.plan.peek().from ?? undefined, now(), lines);
     handleCues(guidance, l);
     await attach(false);
   }

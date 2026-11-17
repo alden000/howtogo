@@ -290,3 +290,6 @@ button.where{min-height:var(--tap);text-align:left}
 @keyframes fadeOut{to{opacity:0}}
 /* #20 reduce motion: sheets, toasts and banners cross-fade in 120 ms */
 :root.rm .sheet,:root.rm .toast,:root.rm .banner{animation:fadeIn 120ms linear both!important}
+
+/* M3/M4 fix A: inline text link (About licence, AC 41). */
+.inlink{color:var(--c-primary-text);font-weight:700;text-decoration:underline;text-underline-offset:2px}

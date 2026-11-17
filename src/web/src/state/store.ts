@@ -51,12 +51,75 @@ export interface SavedPlaces {
   others: (Place & { label: string })[];
 }
 
+/**
+ * M3 AC 35 (`howtogo.recents.v2`): one started trip. Place names and the two places' coordinates, the
+ * Singapore **date** only (no time of day), done = arrived. No GPS track. `from` absent = "my location"
+ * (the GPS start is never stored).
+ */
 export interface RecentTrip {
   to: Place;
   from?: Place;
-  at: number;
+  /** Singapore local date, `YYYY-MM-DD`. */
+  date: string;
+  /** Arrived (true) or started only (false). Absent on trips migrated from 0.2.0. */
+  done?: boolean;
   /** Rail line codes the trip used (M34 review #2: the Home disruption strip only for a line a recent trip uses). */
   lines?: string[];
+}
+
+/** Singapore (UTC+8, no DST) calendar date of an instant: `YYYY-MM-DD`. */
+export const sgDateOf = (ms: number) => new Date(ms + 8 * 3600_000).toISOString().slice(0, 10);
+
+/** Dedupe key for recent trips (AC 34): from + to place. */
+const placeKey = (p: Place | undefined) => (p ? `${p.name}|${p.lat.toFixed(4)}|${p.lng.toFixed(4)}` : 'here');
+export const tripKey = (r: { to: Place; from?: Place | undefined }) => `${placeKey(r.from)}>${placeKey(r.to)}`;
+
+const isPlace = (v: unknown): v is Place =>
+  !!v && typeof v === 'object' && typeof (v as Place).name === 'string' && typeof (v as Place).lat === 'number' && typeof (v as Place).lng === 'number';
+
+/** A stored row (v2, or a 0.1/0.2 row with a full `at` timestamp) → a v2 row; anything else is dropped. */
+function toRecent(v: unknown): RecentTrip | null {
+  if (!v || typeof v !== 'object') return null;
+  const r = v as Partial<RecentTrip> & { at?: unknown };
+  if (!isPlace(r.to)) return null;
+  const date = typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : typeof r.at === 'number' ? sgDateOf(r.at) : null;
+  if (!date) return null;
+  const pick = (p: Place): Place => ({ name: p.name, lat: p.lat, lng: p.lng, ...(p.address ? { address: p.address } : {}) });
+  return {
+    to: pick(r.to),
+    ...(isPlace(r.from) ? { from: pick(r.from) } : {}),
+    date,
+    ...(typeof r.done === 'boolean' ? { done: r.done } : {}),
+    ...(Array.isArray(r.lines) && r.lines.length ? { lines: r.lines.filter((x): x is string => typeof x === 'string') } : {}),
+  };
+}
+
+/** Newest first, deduped on from+to (the first, i.e. newest, wins), capped. */
+function normalizeRecents(list: unknown[]): RecentTrip[] {
+  const seen = new Set<string>();
+  const out: RecentTrip[] = [];
+  for (const v of list) {
+    const r = toRecent(v);
+    if (!r || seen.has(tripKey(r))) continue;
+    seen.add(tripKey(r));
+    out.push(r);
+  }
+  return out.slice(0, MAX_RECENTS);
+}
+
+const RECENTS_KEY = 'recents.v2';
+const LEGACY_RECENTS_KEY = 'recents';
+
+/** Read `recents.v2`, folding in (then removing) a 0.1/0.2 `recents` list: the upgrade keeps them (M3 AC 36). */
+function loadRecents(kv: KV): RecentTrip[] {
+  const isArr = Array.isArray as (v: unknown) => v is unknown[];
+  const v2 = readJSON<unknown[]>(kv, RECENTS_KEY, [], isArr);
+  if (kv.get(LEGACY_RECENTS_KEY) == null) return normalizeRecents(v2);
+  const legacy = readJSON<unknown[]>(kv, LEGACY_RECENTS_KEY, [], isArr);
+  kv.remove(LEGACY_RECENTS_KEY);
+  const at = (x: unknown) => toRecent(x)?.date ?? '';
+  // Merge by date, newest first (stable: v2 rows before legacy rows on the same day).
+  return normalizeRecents([...v2, ...legacy].map((x, i) => ({ x, i })).sort((a, b) => (at(b.x) < at(a.x) ? -1 : at(b.x) > at(a.x) ? 1 : a.i - b.i)).map((e) => e.x));
 }
 
 export interface Plan {
@@ -123,7 +186,9 @@ export interface ActiveTrip {
   updatedAt?: number;
 }
 
-export const MAX_RECENTS = 5;
+/** Stored recent trips (6d.9: max 10). Home shows up to HOME_RECENTS (M3 AC 34), H2 up to 5 destinations. */
+export const MAX_RECENTS = 10;
+export const HOME_RECENTS = 5;
 const EMPTY_PLAN: Plan = { from: null, to: null, options: [], selected: 0 };
 
 export const toLang = (l: UiLang): Lang => (l === 'en' ? 'en-SG' : 'zh-CN');
@@ -131,7 +196,7 @@ export const toLang = (l: UiLang): Lang => (l === 'en' ? 'en-SG' : 'zh-CN');
 export function createStore(kv: KV = local, ss: KV = session, opts: { tripWriteMs?: number } = {}) {
   const settings = signal<Settings>({ ...DEFAULT_SETTINGS, ...readJSON<Partial<Settings>>(kv, 'settings', {}) });
   const places = signal<SavedPlaces>(readJSON<SavedPlaces>(kv, 'places', { others: [] }));
-  const recents = signal<RecentTrip[]>(readJSON<RecentTrip[]>(kv, 'recents', [], Array.isArray as (v: unknown) => v is RecentTrip[]));
+  const recents = signal<RecentTrip[]>(loadRecents(kv));
   const plan = signal<Plan>({ ...EMPTY_PLAN, ...readJSON<Partial<Plan>>(ss, 'plan', {}) });
   const trip = signal<ActiveTrip | null>(
     readJSON<ActiveTrip | null>(kv, 'trip.v1', null, (v): v is ActiveTrip => !!v && typeof v === 'object' && 'guidance' in v && 'itinerary' in v),
@@ -140,7 +205,7 @@ export function createStore(kv: KV = local, ss: KV = session, opts: { tripWriteM
   const disposers = [
     effect(() => writeJSON(kv, 'settings', settings.value)),
     effect(() => writeJSON(kv, 'places', places.value)),
-    effect(() => writeJSON(kv, 'recents', recents.value)),
+    effect(() => writeJSON(kv, RECENTS_KEY, recents.value)),
     effect(() => writeJSON(ss, 'plan', plan.value)),
   ];
 
@@ -187,10 +252,16 @@ export function createStore(kv: KV = local, ss: KV = session, opts: { tripWriteM
       else delete next.home;
       places.value = next;
     },
+    /** Record a started trip (M3 AC 35): date only, not done yet; replaces the same from+to. */
     addRecent(to: Place, from?: Place, at = Date.now(), lines?: string[]) {
-      const key = (p: Place) => `${p.name}|${p.lat.toFixed(4)}|${p.lng.toFixed(4)}`;
-      const rest = recents.value.filter((r) => key(r.to) !== key(to));
-      recents.value = [{ to, ...(from ? { from } : {}), at, ...(lines?.length ? { lines } : {}) }, ...rest].slice(0, MAX_RECENTS);
+      recents.value = normalizeRecents([{ to, ...(from ? { from } : {}), date: sgDateOf(at), done: false, ...(lines?.length ? { lines } : {}) }, ...recents.value]);
+    },
+    /** The newest recent trip to `to` (the one started last) arrived. */
+    markRecentDone(to: Place) {
+      const k = placeKey(to);
+      const i = recents.value.findIndex((r) => placeKey(r.to) === k);
+      if (i < 0 || recents.value[i]!.done) return;
+      recents.value = recents.value.map((r, j) => (j === i ? { ...r, done: true } : r));
     },
     clearRecents() {
       recents.value = [];

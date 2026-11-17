@@ -15,7 +15,7 @@ import { Guide } from './views/Guide';
 import { ShareStart } from './views/ShareStart';
 import { Viewer } from './views/Viewer';
 import { Help } from './views/Help';
-import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, SettingsScreen } from './views/Settings';
+import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, RoutePrefsSheet, SettingsScreen } from './views/Settings';
 import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
 import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
@@ -180,6 +180,7 @@ export function App() {
       {sheet === 'clear' && <ClearSheet />}
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
+      {sheet === 'route-prefs' && <RoutePrefsSheet />}
       <Toast />
       <LiveRegion />
       <div class="ghosts over" />

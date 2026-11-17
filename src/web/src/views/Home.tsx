@@ -13,8 +13,8 @@ import { DisruptionBanner } from './transit';
 import { SetupUndo } from './family';
 import { family } from '../state/family';
 import { refreshAlerts, refreshLifts } from '../transit/live';
-import { relDay } from '../transit/m3';
-import { toLang } from '../state/store';
+import { relDate } from '../transit/m3';
+import { HOME_RECENTS, toLang } from '../state/store';
 export const NEAR_HOME_M = 200;
 
 export function greetingKey(hour: number): 'greet_morning' | 'greet_afternoon' | 'greet_evening' {
@@ -188,7 +188,7 @@ export function Home() {
               <h2 id="rt-h">{t('recent_trips')}</h2>
             </div>
             <ul class="rlist" data-testid="home-recent">
-              {recents.slice(0, 3).map((r, i) => (
+              {recents.slice(0, HOME_RECENTS).map((r, i) => (
                 <li key={`${r.to.name}-${i}`} class="rrow">
                   <button type="button" class="ritem" data-testid={`recent-${i}`} onClick={() => go(r.to)}>
                     <span class="ic" aria-hidden="true">
@@ -196,7 +196,7 @@ export function Home() {
                     </span>
                     <span class="tx">
                       <b>{t('recent_to', { p: r.to.name })}</b>
-                      <span>{t('recent_from', { p: r.from?.name ?? t('my_location'), d: relDay(r.at, Date.now(), toLang(s.lang)) })}</span>
+                      <span>{t('recent_from', { p: r.from?.name ?? t('my_location'), d: relDate(r.date, Date.now(), toLang(s.lang)) })}</span>
                     </span>
                     <Icon name="chev" />
                   </button>

@@ -272,7 +272,7 @@ describe('multi-stop journeys (§I)', () => {
     expect(has('cue:arrived_destination')).toBe(true);
     expect(env.runtime.ui.value.phase).toBe('arrived');
     expect(env.runtime.ui.value.progress?.overall).toBe(1);
-  });
+  }, 30_000); // QA-49: ~9.4 s on a loaded 4-core Windows host
 
   it('a failed next segment keeps the waypoint screen with segmentError', async () => {
     let calls = 0;
