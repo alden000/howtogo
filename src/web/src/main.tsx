@@ -9,6 +9,7 @@
 import './styles/tokens.css';
 import './styles/app.css';
 import './styles/guide.css';
+import './styles/m34.css';
 import { render } from 'preact';
 import { effect } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';

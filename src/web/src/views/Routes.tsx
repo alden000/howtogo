@@ -14,6 +14,17 @@ const WALK_STEPS = [500, 1000];
 const FRESH_MS = 60_000;
 
 /** "Text with {p} highlighted" → [before, after]. */
+import { AffectedFact, ArrivalLine, DisruptionBanner, FareFact, FareNote, LiftFacts } from './transit';
+import { affectedBy } from '../transit/m3';
+import { alerts, refreshAlerts, refreshLifts } from '../transit/live';
+
+/** Unaffected first, keeping rank order; pairs of [option, original index]. */
+const order = (opts: RankedItinerary[]): [RankedItinerary, number][] => {
+  const pairs = opts.map((o, i) => [o, i] as [RankedItinerary, number]);
+  return [...pairs.filter(([o]) => !affectedBy(alerts.value, o.itinerary)), ...pairs.filter(([o]) => affectedBy(alerts.value, o.itinerary))];
+};
+const firstBus = (it: Itinerary) => it.legs.find((l) => l.mode === 'bus' && l.route);
+
 export function splitAround(t: TFn, key: 'how_to', p: string) {
   const [a = '', b = ''] = t(key, { p: '\u0000' }).split('\u0000');
   return (
@@ -100,6 +111,11 @@ export function Routes() {
   const [attempt, setAttempt] = useState(0);
   const [slow, setSlow] = useState(false);
   const [closeM, setCloseM] = useState(0);
+  // M3 AC 18: alerts on every route search (cached 60 s); lifts for the lift facts.
+  useEffect(() => {
+    void refreshAlerts(api);
+    refreshLifts(api);
+  }, [attempt]);
 
   useEffect(() => {
     if (!plan.to) return;
@@ -320,15 +336,24 @@ export function Routes() {
             {retryBtn}
           </StatePanel>
         )}
+        {options.length > 0 && <DisruptionBanner where="h3" itinerary={(options.find((o) => affectedBy(alerts.value, o.itinerary)) ?? options[0]!).itinerary} />}
+        {options.length > 0 && options.every((o) => affectedBy(alerts.value, o.itinerary)) && (
+          <p class="note" data-testid="all-affected">
+            <Icon name="train-off" />
+            <span>{t('dis_all')}</span>
+          </p>
+        )}
         {options.length > 0 && (
           <div class="cards">
-            {options.map((o, i) => {
-              const tag = tagText(o, i, options.length, t);
+            {/* AC 20: affected cards move to the bottom and lose the top tag (never removed: the user may know better) */}
+            {order(options).map(([o, i], pos) => {
+              const affected = !!affectedBy(alerts.value, o.itinerary);
+              const tag = affected ? null : tagText(o, pos, options.length, t);
               return (
                 <button
                   type="button"
                   key={o.itinerary.id}
-                  class={`card${i === 0 ? ' best' : ''}`}
+                  class={`card${pos === 0 && !affected ? ' best' : ''}`}
                   data-testid={`route-option-${i}`}
                   aria-label={cardLabel(o, i, options.length, lang, t)}
                   onClick={() => {
@@ -338,7 +363,7 @@ export function Routes() {
                 >
                   {tag && (
                     <span class="tag">
-                      {i === 0 && <Icon name="check" />}
+                      {pos === 0 && <Icon name="check" />}
                       {tag}
                     </span>
                   )}
@@ -357,6 +382,10 @@ export function Routes() {
                         {f.text}
                       </span>
                     ))}
+                    <AffectedFact itinerary={o.itinerary} />
+                    <FareFact itinerary={o.itinerary} />
+                    <LiftFacts itinerary={o.itinerary} />
+                    {pos === 0 && firstBus(o.itinerary) && <ArrivalLine stop={firstBus(o.itinerary)!.from.code} svc={firstBus(o.itinerary)!.route ?? ''} />}
                   </span>
                   <span class="choose">
                     {t('choose')}
@@ -367,6 +396,7 @@ export function Routes() {
             })}
           </div>
         )}
+        <FareNote any={options.some((o) => typeof o.itinerary.fare === 'number' && o.itinerary.fare > 0)} />
         {options.length === 1 && (
           <div class="honest" data-testid="note-only-one">
             <Icon name="check" />

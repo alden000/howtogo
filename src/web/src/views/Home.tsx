@@ -9,6 +9,12 @@ import { HomeConfirm } from './HomeConfirm';
 import { Icon, showToast, useStateHook, Wordmark } from '../ui/kit';
 
 /** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
+import { DisruptionBanner } from './transit';
+import { SetupUndo } from './family';
+import { family } from '../state/family';
+import { refreshAlerts, refreshLifts } from '../transit/live';
+import { relDay } from '../transit/m3';
+import { toLang } from '../state/store';
 export const NEAR_HOME_M = 200;
 
 export function greetingKey(hour: number): 'greet_morning' | 'greet_afternoon' | 'greet_evening' {
@@ -30,6 +36,10 @@ export function Home() {
   const plan = store.plan.value;
   const [bannerOff, setBannerOff] = useState(false);
 
+ useEffect(() => {
+    void refreshAlerts(api);
+    refreshLifts(api);
+  }, []);
   // "你在：…附近" — reverse-geocode only if permission is already granted; never prompt from Home (AC 25, F2).
   useEffect(() => {
     if (here.value) return;
@@ -105,6 +115,8 @@ export function Home() {
         </button>
       </header>
       <main class="scroll">
+        <SetupUndo />
+        <DisruptionBanner where="home" />
         {updateReady.value && !bannerOff && (
           <div class="banner" data-testid="update-banner">
             <button type="button" data-testid="sw-update" aria-label={t('upd_sr')} onClick={applyUpdate}>
@@ -171,27 +183,36 @@ export function Home() {
           </>
         )}
         {recents.length > 0 && (
-          <>
+          <section data-testid="recent-trips" aria-labelledby="rt-h">
             <div class="sect">
-              <h2>{t('recent')}</h2>
+              <h2 id="rt-h">{t('recent_trips')}</h2>
             </div>
             <ul class="rlist" data-testid="home-recent">
-              {recents.map((r, i) => (
-                <li key={`${r.to.name}-${i}`}>
+              {recents.slice(0, 3).map((r, i) => (
+                <li key={`${r.to.name}-${i}`} class="rrow">
                   <button type="button" class="ritem" data-testid={`recent-${i}`} onClick={() => go(r.to)}>
                     <span class="ic" aria-hidden="true">
                       <Icon name="clock" />
                     </span>
                     <span class="tx">
-                      <b>{r.to.name}</b>
-                      {r.to.address && <span>{r.to.address}</span>}
+                      <b>{t('recent_to', { p: r.to.name })}</b>
+                      <span>{t('recent_from', { p: r.from?.name ?? t('my_location'), d: relDay(r.at, Date.now(), toLang(s.lang)) })}</span>
                     </span>
                     <Icon name="chev" />
+                  </button>
+                  <button
+                    type="button"
+                    class="iconbtn sq"
+                    data-testid={`recent-remove-${i}`}
+                    aria-label={`${t('recent_remove')} ${r.to.name}`}
+                    onClick={() => (store.recents.value = store.recents.value.filter((_, k) => k !== i))}
+                  >
+                    <Icon name="trash" />
                   </button>
                 </li>
               ))}
             </ul>
-          </>
+          </section>
         )}
         {flags.has('help') && (
         <button type="button" class="helprow" data-testid="nav-help" onClick={() => router.openSheet('help')}>
@@ -200,7 +221,7 @@ export function Home() {
           </span>
           <span>
             <b>{t('help_row_t')}</b>
-            <span>{t('help_row_s')}</span>
+            <span>{family.contacts.value[0] ? t('hr_s_fam', { fam: family.contacts.value[0].name }) : t('hr_s_none')}</span>
           </span>
         </button>
         )}

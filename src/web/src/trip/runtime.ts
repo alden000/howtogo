@@ -623,7 +623,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   }
 
   // ------------------------------------------------------------ re-route (AC 32–33)
-  async function reroute() {
+  /** `avoid` (M3 AC 22): drop itineraries it matches (affected MRT); none left → bus only. */
+  async function reroute(avoid?: (it: Itinerary) => boolean) {
     const t = trip();
     const fix = t?.guidance.fix;
     if (!t || !fix || rerouteInflight || t.phase !== 'guiding') return;
@@ -649,9 +650,14 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       const seg = t.journey?.segment ?? 0;
       const dest = t.places[seg + 1] ?? t.places[t.places.length - 1]!;
       const body = await api.route({ start: fix, end: dest, departAt: now(), numItineraries: 3 });
-      const plan = normalizeOneMapPlan(body);
-      if (!plan.ok || plan.itineraries.length === 0) throw new Error(plan.ok ? 'no_route' : plan.error);
-      const best = rankItineraries(plan.itineraries, store.settings.peek().preference)[0]!.itinerary;
+      let plan = normalizeOneMapPlan(body);
+      let its = plan.ok ? plan.itineraries.filter((i) => !avoid?.(i)) : [];
+      if (avoid && its.length === 0) {
+        plan = normalizeOneMapPlan(await api.route({ start: fix, end: dest, departAt: now(), numItineraries: 3, mode: 'BUS' }));
+        its = plan.ok ? plan.itineraries.filter((i) => !avoid(i)) : [];
+      }
+      if (!plan.ok || its.length === 0) throw new Error(plan.ok ? 'no_route' : plan.error);
+      const best = rankItineraries(its, store.settings.peek().preference)[0]!.itinerary;
       const cur = trip();
       if (!cur || cur.id !== t.id) return;
       const steps = stepsFor(best, cur, seg);
@@ -1021,7 +1027,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     },
     /** H6/H6b "知道了 / OK, got it". */
     ackAlert: () => alertEvent({ type: 'ack', t: now() }),
-    reroute: () => reroute(),
+    reroute: (avoid?: (it: Itinerary) => boolean) => reroute(avoid),
     /** ✕ on the re-route failed / offline note. */
     dismissRerouteNote: () => {
       patchUi({ reroute: 'idle' });
@@ -1132,6 +1138,11 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     testVoice() {
       const l = toLang(store.settings.peek().lang);
       void platform.speech.speak(voiceLine('test', l), l, 'high', { force: true });
+    },
+    /** M3/M4 one-off lines (bus arriving, disruption, setup arrived): voice in the queue + one haptic. */
+    speakText(text: string, h: HapticName | null = null) {
+      haptic(h);
+      say(text, 'normal');
     },
     /** Speak one of the runtime voice lines (for UI notes with a spoken line). */
     speakLine(line: VoiceLine) {

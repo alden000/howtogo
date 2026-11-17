@@ -13,6 +13,9 @@ import { GuideMap } from '../map/GuideMap';
 import type { ActiveTrip } from '../state/store';
 import { Icon, showToast, useStateHook, type IconName } from '../ui/kit';
 import { clock } from './present';
+import { ArrivedFamily, SharePill, useShareOnStart } from './share';
+import { StepExtras, TripDisruption } from './transit';
+import { HelpNote } from './helpSheet';
 import {
   alertCopy,
   cardMaxHeight,
@@ -68,6 +71,7 @@ export function Guide() {
 // ------------------------------------------------------------------ H5
 
 function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
+  useShareOnStart();
   const { store, router, runtime } = useServices();
   const tick = useTick();
   const ui = runtime.ui.value;
@@ -209,12 +213,8 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
           {t('help')}
         </button>
         <div class="bandrow">
-          {trip.share && (
-            <button type="button" class="sharepill" data-testid="share-pill" onClick={() => router.navigate('/share/start')}>
-              <span class="live" aria-hidden="true" />
-              <span>{t('share_trip')}</span>
-            </button>
-          )}
+          <SharePill onOpen={() => router.openSheet('share')} />
+          <TripDisruption itinerary={trip.itinerary} legIndex={step?.legIndex ?? 0} />
           {(ui.reroute === 'searching' || ui.reroute === 'found') && <RerouteBanner found={ui.reroute === 'found'} t={t} />}
           {ui.mrtPreAlert && mrt && (
             <div class="banner gbanner" role="status" data-testid="mrt-prealert">
@@ -250,7 +250,7 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
         >
           <Icon name={following ? 'route' : 'nav'} />
         </button>
-        <button type="button" class="iconbtn" data-testid="guide-share" aria-label={t('g_share_sr')} onClick={() => router.navigate('/share/start')}>
+        <button type="button" class="iconbtn" data-testid="guide-share" aria-label={t('g_share_sr')} onClick={() => router.openSheet('share')}>
           <Icon name="share" />
         </button>
       </div>
@@ -258,6 +258,7 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
       <section class="stepcard" ref={card} style={{ maxHeight: `${cardMaxHeight(box.h, box.band)}px` }} aria-label={t('g_card_sr')} data-testid="stepcard">
         <div class="grab" aria-hidden="true" />
         {note && <TripNote id={note} trip={trip} t={t} onNoVoiceOff={() => setNoVoiceOff(true)} />}
+        <HelpNote />
         {prog && (
           <div class="segline" data-testid="journey-progress">
             <span class="segdots" aria-hidden="true">
@@ -284,6 +285,7 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
             </h2>
             {group === 'walk' && step?.kind === 'walk_to_stop' && <span class="sign">{String(step.params.stop ?? '')}</span>}
             <StepSub step={step} group={group} t={t} stopsLeft={ui.stopsLeft} mrt={!!mrt} metres={metresLeft(g)} minutes={minLeft} />
+            <StepExtras step={step} itinerary={trip.itinerary} pocket={ui.pocket} />
           </div>
         </div>
         {group === 'ride' && (
@@ -695,6 +697,7 @@ function Arrival({ trip }: { trip: ActiveTrip }) {
           </span>
           <span>{t('well_done')}</span>
         </div>
+        <ArrivedFamily shared={!!trip.share} dest={dest?.name ?? ''} />
       </main>
       <div class="dock">
         <button type="button" class="btn btn-primary" data-testid="finish-trip" onClick={done}>

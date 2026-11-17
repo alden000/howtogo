@@ -4,6 +4,7 @@
  * still shell placeholders until Creative's M1 state frames (§6b) replace them. Step and cue text come from @howtogo/shared.
  */
 import type { UiLang } from '../state/store';
+import { M34_EN, M34_ZH } from './m34';
 
 const zh = {
   app_name: '怎么去?',
@@ -430,6 +431,7 @@ const zh = {
   hj_stay: "在 {p} 待 {d}",
   hj_note: "每到一个地方，你按“继续”后，我才从那里找下一段路。",
   hj_change: "改一改",
+  ...M34_ZH,
 };
 
 const en: typeof zh = {
@@ -856,6 +858,7 @@ const en: typeof zh = {
   hj_stay: "Stay {d} at {p}",
   hj_note: "At each place, I find the next part only after you tap Continue.",
   hj_change: "Change places",
+  ...M34_EN,
 };
 
 export type UiKey = keyof typeof zh;
