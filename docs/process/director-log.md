@@ -50,3 +50,18 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Web shell merged (36 unit + 5 e2e pass; app JS 42 KB gz, MapLibre 265 KB gz lazy).
 - Rulings on M1 open questions: OQ1 as default (Vite+Preact+MapLibre). OQ2: keep the standalone Worker (built with CORS); serve it on the same custom domain later via a route `/api/*`. OQ3 as built (KV + memory). OQ4 fixture mode. OQ5: "Start" button behind feature flag `guide` (off in the M1 release, on in M2). OQ6: 500 m, widen to 1000 m if no itinerary. OQ7: pages.dev.
 - Parallel tracks now: Creative round 2 (logo B master + missing M1 state frames) in wt-creative; Developer M1 UI round in wt-m1ui.
+
+## 2026-11-17 — M2 requirements drafted
+- PM M2 spec: 50 ACs, estimate 8–10 h (multi-stop moved in from M3).
+- Rulings: M2 OQ1–OQ10 all accepted at PM defaults (owner pre-approved recommended defaults, D-6). OQ7 pocket view after 45 s idle is a UI dimming only, not a guidance guard, so the "no time-window heuristics" rule doesn't apply.
+- PM finding: shell vibration names ≠ style guide haptic map → fold into M1 fix round.
+
+## 2026-11-17 — Creative round 2 merged (prototype v1.1)
+- Logo B master + PNG exports in creative/logo/final/; M1 state frames F1–F8 in STYLE-GUIDE §6b. ~11 min, ~163k tokens.
+- Approved: 8 new icons (wifi-off, refresh, install, ios-share, info, trash, person, report). F8: the From/To swap button moves to Route options (AC 22 amended).
+- Owner question pending: privacy contact for About (default: a generic contact form/email the owner provides; until then About shows no contact line).
+
+## 2026-11-17 — M1 UI round done (dev/m1-ui)
+- 50 unit + 52 e2e pass, app JS 58 KB gz, 36 baselines. ~? min (report arrived while Creative round 3 ran).
+- Rulings: (1) bus-times "live" note is hidden in M1 (live bus data is M3). (2) The 8 §6b icons are approved (same set as Creative's list). (3) Build the Swap button on Route options in the fix round (F8). (4) H2 From-mode title: Creative supplies exact copy in its review. (5) Logo B icons go into the PWA manifest in the fix round (copy from creative/logo/final/).
+- Next: Creative review of built screens (read-only) + QA gate in parallel → one batched fix round.

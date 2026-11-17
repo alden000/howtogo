@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="怎么去? maskable icon">
+  <title>怎么去? maskable icon</title>
+  <rect width="512" height="512" fill="#9A3412"/>
+  <g transform="translate(256 262) scale(0.74) translate(-256 -256)"><g class="qu ">
+    <path class="qu-v" d="M256 96V204" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="56"/>
+    <path class="qu-h1" d="M196 128H316" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="50"/>
+    <path class="qu-h2" d="M100 216H412" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="50"/>
+    <path class="qu-path" d="M262 292L178 408L304 396" fill="none" stroke="#FBF5EC" stroke-linecap="round" stroke-linejoin="round" stroke-width="56"/>
+    <circle class="qu-dot" cx="388" cy="392" r="44" fill="#FFD23F"/>
+  </g></g>
+</svg>
