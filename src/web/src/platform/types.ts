@@ -4,7 +4,7 @@
  * Native-friendly rules: every call is async (or fire-and-forget), payloads are
  * plain JSON-able objects, and no DOM types appear in signatures.
  */
-import type { CuePriority, Lang } from '@howtogo/shared';
+import { HAPTIC_PATTERNS, type CuePriority, type HapticName, type Lang } from '@howtogo/shared';
 
 export interface LocationFix {
   lat: number;
@@ -52,21 +52,34 @@ export interface VoiceSupport {
   en: boolean;
 }
 
+export interface SpeakOptions {
+  force?: boolean;
+}
+
 export interface SpeechApi {
   voices(): Promise<VoiceSupport>;
-  /** `high` interrupts whatever is speaking; others queue. No-op while muted. */
-  speak(text: string, lang: Lang, priority: CuePriority): Promise<void>;
+  /**
+   * `high` interrupts whatever is speaking; others queue. No-op while muted unless
+   * `force` (a "say it again" tap is consent, AC 25). Resolves when the line has
+   * been spoken (or could not be), so the runtime can run its own queue (AC 23).
+   */
+  speak(text: string, lang: Lang, priority: CuePriority, opts?: SpeakOptions): Promise<void>;
   cancel(): Promise<void>;
   setMuted(muted: boolean): void;
 }
 
 export interface WakeLockApi {
-  /** Keeps the screen on; re-acquired automatically when the page becomes visible again. */
+  /**
+   * Keeps the screen on. Resolves false when the platform refuses (no API, no
+   * user gesture, low battery). Idempotent: the runtime calls it again on every
+   * `visibility` change to visible (the browser drops the lock when hidden).
+   */
   acquire(): Promise<boolean>;
   release(): Promise<void>;
 }
 
-export type VibratePattern = 'tap' | 'notice' | 'get_off' | 'alert' | 'arrived';
+/** Canonical haptic names (STYLE-GUIDE 6c.13): tick, confirm, attention, getoff, arrive, gentle. */
+export type VibratePattern = HapticName;
 
 export interface NotifyCue {
   /** Stable tag: a newer notification with the same tag replaces the older one. */
@@ -92,8 +105,25 @@ export interface RecognitionApi {
   stop(): void;
 }
 
+/** What this platform can do, so the UI can adapt (AC 38). */
+export interface PlatformCapabilities {
+  /** Guidance keeps running with the screen off (native M6). Web: false. */
+  backgroundGuidance: boolean;
+  /** Speech and wake lock need a fresh user gesture after a reload (iOS-like): resume shows "Tap to turn voice back on". */
+  speechNeedsGesture: boolean;
+  os: 'ios' | 'android' | 'other';
+}
+
+/** Page / app foreground state (web: document.visibilityState). */
+export interface VisibilityApi {
+  isVisible(): boolean;
+  onChange(cb: (visible: boolean) => void): Unsubscribe;
+}
+
 export interface Platform {
   readonly kind: 'web' | 'fake' | 'demo' | 'native';
+  readonly capabilities: PlatformCapabilities;
+  visibility: VisibilityApi;
   location: LocationApi;
   heading: HeadingApi;
   speech: SpeechApi;
@@ -106,11 +136,5 @@ export interface Platform {
   recognition?: RecognitionApi;
 }
 
-/** Vibration patterns (ms on/off). Kept here so web and native agree. */
-export const VIBRATE_PATTERNS: Record<VibratePattern, number[]> = {
-  tap: [30],
-  notice: [120],
-  get_off: [400, 150, 400, 150, 400],
-  alert: [600, 200, 600],
-  arrived: [200, 100, 200],
-};
+/** Vibration patterns (ms on/off), the 6c.13 table. Kept here so web and native agree. */
+export const VIBRATE_PATTERNS: Record<VibratePattern, number[]> = HAPTIC_PATTERNS;

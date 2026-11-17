@@ -32,7 +32,7 @@ beforeEach(() => resetLog());
 
 describe('trip runtime', () => {
   it('drives a bus trip end to end: cues in order, spoken, vibrated, arrival', async () => {
-    const { platform, store, runtime } = setup();
+    const { platform, store, runtime, timers } = setup();
     const it0 = itinerary('toaPayohToTTSH');
     await runtime.start(it0, placesFor(it0));
     expect(platform.fake.wakeLockHeld).toBe(true);
@@ -47,8 +47,12 @@ describe('trip runtime', () => {
     expect(store.trip.value?.guidance.status).toBe('arrived');
     expect(platform.fake.spoken.length).toBeGreaterThanOrEqual(cues.length - 1);
     expect(platform.fake.spoken.every((s) => s.lang === 'zh-CN')).toBe(true);
-    expect(platform.fake.vibrations).toContain('get_off');
-    expect(platform.fake.notifications.some((n) => n.priority === 'high')).toBe(true);
+    expect(platform.fake.vibrations).toContain('getoff');
+    expect(platform.fake.vibrations.at(-1)).toBe('arrive');
+    expect(platform.fake.notifications.some((n) => n.priority === 'high' && n.tag === 'getoff')).toBe(true);
+    // AC 39: the wake lock is released 60 s after arrival.
+    expect(platform.fake.wakeLockHeld).toBe(true);
+    timers.advance(60_000);
     expect(platform.fake.wakeLockHeld).toBe(false);
     expect(store.recents.value[0]?.to.name).toBe('Tan Tock Seng Hospital');
   });
