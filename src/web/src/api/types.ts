@@ -30,6 +30,8 @@ export interface BusArrivalNext {
   load: 'SEA' | 'SDA' | 'LSD';
   wheelchair: boolean;
   deck: 'single' | 'double' | 'bendy';
+  /** M3 AC 4: true = time from the bus's GPS ("Live"); false = from the timetable ("About"). */
+  monitored?: boolean;
   lat?: number;
   lng?: number;
 }
@@ -40,10 +42,47 @@ export interface BusArrival {
   services: { no: string; operator: string; next: BusArrivalNext[] }[];
 }
 
+export interface AlertLine {
+  line: string;
+  direction: string;
+  stations: string[];
+  freePublicBus: string[];
+  freeShuttle: string[];
+  freeBusIslandWide?: boolean;
+  shuttleDirection?: string;
+}
+
 export interface Alerts {
   status: 'normal' | 'disrupted';
-  lines: { line: string; direction: string; stations: string[]; freePublicBus: string[]; freeShuttle: string[] }[];
-  messages: { text: string; createdAt: string }[];
+  /** Status 1 + a message (planned works / minor delay): quiet Home line only. */
+  minor?: boolean;
+  lines: AlertLine[];
+  messages: { text: string; createdAt: string | null }[];
+}
+
+export interface LiftOutage {
+  line: string;
+  station: string;
+  stationName: string;
+  liftId: string | null;
+  desc: string;
+}
+
+export interface Lifts {
+  fetchedAt: string;
+  lifts: LiftOutage[];
+}
+
+export interface ShareCreateBody {
+  destName: string;
+  lang: string;
+  senderName?: string;
+  senderPhone?: string;
+}
+
+export interface SetupCreated {
+  code: string;
+  expiresAt: string;
 }
 
 export interface ShareCreated {
@@ -58,13 +97,15 @@ export type ShareStatus = import('@howtogo/shared').ShareStatus;
 
 /** PUT /api/share/:id body (API.md). `acc` and `updatedAt` are required by the Worker's validator. */
 export interface SharePut {
-  lat: number;
-  lng: number;
-  acc: number;
+  /** Position is optional (status-only updates, API.md M4). */
+  lat?: number;
+  lng?: number;
+  acc?: number;
   heading?: number | null;
   speed?: number | null;
   etaISO?: string | null;
   stepText?: string | null;
+  step?: import('@howtogo/shared').ShareStep | null;
   status: ShareStatus;
   updatedAt: number;
 }
@@ -101,9 +142,13 @@ export interface Api {
   revgeocode(p: LatLng): Promise<RevGeocodeResult>;
   busArrival(stop: string, service?: string): Promise<BusArrival>;
   alerts(): Promise<Alerts>;
-  shareCreate(destName: string, lang: string): Promise<ShareCreated>;
+  lifts(): Promise<Lifts>;
+  shareCreate(body: ShareCreateBody): Promise<ShareCreated>;
   sharePut(id: string, ownerToken: string, body: SharePut): Promise<void>;
   shareGet(id: string): Promise<ShareState>;
   shareDelete(id: string, ownerToken: string): Promise<void>;
   shareLive(id: string, onEvent: (e: LiveEvent) => void): LiveConnection;
+  /** Caregiver setup box: ciphertext only (API.md). */
+  setupCreate(ct: string): Promise<SetupCreated>;
+  setupGet(code: string): Promise<{ ct: string; expiresAt: string }>;
 }

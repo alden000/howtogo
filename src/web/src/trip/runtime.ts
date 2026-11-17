@@ -38,7 +38,8 @@ import {
   resumeDecision,
   stopsLeft as stopsLeftOf,
   takeSpeech,
-  toSharePayload,
+  toShareUpdate,
+  haversine,
   validateJourney,
   voiceLine,
   type AlertEffect,
@@ -70,6 +71,11 @@ import type { LocationFix, Platform, PlatformError, Unsubscribe } from '../platf
 import { toLang, type ActiveTrip, type ShareSession, type Store } from '../state/store';
 
 export const SHARE_MIN_INTERVAL_MS = 3000;
+/** M4 OQ7 cadence. */
+export const SHARE_MOVING_MS = 15_000;
+export const SHARE_STILL_MS = 60_000;
+export const SHARE_MOVE_M = 20;
+export const SHARE_BACKOFF_MS = [5000, 10_000, 20_000, 30_000] as const;
 /** Minimum gap between two re-route attempts (AC 32: ≤ 1 per 20 s). */
 export const REROUTE_RETRY_MS = 20_000;
 /** "找到了新的路" banner and the MRT pre-alert banner auto-dismiss (AC 32, 6c.12). */
@@ -124,6 +130,10 @@ export interface TripUi {
   etaMs: number | null;
   /** Last headline / alert line spoken. */
   lastLine: string | null;
+  /** M4 AC 12: the share ended on the server (410) while running → one toast. */
+  shareGone: boolean;
+  /** Pill `paused` (6e.1): PUTs have been failing for > 60 s. */
+  sharePaused: boolean;
 }
 
 const INITIAL_UI: TripUi = {
@@ -147,6 +157,8 @@ const INITIAL_UI: TripUi = {
   progress: null,
   etaMs: null,
   lastLine: null,
+  shareGone: false,
+  sharePaused: false,
 };
 
 export interface Timers {
@@ -457,7 +469,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     if (next.status === 'arrived' && prev.status !== 'arrived') {
       if (next.cues.some((c) => c.type === 'arrived_waypoint')) enterWaypoint();
       else onArrived();
-    } else if (event.type === 'fix') scheduleShare(false);
+    } else if (stepChanged || (event.type === 'fix' && shareDue(next))) scheduleShare(false);
     derive();
     return next;
   }
@@ -562,6 +574,9 @@ export function createTripRuntime(o: TripRuntimeOptions) {
 
   function onVisibility(visible: boolean) {
     const t = trip();
+    // M4 AC 14: hidden → `paused` (the page cannot send fixes); visible → travelling with a fresh fix.
+    if (t?.share && t.share.status !== 'help' && t.share.status !== 'arrived' && t.phase !== 'arrived')
+      setShareStatus(visible ? 'travelling' : 'paused');
     if (!visible) {
       store.flushTrip();
       return;
@@ -676,22 +691,30 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   }
 
   // ------------------------------------------------------------ live share
-  function sharePayload(t: ActiveTrip, share: ShareSession): SharePut | null {
+  /** Last update sent: OQ7 cadence (15 s moving ≥ 20 m / 60 s still / every step and status change). */
+  let lastSent: { at: number; lat?: number; lng?: number; step: number; status: string } | null = null;
+  let shareFailures = 0;
+  let shareFailingSince: number | null = null;
+
+  function shareDue(g: GuidanceState): boolean {
+    const t = trip();
+    if (!t?.share) return false;
+    if (!lastSent) return true;
+    if (g.stepIndex !== lastSent.step || t.share.status !== lastSent.status) return true;
+    const age = now() - lastSent.at;
+    if (age >= SHARE_STILL_MS) return true;
+    const f = g.fix;
+    if (!f || lastSent.lat === undefined) return age >= SHARE_MOVING_MS;
+    return age >= SHARE_MOVING_MS && haversine(f, { lat: lastSent.lat, lng: lastSent.lng! }) >= SHARE_MOVE_M;
+  }
+
+  function sharePayload(t: ActiveTrip, share: ShareSession): SharePut {
     // Worker statuses only (API.md): the user's help/paused wins; a waypoint is still travelling.
-    const status = share.status === 'help' || share.status === 'paused' ? share.status : t.phase === 'waypoint' ? 'travelling' : undefined;
-    const p = toSharePayload(t.guidance, { updatedAt: now(), ...(status ? { status } : {}) });
-    if (!p) return null;
-    return {
-      lat: p.lat,
-      lng: p.lng,
-      acc: p.acc,
-      heading: p.heading ?? null,
-      speed: p.speed ?? null,
-      etaISO: p.etaISO ?? null,
-      stepText: p.stepText ?? null,
-      status: p.status,
-      updatedAt: p.updatedAt,
-    };
+    const status = share.status === 'help' || share.status === 'paused' || share.status === 'arrived' ? share.status : 'travelling';
+    const p = toShareUpdate(t.guidance, { updatedAt: now(), status, stopsLeft: ui.peek().stopsLeft });
+    const body: SharePut = { status: p.status, updatedAt: p.updatedAt, etaISO: status === 'arrived' ? null : (p.etaISO ?? null), stepText: p.stepText ?? null, step: p.step ?? null };
+    if (p.lat !== undefined) Object.assign(body, { lat: p.lat, lng: p.lng, acc: p.acc, heading: p.heading ?? null, speed: p.speed ?? null });
+    return body;
   }
 
   /** Send the latest state, at most every 3 s (latest wins). `force` (help) bypasses the limit. */
@@ -717,12 +740,15 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     const t = trip();
     if (!t?.share || !shareDirty) return;
     const body = sharePayload(t, t.share);
-    if (!body) return;
     shareDirty = false;
     shareInflight = true;
     lastShareAt = now();
     try {
       await api.sharePut(t.share.id, t.share.ownerToken, body);
+      lastSent = { at: now(), step: t.guidance.stepIndex, status: body.status, ...(body.lat !== undefined ? { lat: body.lat, lng: body.lng! } : {}) };
+      shareFailures = 0;
+      shareFailingSince = null;
+      if (ui.peek().sharePaused) patchUi({ sharePaused: false });
     } catch (e) {
       const err = e instanceof ApiError ? e : new ApiError('network');
       if (err.shareGone) {
@@ -731,17 +757,23 @@ export function createTripRuntime(o: TripRuntimeOptions) {
           const { share: _s, ...rest } = tr;
           return rest;
         });
+        patchUi({ shareGone: true });
         return;
       }
-      shareDirty = true; // resend the latest on the next opportunity
-      if (err.status === 429) {
-        const ms = (err.retryAfterS ?? 3) * 1000;
-        if (shareTimer === null)
-          shareTimer = timers.setTimeout(() => {
-            shareTimer = null;
-            void sendShare();
-          }, ms);
+      shareDirty = true; // keep only the latest; resend on the next opportunity
+      // M4 AC 11/12: 429 → Retry-After; otherwise back off 5, 10, 20, 30 s (cap).
+      const ms = err.status === 429 ? (err.retryAfterS ?? 3) * 1000 : SHARE_BACKOFF_MS[Math.min(shareFailures, SHARE_BACKOFF_MS.length - 1)]!;
+      if (err.status !== 429) {
+        shareFailures++;
+        shareFailingSince ??= now();
+        if (now() - shareFailingSince > 60_000 && !ui.peek().sharePaused) patchUi({ sharePaused: true });
       }
+      if (shareTimer !== null) timers.clearTimeout(shareTimer);
+      shareTimer = timers.setTimeout(() => {
+        shareTimer = null;
+        void sendShare();
+      }, ms);
+      return;
     } finally {
       shareInflight = false;
     }
@@ -1060,13 +1092,17 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     },
     /** End the trip (End sheet, Done, stale End). Stops voice, GPS, wake lock; ends any share; deletes the stored trip. */
     end,
-    async startShare(): Promise<ShareSession | null> {
+    /** M4 AC 3: create the share (sender name/phone only as allowed, OQ3) and send the first update. */
+    async startShare(opts: { senderName?: string; senderPhone?: string; destName?: string; lang?: string; help?: boolean } = {}): Promise<ShareSession | null> {
       const t = trip();
       if (!t) return null;
       if (t.share) return t.share;
       const dest = t.places[t.places.length - 1]?.name || (t.lang === 'zh-CN' ? '目的地' : 'Destination');
-      const c = await api.shareCreate(dest.slice(0, 120), t.lang === 'zh-CN' ? 'zh' : 'en');
-      const share: ShareSession = { ...c, status: 'travelling' };
+      const c = await api.shareCreate({ destName: (opts.destName ?? dest).slice(0, 120), lang: opts.lang ?? (t.lang === 'zh-CN' ? 'zh' : 'en'), ...(opts.senderName ? { senderName: opts.senderName } : {}), ...(opts.senderPhone ? { senderPhone: opts.senderPhone } : {}) });
+      const share: ShareSession = { ...c, status: opts.help ? 'help' : 'travelling' };
+      shareFailures = 0;
+      lastSent = null;
+      patchUi({ shareGone: false });
       store.patchTrip((tr) => ({ ...tr, share }));
       log('share:started');
       lastShareAt = -Infinity;

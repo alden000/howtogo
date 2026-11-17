@@ -76,6 +76,15 @@ export interface MockApiOptions {
   now?: () => number;
 }
 
+/** Scenario for one endpoint: sessionStorage `howtogo.mock.scn.<kind>` (set from `?scn=bus:here,alerts:disrupted`). */
+export function scenario(kind: string, dflt: string): string {
+  try {
+    return sessionStorage.getItem(`howtogo.mock.scn.${kind}`) || dflt;
+  } catch {
+    return dflt;
+  }
+}
+
 export function createMockApi(opts: MockApiOptions = {}): Api {
   const latency = opts.latencyMs ?? 120;
   const now = opts.now ?? Date.now;
@@ -120,26 +129,83 @@ export function createMockApi(opts: MockApiOptions = {}): Api {
       if (!near || near.d > 300) return fail('revgeocode', 404, 'not_found');
       return wait({ name: near.m.name, address: near.m.address, postal: near.m.postal }, 'revgeocode');
     },
-    busArrival(stop) {
-      return wait(
-        {
-          stop,
-          fetchedAt: new Date(now()).toISOString(),
-          services: [
-            { no: '139', operator: 'SBST', next: [{ etaMin: 4, load: 'SEA' as const, wheelchair: true, deck: 'double' as const }, { etaMin: 15, load: 'SDA' as const, wheelchair: true, deck: 'single' as const }] },
-          ],
-        },
-        'bus-arrival',
-      );
+    busArrival(stop, service) {
+      // M3 AC 39 scenarios (same names as the Worker's FIXTURE_MODE `?fixture=`), switchable mid-test.
+      const sc = scenario('bus', 'live');
+      if (sc === 'not_configured') return fail('bus-arrival', 503, 'not_configured');
+      const no = service || '139';
+      const fetchedAt = new Date(now() - (sc === 'stale' ? 90_000 : sc === 'old' ? 200_000 : 0)).toISOString();
+      const bus = (etaMin: number, load: 'SEA' | 'SDA' | 'LSD', monitored = true, deck: 'single' | 'double' | 'bendy' = 'double', wheelchair = true) => ({ etaMin, load, wheelchair, deck, monitored });
+      const next =
+        sc === 'empty' ? [] :
+        sc === 'estimated' ? [bus(8, 'SEA', false), bus(20, 'SEA', false)] :
+        sc === 'here' ? [bus(0, 'SDA'), bus(9, 'SEA')] :
+        sc === 'missed' ? [bus(9, 'SEA'), bus(21, 'SEA')] :
+        sc === 'lsd' ? [bus(3, 'LSD'), bus(9, 'SEA', true, 'single')] :
+        sc === 'nowab' ? [bus(5, 'SDA', true, 'single', false), bus(14, 'SEA')] :
+        [bus(4, 'SEA'), bus(12, 'SDA', true, 'single')];
+      return wait({ stop, fetchedAt, services: [{ no, operator: 'SBST', next }] }, 'bus-arrival');
     },
     alerts() {
-      return wait({ status: 'normal' as const, lines: [], messages: [] }, 'alerts');
+      const sc = scenario('alerts', 'normal');
+      if (sc === 'not_configured') return fail('alerts', 503, 'not_configured');
+      if (sc === 'minor')
+        return wait({ status: 'normal' as const, minor: true, lines: [], messages: [{ text: 'SYNTHETIC: Minor delay on the CCL. Trains are running.', createdAt: new Date(now()).toISOString() }] }, 'alerts');
+      if (sc === 'disrupted')
+        return wait(
+          {
+            status: 'disrupted' as const,
+            minor: false,
+            lines: [{ line: 'NSL', direction: 'Marina South Pier', stations: ['NS16', 'NS17', 'NS18', 'NS19', 'NS20'], freePublicBus: ['NS16', 'NS17', 'NS18', 'NS19', 'NS20'], freeShuttle: ['NS17'], freeBusIslandWide: false, shuttleDirection: 'Both' }],
+            messages: [{ text: 'SYNTHETIC: 0710hrs: NSL - No train service between Ang Mo Kio and Novena towards Marina South Pier. Free regular bus services are available.', createdAt: '2026-11-17T07:10:00+08:00' }],
+          },
+          'alerts',
+        );
+      return wait({ status: 'normal' as const, minor: false, lines: [], messages: [] }, 'alerts');
     },
-    shareCreate(destName, lang) {
+    lifts() {
+      const sc = scenario('lifts', 'outage');
+      if (sc === 'not_configured') return fail('lifts', 503, 'not_configured');
+      const lifts =
+        sc === 'none'
+          ? []
+          : [
+              { line: 'NSL', station: 'NS17', stationName: 'Bishan', liftId: 'B1L01', desc: 'Exit A Street level - Concourse' },
+              { line: 'CCL', station: 'CC22', stationName: 'Buona Vista', liftId: null, desc: 'Exit C Street level - Concourse' },
+              { line: 'NEL', station: 'NE12', stationName: 'Serangoon', liftId: 'B1L02', desc: 'Exit B Street level - Concourse' },
+            ];
+      return wait({ fetchedAt: new Date(now()).toISOString(), lifts }, 'lifts');
+    },
+    setupCreate(ct) {
+      if (scenario('setup', 'ok') === 'rate_limited') return fail('setup-create', 429, 'rate_limited', 60);
+      const code = Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 56)]).join('');
+      const expiresAt = new Date(now() + 24 * 3600_000).toISOString();
+      try {
+        localStorage.setItem(`howtogo.mocksetup.${code}`, JSON.stringify({ ct, expiresAt, used: false }));
+      } catch {
+        /* ignore */
+      }
+      return wait({ code, expiresAt }, 'setup-create', 201);
+    },
+    setupGet(code) {
+      let box: { ct: string; expiresAt: string; used: boolean } | null = null;
+      try {
+        box = JSON.parse(localStorage.getItem(`howtogo.mocksetup.${code}`) ?? 'null');
+      } catch {
+        box = null;
+      }
+      if (!box) return fail('setup-get', 404, 'setup_not_found');
+      if (box.used) return fail('setup-get', 410, 'setup_used');
+      if (Date.parse(box.expiresAt) < now()) return fail('setup-get', 410, 'setup_expired');
+      localStorage.setItem(`howtogo.mocksetup.${code}`, JSON.stringify({ ...box, ct: '', used: true }));
+      return wait({ ct: box.ct, expiresAt: box.expiresAt }, 'setup-get');
+    },
+    shareCreate({ destName, lang, senderName, senderPhone }) {
+      if (scenario('share', 'ok') === 'fail') return fail('share-create', 502, 'upstream_unavailable');
       const id = Array.from({ length: 12 }, () => 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 56)]).join('');
       const token = 'mock-' + id;
       const expiresAt = new Date(now() + 4 * 3600_000).toISOString();
-      store.set(id, { token, destName, lang, status: 'waiting', lat: null, lng: null, acc: null, heading: null, etaISO: null, stepText: null, updatedAt: null, expiresAt });
+      store.set(id, { token, destName, lang, senderName: senderName ?? null, senderPhone: senderPhone ?? null, status: 'waiting', lat: null, lng: null, acc: null, heading: null, etaISO: null, stepText: null, step: null, updatedAt: null, expiresAt } as never);
       return wait({ id, ownerToken: token, viewPath: `/t/${id}`, expiresAt }, 'share-create', 201);
     },
     sharePut(id, token, body) {
@@ -151,7 +217,8 @@ export function createMockApi(opts: MockApiOptions = {}): Api {
       const last = lastPut.get(id) ?? 0;
       if (body.status !== 'help' && t - last < 3000) return fail('share-put', 429, 'rate_limited', Math.ceil((3000 - (t - last)) / 1000));
       lastPut.set(id, t);
-      const next = { ...s, ...body, acc: body.acc ?? null, heading: body.heading ?? null, etaISO: body.etaISO ?? null, stepText: body.stepText ?? null, updatedAt: Math.min(body.updatedAt, t) };
+      const keepPos = body.lat === undefined ? { lat: s.lat, lng: s.lng, acc: s.acc } : {};
+      const next = { ...s, ...body, ...keepPos, acc: body.acc ?? keepPos.acc ?? null, step: body.step ?? null, heading: body.heading ?? null, etaISO: body.etaISO ?? null, stepText: body.stepText ?? null, updatedAt: Math.min(body.updatedAt, t) };
       store.set(id, next);
       broadcast(id, { type: 'state', state: publicState(next) });
       return wait(undefined, 'share-put', 204);

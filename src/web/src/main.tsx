@@ -38,6 +38,11 @@ async function boot() {
   if (q.get('demo') === '1') session.set('mode.demo', '1');
   if (q.get('demo') === '0') session.remove('mode.demo');
   if (q.get('mock') === '1') session.set('mode.mock', '1');
+  // Mock scenarios (M3 AC 39 names): ?scn=bus:here,alerts:disrupted,lifts:none
+  for (const kv of (q.get('scn') ?? '').split(',').filter(Boolean)) {
+    const [k, v] = kv.split(':');
+    if (k && v) session.set(`mock.scn.${k}`, v);
+  }
   if (q.get('demoMs')) session.set('mode.demoMs', q.get('demoMs')!);
   // Feature flags per tab: `?ff=live` adds, `?ff=-guide` removes (comma-separated; `?ff=` clears the tab's list).
   // M2 release (AC 1): `guide` and `help` are on by default.

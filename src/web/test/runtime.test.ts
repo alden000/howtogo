@@ -90,7 +90,7 @@ describe('trip runtime', () => {
     expect(await b.runtime.resume()).toBe(false);
   });
 
-  it('share: PUTs at most every 3 s with the latest fix; help bypasses the limit', async () => {
+  it('share: OQ7 cadence (15 s moving / step changes), ≥ 3 s apart, latest fix; help bypasses the limit', async () => {
     const puts: { t: number; status: string; lat: number }[] = [];
     const { platform, runtime, timers } = setup({
       shareCreate: async () => ({ id: 'abc123def456', ownerToken: 'tok', viewPath: '/t/abc123def456', expiresAt: '' }),
@@ -111,12 +111,17 @@ describe('trip runtime', () => {
     }
     timers.advance(3000);
     await flush();
-    const span = fixes[fixes.length - 1]!.t - t0;
-    expect(puts.length).toBeGreaterThan(2);
-    expect(puts.length).toBeLessThanOrEqual(Math.ceil(span / 3000) + 2);
+    expect(puts.length).toBeGreaterThanOrEqual(1);
+    expect(puts.length).toBeLessThanOrEqual(4); // first + step changes + one 15 s tick, not one per fix
     for (let i = 1; i < puts.length; i++) expect(puts[i]!.t - puts[i - 1]!.t).toBeGreaterThanOrEqual(3000);
-    // the last PUT carries the latest fix
-    expect(puts[puts.length - 1]!.lat).toBeCloseTo(fixes[fixes.length - 1]!.lat, 5);
+    // 15 s later, a moved fix goes out and carries the latest position
+    const later = simulateFixes(it0, { seed: 2, intervalS: 1 })[45]!;
+    timers.advance(16_000);
+    platform.fake.emit({ ...later, t: timers.now() });
+    await flush();
+    timers.advance(3000);
+    await flush();
+    expect(puts[puts.length - 1]!.lat).toBeCloseTo(later.lat, 5);
 
     const before = puts.length;
     runtime.help();
@@ -143,19 +148,53 @@ describe('trip runtime', () => {
     await runtime.startShare();
     await flush();
     expect(calls).toBe(1);
-    timers.advance(3000);
-    platform.fake.emit(fixes[1]!);
+    timers.advance(61_000);
+    platform.fake.emit({ ...fixes[1]!, t: timers.now() });
     await flush();
     expect(calls).toBe(2); // 429
     timers.advance(2000);
     await flush();
     expect(calls).toBe(3); // retried after Retry-After
-    timers.advance(3000);
-    platform.fake.emit(fixes[2]!);
+    timers.advance(61_000);
+    platform.fake.emit({ ...fixes[2]!, t: timers.now() });
     await flush();
     expect(calls).toBe(4);
     expect(store.trip.value?.share).toBeUndefined();
     expect(logLines()).toContain('share:gone');
+  });
+
+  it('share: status-only first update with the structured step; hidden → paused; network errors back off', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    let fail = false;
+    const { platform, runtime, timers } = setup({
+      shareCreate: async () => ({ id: 'abc123def456', ownerToken: 'tok', viewPath: '/t/x', expiresAt: '' }),
+      sharePut: async (_i: string, _t: string, b: Record<string, unknown>) => {
+        bodies.push(b);
+        if (fail) throw new ApiError('network');
+      },
+    });
+    const it0 = itinerary();
+    timers.set(1_800_000_000_000);
+    await runtime.start(it0, placesFor(it0));
+    await runtime.startShare({ senderName: '妈妈' });
+    await flush();
+    expect(bodies[0]).toMatchObject({ status: 'travelling', step: { k: 'walk' } });
+    expect('lat' in bodies[0]!).toBe(false);
+    timers.advance(4000);
+    platform.fake.setVisible(false);
+    await flush();
+    expect(bodies[bodies.length - 1]).toMatchObject({ status: 'paused' });
+    timers.advance(4000);
+    fail = true;
+    platform.fake.setVisible(true);
+    await flush();
+    const n = bodies.length;
+    timers.advance(4999);
+    await flush();
+    expect(bodies.length).toBe(n);
+    timers.advance(1);
+    await flush();
+    expect(bodies.length).toBe(n + 1); // retried after 5 s
   });
 
   it('re-routes from the current position on off_route', async () => {
