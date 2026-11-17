@@ -263,7 +263,7 @@ describe('share payload', () => {
     expect(p).toMatchObject({ lat: 1.36721, lng: 103.84381, acc: 7, heading: 136, speed: 1, status: 'travelling', updatedAt: it0.startTime });
     expect(p.etaISO).toMatch(/Z$/);
     expect(p.stepText).toBe('步行到巴士站 Blk 215（54261）');
-    expect(Object.keys(p).sort()).toEqual(['acc', 'etaISO', 'heading', 'lat', 'lng', 'speed', 'status', 'stepText', 'updatedAt']);
+    expect(Object.keys(p).sort()).toEqual(['acc', 'etaISO', 'heading', 'lat', 'lng', 'speed', 'status', 'step', 'stepText', 'updatedAt']);
   });
 });
 
