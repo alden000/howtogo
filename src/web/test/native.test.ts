@@ -340,3 +340,20 @@ describe('runtime with the native trip service', () => {
     expect(env.svc.disarms()).toBeGreaterThan(before);
   });
 });
+
+describe('OEM battery guide hook (AC 29, 30)', async () => {
+  const { guideBrand, batteryGuideDue, BATTERY_GUIDE } = await import('../src/platform/batteryGuide');
+  const info = { manufacturer: 'Xiaomi', brand: 'Redmi', sdk: 34, batteryUnrestricted: false, playServices: true, lastTripKilled: false };
+  it('brand by manufacturer, generic fallback; every brand has steps', () => {
+    expect(['samsung', 'Xiaomi', 'POCO', 'realme', 'vivo', 'HONOR', 'OnePlus', 'Google'].map(guideBrand)).toEqual([
+      'samsung', 'xiaomi', 'xiaomi', 'oppo', 'vivo', 'huawei', 'oneplus', 'generic',
+    ]);
+    for (const g of Object.values(BATTERY_GUIDE)) expect(g.steps.length).toBeGreaterThanOrEqual(3);
+  });
+  it('once before the first trip; a note after a kill; never when already unrestricted', () => {
+    expect(batteryGuideDue(info, false)).toBe('guide');
+    expect(batteryGuideDue(info, true)).toBeNull();
+    expect(batteryGuideDue({ ...info, lastTripKilled: true }, true)).toBe('killed-note');
+    expect(batteryGuideDue({ ...info, batteryUnrestricted: true, lastTripKilled: true }, false)).toBeNull();
+  });
+});
