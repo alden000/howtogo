@@ -806,6 +806,25 @@ A walk step whose `to` is a platform of another line inside the same station com
 - SR: the card's headline and sign chip are read with the line code expanded ("CC 环线" → "环线"; en "Circle Line").
 - Baselines: `T6-transfer`, `T6-transfer-out`, `T6-h4`.
 
+#### 6d.6b Circle Line loop: boarding copy (replaces `step.board_train.loop*`, Director request)
+The CCL has no terminus, and 顺时针 / 逆时针 ("clockwise / anticlockwise") is not how seniors (or the platform signs) think about a train. **Lead with a station name they can find on the platform sign: the next interchange in the direction of travel (`{via}`), as zh name + English sign text (T7). Never show or speak clockwise/anticlockwise.**
+
+| Key | zh | en |
+|---|---|---|
+| `step.board_train.loop` (headline) | 坐 [CC] 环线，往 **{via_zh}** {via_en} 方向 | Take the [CC] Circle Line towards **{via_en}** |
+| `step.board_train.loop.transfer` (headline) | 换车：坐 [CC] 环线，往 **{via_zh}** {via_en} 方向 | Change to the [CC] Circle Line towards **{via_en}** |
+| Sign chip | `Circle Line · {via_en}` | `Circle Line · {via_en}` |
+| Sub-line (always, confirms the side) | 这个方向的下一站是 {next_zh} {next_en}。 | In this direction, the next stop is {next_en}. |
+| Voice | 坐环线，往{via_zh}方向。下一站是{next_zh}。 | Take the Circle Line towards {via_en}. The next stop is {next_en}. |
+| Fallback (no `{via}` known) headline | 坐 [CC] 环线，下一站是 **{next_zh}** {next_en} | Take the [CC] Circle Line. The next stop is **{next_en}** |
+
+- Example (from Bishan CC15, heading south): zh 坐 [CC] 环线，往 **实龙岗** Serangoon 方向 · sub 这个方向的下一站是 罗弄泉 Lorong Chuan。 en Take the [CC] Circle Line towards **Serangoon** · In this direction, the next stop is Lorong Chuan.
+- `{via}` = the next interchange station in the direction of travel (as on the CCL platform signs), even if the user gets off before it; the next-stop sub-line is what confirms the side. If the user's alight station **is** that interchange, the headline still names it (it's both).
+- `{direction}` (顺时针 / 逆时针) stays internal (engine/debug); it is not a UI string in either language. Dev: drop it from the two keys, or keep it out of rendered output.
+- No-zh-name rule (T7) applies to `{via}` and `{next}`: English only, never translated.
+- SR: "坐环线，往实龙岗方向，下一站罗弄泉" / "Take the Circle Line towards Serangoon, next stop Lorong Chuan".
+- Baselines: `T6-ccl-board`, `T6-ccl-transfer`.
+
 ### 6d.7 T7 Station names display rule (zh name + code + English sign text)
 Singapore station signs show the **English name**, the **Chinese name** and the **code**. Seniors must be able to match the screen to the sign. Rule:
 

@@ -1,7 +1,7 @@
 # 怎么去? — Creative direction
 
-**Version:** v1.2 (2026-11-17) · **Owner:** Creative · **Status:** signed off by the owner (D-8); v1.1 applies the owner's choices; v1.2 adds the M2 guided-trip frames (D19–D21, pending Director review)
-Companion files: `creative/STYLE-GUIDE.md` (tokens, components, frames H1–H13, 6b M1 states, 6c M2 guided-trip frames), `creative/logo/`, `creative/prototype/index.html`.
+**Version:** v1.3 (2026-11-17) · **Owner:** Creative · **Status:** signed off by the owner (D-8); v1.1 applies the owner's choices; v1.2 adds the M2 guided-trip frames (D19–D21); v1.3 adds the M3/M4 frames (D22–D26, pending Director review)
+Companion files: `creative/STYLE-GUIDE.md` (tokens, components, frames H1–H13, 6b M1 states, 6c M2 guided-trip frames, 6d M3 transit smarts, 6e M4 share and safety), `creative/prototype/viewer.html` (family viewer page), `creative/logo/`, `creative/prototype/index.html`.
 
 ---
 
@@ -90,6 +90,11 @@ Visual personality: **warm paper, persimmon and saffron.** The palette comes fro
 | D19 | **Two-stage get-off (M2):** "下一站下车" stays the saffron panel (get ready); "到站了，请下车" (H6b) is a full **ink** takeover with saffron type and a saffron edge glow (go now), plus a doubled `getoff` vibration. One repeat after 20 s if not acknowledged, never more. | The change of colour tells the user that the moment has moved on, even without sound. Saffron on ink is still 12.1:1, and the glow stays visible around an ink sheet, which it would not around a saffron one. |
 | D20 | **Nothing covers the map (M2):** the guidance top bar is a solid band, the map lives only between the band and the step card, and the puck sits 66% down that window. Banners and notes go in the band or the card, never on the map. Pocket view is a black, map-free screen with one glyph, one line and "打开". | The D-8 review found a station label under the End button. A layout rule fixes the whole class of bug, at every text size, instead of nudging one label. |
 | D21 | **One haptic vocabulary:** `tick, confirm, attention, getoff, arrive, gentle` (STYLE-GUIDE 6c.13) everywhere, the web shell included. | Two sets of names had already drifted apart. Feel is part of the brand: one strongest pattern, used only for getting off. |
+| D22 | **Honest live data (M3):** every live number says where it comes from (实时 Live only for a monitored bus, otherwise 约 About / By timetable); missing exits, fares and station names are hidden, never guessed or machine-translated. Seat load, wheelchair and deck are words + glyphs, never colour. | Trust is the product. One wrong "Live" or invented exit costs more than a blank line. |
+| D23 | **Disruption is saffron, not red (M3):** the MRT disruption banner uses the saffron rule, the line tag and a plain sentence ("有些站暂时没有地铁"), with one action: 找别的路 Find another way. LTA's own text is one tap away, in English, as published. | Saffron already means "pay attention, act" (get off). Red stays 995-only. |
+| D24 | **Station names as on the sign (M3):** zh name + line-code tag + English sign text in zh UI; voice says the zh name only. Circle Line direction is "往 {next interchange} 方向", never clockwise/anticlockwise. | Seniors match the screen against the platform sign, which shows English, Chinese and a code. |
+| D25 | **Honest sharing (M4):** we say the link is ready/sent, never "she can see you now" or "she knows you arrived" (we can't know). The family viewer is a calm, standalone page; "help" is a saffron panel with a call button, not an alarm; link previews carry no name or place. | Families must be able to rely on every sentence. Calm copy prevents both panic and complacency. |
+| D26 | **Family can help, the senior decides (M4):** caregiver setup is a one-time, end-to-end encrypted hand-off (QR on the senior's phone, key in the link fragment) that changes nothing until the senior taps one big "好，用这些". Contacts stay on the phone. | Seniors rarely set up apps themselves, but it is their phone. Security copy is one plain sentence next to the action. |
 
 ## 5. Open questions for the owner
 Answered at sign-off (D-8): logo → **B, 去 seal** (D17); palette and type approved; name asked once at first run, optional; WhatsApp + SMS + link sharing as recommended.
@@ -98,6 +103,7 @@ Still open: the contact line for the About & privacy screen (PDPA contact point)
 ## Change log
 | Version | Date | Change |
 |---|---|---|
+| v1.3 | 2026-11-17 | M3/M4 frames (STYLE-GUIDE 6d, 6e): bus-arrival chip states (live, arriving, by timetable, no data, last bus gone, not running), load/wheelchair/deck tags, MRT disruption banner + find another way, exit hint, transfer card, Circle Line copy, station-name rule, fare + concession note, recent trips (D22–D24); share flow end-to-end, sharing pill states, family viewer page `/t/:id` with 15 states and a desktop layout, full Help with 995 confirm, family contacts, caregiver setup, taxi hand-off (D25–D26). Prototype v1.3 + `viewer.html`. |
 | v1.2 | 2026-11-17 | M2 guided-trip frames (STYLE-GUIDE 6c): H6b get off now (D19), pocket view, multi-stop builder, H4 journey and waypoint arrival, resume and voice unlock, manual controls, re-route failed/offline, no-voice help, weak GPS and MRT estimate, canonical haptic map (D21); H5 layout rule (D20). Prototype v1.2 adds H6b, pocket view, manual mode and re-route failed. |
 | v1.1 | 2026-11-17 | Owner sign-off applied: logo B master (D17), arrival moment rebuilt around the seal (D13), stairs/lift facts hidden (D16), M1 state frames (D18, STYLE-GUIDE 6b). |
 | v1.0 | 2026-11-17 | First creative run: brand idea, principles, voice, D1–D16, logo concepts, tokens, motion and haptics, components, frames H1–H13, interactive prototype. |
