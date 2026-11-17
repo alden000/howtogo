@@ -4,6 +4,7 @@
  * still shell placeholders (M2/M4).
  */
 import { online } from './api/offline';
+import { sampleMode } from './state/sample';
 import { useServices, useT } from './context';
 import { EndTripSheet } from './views/sheets';
 import { Home } from './views/Home';
@@ -17,7 +18,10 @@ import { Help } from './views/Help';
 import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, SettingsScreen } from './views/Settings';
 import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
-import { Bar, IconSprite, Toast } from './ui/kit';
+import { Bar, Icon, IconSprite, Toast } from './ui/kit';
+
+/** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
+const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { ghost } from './ui/ghost';
 import { connectivityToasts } from './ui/toasts';
@@ -104,6 +108,12 @@ export function App() {
         {!online.value && r.name === 'home' && (
           <p class="note" role="status" data-testid="offline-notice">
             {t('offline_notice')}
+          </p>
+        )}
+        {sampleMode.value && SAMPLE_SCREENS.has(r.name) && (
+          <p class="note sample" role="note" data-testid="sample-banner">
+            <Icon name="info" />
+            <span>{t('sample_banner')}</span>
           </p>
         )}
         {view}

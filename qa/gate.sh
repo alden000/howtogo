@@ -39,6 +39,7 @@ step static-pwa 'grep -E "static-pwa (ok|FAIL)" -A3 | head -4' node "$QA/scripts
 step secrets 'tail -n +1 | head -3' node "$QA/scripts/secret-scan.mjs" "$QA/.out/dist"
 step dev-e2e "grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)'" bash -c "cd '$WEB' && npx playwright test -c '$QA/playwright.dev.config.mjs'"
 step qa-e2e "grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)'" bash -c "cd '$QA' && npx playwright test"
+# QA-20: Lighthouse judges the median of 3 runs per URL (LH_RUNS overrides).
 step lighthouse 'grep -E "^lighthouse"' "$QA/scripts/lighthouse.sh"
 step artifact 'grep artifact' "$QA/scripts/artifact.sh" "$QA/.out/dist" "$VER"
 

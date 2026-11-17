@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { handleAlerts, handleBusArrival, handleRevGeocode, handleRoute, handleSearch } from "./api";
-import { HttpError, errorResponse, finalize, originAllowed, preflight } from "./http";
+import { fixtureMode } from "./fixtures";
+import { HttpError, errorResponse, finalize, json, originAllowed, preflight } from "./http";
 import { checkRateLimit } from "./ratelimit";
 import { handleCreateShare, handleShareById } from "./share";
 
@@ -21,7 +22,8 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     "/api/revgeocode": () => handleRevGeocode(url, env, ctx),
     "/api/bus-arrival": () => handleBusArrival(url, env, ctx),
     "/api/alerts": () => handleAlerts(env, ctx),
-    "/api/health": async () => new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } }),
+    // D-10: the PWA shows the "Sample routes" banner when fixtureMode is true.
+    "/api/health": async () => json({ ok: true, fixtureMode: fixtureMode(env) }, 200, { "Cache-Control": "no-store" }),
   };
   const h = getRoutes[path];
   if (h) {

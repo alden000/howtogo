@@ -380,3 +380,50 @@ The trip and its step still come from `store.trip` (`guidance`, `journey {segmen
 1. Build H5 from `runtime.ui` plus the store trip, and call `touch()` from a capture listener. Add H6/H6b sheets bound to `ui.alert` + `ackAlert()`, the H11 banner/notes, G1 pocket, G3 waypoint (`continueJourney`/`endAtWaypoint`), G4 (`stale`, `resumed`, `voiceUnlockNeeded`), and G5 controls.
 2. Build the H3 multi-stop builder → `planTrip()` → H4 timeline → `startJourney()`. Turn the `guide` flag on.
 3. Add Playwright replays (bus, MRT + transfer, mixed, 5-stop, offline) and the entry-point matrix, asserting through the hooks above.
+## 2026-11-17 — Release prep: Creative R1–R3, QA-20, D-10 one-Worker hosting, sample-routes banner (dev/m1-ui)
+- **Creative R1** (Med): app.css 150/200 % rules exactly as specified — the Settings value drops to its own line under the label, chevron stays on row 1. Re-recorded only `M1-F6-settings-light-200-zh` (the only baseline that changed; the other 33 passed untouched).
+- **R2**: `ui/ghost.ts` rewrites `:root` → `.groot` in the adopted sheet and wraps the ghost copy in a `.groot` div carrying `<html>`'s classes, `data-theme`, `data-text-size`. **R3**: zh `not_set` = "还没设置".
+- **QA-20**: `qa/scripts/lighthouse.sh` (the gate's Lighthouse step) runs each URL 3× (`LH_RUNS` overrides) and judges the median per category; every run's scores are printed.
+- **D-10**: `src/worker/wrangler.toml` → name `howtogo`, `[assets]` directory `../web/dist` (no copy step), binding `ASSETS`, `not_found_handling = "single-page-application"`, `run_worker_first = ["/api/*"]`; KV + DO bindings and the `v1` sqlite migration kept; vars `FIXTURE_MODE="1"`, `ALLOWED_ORIGINS="https://howtogo.raus-ums.workers.dev,http://localhost:5173,http://localhost:4173,http://localhost:8787"`. Unit tests force `FIXTURE_MODE:"0"` in vitest.config.ts.
+- Static headers come from `src/web/public/_headers`: `/assets/*` `public, max-age=31536000, immutable`; `/`, `/index.html`, `/sw.js`, `/manifest.webmanifest` `no-cache` (SPA fallback paths get Cloudflare's default `max-age=0, must-revalidate`); nosniff, HSTS, X-Frame-Options DENY, COOP, Permissions-Policy (geolocation=self), CSP allowing self + `wss://howtogo.raus-ums.workers.dev`, OneMap (img/connect), Google Fonts (style/font/connect), `blob:` workers for MapLibre. `public/_redirects` removed (Pages-only; SPA fallback is now `not_found_handling`). The PWA calls relative `/api` (VITE_API_BASE empty).
+- Checked with `wrangler dev` + Chromium: `/api/health` → `{"ok":true,"fixtureMode":true}`; headers as above; `/settings` and unknown paths → index.html; `/_headers` not exposed; banner shows on live Home; search → Route options → Trip detail works, map canvas renders, **0 CSP violations**.
+- **Sample-routes banner**: `GET /api/health` now returns `{ok, fixtureMode}` (no-store, not rate-limited). `src/state/sample.ts` checks it at boot (live mode only; failure = no banner); `?sample=1` forces it for the tab (tests/demo). Banner (`data-testid="sample-banner"`, role note, info icon, surface-2 `.note.sample`) on Home, Search results and Route options, placed under the top bar, `flex-shrink:0` so it stays whole at 200 %. Creative copy zh/en. Tests: worker health test, 3 web unit tests, `e2e/sample.spec.ts` (4: live on/off/500, all three screens at 200 % zh+en, not on Settings).
+- Root scripts: `build:release` (= web build with `VITE_API_BASE=` empty → `src/web/dist`) and `deploy:preview` (build:release, then `wrangler deploy` in src/worker). Not run.
+- `npm run gate`: **GATE PASS, 11/11** — unit 231, dev-e2e 64, qa-e2e 68; Lighthouse medians `/` 82/100/100 (runs 74/82/85), `/about` 87/100/96, `/settings` 87/100/100; app JS 60.4 KB gz.
+
+### Deploy steps for the Director (preview, fixture mode)
+1. `cd src/worker && npx wrangler kv namespace create TOKEN_KV` → paste the printed `id` into `wrangler.toml` (`[[kv_namespaces]] id`, replacing `REPLACE_WITH_KV_NAMESPACE_ID`).
+2. Secrets: **none needed** while `FIXTURE_MODE="1"` (later: `wrangler secret put ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY`, then set `FIXTURE_MODE="0"`).
+3. From the repo root: `npm run deploy:preview` (builds src/web/dist, then `wrangler deploy`; the DO migration `v1` applies on the first deploy). The account's workers.dev subdomain must be `raus-ums` for the URL `https://howtogo.raus-ums.workers.dev`; otherwise update `ALLOWED_ORIGINS` and the `wss://` host in `_headers` CSP.
+4. Smoke: `curl https://howtogo.raus-ums.workers.dev/api/health` → `{"ok":true,"fixtureMode":true}`; open `/` → the "示范路线" banner shows.
+- Dry run (`npx wrangler deploy --dry-run --outdir …/wrangler-dry`, wrangler 4.163.0, no API calls): config valid; read 19 files from `src/web/dist`, total upload 66.54 KiB / gzip 19.45 KiB; bindings `TRIP_SHARE` (Durable Object TripShare), `TOKEN_KV` (KV, placeholder id), `ASSETS`, vars `ALLOWED_ORIGINS`, `SHARE_TTL_HOURS="4"`, `FIXTURE_MODE="1"`.
+## 2026-11-17 — Dev data round: rail stations, termini, exits (Developer, branch `dev/data`)
+
+**Module:** `src/shared/src/data/` (exported from `@howtogo/shared`). `stations.ts` is generated by `data/gen/build_stations.py` (not run by tests; header in `gen/header.txt`). `npm test -w @howtogo/shared` (111 tests) and typecheck pass; web typecheck and unit tests still pass.
+
+### What is in it
+- **191 stations** (184 open on 2026-11-17): all MRT (NS, EW, CG incl. Tanah Merah, NE, CC, DT, TE) and LRT (BP, SE/SW, PE/PW). Each has `codes` (31 interchanges with several), English name, official Chinese name, lat/lng, `lines`, `exits`, and `opens` when not open: DT36 Xilin, DT37/TE31 Sungei Bedok, TE30 Bedok South `2026-12-26`; TE22A Founders' Memorial `2028`; CC18 Bukit Brown, TE10 Mount Pleasant, TE21 Marina South `TBC`. CCL6 (CC30–32) is open since 12 Jul 2026. Old codes CE1/CE2 resolve to Bayfront CC34 / Marina Bay CC33.
+- **Exits:** 613 LTA exit points → per-station exit codes with coordinates (combined MRT/LRT stations carry `part`). Landmarks only where a hospital's own page names the exit: Novena A → TTSH, Outram Park 7 → SGH campus (Exit 6 path closed since Aug 2025), Kent Ridge A → NUH. No other landmarks; none invented.
+- **Helpers:** `stationByCode` (aliases, "ns-17"), `stationByStopId("FERRY:NE8")`, `stationByName` (OneMap upper-case names, Stn/Pk abbreviations, spacing, ≤2-letter typos, Chinese names; ambiguous → undefined; rail stops only), `stationForStop`, `zhStationName`, `stationLabel`, `lineStations`, `lineTermini`, `isStationOpen`, `inferHeading`, `DATA_AS_OF`.
+- **Termini:** the hand table in `lines.ts` is gone. `inferTerminus(line, from, to, at?)` uses the lowest/highest station open on the travel date, so DT and TE switch from Expo/Bayshore to Sungei Bedok on 26 Dec 2026 by themselves (epoch ms read in SGT). **Circle Line** is now a loop (CC4…CC34→CC4) plus the Dhoby Ghaut spur: `inferHeading` returns `clockwise`/`anticlockwise` (rising numbers = anticlockwise, per LTA's HarbourFront platform signs) plus `via` = the next open interchange, as on the platform signs. Peak short-workings and the weekend Dhoby Ghaut–Stadium shuttle are not modelled.
+- **Steps:** zh rail stops now read like the sign, for example "步行到 碧山 Bishan (NS17) 地铁站" and "在 诺维娜 Novena (NS20) 下车". The code is the one for the line in use. en text is unchanged. New copy keys `step.board_train.loop[.transfer]` for the CCL ("搭乘环线，逆时针方向（经滨海湾）" / "Take the Circle Line, Anticlockwise (via Marina Bay)"); **Creative to review**. Snapshots are updated (9 zh lines changed).
+
+### Provenance
+- MRT codes, English and Chinese names, and opening dates come from en.wikipedia "List of Singapore MRT stations" (fetched 2026-11-17), whose name columns cite LTA's 2026 System Map (English/Chinese). These are facts under CC BY-SA, and no prose was copied.
+- LRT Chinese names come from the zh.wikipedia line articles (武吉班让轻轨, 盛港輕軌, 榜鹅轻轨), converted to simplified.
+- Exits and coordinates come from data.gov.sg "LTA MRT Station Exit (GEOJSON)" (`d_b39d3a0871985372d7e1637193335da5`, updated 2026-10-18; Singapore Open Data Licence v1.0, so the attribution already in the About copy covers it). Station point = mean of its exits. The 6 unopened stations without exits use Wikipedia coordinates. The two sources agree within 320 m everywhere except Gul Circle.
+- CCL direction terms come from LTA's CCL wayfinding and landtransportguru's CCL6 opening article.
+
+### Low confidence
+1. The Chinese loop words 顺时针/逆时针: I found no LTA Chinese signage for them.
+2. Gul Circle coordinates: the LTA exit centroid is about 690 m from the Wikipedia point.
+3. TE22A "2028": the date is only "end of 2028" and the station is never treated as open.
+4. LRT zh names are from zh.wikipedia only, not checked against the LTA Chinese map.
+5. The Kent Ridge → NUH exit comes from an NUH-linked directions page, not NUH's main site.
+6. Opening dates for the 26 Dec 2026 stations come from news reports. Re-check after the opening.
+
+### Next steps
+- Field-check the zh loop wording and the three landmarks. Add more landmarks (polyclinics, markets) only from official pages.
+- Web: use `exits` for the final-walk exit chip, and `stationLabel` / the zh name for the sign chip (STYLE-GUIDE H6b).
+- Re-run `gen/build_stations.py` when stations open (TEL/DTL 26 Dec 2026, JRL, CRL). The JRL/CRL codes on interchange stations are filtered out until those lines exist in `lines.ts`.
+- Bundle cost: `stations.ts` is 55 KB raw, about 12 KB gzipped.

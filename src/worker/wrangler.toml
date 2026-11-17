@@ -1,19 +1,35 @@
-# 怎么去? API Worker. Placeholders only — no secrets in this file.
+# 怎么去? — ONE Worker serves the PWA (Workers Static Assets) and the API (D-10).
+# Placeholders only — no secrets in this file.
 # Secrets (set with `wrangler secret put <NAME>`): ONEMAP_EMAIL, ONEMAP_PASSWORD, LTA_ACCOUNT_KEY
-name = "howtogo-api"
+#   (none are needed while FIXTURE_MODE = "1").
+# Build first: `npm run build:release` (root) builds src/web/dist, which is served below.
+name = "howtogo"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
+workers_dev = true
+
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+# Unknown paths (e.g. /settings, /routes) get index.html; the PWA router takes over.
+not_found_handling = "single-page-application"
+# Only the API runs Worker code; every other request is served straight from the assets.
+run_worker_first = ["/api/*"]
 
 [vars]
-ALLOWED_ORIGINS = "https://REPLACE-WITH-PAGES-DOMAIN.pages.dev"
+# Same-origin PWA on workers.dev, plus local dev (vite dev 5173, vite preview 4173, wrangler dev 8787).
+ALLOWED_ORIGINS = "https://howtogo.raus-ums.workers.dev,http://localhost:5173,http://localhost:4173,http://localhost:8787"
 SHARE_TTL_HOURS = "4"
-# FIXTURE_MODE: "1" makes search/route/revgeocode/bus-arrival/alerts answer from bundled
-# SYNTHETIC fixtures (AC 21). Dev/QA only — never set it here for production. Use:
-#   npm run dev:fixtures -w @howtogo/worker   (= wrangler dev --var FIXTURE_MODE:1)
+# FIXTURE_MODE "1": search/route/revgeocode/bus-arrival/alerts answer from bundled SYNTHETIC
+# fixtures (AC 21) and /api/health reports fixtureMode:true, so the PWA shows the
+# "示范路线 / Sample routes" banner. Preview only (D-10) — set to "0" once the owner's
+# OneMap/LTA secrets are in.
+FIXTURE_MODE = "1"
 
 [[kv_namespaces]]
 binding = "TOKEN_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+# Create with `npx wrangler kv namespace create TOKEN_KV` and paste the id here.
+id = "0dc8a4714f234b5bb8d23ffe36cb2107"
 
 [[durable_objects.bindings]]
 name = "TRIP_SHARE"

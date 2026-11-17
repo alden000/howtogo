@@ -53,7 +53,7 @@ describe('buildSteps', () => {
   it('a walk between two vehicles is a walk_transfer step', () => {
     const steps = buildSteps(itinerary('angMoKioToNovena'), 'zh-CN');
     const tr = steps.find((s) => s.kind === 'walk_transfer')!;
-    expect(tr.text).toBe('步行到 Ang Mo Kio 地铁站，换乘南北线');
+    expect(tr.text).toBe('步行到 宏茂桥 Ang Mo Kio (NS16) 地铁站，换乘南北线');
   });
 
   it('defaults the destination name when OneMap says "Destination"', () => {

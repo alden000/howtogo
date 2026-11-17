@@ -1,6 +1,7 @@
 export * from './types';
 export * from './geo';
 export * from './lines';
+export * from './data';
 export { normalizeOneMapPlan, prettyStopName, parseExit } from './onemap';
 export * from './rank';
 export * from './steps';

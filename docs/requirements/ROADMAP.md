@@ -8,10 +8,10 @@ PM · 2026-11-17 · Estimates are wall-clock hours "if run straight through". Th
 | M1 | Foundation | 6–8 h | M0 sign-off (UI round); engine round can start before |
 | M2 | Guided trip | 7–8 h | M1 |
 | M3 | SG transit smarts | 6–7 h | M1 (parallel with M2 for engine work) |
-| M4 | Share & safety | 6–7 h | M2 |
+| M4 | Share & safety | 8–10 h | M2 |
 | M5 | 1.0 hardening & launch (web) | 5–6 h | M2–M4 |
 | M6 | Android app (Capacitor) | 6–8 h | M2 (can start after M2, parallel with M3–M5); release after M5 |
-| | **Total** | **~39–47 h** (+ M0 3 h) | |
+| | **Total** | **~41–50 h** (+ M0 3 h) | |
 
 ---
 
@@ -61,34 +61,33 @@ PM · 2026-11-17 · Estimates are wall-clock hours "if run straight through". Th
   - one real-phone walk (owner or family) completes a short trip.
 
 ## M3 — SG transit smarts
+Spec: `M3-sg-transit-smarts.md` (45 ACs). Multi-stop moved to M2 (M2 OQ1); recent trips moved in from M4.
 - **Goal:** live Singapore data that seniors actually need.
 - **Scope:**
-  - real-time bus arrival at the boarding stop (BusArrival v3), seat load and WAB icons;
-  - MRT disruption banner and re-route offer (TrainServiceAlerts);
-  - lift-maintenance warning and lift-friendly preference (Facilities Maintenance);
-  - **multi-stop A→B→…→n** (chained segments, ≤ 5 stops);
-  - fewest-transfers / fastest preferences;
-  - transfer guidance copy;
+  - real-time bus arrival at the boarding stop (BusArrival v3): chip, next bus, seat load, WAB, `Monitored` (live vs timetable);
+  - MRT/LRT disruption banner and re-route **offer**, never automatic (TrainServiceAlerts);
+  - Chinese MRT/LRT station names, MRT exit hint, transfer guidance with line colour and direction (data-round tables in `src/shared/data`);
+  - lift-maintenance warning and lift-friendly preference (LTA `v2/FacilitiesMaintenance`, verified in the DataMall guide v6.11); "No stairs" stays hidden (D-8);
+  - least walking / fewest changes / fastest preferences;
   - fare estimate + concession note (if the OneMap fare field is confirmed);
-  - MRT exit hint (if a data source is found).
-- **Exit:** ACs pass against recorded LTA fixtures and against the live API with the owner's key.
+  - recent trips on Home.
+- **Exit:** ACs pass against recorded LTA fixtures; the live smoke passes with the owner's key (BLOCKED, not FAIL, until the key exists).
 
 ## M4 — Share & safety
+Spec: `M4-share-and-safety.md` (52 ACs).
 - **Goal:** family can see the trip live, and the senior always has a way out.
 - **Scope:**
-  - Durable Object trip relay;
-  - share link via Web Share or WhatsApp;
-  - viewer page with position, step and ETA, and an "Arrived ✔" state;
-  - auto-expiry;
-  - stop sharing;
-  - optional Web Push on arrival;
-  - saved places and one-tap **回家 Take me home**;
-  - **Help** (call family, show-my-location card, show-address-to-taxi card, taxi hand-off);
-  - caregiver setup by link/QR;
-  - recent trips.
+  - share my trip on the existing Durable Object relay: WhatsApp / SMS / Web Share / copy link; share pill; stop sharing;
+  - family viewer page `/t/:id` (no install): map, ETA, status, help/paused/signal-lost/arrived/ended/expired states;
+  - arrival notification (senior-side "tell family", viewer-page notification; Web Push as a Should);
+  - full **Help** (call family by `tel:`, let family see where I am, show the driver, where am I, re-route, taxi, 995);
+  - saved family contacts and saved places;
+  - caregiver setup by link/QR via an encrypted one-time setup box (no accounts);
+  - Grab / CDG taxi hand-off (D-6);
+  - PDPA: no location beyond the share TTL; per-IP rate limits on share and setup creation; fix the share status contract (shared vs Worker enums).
 - **Exit:**
-  - a two-browser Playwright test (sharer + viewer) shows live updates, arrival and expiry;
-  - the privacy review shows no coordinates in logs.
+  - a two-browser Playwright test (sharer + viewer) shows live updates, help, arrival, stop and expiry;
+  - the privacy review shows no coordinates or identifiers in logs or in storage after a share ends.
 
 ## M5 — 1.0 hardening & launch
 - **Goal:** fast, frugal, accessible, and live on the owner's domain.

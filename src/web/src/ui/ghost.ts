@@ -21,7 +21,8 @@ function styles(): CSSStyleSheet[] {
       }
     }
     sheet = new CSSStyleSheet();
-    sheet.replaceSync(css.join('\n'));
+    // Creative R2: `:root[...]` rules never match inside a shadow root → retarget them to the `.groot` wrapper.
+    sheet.replaceSync(css.join('\n').replace(/:root\b/g, '.groot'));
     sheetFor = document.styleSheets.length;
   }
   return [sheet];
@@ -46,7 +47,15 @@ export function ghost(el: Element | null, cls: string, opts: { over?: boolean } 
   const to = copy.querySelectorAll('.scroll,.sheet');
   copy.classList.remove('enter-push', 'enter-pop');
   copy.classList.add(...(reduced() ? ['leave-fade'] : cls.split(' ')));
-  root.appendChild(copy);
+  // The wrapper carries <html>'s classes and attributes so the `.groot[...]` rules (text size, theme, `.rm`) apply.
+  const w = document.createElement('div');
+  w.className = ('groot ' + document.documentElement.className).trim();
+  for (const a of ['data-theme', 'data-text-size']) {
+    const v = document.documentElement.getAttribute(a);
+    if (v) w.setAttribute(a, v);
+  }
+  w.appendChild(copy);
+  root.appendChild(w);
   // Two empty layers rendered by App (Preact never diffs children it did not render).
   const layer = el.closest('.stage')?.querySelector(opts.over ? ':scope > .ghosts.over' : ':scope > .ghosts:not(.over)');
   if (!layer) return;

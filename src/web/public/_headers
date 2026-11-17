@@ -1,0 +1,25 @@
+# Workers Static Assets headers (D-10). The Worker code adds its own headers on /api/*.
+# Security headers on every static response. CSP: own origin (+ its WebSocket for live share),
+# OneMap tiles/logo/API, Google Fonts; MapLibre needs blob: workers and inline style attributes.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: geolocation=(self), camera=(), microphone=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://www.onemap.gov.sg; connect-src 'self' wss://howtogo.raus-ums.workers.dev https://www.onemap.gov.sg https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self' blob:; child-src blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+
+# Content-hashed build output: cache forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Entry points must always revalidate so a deploy reaches users (the SW handles offline).
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache

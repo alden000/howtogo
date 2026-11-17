@@ -6,9 +6,9 @@
  */
 import { cumulativeDistances, polylineLength, snapToPolyline } from './geo';
 import { normalizeLang, t } from './i18n/steps';
-import { inferTerminus } from './lines';
+import { inferHeading, LOOP_DIRECTION_LABEL, stationForStop, stationLabel } from './data/network';
 import { parseExit } from './onemap';
-import type { Itinerary, Journey, Lang, LangInput, Leg, MessageParams, Step, StepKind, StepStop, StepTurn } from './types';
+import type { Itinerary, Journey, Lang, LangInput, Leg, MessageParams, Step, StepKind, StepStop, StepTurn, Stop } from './types';
 
 export interface BuildStepsOptions {
   /** Name of the final place (OneMap calls it "Destination"). */
@@ -36,14 +36,32 @@ function lineParam(leg: Leg, lang: Lang): string {
   return leg.route ?? '';
 }
 
-function towardsParam(leg: Leg, lang: Lang): string | undefined {
-  if (leg.headsign) return leg.headsign;
-  if (!leg.line) return undefined;
-  return inferTerminus(leg.line.code, leg.from.code, leg.to.code)?.[lang];
+/**
+ * Station name for step text. zh rail stops: "碧山 Bishan (NS17)" (Chinese name, then the
+ * English name and code as on the sign). Everything else: OneMap's (prettified) name.
+ */
+function stopName(stop: Stop, lang: Lang, isRail: boolean): string {
+  const fallback = stop.displayName || stop.name;
+  if (!isRail || lang !== 'zh-CN') return fallback;
+  const st = stationForStop(stop);
+  return st ? stationLabel(st, lang, stop.code) : fallback;
 }
 
-function stopParams(leg: Leg): MessageParams {
-  const p: MessageParams = { stop: leg.from.displayName || leg.from.name };
+/** Which way the train goes: a terminus (towards) or a loop direction (+ via). */
+function headingParams(leg: Leg, lang: Lang): { towards?: string; direction?: string; via?: string } {
+  if (leg.headsign) return { towards: leg.headsign };
+  if (!leg.line) return {};
+  const h = inferHeading(leg.line.code, leg.from.code, leg.to.code, leg.startTime);
+  if (!h) return {};
+  const name = (st: { en: string; zh: string }) => (lang === 'zh-CN' ? st.zh : st.en);
+  if (h.kind === 'terminus') return { towards: name(h.terminus) };
+  const out: { direction: string; via?: string } = { direction: LOOP_DIRECTION_LABEL[h.direction][lang] };
+  if (h.via) out.via = name(h.via);
+  return out;
+}
+
+function stopParams(leg: Leg, lang: Lang): MessageParams {
+  const p: MessageParams = { stop: stopName(leg.from, lang, isTrain(leg)) };
   if (leg.mode === 'bus' && leg.from.code && /^\d{5}$/.test(leg.from.code)) p.code = leg.from.code;
   return p;
 }
@@ -122,10 +140,10 @@ export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildS
       const nextTransit = legs.slice(i + 1).find((l) => l.mode !== 'walk');
       if (nextTransit && !seenTransit) {
         const variant = nextTransit.mode === 'bus' ? 'bus' : 'train';
-        push('walk_to_stop', leg, i, `step.walk_to_stop.${variant}`, stopParams(nextTransit), { turns });
+        push('walk_to_stop', leg, i, `step.walk_to_stop.${variant}`, stopParams(nextTransit, lang), { turns });
       } else if (nextTransit) {
         const variant = nextTransit.mode === 'bus' ? 'bus' : 'train';
-        const params = stopParams(nextTransit);
+        const params = stopParams(nextTransit, lang);
         if (variant === 'bus') params.route = nextTransit.route ?? '';
         else params.line = lineParam(nextTransit, lang);
         push('walk_transfer', leg, i, `step.walk_transfer.${variant}`, params, { turns });
@@ -145,12 +163,17 @@ export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildS
     // ---- transit leg: board, then ride
     const isTransfer = seenTransit;
     const variant = leg.mode === 'bus' ? 'bus' : 'train';
-    const boardParams: MessageParams = { stop: leg.from.displayName || leg.from.name };
+    const boardParams: MessageParams = { stop: stopName(leg.from, lang, variant === 'train') };
+    let boardKey = `step.board_${variant}`;
     if (variant === 'bus') boardParams.route = leg.route ?? '';
     else {
       boardParams.line = lineParam(leg, lang);
-      const towards = towardsParam(leg, lang);
-      if (towards) boardParams.towards = towards;
+      const heading = headingParams(leg, lang);
+      if (heading.direction) {
+        boardKey += '.loop';
+        boardParams.direction = heading.direction;
+        if (heading.via) boardParams.via = heading.via;
+      } else if (heading.towards) boardParams.towards = heading.towards;
     }
     const prevEnd = prev?.endTime ?? leg.startTime;
     const waitS = Math.max(0, (leg.startTime - prevEnd) / 1000);
@@ -165,13 +188,13 @@ export function buildSteps(itinerary: Itinerary, langIn: LangInput, opts: BuildS
       variant === 'bus' ? 'board_bus' : 'board_train',
       leg,
       i,
-      `step.board_${variant}${isTransfer ? '.transfer' : ''}`,
+      `${boardKey}${isTransfer ? '.transfer' : ''}`,
       boardParams,
       boardExtra,
     );
 
     const stops = positionStops(leg);
-    const rideParams: MessageParams = { n: stops.length, stop: leg.to.displayName || leg.to.name };
+    const rideParams: MessageParams = { n: stops.length, stop: stopName(leg.to, lang, variant === 'train') };
     const rideExtra: Partial<Step> = { stops, stopCount: stops.length };
     if (leg.route) rideExtra.route = leg.route;
     if (leg.line) rideExtra.line = leg.line;

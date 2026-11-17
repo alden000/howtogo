@@ -1,6 +1,6 @@
 # 怎么去? Worker API (v1)
 
-Base: same origin as the PWA (`/api/*`, via a Worker route or Pages Function), or the Worker's own domain.
+Base: same origin as the PWA. D-10: ONE Worker (`howtogo`) serves the PWA from Workers Static Assets (`src/web/dist`, SPA fallback, headers from `src/web/public/_headers`) and runs Worker code only for `/api/*` (`run_worker_first`). The PWA calls relative `/api/...` (`VITE_API_BASE` empty).
 All responses are JSON (`application/json; charset=utf-8`) unless noted.
 
 ## Common rules
@@ -12,6 +12,9 @@ All responses are JSON (`application/json; charset=utf-8`) unless noted.
 - `X-Cache: HIT|MISS` tells whether the Worker cache answered.
 - **Rate limit (AC 20):** `/api/search`, `/api/route`, `/api/revgeocode`, `/api/bus-arrival`, `/api/alerts` allow **60 requests per minute per IP** (sliding window, kept in each isolate's memory, so the effective limit is per IP per isolate). Over the limit → `429 {"error":{"code":"rate_limited",...}}` with `Retry-After: <seconds>`. `/api/health` and `/api/share*` are not counted (share writes have their own 3 s limit; "help" must never be blocked). IPs are hashed with a random per-isolate salt, never logged, and forgotten when the window passes. Requests without `CF-Connecting-IP` (local dev) are not limited.
 - Other codes: `400 invalid_*` / `missing_query`, `404 not_found`, `405 method_not_allowed`, `413 payload_too_large` (bodies > 4 KB), `500 internal_error`.
+
+## GET /api/health
+`{"ok":true,"fixtureMode":true|false}`, `Cache-Control: no-store`, not rate-limited. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
 
 ## GET /api/search?q=
 OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 24 h per lower-cased, whitespace-collapsed query (`Cache-Control: private, max-age=86400`).
