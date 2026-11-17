@@ -47,3 +47,6 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Greeting: optional name asked once at first use; skip → plain greeting.
 - "No stairs"/"Lifts all the way" facts hidden until a data source exists (research in M3).
 - Design signed off → production UI work may start.
+- Web shell merged (36 unit + 5 e2e pass; app JS 42 KB gz, MapLibre 265 KB gz lazy).
+- Rulings on M1 open questions: OQ1 as default (Vite+Preact+MapLibre). OQ2: keep the standalone Worker (built with CORS); serve it on the same custom domain later via a route `/api/*`. OQ3 as built (KV + memory). OQ4 fixture mode. OQ5: "Start" button behind feature flag `guide` (off in the M1 release, on in M2). OQ6: 500 m, widen to 1000 m if no itinerary. OQ7: pages.dev.
+- Parallel tracks now: Creative round 2 (logo B master + missing M1 state frames) in wt-creative; Developer M1 UI round in wt-m1ui.
