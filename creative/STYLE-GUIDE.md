@@ -1,4 +1,4 @@
-# 怎么去? — Style guide v1.1
+# 怎么去? — Style guide v1.2
 
 Source of truth for the build. **Build strictly to these tokens and frames:** no raw values outside the token sheet, and no improvised UI. New tokens need Director approval. The prototype `creative/prototype/index.html` implements every token below in its `:root` block. Brand rationale lives in `docs/02-creative-direction.md`.
 
@@ -164,7 +164,7 @@ Icon tile by type: walk = primary-soft · waiting = ink · bus-here / arrive / a
 States: counting · `here` (saffron fill, "快到了 / Arriving") · stale > 60s (build: dot turns grey and shows "约 / about") · no data (build: "暂时没有到站时间，请看站牌 / No live time right now — check the stop sign").
 
 ### 5.6 Follow-me map controls (`.mapctl`)
-A right-edge column of 56px round buttons that floats 14px above the step card: **Follow / See whole trip** toggle (filled primary when following) and **Share**.
+A right-edge column of 56px round buttons that floats 14px above the step card (from M2 the top bar is a solid band and the map sits between it and the card: see 6c.0): **Follow / See whole trip** toggle (filled primary when following) and **Share**.
 The top bar holds **结束 End** (left), the voice toggle, and the **帮忙 Help** ink pill (right). A share-status pill (jade, live dot, "美玲 看得到你") sits centred under the top bar while sharing. Tapping it opens the share sheet.
 
 ### 5.7 Alert banner
@@ -429,6 +429,260 @@ Groups in this order; each row is 56px+ with label, current value in `c-ink-2`, 
 ### Icons needing Director approval (same grid and stroke as §1.4; no other new tokens)
 `wifi-off` (offline) · `refresh` (error, update) · `install` (arrow into tray) · `ios-share` (square with up arrow, only to mirror the iOS button in instructions) · `info` (About) · `trash` (clear recent) · `person` (name) · `report` (speech bubble with "!"; or reuse `message`).
 
+## 6c. M2 guided-trip frames
+
+Frames for the M2 build (`docs/requirements/M2-guided-trip.md`, OQ1–OQ10 at PM defaults). They reuse the §1 tokens and the §5/§6b components. **New items for Director approval are listed at the end (one colour token, five icons, one component). Nothing else is new.**
+
+Shared rules (as §6 and §6b, plus):
+- Frame IDs keep the H numbers where the frame is a state of an existing screen (H5, H6, H6b, H11, H12) and use **G1–G7** for new ones: G1 pocket view, G2 multi-stop builder, G3 waypoint arrival, G4 resume, G5 manual controls, G6 end-current-trip sheet, G7 voice help sheet. Baselines: `M2-{frame}-{state}-{light|dark}-{100|200}-{zh|en}.png` at 390×844 DPR 2. Pocket view (G1) is dark only, so it has no `light` baselines.
+- "Spoken" lines are said in the **trip language** fixed at start (AC 22, OQ10). The on-screen line is the same words. Voice never says anything the screen does not show.
+- Live regions: **polite** = the `#live` region (`aria-live="polite"`). **Assertive** = `role="alertdialog"` plus the `#live2` region. One announcement per moment, never repeated by both regions.
+- Haptic names are the canonical list in **6c.13**. No other names exist.
+- No red anywhere except the 995 button (§1.1). No "error", "failed" or "GPS" in copy (banned list in the creative direction).
+- **Reduce motion** everywhere below: transitions become the 120 ms cross-fade, ripples and bell swing are removed, the edge glow is static at full width. Voice and haptics are unchanged.
+
+### 6c.0 H5 layout fix: nothing covers the map (D-8 S4, AC 9)
+The v1.0 top bar was a gradient laid over the map, so the End button sat on top of station labels. From M2:
+- **Top band (`.top`)** is a solid strip, not an overlay: `c-canvas` background, `e-1` shadow on its bottom edge, padding `s-3` `s-4`. Row 1 is 结束 End · voice toggle · 帮忙 Help (unchanged). Further rows, only when present and in this order, go **inside the band**: share pill (§5.6), H11 banner (6c.8), resume voice bar (6c.6). The band grows; it never overlaps the map.
+- **Map viewport** = the rectangle from the band's bottom edge to the step card's top edge. In MapLibre, size the map container to the full screen and set `map.setPadding({ top: bandHeight, bottom: cardHeight })` on every band or card resize (ResizeObserver), **and** clip symbol rendering to that rectangle by sizing the canvas container to it. The step card's `r-xl` corners show `m-land` behind them, so the join looks continuous.
+- **Puck:** horizontally centred, at **66% down the map viewport** (34% up from its bottom edge; this replaces "34% of the screen" in AC 13 and stays correct at 200%). It is never closer than 72 px to either edge of the viewport; if the viewport is shorter than 144 px (200% text with a tall card), the puck is centred in it.
+- **Map controls (`.mapctl`)** float at the right edge of the viewport, 14 px above the card. They are the only things over the map. Labels under them are acceptable; the puck never is (it is centred).
+- **QA check (AC 9):** for every H5 state at 100% and 200%, the puck rect and every rendered station/stop label rect intersect neither the band rect nor the card rect. Zero overlap.
+- **Trip notes** (6c.10–6c.12) sit at the top of the step card, not over the map.
+
+### 6c.1 H6 → H6b Get off now (bus and train)
+H6 is unchanged (§6, 5.7): saffron bottom panel "下一站下车 / Get off at the next stop". **H6b** is the second, stronger stage when the engine sends `get_off_now`. It is visibly different so the user knows something changed: **H6 = saffron panel, "get ready"; H6b = full ink takeover with saffron type, "go now".**
+
+Layout (H6b, both themes, the same colours):
+- A full-height sheet over the whole screen below the top band (the band stays, so End and Help remain reachable). Background `c-on-saffron` `#1D1915`; text `c-saffron` `#FFD23F` (12.10:1, AAA).
+- **Edge glow:** `c-saffron` 10 px inset ring around the whole viewport, including the band, on top of everything (`z` above the sheet, `pointer-events: none`), breathing 1.2 s (static under reduce motion). Against the ink sheet the saffron glow is fully visible.
+- Content, top to bottom, left-aligned, `s-5` gutters: 112 px saffron disc with the ink `exit` icon (64 px; new icon) and the two ripple rings from H6 → title (`alert` role, 2.4 rem/900) → instruction line (`headline` 1.2 rem/700) → sign chip (saffron fill, ink text, `r-s`; the exact sign text) → spacer → **知道了 / OK, got it** (saffron fill, ink text, `tap-hero` 72 px, full width, check icon), pinned to the bottom.
+
+| | zh | en |
+|---|---|---|
+| Title | 到站了，请下车 | This is your stop. Get off now |
+| Bus line | 车停稳了再站起来，慢慢下车。 | Wait until the bus stops, then get off slowly. |
+| Train line | 车门开了就下车，小心空隙。 | Get off when the doors open. Mind the gap. |
+| Sign chip (bus) | `{stop sign}` · `{zh name}` 巴士站 | `{stop sign}` bus stop |
+| Sign chip (train) | `{station}` `{code}` · `{zh name}` 站 | `{station}` `{code}` station |
+| Button | 知道了 | OK, got it |
+
+How it follows H6:
+- If H6 is showing (acknowledged or not) when `get_off_now` arrives, the saffron panel **grows** into the full ink sheet (height from panel to full, background saffron → ink, `d-sheet` `ease-spring`; title cross-fades `d-base`). Reduce motion: H6b replaces H6 with the 120 ms cross-fade.
+- If both conditions arrive on one fix, only H6b shows (engine rule).
+- H6 is **never shown after** H6b on the same ride.
+
+Moments:
+| Moment | Haptic | Voice (trip language) | Screen reader |
+|---|---|---|---|
+| H6 shown | `getoff` | "下一站下车。" then after 2.2 s "请现在按铃。" (train: "车门开了就下车。") / "Get off at the next stop." then "Press the bell now." (train: "Get off when the doors open.") | assertive: title + line, once |
+| H6b shown | `getoff`, then `getoff` again after 800 ms | High priority, interrupts: "到站了，请下车。" then after 2.2 s the bus/train line | assertive: "到站了，请下车。{line}" / "This is your stop. Get off now. {line}" |
+| **Escalation** (OQ9): the alert is not acknowledged 20 s after it was shown | `getoff` once | The same two lines once more | assertive, the same text once more |
+| OK tapped | `confirm` | none | focus moves to the step card headline; polite: nothing (the card already says it) |
+| Ride step ends while showing | `confirm` (step change) | the new step headline | polite: new headline |
+
+- Escalation happens **at most once per alert** (H6 and H6b each have their own single repeat). If H6 grows into H6b before its 20 s are up, H6's repeat is cancelled. No repeat after the ride step has ended. The visual does not change on escalation, except that the ripple rings restart (none under reduce motion).
+- **Back goes to:** End-trip sheet over the alert (D8). Back again → the alert, unchanged. Back does not acknowledge the alert.
+- Page hidden: `platform.notify({ tag: 'getoff', title: '到站了，请下车', body: '{sign}' })` (en: 'This is your stop. Get off now'), which replaces the H6 notification with the same tag.
+- 200%: the sheet scrolls; the OK button stays pinned at the bottom (sticky, `c-on-saffron` behind it) so it is always visible.
+- SR: `role="alertdialog"`, `aria-labelledby` = title, `aria-describedby` = line + sign. Focus moves to the title when it appears. The OK button is labelled with its visible text.
+- `data-testid`: `getoff-now`, `getoff-now-ack`.
+- Baselines: `H6b-bus`, `H6b-train`, `H6b-rm` (light/dark identical, both captured).
+
+### 6c.2 G1 Pocket view (dimmed, dark only)
+Purpose: keep the screen on (wake lock) at the lowest light and battery cost while the phone is in a pocket or bag.
+
+**Trigger (OQ7):** 45 s with no touch on a **walk or ride** step, or the **放口袋 / Pocket** button on the step card. Never during an alert, a sheet, the H11 banner, the waypoint screen, a wait step, or while the resume voice bar is showing. The 45 s clock restarts on any touch and on every step change.
+
+Layout (always dark, whatever the theme):
+- Background `c-pocket` `#000000` (new token). No map: the map render loop is paused.
+- Centred column: current-step glyph (walk, bus or train icon) at **160 px** (96 px at 200%), stroke in dark `c-primary` `#FF9466` (9.68:1 on black) → **one line**, the step headline in short form, `title` 1.5 rem/700, dark `c-ink-2` `#CFC3B5` (12.13:1) → the count in `display` 2.1 rem/900 tabular, the same colour → **打开 / Show**: a 72 px full-width button at the bottom, transparent with a 2 px `#CFC3B5` border and `#CFC3B5` text, `r-l`, eye icon.
+- Under the button, `caption`: 按任何地方都可以回来 / Touch anywhere to come back.
+- If voice is muted, one more `caption` line above the button with the mute icon: 声音关着，提醒只会震动。/ Voice is off. Reminders will only vibrate.
+
+| Step | Line (zh) | Line (en) | Count (zh) | Count (en) |
+|---|---|---|---|---|
+| Walk | 走到 {place} | Walk to {place} | 还有 {m} 米 | {m} m to go |
+| Ride | 坐 {svc} 号巴士 / 坐地铁 | On bus {svc} / On the train | 还有 {n} 站 | {n} stops to go |
+| Ride, MRT estimate (6c.12) | 坐地铁 | On the train | 约 还有 {n} 站 | About {n} stops to go |
+
+Behaviour:
+- **Enter:** a 420 ms (`d-slow`) fade to black; reduce motion: 120 ms cross-fade. No haptic. Polite: 屏幕调暗了。按任何地方都可以回来。/ Screen dimmed. Touch anywhere to come back.
+- **Exit:** any touch, key press or the Show button returns to H5 **at once** (no animation). The first touch only wakes the screen; it never activates what is under the finger. Focus goes to the step card headline. Haptic `tick`.
+- **Step change while in pocket view:** stays in pocket view and updates the glyph and line; `confirm` haptic, voice speaks the new headline, polite announcement.
+- **Alerts break through:** H6, H6b, H11 (off route), waypoint arrival and H12 arrival leave pocket view **instantly** and show at full brightness in the normal theme, with their full haptic + voice + glow. Weak GPS and offline do not leave pocket view (voice says the line once; the note is waiting on the card).
+- The wake lock stays held. Hook lines `pocket:on` / `pocket:off`.
+- **Back goes to:** End-trip sheet, drawn in the dark theme over the pocket view. Back again → pocket view.
+- SR: the pocket view is a `region` labelled 口袋模式 / Pocket view; the line and count are its content. The Show button's name is 打开地图 / Show the map.
+- `data-testid`: `pocket`, `pocket-show`, `pocket-btn` (the card button).
+- Baselines: `G1-pocket-walk`, `G1-pocket-ride`, `G1-pocket-muted` (dark only, 100/200, zh/en).
+
+### 6c.3 G2 Multi-stop builder (from H3)
+- **Entry:** H3 gets a secondary 56 px button under the From line: **加一个地方 / Add a stop** (`plus` icon; new). Tapping it opens G2 with stop 1 = the H3 destination.
+- **G2 screen** (history entry). Bar: back · title 今天去哪几个地方？/ Today's places · lead (`body`, ink-2) 最多 5 个地方。每一段都会在你出发时再找路。/ Up to 5 places. Each part is worked out when you set off.
+- **List** (an `<ol>`): first a fixed origin row 从：{from} / From: {from} (no controls). Then one row per stop:
+  - 44 px number disc (`c-primary-soft`, `label` 900) · name (`headline`) + address (`caption`).
+  - Dwell chip button (56 px, `c-surface-2`, clock icon): 待 {d} / Stay {d}. Hidden on the last stop, which shows the caption 最后一个地方 / Last place instead.
+  - **↑** (`arrow-up`, new) · **↓** (`arrow-down`, new) · **✕** remove: 56 px round icon buttons. ↑ is `aria-disabled` on the first stop and ↓ on the last (still 56 px, 40% opacity). ✕ is hidden when only one stop is left.
+  - 100%: name on the left; dwell chip, ↑, ↓, ✕ on one row under it. 200%: the same row wraps (dwell chip full width, then the three icon buttons).
+- **Add another:** a dashed `c-line` 72 px row **加一个地方 / Add a stop** → H2 in add mode (H2 title 加一个地方 / Add a place). Picking a result returns to G2 with the stop appended. At 5 stops the row is replaced by the caption 最多 5 个地方 / Up to 5 places.
+- **Dock:** primary **看看怎么走 / See the way** → H4 journey.
+
+| Action | Result | Haptic | Polite announcement |
+|---|---|---|---|
+| Add | Row appended, focus on its name | `confirm` | 加上了 {name}，第 {n} 个地方 / Added {name} as place {n} |
+| ↑ / ↓ | Row moves (280 ms slide, none under reduce motion); focus stays on the same button in the row's new place | `tick` | {name} 现在是第 {n} 个 / {name} is now place {n} |
+| ✕ | Row removed at once, focus to the next row's name (or the Add row) | `tick` | 去掉了 {name} / Removed {name} |
+| Dwell picked | Chip updates, sheet closes | `tick` | 在 {name} 待 {d} / Stay {d} at {name} |
+
+SR labels: ↑ 往前移：{name} / Move up: {name} · ↓ 往后移：{name} / Move down: {name} · ✕ 去掉：{name} / Remove: {name} · dwell chip 在 {name} 待多久，现在是 {d} / How long at {name}, now {d}.
+
+**Dwell picker (sheet):** title 在 {name} 待多久？/ How long at {name}? · four radio cards (72 px, the F1 radio-card style): 15 分钟 / 15 min · 30 分钟 / 30 min (default) · 1 小时 / 1 hour · 1 个半小时 / 1½ hours · note (`caption`): 只用来算时间，不会自己出发。/ Only used to work out times. Nothing starts by itself.
+
+- **Back goes to:** G2 → H3 (the built list is kept until the user returns to H1); dwell sheet → G2; H2 add mode → G2.
+- `data-testid`: `journey-builder`, `stop-add`, `stop-up-{i}`, `stop-down-{i}`, `stop-remove-{i}`, `stop-dwell-{i}`, `dwell-{15|30|60|90}`.
+- Baselines: `G2-two`, `G2-five` (add row replaced), `G2-dwell`.
+
+### 6c.4 H4 journey (multi-segment timeline)
+- Title 今天的行程 / Today's trip · line (`label`, ink-2): {n} 个地方 · 大约 {t} 到最后一个地方 / {n} places · last one about {t}.
+- Fitted north-up map with all segments: segment route lines as §1.1, waypoints as numbered `c-primary-soft` discs, final destination as the saffron dot.
+- **Timeline**, one block per segment:
+  - Segment header (`headline`): 第 {k} 段：去 {name} / Part {k}: to {name} · right-aligned `label` 大约 {t} 到 / About {t}.
+  - The leg chain from §5.2 (walk chip, bus badge, line tag) in one row, wrapping at 200%.
+  - Between segments, a dwell row (`c-surface-2`, `r-m`, clock icon): 在 {name} 待 {d} / Stay {d} at {name}.
+- Note (`caption`): 每到一个地方，你按"继续"后，我才从那里找下一段路。/ At each place, I find the next part only after you tap Continue.
+- Dock: **开始出发 / Start** (primary) · quiet **改一改 / Change places** → G2.
+- **Back goes to:** G2. Baselines: `H4-journey-3`, `H4-journey-5`.
+
+### 6c.5 G3 Waypoint arrival and H5 journey progress
+**Progress in H5:** when the trip is a journey, the step card meta row gains a first line: a row of segment dots (one 14 px dot per place: done = `c-primary` filled, current = 3 px `c-primary` ring, next = `c-line` ring; the last place is the saffron dot) followed by `label` 去第 {k} 个地方（共 {n} 个）：{name} / To place {k} of {n}: {name}. The existing "第 2 步，共 4 步" counts steps **inside this part**; the ETA is for this part. SR: the dots are `aria-hidden`; the text is read.
+
+**G3 Waypoint arrival** (`arrived_waypoint`; a full screen in place of H5, history entry):
+- Eyebrow (`label`, ink-2): 第 {k} 个地方，共 {n} 个 / Place {k} of {n}.
+- The saffron dot drops onto a short persimmon path and ripples once (the last two beats of the H12 signature, 1.2 s; static under reduce motion). No seal and no petals; those stay for the final arrival.
+- Title (`arrival` role at 0.8×, i.e. `display` 2.1 rem/900): 到了 {name}！/ You're at {name}!
+- Body: 慢慢来，准备好了再走下一段。/ Take your time. Go on when you're ready.
+- Next card (`c-surface`, `r-l`, `e-1`): 下一个：{next name} / Next: {next name} · `caption` 你打算在这里待 {d} / You planned to stay {d}. **No countdown, no timer.**
+- Dock: primary **继续下一段 / Go to the next place** (72 px, nav icon) · secondary **在这里结束 / End the trip here** (56 px).
+- Haptic `attention`. Voice: 到了{name}。准备好了，就按"继续下一段"。/ You're at {name}. When you're ready, tap Go to the next place. Polite announcement of the same text.
+- **Continue:** the button shows a spinner and 我在找路… / Finding the way… (`aria-busy`), the next part is planned from the current position (AC 44), then H5 for that part (`confirm`, the first headline spoken). If no way is found, the F3 `none` state for this part, with its H3 header 怎么去 {name}？.
+- **End here:** goes to H12 for this place (the seal moment, "用了 N 分钟" = the whole trip so far); the stored trip is cleared.
+- While G3 shows, the GPS watch is paused and the wake lock is released after 60 s (a clinic visit can last 90 min); both resume on Continue. The stored trip stays.
+- **Back goes to:** End-trip sheet. Back again → G3.
+- `data-testid`: `waypoint`, `waypoint-continue`, `waypoint-end`.
+- Baselines: `G3-waypoint`, `G3-continuing`, `H5-journey`.
+
+### 6c.6 G4 Resume and voice unlock
+- **Resume toast** (F5 toast, nav icon), name `resume`: 继续上次的行程 / Continuing your trip. Shown when the stored trip reopens straight into H5 (within ETA + 2 h, OQ5).
+- **Voice bar:** while speech (and the wake lock) still need a user gesture, a full-width primary button sits in the top band under row 1: **点一下继续语音 / Tap to turn voice back on** (speaker icon, 72 px, `c-primary`). If voice is muted, the bar reads **点一下，让屏幕保持亮着 / Tap to keep the screen on** (eye icon) instead, because the wake lock still needs the tap.
+  - Tap → audio unlocked, wake lock re-acquired, the current headline is spoken, the bar disappears. Haptic `tick`. Hook `resume:voice`.
+  - Shown on every platform where the first `speak()` or the wake-lock request fails without a gesture (always on iOS). Pocket view is never entered while the bar shows.
+  - SR: a normal button; polite announcement on resume: 继续上次的行程。点一下就能听到语音。/ Continuing your trip. Tap to hear the voice.
+- **Stale trip** (older than ETA + 2 h, younger than 24 h): H1 opens with a sheet:
+  - Title 上次的行程还没结束 / Your last trip hasn't ended · body 要接着去 {dest} 吗？/ Do you want to carry on to {dest}?
+  - **继续 / Continue** (primary) → H5 at the stored step; the engine re-plans if the user is now off the route. **结束 / End** (secondary) → the stored trip is deleted; H1 stays, no toast.
+  - **Back goes to:** H1 with the sheet closed; the trip stays stored and the sheet returns on the next launch (until 24 h, then it is dropped silently).
+- `data-testid`: `resume-toast`, `voice-unlock`, `stale-trip`, `stale-continue`, `stale-end`. Baselines: `G4-resume`, `G4-resume-muted`, `G4-stale`.
+
+### 6c.7 G5 Manual controls and manual mode (H5)
+Manual controls are **always on the step card** (AC 10). Layout of the card's action area, below the progress bar:
+
+| Row | Walk step | Wait step | Ride step |
+|---|---|---|---|
+| A (step action) | — | **我上车了 / I'm on** (`bus`/`train` icon) | **我下车了 / I got off** (`exit` icon) |
+| B | **再说一遍 / Say it again** (speaker) · **放口袋 / Pocket** (`moon`, new) | 再说一遍 | 再说一遍 · 放口袋 |
+| C (quiet) | **‹ 上一步 / Previous step** · **下一步 › / Next** | the same | the same |
+
+- Normal (auto) mode: row A is a secondary 56 px button, row B secondary 56 px, row C quiet 56 px (text buttons, `c-primary-text`, underline). Say it again is always the first button of row B, at the left (it is the most used control, D14).
+- **Manual mode** (location denied, or no usable fix for 60 s): row A becomes a primary 72 px button, and on walk steps **下一步 / Next** moves up to row A as a primary 72 px button. Row C keeps Previous step only. Pocket is hidden (with no position there are no updates to wait for).
+- "Previous step", not "Back", so it is never confused with the system Back.
+- Each tap sends the reducer event (`manual_next`, `manual_prev`, `boarded`, `alighted`), gives `confirm`, and speaks the new headline (polite announcement). Previous step on step 1 is `aria-disabled`.
+- 200%: every row becomes one column; the card scrolls (max 62% of the height).
+- Manual mode note (trip note, 6c.10): icon `loc`, 没有位置信息，请自己按"下一步" / No location, so tap Next yourself. When location becomes available, the note is replaced by 找到你的位置了，我会自己往下走。/ Found you. I'll move on by myself. for 4.2 s and the card returns to normal layout.
+- Starting without location (AC 4): the trip starts in manual mode and speaks the note once.
+- SR names = visible text. `data-testid`: `say-again`, `pocket-btn`, `step-prev`, `step-next`, `im-on`, `got-off`.
+- Baselines: `H5-manual-walk`, `H5-manual-wait`, `H5-manual-ride`.
+
+### 6c.8 H11 states: re-route failed and offline (AC 33)
+Same banner component (§5.7, jade rule), placed **inside the top band** (6c.0). The `searching` and `found` states are unchanged.
+
+| State | Title | Line | Spoken | Haptic |
+|---|---|---|---|---|
+| `failed` | 暂时找不到新的路 / No new way found yet | 先跟着地图上的线走。/ Follow the line on the map for now. | title + line, once | none (the `gentle` of `off_route` came first) |
+| `offline` | 没有网络，现在不能找新的路 / No internet, so I can't find a new way now | 网络回来后我会再找。先跟着地图上的线走。/ I'll try again when you're back online. Follow the line on the map for now. | title + line, once | none |
+
+- Icon: `route` in `c-ink` (no spinner, no check). The banner does not auto-dismiss; it has a ✕ (56 px, SR 知道了 / OK) and goes away by itself if the next off-route episode finds a way (`found`).
+- Fallback buttons in the banner, in this order (only what exists in M2):
+  1. **给司机看地址 / Show the driver** (secondary 56 px, `car` icon) → H10 on 去目的地 / Where I'm going.
+  2. **紧急情况 · 拨打 995 / Emergency · Call 995** (the §5.9 danger outline, 56 px, last). "Call family" arrives in M4 and is not shown.
+- Polite announcement (not assertive: it is not urgent). Retries on the next off-route episode (AC 33).
+- **Back goes to:** End-trip sheet. Baselines: `H11-failed`, `H11-offline`.
+
+### 6c.9 G6 "End your current trip?" (AC 5) and H9 in M2 (OQ4)
+- **G6 sheet** (from H4 Start while a trip is active): title 要结束现在的行程吗？/ End your current trip? · body 你正在去 {dest}。一次只能走一个行程。/ You're on your way to {dest}. You can take one trip at a time. · **回到现在的行程 / Back to my trip** (primary → H5 of the active trip) · **结束，去新的地方 / End it and go here** (secondary → the old trip ends, the new one starts). **Back goes to:** H4, sheet closed. Baseline `G6-endfirst`. `data-testid`: `end-first`.
+- **H9 M2 subset**, same order rules as §5.9 with "call family" removed: 给司机看地址 · 大字显示，方便叫德士 → 我在哪里？· 显示你现在的位置 → 帮我重新找路 · 从你现在的地方开始 (trip only) → 紧急情况 · 拨打 995. Baselines `H9-m2-trip`, `H9-m2-home`.
+
+### 6c.10 Trip note component (`.tripnote`) and the wake-lock note
+- **Trip note** (new component, built only from tokens): a row at the top of the step card: `c-surface-2`, `r-m`, padding `s-3`, 28 px `c-ink` icon, text in `label` (700, `c-ink`), optional second line in `caption` `c-ink-2`, optional ✕ (56 px, SR 知道了 / OK). It wraps at 200%. Announced once, polite.
+- One note at a time, by priority: offline > weak GPS > manual mode > wake lock > no voice. A lower note waits until the higher one clears.
+- **Wake lock failed** (AC 39, once per trip, with ✕): icon `eye`. 请让屏幕保持亮着 / Please keep the screen on · second line 这部手机不让我一直亮着屏幕。屏幕暗了，提醒可能会晚。/ This phone won't let me keep the screen on. If it goes dark, reminders may be late. No voice, no haptic.
+- **Offline** (AC 35): icon `wifi-off`. 没有网络，行程继续 / No internet, trip continues. No ✕; it goes when back online.
+- `data-testid`: `trip-note`. Baselines: `H5-note-wakelock`, `H5-note-offline`.
+
+### 6c.11 No voice installed (AC 26)
+- Trip note (once per trip, with ✕), icon `mute`: 这部手机没有中文语音，请看屏幕 / This phone has no Chinese voice. Please read the screen. (en trip: 这部手机没有英文语音，请看屏幕 / This phone has no English voice. Please read the screen.) Second line is a quiet link **怎么加中文语音 / How to add a Chinese voice** → the voice help sheet.
+- Haptics continue. Say it again stays visible; tapping it with no voice shows the toast 这部手机现在说不了话 / This phone can't speak right now.
+- **Voice help sheet** (title 加一个中文语音 / Add a Chinese voice; numbered `<ol>` as F2):
+  - **Android:** 1. 打开手机的"设置"。/ Open your phone's Settings. 2. 搜索"文字转语音"。/ Search for "Text-to-speech". 3. 按"首选引擎"旁边的齿轮，再按"安装语音数据"。/ Tap the gear next to "Preferred engine", then "Install voice data". 4. 选"中文（中国）"，下载。/ Choose "Chinese (China)" and download it. 5. 回到 怎么去?，在设置里按"试听"。/ Come back to 怎么去? and tap "Test voice" in Settings.
+  - **iPhone:** 1. 打开"设置" → "辅助功能" → "朗读内容" → "声音"。/ Open Settings → Accessibility → Spoken Content → Voices. 2. 选"中文" → "普通话（中国大陆）"，下载一个声音。/ Choose "Chinese" → "Mandarin (China mainland)" and download a voice. 3. 回到 怎么去?，在设置里按"试听"。/ Come back to 怎么去? and tap "Test voice" in Settings.
+  - The platform the device reports is shown first; the other is under 其他手机 / Other phones.
+  - **Back goes to:** H5 (or Settings when opened there).
+- **Settings → 语音提示 → 试听 / Test voice** (56 px secondary, speaker icon): speaks 你好，我会这样跟你说话。/ Hello, this is how I'll talk to you. If no voice exists for the language, the row shows the caption 这部手机没有中文语音 / This phone has no Chinese voice and the same quiet link.
+- `data-testid`: `no-voice`, `voice-help`, `test-voice`. Baselines: `H5-note-novoice`, `G7-voicehelp-android`, `G7-voicehelp-ios`.
+
+### 6c.12 Weak GPS (AC 34) and the MRT soft estimate (OQ3)
+- **Weak GPS note** (trip note, no ✕), icon `loc`: 位置不太准，跟着站牌走 / Location is rough, follow the signs. Spoken once per weak spell. No haptic.
+- **Puck:** an accuracy circle (`c-primary` at 12% fill, 2 px `c-primary` ring at 40%) with the radius of the fix accuracy. After 30 s without a good fix the puck turns grey: fill `c-ink-2`, `c-surface` ring, heading cone hidden, the pulse stopped. It returns to normal on the next good fix.
+- **Manual controls emphasised:** row A (I'm on / I got off) becomes primary 72 px while the spell lasts (as manual mode, without the manual note).
+- **MRT underground estimate** (ride step on a train while weak or no fix): the headline becomes 坐着就好，约 还有 {n} 站 / Sit back. About {n} stops to go; the sub-line 地下没有位置。车停时，看一看站名。/ No location underground. When the train stops, check the station name. The stop dots show the estimate with the current dot as a dashed ring. The count comes from the timetable, always with 约 / About. It never counts up and never goes below 1; it holds at 约 还有 1 站 until the user taps I got off or a fix arrives.
+- **Soft pre-alert** at the scheduled time of the second-last station: the H11 banner component (jade rule, `train` icon), not the saffron alert: 大约下一站下车 / Probably getting off at the next stop · 车停时看站名：{station} / When the train stops, check for: {station}. Haptic `attention`. Voice: title + line. Polite. Auto-dismiss 4.2 s. The strong H6/H6b alerts stay position- or button-based (I got off).
+- Baselines: `H5-weak`, `H5-weak-stale`, `H5-mrt-estimate`, `H11-mrt-prealert`.
+
+### 6c.13 Haptic map: one canonical list (AC 37)
+The web shell uses `tap / notice / get_off / alert / arrived` with different patterns. **These six names and patterns are the only ones.** `VibratePattern = 'tick' | 'confirm' | 'attention' | 'getoff' | 'arrive' | 'gentle'`; `VIBRATE_PATTERNS` is copied from this table.
+
+| Name (replaces) | Pattern ms (on·off·on…) | Cues and moments |
+|---|---|---|
+| `tick` (was `tap`) | 12 | Any tap that navigates or toggles; pocket view exit; reorder; voice-unlock tap |
+| `confirm` (was `notice` for step changes) | 20·40·20 | `step_changed`, `turn`, `transfer`, `boarded`, manual Next/Previous/I'm on/I got off, `back_on_route`, `reroute_done`, alert acknowledged, waypoint Continue, share sent |
+| `attention` (new in the shell) | 60·80·60 | `arrived_at_stop`, `arrived_waypoint`, MRT soft pre-alert, bus here (M3) |
+| `getoff` (was `get_off`, and `notice` for the next-stop alert) | 300·150·300·150·600 | `get_off_next_stop` once; `get_off_now` twice (800 ms apart); the single escalation repeat |
+| `arrive` (was `arrived`) | 40·60·40·60·160 | `arrived_destination` only |
+| `gentle` (was `alert` for off route) | 30·60·30 | `off_route` only (never an error buzz) |
+
+No haptic: `approaching_stop`, `gps_weak`, offline/online, trip notes, H11 `failed`/`offline`, pocket view entry. Settings → 震动提示 off silences all six.
+
+### 6c.14 Voice lines added in M2
+| Moment | zh | en | Priority |
+|---|---|---|---|
+| Get off now (bus) | 到站了，请下车。… 车停稳了再站起来，慢慢下车。 | This is your stop. Get off now. … Wait until the bus stops, then get off slowly. | high |
+| Get off now (train) | 到站了，请下车。… 车门开了就下车，小心空隙。 | This is your stop. Get off now. … Get off when the doors open. Mind the gap. | high |
+| Waypoint | 到了{name}。准备好了，就按"继续下一段"。 | You're at {name}. When you're ready, tap Go to the next place. | normal |
+| Re-route failed | 暂时找不到新的路。先跟着地图上的线走。 | No new way found yet. Follow the line on the map for now. | normal |
+| Re-route offline | 没有网络，现在不能找新的路。网络回来后我会再找。 | No internet, so I can't find a new way now. I'll try again when you're back online. | normal |
+| Weak GPS | 位置不太准，跟着站牌走。 | Location is rough, follow the signs. | normal |
+| MRT pre-alert | 大约下一站下车。车停时看站名：{station}。 | Probably getting off at the next stop. When the train stops, check for {station}. | normal |
+| Manual mode | 没有位置信息，请自己按"下一步"。 | No location, so tap Next yourself. | normal |
+| Test voice | 你好，我会这样跟你说话。 | Hello, this is how I'll talk to you. | normal |
+"…" = the 2.2 s pause before the second line.
+
+### New items needing Director approval
+- **Colour token** `c-pocket` `#000000` (pocket view background only; OLED pixels off). Text on it reuses dark `c-ink-2` (12.13:1) and the glyph dark `c-primary` (9.68:1).
+- **Icons** (same grid and stroke as §1.4): `exit` (door with an arrow out; H6b, I got off) · `moon` (Pocket) · `plus` (Add a stop) · `arrow-up` · `arrow-down` (reorder).
+- **Component** `.tripnote` (6c.10), built only from existing tokens.
+- **Copy deviation (Creative recommendation):** the waypoint counter is 第 2 个地方，共 4 个 / Place 2 of 4, not "第 2 站，共 4 站 / Stop 2 of 4", because 站 / stop already means a bus stop or station on the same screens ("还有 4 站"). Director to confirm; the fallback is the brief's wording.
+- **AC wording:** AC 13 "puck at 34% height" becomes "66% down the visible map window" (6c.0). AC 10 "上一步 / Back a step" becomes "上一步 / Previous step".
+
 ## 7. Parity checklist (prototype ↔ build)
 - [ ] Tokens identical: colour, type, space, radii, motion, haptics.
 - [ ] Back stack per frame, as above, including the D8 end-trip guard.
@@ -439,3 +693,6 @@ Groups in this order; each row is 56px+ with label, current value in `c-ink-2`, 
 - [ ] Reduce motion: no pulses or petals, cross-fades only.
 - [ ] Map: OneMap tiles + attribution "Map data © OneMap / Singapore Land Authority"; saffron destination dot; line tags never colour-only.
 - [ ] Family page H8 matches status copy and expires on arrival.
+- [ ] H5: puck and station labels never intersect the top band or the step card (6c.0 rect check, 100% and 200%).
+- [ ] Haptic names are exactly the six in 6c.13; no `tap/notice/get_off/alert/arrived` left in `src/web`.
+- [ ] H6b, pocket view, manual controls, waypoint and resume states match 6c, with Back → End-trip sheet → Back → same state.
