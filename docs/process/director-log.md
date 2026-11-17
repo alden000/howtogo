@@ -111,3 +111,7 @@ Owner: "Go with all your recommended defaults. No need android play store."
 ## 2026-11-17 — Family viewer built (dev/m34-worker) + Creative review
 - Viewer: 15 states, 10.3 KB gz, 44 e2e. Creative: APPROVED WITH FIXES (2 P1 at 200%: ETA overflow, help disc crescent; zh keep-all; 1440 map offset; footer on ended/expired).
 - Ruling: share contract gains a structured step (`step: {k, ...fields}`) sent by the sharer; the viewer renders §6e.2 templates; until then no keyword-guessed icons (no match → no icon). Fixes batched into the M4 web round.
+
+## 2026-11-17 — M2 Creative review: APPROVED WITH FIXES
+- Rulings on deviations accepted as Creative ruled: headline = spoken line (principle) with Creative's F1 wording; sign chip = sign text only (train chip adds code); End sheet over pocket in normal theme with a scrim fade; AC 12 All-steps sheet built in the M2 fix round (before the owner phone test). AC 50 demo controls also in the fix round.
+- P1: F1 copy, F2 walk sub-line minutes, F3 H6b at 200%. Batched with QA findings into ONE M2 fix round.
