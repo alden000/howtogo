@@ -24,7 +24,7 @@
   --c-danger:#A4161A; --c-on-danger:#FFFFFF;
   --c-scrim:rgba(29,25,21,.55); --c-focus:#1D1915;
   --tint-home:#FBE3D3; --tint-clinic:#D6EDE4; --tint-market:#FFF1C2; --tint-family:#EADFF3;
-  --ink-home:#8A2E0B; --ink-clinic:#0A3F33; --ink-market:#5C4300; --ink-family:#4B2A63;
+  --ink-home:#6E2409; --ink-clinic:#0A3F33; --ink-market:#5C4300; --ink-family:#4B2A63;
   --line-ns:#D42E12; --line-ew:#009645; --line-ne:#9900AA; --line-cc:#FA9E0D; --line-dt:#005EC4; --line-te:#9D5B25; --line-lrt:#748477;
   /* map */
   --m-land:#F1E9DC; --m-block:#E3D6C2; --m-park:#CFE3C2; --m-water:#B9D9E4; --m-road:#FFFFFF; --m-casing:#D8C8B0; --m-exp:#F6D7A4; --m-label:#4A4038; --m-halo:#F1E9DC; --m-done:#B5A792;
@@ -75,6 +75,8 @@
 }
 /* ============ BASE ============ */
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+[tabindex="-1"]:focus{outline:none}
 html{font-size:calc(20px * var(--ts));-webkit-text-size-adjust:100%;background:var(--c-canvas)}
 body{margin:0;font-family:var(--font);color:var(--c-ink);background:var(--c-canvas);line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden;height:100dvh}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -84,7 +86,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .en-sub{display:block;font-size:.8rem;font-weight:400;color:var(--c-ink-2);margin-top:2px}
 /* type roles */
 .t-display{font-size:2.1rem;line-height:1.15;font-weight:900;letter-spacing:-.01em}
-.t-title{font-size:1.5rem;line-height:1.2;font-weight:700}
+.t-title{text-wrap:balance;font-size:1.5rem;line-height:1.2;font-weight:700}
 .t-headline{font-size:1.2rem;line-height:1.3;font-weight:700}
 .t-body{font-size:1rem}
 .t-label{font-size:.9rem;font-weight:700}
@@ -119,7 +121,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 /* ============ SCREENS ============ */
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--c-canvas);will-change:transform,opacity}
 .screen[hidden]{display:none}
-.scroll{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:0 var(--s-5) var(--s-6)}
+.scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:0 var(--s-5) var(--s-6)}
 .enter-push{animation:pushIn var(--d-base) var(--ease-out) both}
 .exit-push{animation:pushOut var(--d-base) var(--ease-out) both}
 .enter-pop{animation:popIn var(--d-base) var(--ease-out) both}
@@ -181,6 +183,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .field{display:flex;align-items:center;gap:10px;margin:var(--s-2) 0 var(--s-4);padding:6px 6px 6px 18px;border-radius:var(--r-l);background:var(--c-surface);border:3px solid var(--c-primary);box-shadow:var(--e-2)}
 .field input{flex:1;min-width:0;min-height:60px;border:0;outline:0;background:transparent;font:inherit;font-size:1.2rem;color:var(--c-ink)}
 .field input::placeholder{color:var(--c-ink-2);opacity:1}
+.field .mic svg,.searchbtn .mic svg{width:28px;height:28px}
 .field .mic{width:60px;height:60px;border-radius:50%;background:var(--c-primary);color:var(--c-on-primary);display:grid;place-items:center;flex:none;position:relative}
 .field .mic.listening::before,.field .mic.listening::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid var(--c-primary);animation:ripple 1.4s var(--ease-out) infinite}
 .field .mic.listening::after{animation-delay:.7s}
@@ -257,7 +260,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .stepicon.wait{background:var(--c-ink);color:var(--c-ink-inv)}
 .stepicon.arrive{background:var(--c-saffron);color:var(--c-on-saffron)}
 .steptx{flex:1;min-width:0}
-.steptx h2{margin:0;font-size:1.55rem;line-height:1.2;font-weight:900}
+.steptx h2{text-wrap:balance;margin:0;font-size:1.45rem;line-height:1.2;font-weight:900}
 .steptx .sign{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:8px;background:var(--c-surface-2);font-weight:700;font-size:1rem}
 .steptx p{margin:6px 0 0;font-size:1rem;color:var(--c-ink-2)}
 .prog{height:10px;border-radius:5px;background:var(--c-surface-2);margin:14px 0 4px;overflow:hidden}
@@ -337,6 +340,7 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .opt b{display:block;font-size:1.15rem;line-height:1.25}
 .opt span{display:block;font-size:.85rem;color:var(--c-ink-2)}
 .opt .tx{flex:1;min-width:0}
+.opt .avatar{display:grid;font-size:1.3rem;color:inherit}
 .opt.sel{border-color:var(--c-jade)}
 .opt .radio{width:32px;height:32px;border-radius:50%;border:3px solid var(--c-line);display:grid;place-items:center;flex:none}
 .opt.sel .radio{border-color:var(--c-jade);background:var(--c-jade);color:var(--c-on-jade)}
@@ -357,13 +361,14 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .addr .please{font-size:1.4rem;font-weight:700}
 .addr .please small{display:block;font-size:1.1rem;font-weight:400}
 .addr .lines{font-size:2.1rem;font-weight:900;line-height:1.2;overflow-wrap:anywhere}
-.addr .postal{display:inline-block;margin-top:6px;padding:4px 14px;border-radius:10px;background:#FFD23F;font-size:2.1rem;font-weight:900}
+.addr .postal{display:inline-block;max-width:100%;overflow-wrap:anywhere;margin-top:6px;padding:4px 14px;border-radius:10px;background:#FFD23F;font-size:2.1rem;font-weight:900}
 .addr .zh{font-size:1.3rem;font-weight:700;color:#4A4038}
 
 /* family (H8) */
 .fam{flex:1;overflow-y:auto;padding:0 var(--s-5) var(--s-6)}
 .browser{display:flex;align-items:center;gap:8px;margin:0 var(--s-4) 10px;padding:10px 14px;border-radius:var(--r-pill);background:var(--c-surface-2);font-size:.8rem;color:var(--c-ink-2);overflow:hidden;white-space:nowrap}
-.browser svg{width:16px;height:16px}
+.browser svg{width:16px;height:16px;flex:none}
+.browser span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .fam .hero{padding:18px;border-radius:var(--r-l);background:var(--c-surface);box-shadow:var(--e-2)}
 .fam .who{display:flex;gap:12px;align-items:center}
 .fam .eta{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:12px}
@@ -374,8 +379,9 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .fam .upd{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.85rem;color:var(--c-ink-2)}
 
 /* arrival (H11) */
-.arrive{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px var(--s-5);overflow-y:auto;position:relative}
-.arrive .mark{width:180px;height:180px;margin-bottom:8px}
+.arrive{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;padding:24px var(--s-5);overflow-y:auto;position:relative}
+.arrive::before,.arrive::after{content:"";flex:1 1 0}
+.arrive .mark{width:180px;height:180px;margin-bottom:8px;flex:none}
 .arrive h1{margin:0;font-size:3rem;font-weight:900;line-height:1.05}
 .arrive .dest{margin-top:10px;font-size:1.3rem;font-weight:700}
 .arrive .stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
@@ -965,7 +971,7 @@ class MapView{
   }
   setMe(p,hd){this.mePos=p;this.meHd=hd;this.me.style.display='';}
   frame(dt){
-    if(this.follow && this.mePos){ this.tgt={x:this.mePos[0],y:this.mePos[1],z:1.25,r:-90-this.meHd*180/Math.PI,oy:0.62}; }
+    if(this.follow && this.mePos){ this.tgt={x:this.mePos[0],y:this.mePos[1],z:1.25,r:-90-this.meHd*180/Math.PI,oy:0.34}; }
     else if(this.live && !this.follow){ this.fit(false); }
     const k=rm()?1:Math.min(1,dt*3.2), c=this.cam, t=this.tgt;
     c.x+=(t.x-c.x)*k; c.y+=(t.y-c.y)*k; c.z+=(t.z-c.z)*k; c.oy=(c.oy||.5)+((t.oy||.5)-(c.oy||.5))*k;
@@ -977,7 +983,7 @@ class MapView{
     const vx=500, vy=500-(H/k)/2+(H/k)*(c.oy||.5);
     this.world.setAttribute('transform',`translate(${vx} ${vy}) scale(${c.z}) rotate(${c.r}) translate(${-c.x} ${-c.y})`);
     const inv=1/c.z/k*0.9; // keep labels ~constant on screen
-    const ls=Math.max(.6,Math.min(1.6,1/c.z))*Math.min(1.4,S.ts);
+    const ls=(this.follow?Math.max(.6,Math.min(1.6,1/c.z)):Math.max(1,Math.min(2.6,0.75/c.z)))*Math.min(1.4,S.ts);
     this.lblEls.forEach(g=>{const t=g.firstChild;const rot=+(t.dataset.rot||0);const show=Math.abs(rot)>0&&!this.follow?rot:0;g.setAttribute('transform',`rotate(${-c.r+(this.follow?0:show)}) scale(${ls})`);});
     if(this.mePos){this.me.setAttribute('transform',`translate(${this.mePos[0]} ${this.mePos[1]}) scale(${Math.max(.7,1/c.z)})`);
       this.me.querySelector('.m-me-cone').setAttribute('transform',`rotate(${this.meHd*180/Math.PI+90})`);}
@@ -1184,7 +1190,7 @@ VIEWS.home=()=>{
     <button class="iconbtn" data-act="go" data-arg="settings" aria-label="${T('settings')}" style="width:56px;padding:0">${ic('sliders')}</button></header>
   <div class="scroll">
     <div class="greet"><h1 class="t-display">${greeting()}</h1><p>${T('whereToday')}</p>
-      <div class="where"><span class="dot" aria-hidden="true"></span>${T('youAreNear',{p:esc(L(hereP.full||hereP)==='家'||L(hereP)==='Home'?L(hereP)+' · '+hereP.sign:fullName(hereP))})}</div></div>
+      <div class="where"><span class="dot" aria-hidden="true"></span>${T('youAreNear',{p:esc(S.here==='home'?L(PL.home):fullName(hereP))})}</div></div>
     <button class="searchbtn" data-act="go" data-arg="search"><span class="mic" aria-hidden="true">${ic('mic')}</span><span class="grow">${T('searchPh')}</span>${ic('search')}</button>
     <div class="sect"><h2>${T('myPlaces')}</h2><span class="t-caption">${today()}</span></div>
     <div class="tiles">
@@ -1202,7 +1208,7 @@ const SEARCHABLE=[
 ];
 VIEWS.search=()=>`<header class="bar">${backBtn()}<span class="grow"></span></header>
   <div class="scroll"><h1 class="t-title" style="margin:0 0 4px">${T('searchTitle')}</h1>
-    <div class="field"><label for="q" class="sr">${T('searchFieldLabel')}</label>${ic('search')}<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${T('searchPh')}"><button class="mic" data-act="mic" aria-label="${T('micLabel')}">${ic('mic')}</button></div>
+    <div class="field"><label for="q" class="sr">${T('searchFieldLabel')}</label>${ic('search')}<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${T('searchFieldLabel')}"><button class="mic" data-act="mic" aria-label="${T('micLabel')}">${ic('mic')}</button></div>
     <div class="listenhint" id="lh" hidden aria-hidden="true">${ic('mic')}${T('listening')}</div>
     <div class="sect" style="margin-top:6px"><h2 id="rh">${T('recent')}</h2></div><ul class="rlist" id="rl"></ul></div>`;
 VIEWS.search_after=(el)=>{
@@ -1260,7 +1266,7 @@ VIEWS.share=()=>{
     <p class="lead">${T('sharingUntil')}</p><div class="opts">
     <button class="btn btn-secondary" data-act="go" data-arg="family">${ic('eye')}${T('preview')}</button>
     <button class="btn btn-secondary" data-act="stopShare">${ic('close')}${T('stopShare')}</button></div>`;
-  const who=[['meiling','meilingR','#FBE3D3','#6E2409'],['zhiming','zhimingR','#D6EDE4','#0A3F33']];
+  const who=[['meiling','meilingR','var(--tint-home)','var(--ink-home)'],['zhiming','zhimingR','var(--tint-clinic)','var(--ink-clinic)']];
   return `<div class="sheethead"><h2>${T('shareT')}</h2><button class="iconbtn" data-act="back" aria-label="${T('close')}">${ic('close')}</button></div>
   <p class="lead">${T('shareLead')}</p><h3 class="t-label" style="margin:0 0 8px;color:var(--c-ink-2)">${T('shareWho')}</h3>
   <div class="opts" role="radiogroup" aria-label="${T('shareWho')}">${who.map(([k,r,bg,fg])=>`<button class="opt ${S.shareTo===k?'sel':''}" role="radio" aria-checked="${S.shareTo===k}" data-act="pickShare" data-arg="${k}"><span class="avatar" style="background:${bg};color:${fg}" aria-hidden="true">${T(k).slice(0,1)}</span><span class="tx"><b>${T(k)}</b><span>${T(r)}</span></span><span class="radio" aria-hidden="true">${S.shareTo===k?ic('check'):''}</span></button>`).join('')}</div>
