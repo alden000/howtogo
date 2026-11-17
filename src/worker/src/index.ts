@@ -4,6 +4,7 @@ import { fixtureMode } from "./fixtures";
 import { HttpError, errorResponse, finalize, json, originAllowed, preflight } from "./http";
 import { ASSET_MAP, HEADER_RULES } from "./generated/assets";
 import { checkRateLimit } from "./ratelimit";
+import { ltaSource } from "./lta";
 import { handleCreateSetup, handleSetupByCode } from "./setup";
 import { handleCreateShare, handleShareById } from "./share";
 import { serveEmbedded } from "./static";
@@ -35,7 +36,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     "/api/alerts": () => handleAlerts(url, env, ctx),
     "/api/lifts": () => handleLifts(url, env, ctx),
     // D-10: the PWA shows the "Sample routes" banner when fixtureMode is true.
-    "/api/health": async () => json({ ok: true, fixtureMode: fixtureMode(env) }, 200, { "Cache-Control": "no-store" }),
+    "/api/health": async () => json({ ok: true, fixtureMode: fixtureMode(env), lta: ltaSource(env) }, 200, { "Cache-Control": "no-store" }),
   };
   const h = getRoutes[path];
   if (h) {

@@ -23,7 +23,7 @@ All responses are JSON (`application/json; charset=utf-8`) unless noted.
 - Other codes: `400 invalid_*` / `missing_query`, `404 not_found`, `405 method_not_allowed`, `413 payload_too_large` (bodies > 4 KB; `POST /api/setup` allows the 4096-byte ciphertext in base64url, ≈ 5.5 KB), `500 internal_error`.
 
 ## GET /api/health
-`{"ok":true,"fixtureMode":true|false}`, `Cache-Control: no-store`, not rate-limited. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
+`{"ok":true,"fixtureMode":true|false,"lta":"key"|"proxy"|"none"}`, `Cache-Control: no-store`, not rate-limited. `lta`: `key` = own `LTA_ACCOUNT_KEY` secret (all LTA endpoints); `proxy` = no key but the `LTA_PROXY` service binding to `whereisthebus-lta-proxy` (bus arrival only; `/api/alerts` and `/api/lifts` answer 503 `not_configured`); `none` = no LTA data. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
 
 ## GET /api/search?q=
 OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 24 h per lower-cased, whitespace-collapsed query (`Cache-Control: private, max-age=86400`).
@@ -48,7 +48,7 @@ OneMap revgeocode (`buffer=50&addressType=All`); the location is rounded to 5 dp
 Prefers the nearest entry with a building name. `404 not_found` when nothing is within 50 m.
 
 ## GET /api/bus-arrival?stop=<5 digits>[&service=<no>]
-LTA DataMall BusArrival v3. Upstream cached 20 s per stop; `etaMin` is recomputed on every request.
+LTA DataMall BusArrival v3 (own key; else via the `LTA_PROXY` service binding, same output). Upstream cached 20 s per stop; `etaMin` is recomputed on every request.
 ```json
 {"stop":"53009","fetchedAt":"2026-11-17T06:00:00.000Z","services":[
   {"no":"162","operator":"SBST","next":[{"etaMin":4,"load":"SEA","wheelchair":true,"deck":"double","monitored":true,"lat":1.3502,"lng":103.8487}]}
@@ -59,7 +59,7 @@ LTA DataMall BusArrival v3. Upstream cached 20 s per stop; `etaMin` is recompute
 - `load`: SEA (seats available) / SDA (standing available) / LSD (limited standing); `SEA` if LTA leaves it blank.
 - `wheelchair`: `Feature == "WAB"`. `deck`: SD→single, DD→double, BD→bendy.
 - `lat`/`lng` only when LTA reports a real position (not 0.0).
-- `fetchedAt`: when the Worker fetched LTA (show "updated x s ago").
+- `fetchedAt`: when the Worker fetched LTA (show "updated x s ago"). Via the proxy: the proxy's `PolledAt` (if earlier), so its edge-cache age counts toward "stale".
 - Services sorted numerically (13, 162, 410W). Empty slots are dropped, so `next` has 0–3 entries.
 
 ## GET /api/alerts

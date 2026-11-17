@@ -15,7 +15,7 @@ import {
   fixtureScenario,
   fixtureSearch,
 } from "./fixtures";
-import { ltaGet } from "./lta";
+import { ltaBusArrival, ltaGet, ltaSource } from "./lta";
 import { normaliseBusArrival, normaliseLifts, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
 import { oneMapGet } from "./onemap";
 
@@ -32,6 +32,8 @@ function parseJson(text: string): unknown {
 function bad(code: string, message: string): never {
   throw new HttpError(400, code, message);
 }
+
+const notConfigured = () => new HttpError(503, "not_configured", "This feature is not set up yet.");
 
 /** AC 17 cache lifetimes (seconds). */
 export const TTL = { search: 86_400, route: 120, revgeocode: 3_600, bus: 20, alerts: 60, lifts: 300 } as const;
@@ -197,16 +199,23 @@ export async function handleBusArrival(url: URL, env: Env, ctx?: Ctx): Promise<R
   const { body, storedAt, hit } = await cached(
     `bus:v1:${stop}`,
     TTL.bus,
-    () => ltaGet(env, `/v3/BusArrival?BusStopCode=${stop}`),
+    () => ltaBusArrival(env, stop),
     ctx,
   );
-  const value = normaliseBusArrival(parseJson(body), { stop, now: Date.now(), fetchedAt: storedAt, service });
+  const data = parseJson(body);
+  // Via the proxy Worker the data may be up to ~20 s older than our fetch (its edge cache): report
+  // its PolledAt as fetchedAt so the PWA's age/stale rules (e.g. > 60 s old) see the true age.
+  const polledAt = Date.parse(String((data as { PolledAt?: unknown } | null)?.PolledAt ?? ""));
+  const fetchedAt = Number.isFinite(polledAt) ? Math.min(polledAt, storedAt) : storedAt;
+  const value = normaliseBusArrival(data, { stop, now: Date.now(), fetchedAt, service });
   return json(value, 200, cacheHeaders(TTL.bus, hit));
 }
 
 // ---------- /api/alerts ----------
 export async function handleAlerts(url: URL, env: Env, ctx?: Ctx): Promise<Response> {
   if (fixtureMode(env)) return fixtureAlerts(fixtureScenario(url, ALERT_SCENARIOS, "normal"));
+  // The proxy Worker does not serve TrainServiceAlerts: without our own key this stays "not configured".
+  if (ltaSource(env) !== "key") throw notConfigured();
   const { body, hit } = await cached(
     "alerts:v2",
     TTL.alerts,
@@ -219,6 +228,8 @@ export async function handleAlerts(url: URL, env: Env, ctx?: Ctx): Promise<Respo
 // ---------- /api/lifts (M3 AC 30) ----------
 export async function handleLifts(url: URL, env: Env, ctx?: Ctx): Promise<Response> {
   if (fixtureMode(env)) return fixtureLifts(fixtureScenario(url, LIFT_SCENARIOS, "outage"));
+  // Nor FacilitiesMaintenance: same "not configured" state, never faked.
+  if (ltaSource(env) !== "key") throw notConfigured();
   const { body, storedAt, hit } = await cached(
     "lifts:v1",
     TTL.lifts,

@@ -34,6 +34,14 @@ class_name = "TripShare"
 tag = "v1"
 new_sqlite_classes = ["TripShare"]
 
+# Optional: reuse the LTA key of the owner's existing Worker via a service binding (src/lta.ts).
+# Only used for bus arrival when the LTA_ACCOUNT_KEY secret is unset. Resolves only when this Worker
+# is deployed to the SAME Cloudflare account as `whereisthebus-lta-proxy`; wrangler deploy errors if
+# that Worker does not exist in the target account (remove this block for other accounts).
+[[services]]
+binding = "LTA_PROXY"
+service = "whereisthebus-lta-proxy"
+
 [observability]
 enabled = false
 

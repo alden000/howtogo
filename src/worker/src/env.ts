@@ -5,6 +5,12 @@ export interface Env {
   ONEMAP_PASSWORD?: string;
   /** LTA DataMall AccountKey (Worker secret). */
   LTA_ACCOUNT_KEY?: string;
+  /**
+   * Optional service binding to the owner's existing `whereisthebus-lta-proxy` Worker (same account),
+   * which holds an LTA key we cannot read back. Used for bus arrival ONLY when LTA_ACCOUNT_KEY is unset.
+   * Contract: GET /bus-arrival?BusStopCode=<code> → { [code]: <raw BusArrival v3> & { PolledAt } }.
+   */
+  LTA_PROXY?: Fetcher;
   /** Comma-separated list of allowed browser origins, e.g. "https://howtogo.pages.dev,http://localhost:5173". */
   ALLOWED_ORIGINS?: string;
   /** Lifetime of a live trip share in hours (default 4, clamped 1..24). */

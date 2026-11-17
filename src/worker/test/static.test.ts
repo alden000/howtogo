@@ -88,7 +88,7 @@ describe("Worker routing with the embedded build", () => {
   it("/api/* still goes to the API (JSON, API headers), not the PWA", async () => {
     const res = await call("/api/health");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, fixtureMode: false });
+    expect(await res.json()).toMatchObject({ ok: true, fixtureMode: false });
     expect(res.headers.get("Content-Security-Policy")).toBe("default-src 'none'; frame-ancestors 'none'");
     const nf = await call("/api/nope");
     expect(nf.status).toBe(404);
