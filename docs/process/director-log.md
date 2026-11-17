@@ -142,3 +142,17 @@ Owner: "Go with all your recommended defaults. No need android play store."
 
 ## 2026-11-17 — M3/M4 merged pre-gate (handover)
 - Merged dev/m34-web (Creative High/Medium fixes done; unit tests 139/180/162 green; typecheck clean) into the session branch so the work survives the session switch for the hosting move. Not deployed (old account). QA gate for M3/M4 is the next step in the new session; see HANDOVER.md.
+
+## 2026-11-18 — Local machine session: sync, hosting blocked, M3/M4 gate FAIL
+- Sync: the session branch had the LTA-binding merge that ccr-3d674ac5-27etk6 lacked, so this was a real merge, not a fast-forward. Pushed. Dev now runs on the owner's Windows PC (4 cores, Git Bash; npm scripts need `--script-shell` bash).
+- Hosting: wrangler isn't logged in. The OAuth login timed out twice at ~04:45 local (approval window ~2 min). **Blocked on the owner** running `npx wrangler login` with the wwweeeiii.com account.
+- M3/M4 gate (qa/reports/0.3.0-m34.md): FAIL. M3 32/8/3/2, M4 36/11/3/2 (pass/fail/deferred/untested). QA-29…49, no S1/S2. Gate scripts fixed for Windows paths, zip and orphan ports.
+- Rulings:
+  - QA-37: Creative §6e.3 order stands. The "让家人看到我在哪里 / share" row is in Creative's spec (Help while not sharing is a share entry point, STYLE-GUIDE §6e.3 / entry points) → build it, at Creative's position. Amend AC 32 to point at §6e.3.
+  - QA-40: **up to 5 family members** (Creative's frame, P-series "最多 5 个人"), everywhere incl. `/setup`. Amend AC 39/40. The My places editor (AC 39, up to 6) is a bug: build it.
+  - QA-46: **AC 5 wins: no times in the share message** (privacy: a forwarded message must not leak a schedule). Creative to drop the ETA from the copy.
+  - QA-48: **self-host the fonts** (subset woff2, font-display swap, preload the primary weight), with no third-party font request. That covers both privacy (no Google request with the user's IP) and Lighthouse perf ≥ 80.
+  - Visual baselines: they were recorded on Linux. On Windows, the gate runs dev-e2e inside the Playwright Docker image (Docker Desktop on this host) so pixels compare like-for-like. Developer to script it.
+  - M3 AC 45 `smoke:live`: deferred to M5 (needs the owner's OneMap/LTA secrets).
+  - QA-47: version 0.3.0. QA-49: raise that test's timeout. QA-29 stays S3.
+- Fix round: two fresh Developers in parallel worktrees (A: M3 + gate/infra; B: M4), then Creative review of the visible changes, then a QA re-check of the failures only.
