@@ -103,13 +103,13 @@ test.describe('journeys', () => {
     await expect(page).toHaveURL(/\/trip$/);
     await expect(page.locator('h1')).toHaveText('去 Tan Tock Seng Hospital');
     await expect(page.getByTestId('step-list').locator('li').last()).toContainText('到达 Tan Tock Seng Hospital');
-    await expect(page.getByTestId('start-guide')).toHaveCount(0); // OQ5: flag `guide` off
+    await expect(page.getByTestId('start-guide')).toBeVisible(); // M2 AC 1: flag `guide` on
     await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('Singapore Land Authority', { timeout: 15_000 });
 
     await page.getByTestId('back').click();
     await expect(page).toHaveURL(/\/routes$/);
     await page.getByTestId('back').click();
-    await expect(page).toHaveURL(/:4173\/(\?.*)?$/);
+    await expect(page).toHaveURL(/:\d+\/(\?.*)?$/);
     // Recent destination now on Home (F8)
     await expect(page.getByTestId('recent-0')).toContainText('Tan Tock Seng Hospital');
     const screens = (await logOf(page)).filter((l) => l.startsWith('screen:'));
@@ -207,7 +207,7 @@ test.describe('states', () => {
     await page.getByTestId('back').click();
     await expect(page).toHaveURL(/\/settings$/);
     await page.getByTestId('back').click();
-    await expect(page).toHaveURL(/:4173\/(\?.*)?$/);
+    await expect(page).toHaveURL(/:\d+\/(\?.*)?$/);
     // Name sheet saves the greeting name
     await page.getByTestId('nav-settings').click();
     await page.getByTestId('row-name').click();

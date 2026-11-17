@@ -52,15 +52,11 @@ test.describe('demo mode', () => {
     expect(lines).toEqual(expect.arrayContaining(['state:resume', 'loc:profile 2000']));
     expect(lines.some((l) => l.startsWith('state:wakelock-failed') || l === 'wakelock:on')).toBe(true);
 
-    // Back: one in-app step at a time (guide → trip → routes → home).
+    // M2 AC 47: Back on H12 arrival goes to H1 (the trip stack is replaced) and clears the stored trip.
     await page.goBack();
-    await expect(page).toHaveURL(/\/trip$/);
-    await page.goBack();
-    await expect(page).toHaveURL(/\/routes$/);
-    await page.goBack();
-    await expect(page).toHaveURL(/:4173\/(\?.*)?$/);
-    const screens = (await logOf(page)).filter((l) => l.startsWith('screen:'));
-    expect(screens.slice(-4)).toEqual(['screen:/guide', 'screen:/trip', 'screen:/routes', 'screen:/']);
+    await expect(page).toHaveURL(/:\d+\/(\?.*)?$/);
+    await expect(page.getByTestId('to-field')).toBeVisible();
+    expect(await logOf(page)).toContain('trip:ended');
   });
 
   test('a sheet consumes one Back; in-app Back button works', async ({ page }) => {
@@ -76,9 +72,13 @@ test.describe('demo mode', () => {
     await page.goBack();
     await expect(page.getByTestId('sheet-end-trip')).toHaveCount(0);
     await expect(page).toHaveURL(/\/guide$/);
-    await page.getByTestId('back').click();
-    await expect(page).toHaveURL(/\/trip$/);
-    expect(await logOf(page)).toEqual(expect.arrayContaining(['sheet:end-trip', 'cue:step_changed']));
+    // D8: Back on H5 opens the End-trip sheet again; Keep going returns to H5.
+    await page.goBack();
+    await expect(page.getByTestId('sheet-end-trip')).toBeVisible();
+    await page.getByTestId('end-trip-no').click();
+    await expect(page.getByTestId('sheet-end-trip')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/guide$/);
+    expect(await logOf(page)).toEqual(expect.arrayContaining(['sheet:end-trip', 'cue:step_changed', 'guard:sheet']));
   });
 });
 

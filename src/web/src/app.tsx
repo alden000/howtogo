@@ -38,7 +38,9 @@ export function App() {
       router.setGuard(() => {
         const tr = store.trip.peek();
         if (!tr) return 'pass';
-        return tr.phase === 'arrived' || runtime.ui.peek().phase === 'arrived' ? 'home' : 'sheet';
+        if (tr.phase !== 'arrived' && runtime.ui.peek().phase !== 'arrived') return 'sheet';
+        void runtime.end(); // H12: Back → H1 and the stored trip is cleared (AC 47)
+        return 'home';
       }),
     [],
   );

@@ -61,9 +61,9 @@ test('F8 Swap on Route options: start and destination change places', async ({ p
   expect(await logOf(page)).toContain('swap');
 });
 
-test('Ruling 1 + QA-1: no "live" note and no Help in the M1 release; ?ff=help,live brings them back', async ({ page }) => {
+test('Ruling 1 + QA-1: no "live" note; Help hidden with ?ff=-help (on by default from M2); ?ff=help,live brings them back', async ({ page }) => {
   await setup(page);
-  await page.goto('/?demo=1');
+  await page.goto('/?demo=1&ff=-help');
   await expect(page.getByTestId('nav-help')).toHaveCount(0);
   await toRoutes(page);
   await expect(page.getByTestId('route-option-0')).toBeVisible();

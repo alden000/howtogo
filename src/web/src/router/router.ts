@@ -88,7 +88,7 @@ export function createRouter(win: Window = window): Router {
       const a = guardFn();
       log(`guard:${a}`);
       if (a === 'pass') return void (st.idx > 0 ? h.back() : h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', '/'));
-      if (a === 'home') return resetTo('/');
+      if (a === 'home') return resetTo('/', undefined, st.idx);
       h.pushState({ howtogo: 1, idx: st.idx + 1 } satisfies NavState, '', GUIDE);
       h.pushState({ howtogo: 1, idx: st.idx + 2, sheet: 'end-trip' } satisfies NavState, '', GUIDE);
       state.value = h.state as NavState;
@@ -100,8 +100,8 @@ export function createRouter(win: Window = window): Router {
     announce();
   };
   const onPop = () => sync();
-  function resetTo(path: string, then?: string) {
-    const n = state.value.idx;
+  function resetTo(path: string, then?: string, from?: number) {
+    const n = from ?? state.value.idx;
     const land = () => {
       h.replaceState({ howtogo: 1, idx: 0 } satisfies NavState, '', path);
       if (then) h.pushState({ howtogo: 1, idx: 1 } satisfies NavState, '', then);
@@ -110,7 +110,7 @@ export function createRouter(win: Window = window): Router {
       announce();
     };
     const cur = isNav(h.state) ? h.state.idx : 0;
-    const back = Math.max(n, cur);
+    const back = from ?? Math.max(n, cur);
     if (back <= 0) return land();
     const once = () => {
       win.removeEventListener('popstate', once, true);
