@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `wrangler dev`. Never commit .dev.vars.
+ONEMAP_EMAIL=you@example.com
+ONEMAP_PASSWORD=change-me
+LTA_ACCOUNT_KEY=change-me
+ALLOWED_ORIGINS=http://localhost:5173
+SHARE_TTL_HOURS=4
