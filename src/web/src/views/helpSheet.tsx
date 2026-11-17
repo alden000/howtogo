@@ -45,7 +45,7 @@ export function HelpSheet() {
             </span>
             <span class="tx">
               <b>{t('hp_call', { fam: first.name })}</b>
-              <span>{sharing ? t('hp_call_s_sharing') : t('hp_call_s', { rel: t(`rel_${first.relation}` as UiKey) })}</span>
+              <span>{sharing ? t('hp_call_s_sharing', { fam: first.name }) : t('hp_call_s', { rel: t(`rel_${first.relation}` as UiKey) })}</span>
             </span>
           </button>
         ) : (

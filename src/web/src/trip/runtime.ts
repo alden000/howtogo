@@ -968,7 +968,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     store.setTrip(t);
     askNotify();
     const to = places[places.length - 1];
-    if (to) store.addRecent(to, places[0], now());
+    const lines = [...new Set([itinerary, ...(j?.segments ?? []).map((sg) => sg?.itinerary)].flatMap((it) => it?.legs ?? []).flatMap((g) => (g.line?.code ? [g.line.code] : [])))];
+    if (to) store.addRecent(to, places[0], now(), lines);
     handleCues(guidance, l);
     await attach(false);
   }

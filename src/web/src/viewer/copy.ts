@@ -2,13 +2,11 @@
 import { stationByCode } from '@howtogo/shared/data';
 import type { StepWire } from './state';
 export type Lang = 'zh' | 'en';
-export type Pronoun = 'f' | 'm' | null | undefined;
 
 export interface CopyCtx {
   lang: Lang;
   me: string;
   dest: string;
-  pronoun: Pronoun;
 }
 
 /** §6e "Default {me} when unknown". */
@@ -63,9 +61,8 @@ export function copy(c: CopyCtx) {
   const me = c.me;
   const Me = zh ? me : cap(me);
   const dest = c.dest;
-  // zh: 她/他 only when known; otherwise repeat {me} (§6e.2 pronouns). en: "they" unless set.
-  const zhP = c.pronoun === 'f' ? '她' : c.pronoun === 'm' ? '他' : me;
-  const en = c.pronoun === 'f' ? { s: 'she', o: 'her', is: 'she is', are: 'she’s' } : c.pronoun === 'm' ? { s: 'he', o: 'him', is: 'he is', are: 'he’s' } : { s: 'they', o: 'them', is: 'they are', are: 'they’re' };
+  // M34 review: no pronoun is ever sent. zh repeats {me}; en says "they".
+  const zhP = me;
   const T = (z: string, e: string) => (zh ? z : e);
   return {
     brand: '怎么去?',
@@ -75,16 +72,16 @@ export function copy(c: CopyCtx) {
     opening: T('正在打开…', 'Opening…'),
     onWay: T(`${me}正在去 ${dest}`, `${Me} is on the way to ${dest}`),
     notYet: T(`${me}还没出发`, `${Me} hasn’t set off yet`),
-    notYetLine: T(`${zhP}出发后，这里会显示${zhP}在哪里。`, c.pronoun ? `Once ${en.s} sets off, you’ll see where ${en.is} here.` : 'Once they set off, you’ll see where they are here.'),
+    notYetLine: T(`${zhP}出发后，这里会显示${zhP}在哪里。`, 'Once they set off, you’ll see where they are here.'),
     goingTo: T(`要去：${dest}`, `Going to: ${dest}`),
     etaAbout: (t: number) => T(`约 ${timeText('zh', t)} 到达`, `Arriving about ${timeText('en', t)}`),
     minLeft: (n: number) => T(`还有 ${n} 分钟`, `${n} min to go`),
     mayChange: T('（可能有变化）', '(may change)'),
     helpTitle: T(`${me}按了“帮忙”`, `${Me} tapped Help`),
-    helpLine: T(`${zhP}可能需要你。请打电话给${zhP}。`, c.pronoun ? `${cap(en.s)} may need you. Please give ${en.o} a call.` : 'They may need you. Please give them a call.'),
-    near: (place: string) => T(`${zhP}现在在 ${place} 附近`, `${cap(en.are)} near ${place} now`),
-    helpAssertive: T(`${me}按了帮忙。${zhP}可能需要你。`, `${Me} tapped Help. ${c.pronoun ? cap(en.s) : 'They'} may need you.`),
-    helpCleared: T(`${me}说${c.pronoun ? zhP : '自己'}没事了。`, `${Me} says ${en.are} okay now.`),
+    helpLine: T(`${zhP}可能需要你。请打电话给${zhP}。`, 'They may need you. Please give them a call.'),
+    near: (place: string) => T(`${zhP}现在在 ${place} 附近`, `They’re near ${place} now`),
+    helpAssertive: T(`${me}按了帮忙。${zhP}可能需要你。`, `${Me} tapped Help. They may need you.`),
+    helpCleared: T(`${me}说自己没事了。`, `${Me} says everything’s okay now.`),
     arrivedTitle: T(`${me}已经到了 ${dest}`, `${Me} has arrived at ${dest}`),
     arrivedAt: (t: number) => T(`${timeText('zh', t)} 到的`, `Arrived at ${timeText('en', t)}`),
     stopsAt: (t: number) => T(`分享会在 ${timeText('zh', t)} 停止`, `Sharing stops at ${timeText('en', t)}`),
@@ -97,7 +94,7 @@ export function copy(c: CopyCtx) {
           : T(`最后位置：${n} 分钟前`, `Last seen ${n} min ago`),
     noSignalLine: T('在地铁里或大楼里常常这样，信号回来后会自己更新。', 'This often happens in the MRT or inside buildings. It will update by itself when the signal returns.'),
     ended: T(`${me}停止了分享`, `${Me} stopped sharing`),
-    endedLine: T(`想知道${zhP}在哪里，可以打电话给${zhP}。`, c.pronoun ? `To find out where ${en.is}, you can call ${en.o}.` : 'To find out where they are, you can call them.'),
+    endedLine: T(`想知道${zhP}在哪里，可以打电话给${zhP}。`, 'To find out where they are, you can call them.'),
     endedArrived: T(`${me}已经到了 ${dest}。分享结束了。`, `${Me} arrived at ${dest}. Sharing has ended.`),
     expired: T('这个链接已经过期了', 'This link has expired'),
     expiredLine: T(`分享最长 4 小时。可以请${me}再发一个。`, `Sharing lasts 4 hours at most. You can ask ${me} for a new one.`),
@@ -108,13 +105,13 @@ export function copy(c: CopyCtx) {
     updatedAgo: (n: number) => T(`${n} 分钟前更新`, `Updated ${n} min ago`),
     call: T(`打电话给${me}`, `Call ${me}`),
     mapLabel: T(`${me}现在的位置的地图`, `Map of where ${me} is`),
-    locate: T(`回到${zhP}的位置`, `Back to ${c.pronoun === 'f' ? 'her' : c.pronoun === 'm' ? 'his' : 'their'} position`),
+    locate: T(`回到${zhP}的位置`, 'Back to their position'),
     foot1: T(`${me}到了 30 分钟后，这个链接会停止（最长 4 小时）。`, `This link stops 30 minutes after ${me} arrives (4 hours at most).`),
     foot2: T('怎么去? 不会保存任何人的位置。', '怎么去? doesn’t keep anyone’s location.'),
     whatIs: T('这是什么？', 'What is this?'),
     whatIsBody: T(
       `怎么去? 是一个帮长辈坐巴士和地铁的应用。${me}用它一步一步地走，也用它让家人看到${zhP}在哪里。`,
-      `怎么去? helps older people take the bus and train, one step at a time. ${Me} uses it to get around, and to let family see where ${en.is}.`,
+      `怎么去? helps older people take the bus and train, one step at a time. ${Me} uses it to get around, and to let family see where they are.`,
     ),
     // Tab titles (§6e.2 "Page title").
     titleDefault: T('家人的行程', 'A family member’s trip'),

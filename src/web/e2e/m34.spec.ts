@@ -82,9 +82,60 @@ for (const [scn, state, big] of CHIP) {
     if (state === 'here') {
       await expect.poll(() => logOf(page)).toContain('bus:arriving-cue');
     }
+    // Review #1b: H5 shows no second bus badge (the sign line already has it).
+    await expect(chip.locator('.busbadge')).toHaveCount(0);
+    if (state === 'nodata') {
+      // Review #4: spoken once per step.
+      await expect.poll(() => logOf(page)).toContain('bus:nodata-voice');
+      await page.waitForTimeout(5500);
+      expect((await logOf(page)).filter((l) => l === 'bus:nodata-voice')).toHaveLength(1);
+    }
     expect(await logOf(page)).toContain(`bus:chip ${state}`);
   });
 }
+
+test('T1 nodata at night: no "the bus will still come" promise; Show the driver → H10', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-18T23:45:00+08:00'));
+  await boot(page, { scn: 'bus:empty' });
+  await startTo(page, '陈笃生');
+  await runUntil(page, 'step:1');
+  await expect(page.getByTestId('arr-second')).toHaveText('请看站牌上的时间。');
+  await page.getByTestId('arr-driver').click();
+  await expect(page.getByTestId('sheet-driver')).toBeVisible();
+});
+
+test('T1 nodata by day keeps the reassurance', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-18T10:15:00+08:00'));
+  await boot(page, { scn: 'bus:empty' });
+  await startTo(page, '陈笃生');
+  await runUntil(page, 'step:1');
+  await expect(page.getByTestId('arr-second')).toHaveText('请看站牌上的时间。巴士还是会来的。');
+  await expect(page.getByTestId('arr-driver')).toHaveCount(0);
+});
+
+for (const size of ['standard', 'xxlarge'] as const)
+  test(`H5 chip sits under the headline, full width, step leads the sheet (${size})`, async ({ page }) => {
+    await boot(page, { scn: 'bus:live', settings: { textSize: size } });
+    await startTo(page, '陈笃生');
+    await runUntil(page, 'step:1');
+    await expect(page.locator('.arrchip b.big')).toBeVisible();
+    const g = await page.evaluate(() => {
+      const big = document.querySelector('.arrchip b.big')!.getBoundingClientRect();
+      const chip = document.querySelector('.arrchip')!.getBoundingClientRect();
+      const card = document.querySelector('[data-testid="stepcard"]')!;
+      const c = card.getBoundingClientRect();
+      const head = document.querySelector('[data-testid="current-step"]')!.getBoundingClientRect();
+      const sign = document.querySelector('[data-testid="step-sub"]')!.getBoundingClientRect();
+      const wake = document.querySelector('[data-note="wakelock"]');
+      return { bigBottom: big.bottom, chipW: chip.width, cardW: c.width, cardTop: c.top, cardH: card.clientHeight, ih: innerHeight, headBottom: head.bottom, chipTop: chip.top, signTop: sign.top, wakeAfter: wake ? wake.getBoundingClientRect().top > chip.bottom : null };
+    });
+    expect(g.chipTop).toBeGreaterThanOrEqual(g.headBottom - 1);
+    expect(g.signTop).toBeGreaterThanOrEqual(g.chipTop);
+    expect(g.chipW).toBeGreaterThan(g.cardW - 60);
+    if (g.wakeAfter !== null) expect(g.wakeAfter).toBe(true);
+    if (size === 'standard') expect(g.bigBottom).toBeLessThanOrEqual(g.ih);
+    else expect(g.bigBottom - g.cardTop).toBeLessThanOrEqual(2 * g.cardH);
+  });
 
 test('T1: LSD → advice + less crowded hint; wheelchair user sees "not wheelchair friendly"', async ({ page }) => {
   await boot(page, { scn: 'bus:lsd' });
@@ -95,13 +146,27 @@ test('T1: LSD → advice + less crowded hint; wheelchair user sees "not wheelcha
 });
 
 // ------------------------------------------------------------------ T3/T4 disruption
-test('T3: Home banner (dismissable), H3 affected fact, H4 banner', async ({ page }) => {
+test('T3: Home strip only for a line a recent trip used; otherwise the quiet LTA note', async ({ page }) => {
+  await boot(page, { scn: 'alerts:disrupted' });
+  await expect(page.getByTestId('disruption')).toHaveCount(0);
+  await expect(page.getByTestId('disruption-minor')).toBeVisible();
+});
+
+test('T3: Home strip (72 px, dismissable), H3 affected fact, H4 banner', async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem('howtogo.recents', JSON.stringify([{ to: { name: 'Raffles Place', lat: 1.2841, lng: 103.8515 }, at: Date.now() - 864e5, lines: ['NS'] }])),
+  );
   await boot(page, { scn: 'alerts:disrupted' });
   const banner = page.getByTestId('disruption');
   await expect(banner).toHaveAttribute('data-where', 'home');
   await expect(banner).toContainText('南北线');
-  await expect(banner).toContainText('碧山');
+  await expect(banner).not.toContainText('碧山');
+  const h = await banner.evaluate((e) => e.getBoundingClientRect().height);
+  expect(h).toBeGreaterThanOrEqual(72);
+  expect(h).toBeLessThan(140);
+  await expect(page.getByTestId('disruption-dismiss')).toHaveAttribute('aria-label', '知道了');
   await page.getByTestId('disruption-notice').click();
+  await expect(page.getByTestId('lta-line').first()).toContainText('碧山');
   await expect(page.getByTestId('lta-message')).toContainText('SYNTHETIC');
   await page.goBack();
   await page.getByTestId('disruption-dismiss').click();
@@ -133,6 +198,10 @@ test('T4: in-trip disruption → offer (never auto) → keep; → find another w
   await page.getByTestId('offer-find').click();
   await expect.poll(() => logOf(page)).toContain('alerts:offer accepted');
   await expect.poll(async () => (await logOf(page)).some((l) => l.startsWith('reroute:'))).toBe(true);
+  // T4 (build now): the result says it avoids the line.
+  if ((await logOf(page)).includes('reroute:done') || (await page.getByTestId('rr-title').count())) {
+    await expect(page.getByTestId('rr-note')).toContainText('南北线');
+  }
 });
 
 // ------------------------------------------------------------------ M4 share
@@ -207,7 +276,7 @@ test('Help full: call first contact (tel:), sets help while sharing, I\'m okay; 
   await expect(page.getByTestId('share-pill')).toBeVisible();
   await page.getByTestId('guide-help').click();
   await expect(page.getByTestId('help-call')).toContainText('打电话给美玲');
-  await expect(page.getByTestId('help-call')).toContainText('她的页面也会显示你需要帮忙');
+  await expect(page.getByTestId('help-call')).toContainText('美玲 的页面也会显示你需要帮忙');
   await page.getByTestId('help-call').click();
   await expect.poll(() => logOf(page)).toContain('ext:tel');
   await expect(page.getByTestId('share-pill')).toHaveAttribute('data-state', 'help');

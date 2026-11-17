@@ -55,6 +55,8 @@ export interface RecentTrip {
   to: Place;
   from?: Place;
   at: number;
+  /** Rail line codes the trip used (M34 review #2: the Home disruption strip only for a line a recent trip uses). */
+  lines?: string[];
 }
 
 export interface Plan {
@@ -185,10 +187,10 @@ export function createStore(kv: KV = local, ss: KV = session, opts: { tripWriteM
       else delete next.home;
       places.value = next;
     },
-    addRecent(to: Place, from?: Place, at = Date.now()) {
+    addRecent(to: Place, from?: Place, at = Date.now(), lines?: string[]) {
       const key = (p: Place) => `${p.name}|${p.lat.toFixed(4)}|${p.lng.toFixed(4)}`;
       const rest = recents.value.filter((r) => key(r.to) !== key(to));
-      recents.value = [{ to, ...(from ? { from } : {}), at }, ...rest].slice(0, MAX_RECENTS);
+      recents.value = [{ to, ...(from ? { from } : {}), at, ...(lines?.length ? { lines } : {}) }, ...rest].slice(0, MAX_RECENTS);
     },
     clearRecents() {
       recents.value = [];

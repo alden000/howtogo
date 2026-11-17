@@ -119,6 +119,7 @@ export function ShareSheet() {
             <span class="tx">
               <b>{c.name}</b> <span>{t(`rel_${c.relation}`)}</span>
             </span>
+            <RadioMark on={pick === i} />
           </button>
         ))}
         {!contacts.length && (
@@ -129,7 +130,8 @@ export function ShareSheet() {
         )}
         <button type="button" role="radio" class="radio" aria-checked={pick === -1} data-testid="share-someone" onClick={() => setPick(-1)}>
           <Icon name="person" />
-          {t('sh_someone')}
+          <span class="tx">{t('sh_someone')}</span>
+          <RadioMark on={pick === -1} />
         </button>
       </div>
       {failed ? (
@@ -302,4 +304,13 @@ export function useShareOnStart() {
     shareOnStart.value = false;
     router.openSheet('share');
   }, []);
+}
+
+/** Review #6: the picked contact is not colour-only: a filled disc with a check; unpicked is an empty ring. */
+function RadioMark({ on }: { on: boolean }) {
+  return (
+    <span class={`rmark${on ? ' on' : ''}`} aria-hidden="true">
+      {on && <Icon name="check" />}
+    </span>
+  );
 }

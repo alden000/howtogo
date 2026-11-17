@@ -646,3 +646,27 @@ Scope: Worker-side ACs only (`src/worker/`). 136 tests pass (was 91), typecheck 
 1. QA: update AC-42 (version), the arrival-route-home `runUntil` (log already has `trip:arrived`), and replace the `test.fail` AC 12 / AC 50 checks; then targeted re-check.
 2. Creative: review the 12 re-recorded baselines (step counter as All-steps entry; H6b 200 % title size `min(2.4rem, 20vw)`); polish round F8–F11, F13–F15.
 3. Owner phone test (notification prompt at Start, Route home "从" = here).
+
+## 2026-11-17 — Developer: merge M2 0.2.0 into M3/M4; Creative M34 build review fixes (`dev/m34-web`)
+
+**Visible changes**
+- H5 bus wait: the arrival chip now runs full card width straight under the headline, before 站名牌上写着; it no longer repeats the `139` badge (`4 分钟 · ● 实时`). H4 keeps the badge.
+- H5: the screen-awake note (请让屏幕保持亮着) moved to the bottom of the step card, so the step leads the sheet.
+- H5 `nodata` chip: 23:30–05:30 (or after 30 min with no arrivals) the second line is `请看站牌上的时间。` only, plus **给司机看地址 / Show the driver** → H10. Daytime keeps `…巴士还是会来的。` It is now spoken once per step: `暂时没有到站时间，请看站牌。`
+- Home: the disruption banner is a 72 px strip (train-off disc, line tag, title, ›, ✕ "知道了 / Dismiss"), shown only when a recent trip used the line; otherwise the quiet `LTA：有地铁消息` note. Tapping opens the LTA sheet, which now also lists each line's stations/direction and free buses.
+- Free-bus list in en joins with ", " (was "、").
+- H5 after 找别的路 round a disruption: the re-route banner reads `换一条路去 {dest}` / `这些路不经过 {line} 有问题的站。`
+- H5 train-to-train change: step meta reads `换车 · 第 3 步，共 5 步` / `Change trains · Step 3 of 5`.
+- P1 share: picked contact = soft fill + 32 px check disc; unpicked = empty ring (not colour-only).
+- P4 / W segmented choices show a check on the selected option (as Settings).
+- P2 Help call row while sharing: `一按就打，{fam} 的页面也会显示你需要帮忙` / `One tap to call. {fam}'s page will also show you need help.`
+- Settings → 我的电话号码: lock helper `家人看你的行程时，可以一按就打给你。只在你分享行程时才会发出去。`
+- W `/setup`: header with logo + English/中文 toggle (56 px); section titles 900 1.05 rem; field label `地址`, placeholder `街名、大牌号或邮区编号`; button `做好了，拿链接`; `发好了…` only after the WhatsApp/copy tap.
+- Viewer: no `pronoun` anywhere; zh repeats {me}, en "they"; en help-cleared `{Me} says everything’s okay now.`
+- From the M2 merge: All-steps sheet, M2 demo controls under the M4 Help sheet on a trip, F1 headlines, F2 walk sub-line, version 0.2.0.
+
+**Merge (main → dev/m34-web)** conflicts: `steps.ts` (both imports), `app.tsx` (M4 sheets + All-steps), `tripSheets.tsx` (M4 Help stays in `helpSheet.tsx`; M2 `DemoControls` exported and rendered there on a trip; `AllStepsSheet` kept). Re-recorded because the screen combines both: `M2-H9-m2-trip` (M4 Help + demo section), `M3-T1-{live,here,estimated,lsd,nodata}` (F1 headline + step counter), `M4-P2-trip-sharing`.
+
+**Review items** — High 1–3, Medium 4–10, build-now T4/T6 done. Web Push dropped; 995 confirm kept; Lows 11–18 (except #16, touched by the pronoun drop) and the other deviations deferred to M5. Recents now store the rail line codes used (`RecentTrip.lines`), which drives the Home strip.
+
+**Tests** web unit +1 (T6 `isTrainChange`), viewer copy test updated (no pronoun). Dev e2e +6: T3 strip only with a recent trip / height ≥ 72 + LTA sheet lines, T1 nodata night/day, nodata voice once, no H5 badge, chip geometry at 100 % (big number above the fold, wake note below) and 200 % (within one sheet scroll), T4 `rr-note`. New baseline `M3-T3-home-dark-100-zh`. Re-recorded: `M3-T1-*` (5 + live-dark-200), `M3-T3-home-light`, `M4-P1-choose`, `M4-P2-995confirm`, `M4-W-form`, `M1-F6-settings-{light,dark}` (phone helper).

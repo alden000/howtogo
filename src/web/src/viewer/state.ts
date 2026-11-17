@@ -22,8 +22,6 @@ export interface ShareWire {
   positionAt: string | null;
   helpAt: string | null;
   expiresAt: string | null;
-  /** Not in the contract yet (6e.9 ask): 'f' | 'm' lets zh copy use 她/他. */
-  pronoun?: 'f' | 'm' | null;
 }
 
 /** `step` of the share contract (src/worker/API.md). */

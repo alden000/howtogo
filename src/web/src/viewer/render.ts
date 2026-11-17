@@ -26,7 +26,7 @@ const PILL_ICON = { walk: 'walk', wait: 'clock', bus: 'bus', train: 'train' } as
 export function renderParts(v: View, lang: Lang, near: string | null): Parts {
   const s = v.share;
   const me = s?.senderName?.trim() || defaultMe(lang);
-  const c = copy({ lang, me, dest: s?.destName ?? '', pronoun: s?.pronoun ?? null });
+  const c = copy({ lang, me, dest: s?.destName ?? '' });
   const initial = esc([...me][0] ?? '');
   const avatar = `<span class="avatar" aria-hidden="true">${initial}</span>`;
   const callBtn = (cls = 'btn btn-jade') =>

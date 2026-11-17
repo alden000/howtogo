@@ -5,16 +5,17 @@
  * `runtime.ui` + `store.trip`; every decision lives in the runtime (no logic duplicated here).
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import type { AlertState, Step } from '@howtogo/shared';
+import type { AlertState, Lang, Step } from '@howtogo/shared';
 import { online } from '../api/offline';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
 import { GuideMap } from '../map/GuideMap';
-import type { ActiveTrip } from '../state/store';
+import { toLang, type ActiveTrip } from '../state/store';
 import { Icon, showToast, useStateHook, type IconName } from '../ui/kit';
 import { clock } from './present';
 import { ArrivedFamily, SharePill, useShareOnStart } from './share';
-import { StepExtras, TripDisruption } from './transit';
+import { ArrivalChip, rerouteAvoid, StepExtras, TripDisruption } from './transit';
+import { lineName } from '../transit/m3';
 import { HelpNote } from './helpSheet';
 import {
   alertCopy,
@@ -34,6 +35,7 @@ import {
   stopDots,
   walkMinutes,
   type NoteId,
+  isTrainChange,
 } from './guideModel';
 
 /** `tick` haptic for UI-only moments (the runtime gives every other haptic). */
@@ -123,6 +125,9 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
     return () => clearTimeout(id);
   }, [ui.manual]);
   const [noVoiceOff, setNoVoiceOff] = useState(false);
+  useEffect(() => {
+    if (ui.reroute !== 'searching' && ui.reroute !== 'found') rerouteAvoid.value = null;
+  }, [ui.reroute]);
   const note = pickNote(ui, { online: online.value, foundYou, noVoiceDismissed: noVoiceOff });
   useStateHook(note ? `note-${note}` : null);
 
@@ -175,6 +180,18 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
       </button>
     );
 
+  // T6: a train-to-train change says so in the step meta ("换车 · 第 3 步，共 5 步").
+  const change = isTrainChange(step, trip.itinerary.legs);
+  const stepOf = `${change ? `${t('tr_meta')} · ` : ''}${t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}`;
+  // H5 bus wait: the chip leaves the text column (review #1a); the sign line and extras follow it.
+  const chipStep = step?.kind === 'board_bus' && step.route ? step : null;
+  const stepBody = (
+    <>
+      <StepSub step={step} group={group} t={t} stopsLeft={ui.stopsLeft} mrt={!!mrt} metres={metresLeft(g)} minutes={minLeft} />
+      <StepExtras step={step} itinerary={trip.itinerary} pocket={ui.pocket} />
+    </>
+  );
+
   return (
     <div class="guide" ref={root} data-testid="guide" data-step={g.stepIndex} onPointerDownCapture={onTouch} onKeyDownCapture={onTouch}>
       <div class="mapwin" style={{ top: `${box.band}px`, bottom: `${box.card}px` }} aria-hidden="true">
@@ -217,7 +234,7 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
         <div class="bandrow">
           <SharePill onOpen={() => router.openSheet('share')} />
           <TripDisruption itinerary={trip.itinerary} legIndex={step?.legIndex ?? 0} />
-          {(ui.reroute === 'searching' || ui.reroute === 'found') && <RerouteBanner found={ui.reroute === 'found'} t={t} />}
+          {(ui.reroute === 'searching' || ui.reroute === 'found') && <RerouteBanner found={ui.reroute === 'found'} t={t} trip={trip} lang={toLang(lang)} />}
           {ui.mrtPreAlert && mrt && (
             <div class="banner gbanner" role="status" data-testid="mrt-prealert">
               <Icon name="train" />
@@ -259,7 +276,8 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
 
       <section class="stepcard" ref={card} style={{ maxHeight: `${cardMaxHeight(box.h, box.band)}px` }} aria-label={t('g_card_sr')} data-testid="stepcard">
         <div class="grab" aria-hidden="true" />
-        {note && <TripNote id={note} trip={trip} t={t} onNoVoiceOff={() => setNoVoiceOff(true)} />}
+        {/* M34 review #1c: the screen-awake note sits below the step so the step leads the sheet. */}
+        {note && note !== 'wakelock' && <TripNote id={note} trip={trip} t={t} onNoVoiceOff={() => setNoVoiceOff(true)} />}
         <HelpNote />
         {prog && (
           <div class="segline" data-testid="journey-progress">
@@ -277,10 +295,10 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
             type="button"
             class="stepof"
             data-testid="all-steps-btn"
-            aria-label={`${t('all_steps')}，${t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}`}
+            aria-label={`${t('all_steps')}，${stepOf}`}
             onClick={() => router.openSheet('all-steps')}
           >
-            {t('g_step_of', { a: g.stepIndex + 1, b: g.steps.length })}
+            {stepOf}
             <Icon name="chev" />
           </button>
           <span class="num" data-testid="guide-eta">
@@ -301,10 +319,16 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
                 {step.params.code ? <span class="num">{` · ${step.params.code}`}</span> : null}
               </span>
             )}
-            <StepSub step={step} group={group} t={t} stopsLeft={ui.stopsLeft} mrt={!!mrt} metres={metresLeft(g)} minutes={minLeft} />
-            <StepExtras step={step} itinerary={trip.itinerary} pocket={ui.pocket} />
+            {!chipStep && stepBody}
           </div>
         </div>
+        {/* M34 review #1a: the arrival chip runs full card width straight under the headline row, before the sign line. */}
+        {chipStep && (
+          <>
+            <ArrivalChip stop={chipStep.fromCode} svc={chipStep.route!} active={!ui.pocket} />
+            <div class="steptx stepbelow">{stepBody}</div>
+          </>
+        )}
         {group === 'ride' && (
           <div class="ridebox">
             <Badge step={step} />
@@ -351,6 +375,7 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
             {acts.quietNext && act('next', 'btn btn-quiet')}
           </div>
         </div>
+        {note === 'wakelock' && <TripNote id={note} trip={trip} t={t} onNoVoiceOff={() => setNoVoiceOff(true)} />}
       </section>
 
       {trip.alert && <GetOffAlert alert={trip.alert} t={t} />}
@@ -408,14 +433,26 @@ function Badge({ step }: { step: Step | undefined }) {
   ) : null;
 }
 
-function RerouteBanner({ found, t }: { found: boolean; t: TFn }) {
+function RerouteBanner({ found, t, trip, lang }: { found: boolean; t: TFn; trip: ActiveTrip; lang: Lang }) {
   useStateHook(found ? 'reroute-found' : 'reroute-searching');
+  // T4: after "find another way" round a disruption, the result says where it goes and which line it avoids.
+  const avoid = rerouteAvoid.value;
+  const dest = trip.places[(trip.journey?.segment ?? 0) + 1] ?? trip.places[trip.places.length - 1];
   return (
     <div class="banner gbanner" role="status" data-testid="reroute-banner" data-state={found ? 'found' : 'searching'}>
       {found ? <Icon name="check" /> : <span class="spinner" aria-hidden="true" />}
       <div class="tx">
-        <b>{t(found ? 'found_t' : 'offr_t')}</b>
-        <span>{t(found ? 'found_s' : 'off_s')}</span>
+        {avoid && found ? (
+          <>
+            <b data-testid="rr-title">{t('rr_title', { dest: dest?.name ?? '' })}</b>
+            <span data-testid="rr-note">{t('rr_note', { line: lineName(avoid, lang) })}</span>
+          </>
+        ) : (
+          <>
+            <b>{t(found ? 'found_t' : 'offr_t')}</b>
+            <span>{t(found ? 'found_s' : 'off_s')}</span>
+          </>
+        )}
       </div>
     </div>
   );

@@ -136,17 +136,18 @@ describe('viewer state mapping (STYLE-GUIDE §6e.2, M4 AC 21)', () => {
 
 describe('viewer copy and markup', () => {
   it('uses the exact §6e.2 sentences', () => {
-    const zh = copy({ lang: 'zh', me: '妈妈', dest: '陈笃生医院', pronoun: 'f' });
+    const zh = copy({ lang: 'zh', me: '妈妈', dest: '陈笃生医院' });
     expect(zh.onWay).toBe('妈妈正在去 陈笃生医院');
     expect(zh.helpTitle).toBe('妈妈按了“帮忙”');
-    expect(zh.helpLine).toBe('她可能需要你。请打电话给她。');
+    expect(zh.helpLine).toBe('妈妈可能需要你。请打电话给妈妈。');
     expect(zh.etaAbout(Date.parse('2026-11-17T02:39:00Z'))).toMatch(/^约 (上午|下午) \d{1,2}:39 到达$/);
-    const en = copy({ lang: 'en', me: 'Mum', dest: 'Tan Tock Seng Hospital', pronoun: null });
+    const en = copy({ lang: 'en', me: 'Mum', dest: 'Tan Tock Seng Hospital' });
     expect(en.helpLine).toBe('They may need you. Please give them a call.');
     expect(en.notYetLine).toBe('Once they set off, you’ll see where they are here.');
     expect(en.expiredLine).toBe('Sharing lasts 4 hours at most. You can ask Mum for a new one.');
-    // zh without a pronoun repeats {me} instead of TA.
-    expect(copy({ lang: 'zh', me: '妈妈', dest: 'X', pronoun: null }).helpLine).toBe('妈妈可能需要你。请打电话给妈妈。');
+    // No pronoun is ever sent or guessed (M34 review): zh repeats {me}, en says "they".
+    expect(en.helpCleared).toBe('Mum says everything’s okay now.');
+    expect(zh.helpCleared).toBe('妈妈说自己没事了。');
   });
 
   it('formats times as 上午/下午 and am/pm', () => {

@@ -13,7 +13,7 @@ import { ApiError } from '../api/errors';
 import type { SearchResult } from '../api/types';
 import { family, formatPhone, MAX_CONTACTS, normalizePhone, RELATIONS, type Contact, type Relation } from '../state/family';
 import { TEXT_SIZES, type TextSize } from '../state/store';
-import { announce, Icon, Sheet, showToast } from '../ui/kit';
+import { announce, Icon, Sheet, showToast, Wordmark } from '../ui/kit';
 import { applySetup, openSetup, parseSetupLink, replaces, sealSetup, undoSetup, type SetupData, type Snapshot } from '../setup/setup';
 import { openExternal } from './share';
 
@@ -124,6 +124,7 @@ export function ContactFields({ value, onChange, err }: { value: Partial<Contact
           {(['zh', 'en'] as const).map((l) => (
             <button type="button" aria-pressed={(v.lang ?? 'zh') === l} data-testid={`contact-lang-${l}`} onClick={() => onChange({ ...v, lang: l })}>
               {l === 'zh' ? '中文' : 'English'}
+              {(v.lang ?? 'zh') === l && <Icon name="check" />}
             </button>
           ))}
         </div>
@@ -478,6 +479,7 @@ function PlaceSearch({ id, onPick }: { id: string; onPick: (p: SearchResult) => 
         id={id}
         data-testid={id}
         value={q}
+        placeholder={t('w_search_ph')}
         onInput={(e) => {
           const v = e.currentTarget.value;
           setQ(v);
@@ -506,6 +508,32 @@ function PlaceSearch({ id, onPick }: { id: string; onPick: (p: SearchResult) => 
   );
 }
 
+/** W header (review #10, §6e.5): logo + a 56 px English / 中文 toggle, since the family member may read English. */
+function WHeader() {
+  const { store } = useServices();
+  const t = useT();
+  const zh = store.settings.value.lang === 'zh';
+  return (
+    <>
+      <header class="whead">
+        <Wordmark name={t('app_name')} />
+        <button
+          type="button"
+          class="iconbtn"
+          data-testid="w-lang"
+          lang={zh ? 'en' : 'zh-CN'}
+          onClick={() => store.updateSettings({ lang: zh ? 'en' : 'zh' })}
+        >
+          {zh ? 'English' : '中文'}
+        </button>
+      </header>
+      <h1 class="t-title" style={{ margin: '0 var(--s-5) var(--s-2)' }}>
+        {t('w_title')}
+      </h1>
+    </>
+  );
+}
+
 /** W: fill → encrypt in this browser → POST ciphertext → link `/s/<code>#k=<key>` to send back. */
 export function SetupFamily() {
   const { api, store } = useServices();
@@ -521,6 +549,7 @@ export function SetupFamily() {
   const [lang, setLang] = useState<'zh' | 'en'>(store.settings.value.lang);
   const [size, setSize] = useState<TextSize>('large');
   const [sent, setSent] = useState<string | null>(null);
+  const [handed, setHanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fail, setFail] = useState(false);
   const toPlace = (r: SearchResult): Place => ({ name: r.name, lat: r.lat, lng: r.lng, address: r.address, postal: r.postal });
@@ -561,18 +590,25 @@ export function SetupFamily() {
   if (sent)
     return (
       <main class="scroll" data-testid="setup-family">
-        <Header title={t('w_title')} />
+        <WHeader />
         <div class="pane" data-testid="setup-sent">
-          <p class="t-headline" role="status">
-            {t('w_sent')}
+          {/* Review #10: "Sent" only once the link has actually gone out (WhatsApp / copy). */}
+          <p class="t-headline" role="status" data-testid="w-sent">
+            {handed ? t('w_sent') : ''}
           </p>
           <p class="t-label">{t('w_link')}</p>
           <div class="stack">
-            <button type="button" class="btn btn-jade btn-hero" data-testid="setup-link-wa" onClick={() => openExternal(`https://wa.me/?text=${encodeURIComponent(sent)}`)}>
+            <button type="button" class="btn btn-jade btn-hero" data-testid="setup-link-wa" onClick={() => {
+                setHanded(true);
+                openExternal(`https://wa.me/?text=${encodeURIComponent(sent)}`);
+              }}>
               <Icon name="msg" />
               {t('su_send_wa')}
             </button>
-            <button type="button" class="btn btn-quiet" data-testid="setup-link-copy" onClick={() => void navigator.clipboard?.writeText(sent).catch(() => {})}>
+            <button type="button" class="btn btn-quiet" data-testid="setup-link-copy" onClick={() => {
+                setHanded(true);
+                void navigator.clipboard?.writeText(sent).catch(() => {});
+              }}>
               <Icon name="copy" />
               {t('sh_copy')}
             </button>
@@ -583,7 +619,7 @@ export function SetupFamily() {
     );
   return (
     <main class="scroll" data-testid="setup-family">
-      <Header title={t('w_title')} />
+      <WHeader />
       <div class="pane">
         <p class="t-body" style={{ display: 'flex', gap: '8px' }}>
           <Icon name="lock" />
@@ -596,19 +632,19 @@ export function SetupFamily() {
           </div>
         </section>
         <section class="card">
-          <h2 class="t-label">{t('w_home')}</h2>
+          <h2 class="wsec">{t('w_home')}</h2>
           {home && <p data-testid="w-home-picked">{home.name}</p>}
           <PlaceSearch id="w-home" onPick={(r) => setHome(toPlace(r))} />
         </section>
         <section class="card">
-          <h2 class="t-label">{t('w_places')}</h2>
+          <h2 class="wsec">{t('w_places')}</h2>
           {places.map((p) => (
             <p>{p.name}</p>
           ))}
           {places.length < 5 && <PlaceSearch id="w-place" onPick={(r) => setPlaces([...places, { ...toPlace(r), label: r.name }])} />}
         </section>
         <section class="card">
-          <h2 class="t-label">{t('w_contacts')}</h2>
+          <h2 class="wsec">{t('w_contacts')}</h2>
           {contacts.map((c) => (
             <p class="num" data-testid="w-contact">
               <b>{c.name}</b> · {formatPhone(c.phone)}
@@ -630,6 +666,7 @@ export function SetupFamily() {
             {(['zh', 'en'] as const).map((l) => (
               <button type="button" aria-pressed={lang === l} onClick={() => setLang(l)}>
                 {l === 'zh' ? '中文' : 'English'}
+                {lang === l && <Icon name="check" />}
               </button>
             ))}
           </div>
@@ -637,6 +674,7 @@ export function SetupFamily() {
             {TEXT_SIZES.map((s, i) => (
               <button type="button" aria-pressed={size === s} onClick={() => setSize(s)}>
                 {['100%', '125%', '150%', '200%'][i]}
+                {size === s && <Icon name="check" />}
               </button>
             ))}
           </div>

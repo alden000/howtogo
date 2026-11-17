@@ -69,15 +69,16 @@ test('T1 live dark 200', async ({ page }) => {
   await shot(page, name('M3-T1-live', v), '[data-testid="arrchip"]');
 });
 
-test('T3 home + T9 recents', async ({ page }) => {
-  await open(page, LZ, 'alerts:disrupted');
-  await page.evaluate(() => {
-    const s = (window as unknown as W).__howtogo.store;
-    s.addRecent({ name: 'Tan Tock Seng Hospital', lat: 1.3214, lng: 103.8458 }, undefined, Date.parse('2026-11-16T09:00:00+08:00'));
+for (const v of [LZ, { ...LZ, theme: 'dark' } as V])
+  test(`T3 home + T9 recents ${v.theme}`, async ({ page }) => {
+    await open(page, v, 'alerts:disrupted');
+    await page.evaluate(() => {
+      const s = (window as unknown as W).__howtogo.store;
+      s.addRecent({ name: 'Tan Tock Seng Hospital', lat: 1.3214, lng: 103.8458 }, undefined, Date.parse('2026-11-16T09:00:00+08:00'), ['NS']);
+    });
+    await expect(page.getByTestId('disruption')).toBeVisible();
+    await shot(page, name('M3-T3-home', v));
   });
-  await expect(page.getByTestId('disruption')).toBeVisible();
-  await shot(page, name('M3-T3-home', LZ));
-});
 
 test('T3 h3 en', async ({ page }) => {
   const v: V = { theme: 'light', size: 100, lang: 'en' };

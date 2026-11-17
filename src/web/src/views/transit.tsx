@@ -4,13 +4,14 @@
  * transit/m3.ts; data in transit/live.ts.
  */
 import { useEffect, useRef } from 'preact/hooks';
+import { signal } from '@preact/signals';
 import type { Itinerary, Lang, Step } from '@howtogo/shared';
 import { lineByCode } from '@howtogo/shared';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
 import { family } from '../state/family';
 import { toLang } from '../state/store';
-import { affectedBy, alertKey, alertLineCode, busChip, exitHint, fareText, isDelay, liftDetail, liftIssues, liftsOk, lineName, relDay, stationText, type Chip, type ExitHint } from '../transit/m3';
+import { affectedBy, alertKey, alertLineCode, busChip, lineCodesOf, exitHint, fareText, isDelay, liftDetail, liftIssues, liftsOk, lineName, relDay, stationText, type Chip, type ExitHint } from '../transit/m3';
 import { ALERTS_TRIP_MS, alerts, lifts, refreshAlerts, useBusArrival, useNow } from '../transit/live';
 import { announce, Icon, Sheet, showToast, type IconName } from '../ui/kit';
 
@@ -43,11 +44,18 @@ function tags(c: Chip, t: TFn): { icon: IconName; text: string }[] {
 
 /** H5 wait step chip: polls while shown (not in pocket view), voice "arriving" once (monitored only). */
 export function ArrivalChip({ stop, svc, active, compact = false }: { stop: string | undefined; svc: string; active: boolean; compact?: boolean }) {
-  const { api, store, runtime } = useServices();
+  const { api, router, runtime } = useServices();
   const t = useT();
   const data = useBusArrival(api, stop, active);
   const now = useNow(5000);
-  const prev = useRef<{ min: number | null; state: string | null; spoke: boolean; missedNext: number | null }>({ min: null, state: null, spoke: false, missedNext: null });
+  const prev = useRef<{ min: number | null; state: string | null; spoke: boolean; missedNext: number | null; nodataSince: number | null; nodataSaid: string }>({
+    min: null,
+    state: null,
+    spoke: false,
+    missedNext: null,
+    nodataSince: null,
+    nodataSaid: '',
+  });
   const c = busChip(data === 'error' ? null : data, svc, now, prev.current.min);
   if (c.missed) prev.current.missedNext = c.min;
   else if (c.min !== prev.current.missedNext) prev.current.missedNext = null;
@@ -66,7 +74,20 @@ export function ArrivalChip({ stop, svc, active, compact = false }: { stop: stri
         runtime.speakText?.(t('arr_voice_here', { svc }), 'attention');
       }
     }
+    // Review #4: "no arrival time" is spoken once per step (H5 only).
+    const key = `${stop}|${svc}`;
+    if (!compact && c.state === 'nodata' && prev.current.nodataSaid !== key) {
+      prev.current.nodataSaid = key;
+      log('bus:nodata-voice');
+      runtime.speakText?.(t('arr_voice_nodata'));
+    }
   }, [data, c.state, c.min]);
+  if (c.state !== 'nodata') prev.current.nodataSince = null;
+  else if (data !== null && prev.current.nodataSince === null) prev.current.nodataSince = now;
+  // Review #3: at night (23:30–05:30) or after 30 min with no arrivals the bus may not come — no promise then.
+  const hm = new Date(now).getHours() * 60 + new Date(now).getMinutes();
+  const quiet = hm >= 23 * 60 + 30 || hm < 5 * 60 + 30 || (prev.current.nodataSince !== null && now - prev.current.nodataSince > 30 * 60_000);
+  const nodataS = quiet ? t('arr_nodata_night') : t('arr_nodata_s');
   if (data === null) return null;
   const tg = tags(c, t);
   const sr =
@@ -76,24 +97,26 @@ export function ArrivalChip({ stop, svc, active, compact = false }: { stop: stri
         ? t('arr_sr_est', { svc, n: c.min! })
         : c.state === 'here'
           ? `${t('arr_here')}。${t('arr_here_s')}`
-          : `${t('arr_nodata')}。${t('arr_nodata_s')}`;
+          : `${t('arr_nodata')}。${nodataS}`;
   const big = c.state === 'here' ? t('arr_here') : c.state === 'live' ? t('arr_min', { n: c.min! }) : c.state === 'estimated' ? t('arr_about_min', { n: c.min! }) : t('arr_nodata');
   const second =
     c.state === 'here' ? t('arr_here_s')
-    : c.state === 'nodata' ? t('arr_nodata_s')
+    : c.state === 'nodata' ? nodataS
     : missed && c.nextMin !== null ? t('arr_missed', { n: c.min! })
     : c.state === 'estimated' ? t('arr_est_s')
     : c.nextMin === null ? ''
     : c.first?.load === 'LSD' && c.nextLoad === 'SEA' ? t('arr_next_seats', { n: c.nextMin })
     : t('arr_next', { n: c.nextMin });
-  void store;
   return (
     <div class={`arrchip s-${c.state}${compact ? ' compact' : ''}`} role="group" aria-label={sr} data-testid="arrchip" data-state={c.state}>
       <div class="arow" aria-hidden="true">
-        <span class="busbadge">
-          <Icon name="bus" />
-          {svc}
-        </span>
+        {/* Review #1b: H5 drops the badge (the sign line already shows it); H4 (compact) keeps it. */}
+        {compact && (
+          <span class="busbadge">
+            <Icon name="bus" />
+            {svc}
+          </span>
+        )}
         {c.state === 'nodata' && <Icon name="clock" />}
         <b class={`num ${c.state === 'nodata' ? 'small' : 'big'}`}>{big}</b>
         {c.state === 'live' && (
@@ -113,6 +136,12 @@ export function ArrivalChip({ stop, svc, active, compact = false }: { stop: stri
         <p class="second" aria-hidden="true" data-testid="arr-second">
           {second}
         </p>
+      )}
+      {!compact && c.state === 'nodata' && quiet && (
+        <button type="button" class="btn btn-secondary" data-testid="arr-driver" onClick={() => router.openSheet('driver', { tab: 'dest' })}>
+          <Icon name="car" />
+          {t('arr_driver')}
+        </button>
       )}
       {!compact && c.lessCrowded && (
         <p class="second" aria-hidden="true" data-testid="arr-less">
@@ -161,24 +190,33 @@ interface BannerProps {
   onFind?: () => void;
 }
 
-/** Disruption banner: Home (any disrupted line, dismissable, AC 19 + OQ9), H3/H4/H5 (only when the route is affected). */
+type AlertLine = NonNullable<typeof alerts.value>['lines'][number];
+/** Line 1 (stations + direction) and Line 2 (free buses) of a disrupted line; en joins with ", " (review #5). */
+function alertDetail(line: AlertLine, lang: Lang, t: TFn): [string, string] {
+  const st = line.stations;
+  const l1 = st.length >= 2 ? t('dis_l1', { from: stationText(st[0]!, lang), to: stationText(st[st.length - 1]!, lang), dir: line.direction || '—' }) : '';
+  const l2 = line.freePublicBus.length ? t('dis_l2', { codes: line.freePublicBus.map((c) => stationText(c, lang)).join(lang === 'en-SG' ? ', ' : '、') }) : '';
+  return [l1, l2];
+}
+
+/**
+ * Disruption banner. Home (review #2): a 72 px strip only when a recent trip (T9) used the line, else the quiet
+ * "LTA: train service news" note; dismissable (AC 19 + OQ9). H3/H4/H5: full banner, only when the route is affected.
+ */
 export function DisruptionBanner({ where, itinerary, fromLeg = 0, onFind }: BannerProps) {
-  const { router } = useServices();
+  const { router, store } = useServices();
   const t = useT();
   const lang = useLang();
   const a = alerts.value;
-  if (!a || a.status !== 'disrupted' || !a.lines.length) {
-    if (where === 'home' && a?.minor)
-      return (
-        <p class="note" role="note" data-testid="disruption-minor">
-          <Icon name="info" />
-          <button type="button" class="btn-quiet linkish" onClick={() => router.openSheet('lta-notice')}>
-            {t('dis_minor')}
-          </button>
-        </p>
-      );
-    return null;
-  }
+  const minor = (
+    <p class="note" role="note" data-testid="disruption-minor">
+      <Icon name="info" />
+      <button type="button" class="btn-quiet linkish" onClick={() => router.openSheet('lta-notice')}>
+        {t('dis_minor')}
+      </button>
+    </p>
+  );
+  if (!a || a.status !== 'disrupted' || !a.lines.length) return where === 'home' && a?.minor ? minor : null;
   let line = a.lines[0]!;
   let code = alertLineCode(line);
   if (where !== 'home') {
@@ -186,12 +224,41 @@ export function DisruptionBanner({ where, itinerary, fromLeg = 0, onFind }: Bann
     if (!hit) return null;
     line = hit.alert;
     code = hit.line;
-  } else if (family.prefs.value.dismissed.includes(alertKey(a))) return null;
+  } else {
+    if (family.prefs.value.dismissed.includes(alertKey(a))) return null;
+    const used = new Set(store.recents.value.flatMap((r) => r.lines ?? []));
+    let mine: AlertLine | undefined;
+    for (const l of a.lines) if (!mine && lineCodesOf(l.line).some((c) => used.has(c))) mine = l;
+    if (!mine) return minor;
+    line = mine;
+    code = lineCodesOf(mine.line).find((c) => used.has(c)) ?? alertLineCode(mine);
+  }
   const name = lineName(code, lang);
   const title = t(isDelay(a) ? 'dis_title_delay' : 'dis_title', { line: name });
-  const st = line.stations;
-  const l1 = st.length >= 2 ? t('dis_l1', { from: stationText(st[0]!, lang), to: stationText(st[st.length - 1]!, lang), dir: line.direction || '—' }) : '';
-  const l2 = line.freePublicBus.length ? t('dis_l2', { codes: line.freePublicBus.map((c) => stationText(c, lang)).join('、') }) : '';
+  if (where === 'home')
+    return (
+      <section class="banner warn strip" role="region" aria-label={title} data-testid="disruption" data-where={where}>
+        <button type="button" data-testid="disruption-notice" onClick={() => router.openSheet('lta-notice')}>
+          <span class="wic" aria-hidden="true">
+            <Icon name="train-off" />
+          </span>
+          <b>
+            <LineTag code={code} /> {title}
+          </b>
+          <Icon name="chev" />
+        </button>
+        <button
+          type="button"
+          class="iconbtn sq"
+          data-testid="disruption-dismiss"
+          aria-label={t('dis_dismiss_sr')}
+          onClick={() => family.setPrefs({ dismissed: [...family.prefs.value.dismissed.slice(-9), alertKey(a)] })}
+        >
+          <Icon name="close" />
+        </button>
+      </section>
+    );
+  const [l1, l2] = alertDetail(line, lang, t);
   return (
     <section class="banner warn" role="region" aria-label={title} data-testid="disruption" data-where={where}>
       <span class="wic" aria-hidden="true">
@@ -213,28 +280,33 @@ export function DisruptionBanner({ where, itinerary, fromLeg = 0, onFind }: Bann
           <button type="button" class="btn btn-quiet" data-testid="disruption-notice" onClick={() => router.openSheet('lta-notice')}>
             {t('dis_notice')}
           </button>
-          {where === 'home' && (
-            <button
-              type="button"
-              class="btn btn-quiet"
-              data-testid="disruption-dismiss"
-              onClick={() => family.setPrefs({ dismissed: [...family.prefs.value.dismissed.slice(-9), alertKey(a)] })}
-            >
-              {t('dis_dismiss')}
-            </button>
-          )}
         </div>
       </div>
     </section>
   );
 }
 
-/** LTA notice sheet: messages verbatim in English (6d.3). */
+/** LTA notice sheet: each disrupted line (title, Line 1, Line 2; review #2), then the messages verbatim in English (6d.3). */
 export function LtaNoticeSheet() {
   const t = useT();
+  const lang = useLang();
   const a = alerts.value;
+  const lines = a?.status === 'disrupted' ? a.lines : [];
   return (
     <Sheet id="lta-notice" title={t('dis_notice_t')}>
+      {lines.map((l) => {
+        const code = alertLineCode(l);
+        const [l1, l2] = alertDetail(l, lang, t);
+        return (
+          <div class="ltaline" data-testid="lta-line">
+            <b>
+              <LineTag code={code} /> {t(a && isDelay(a) ? 'dis_title_delay' : 'dis_title', { line: lineName(code, lang) })}
+            </b>
+            {l1 && <span>{l1}</span>}
+            {l2 && <span data-testid="lta-l2">{l2}</span>}
+          </div>
+        );
+      })}
       {(a?.messages ?? []).map((m) => (
         <p class="t-body" lang="en" data-testid="lta-message">
           {m.text}
@@ -313,7 +385,8 @@ export function StepExtras({ step, itinerary, pocket }: { step: Step | undefined
   const lang = useLang();
   if (!step) return null;
   const out = [];
-  if (step.kind === 'board_bus' && step.route) out.push(<ArrivalChip stop={step.fromCode} svc={step.route} active={!pocket} />);
+  // The H5 bus chip is rendered by Guide, full width under the headline row (review #1a).
+  void pocket;
   if (step.kind === 'board_train' && step.line?.code === 'CC' && step.nextStop)
     out.push(
       <p class="xline" data-testid="ccl-next">
@@ -427,6 +500,8 @@ export function RecentTrips({ onPick }: { onPick: (i: number) => void }) {
 }
 
 // ---------------------------------------------------------------- in-trip disruption (AC 21–23)
+/** T4 (review "build now"): the line the last "find another way" avoided, so the re-route banner can say so. */
+export const rerouteAvoid = signal<string | null>(null);
 let offered = '';
 let shownLine: string | null = null;
 
@@ -481,6 +556,8 @@ export function DisruptionOfferSheet() {
           data-testid="offer-find"
           onClick={() => {
             log('alerts:offer accepted');
+            const hit = tr ? affectedBy(a, tr.itinerary) : null;
+            rerouteAvoid.value = hit?.line ?? null;
             router.closeSheet();
             void runtime.reroute((it) => !!affectedBy(a, it));
           }}

@@ -400,6 +400,7 @@ function M4Rows() {
             type="tel"
             inputMode="tel"
             data-testid="my-phone"
+            aria-describedby="my-phone-h"
             value={phone}
             onInput={(e) => setPhone(e.currentTarget.value)}
             onBlur={() => {
@@ -411,6 +412,10 @@ function M4Rows() {
           />
         </div>
         {bad && <span class="fnote">{t('fam_err_fmt')}</span>}
+        <p class="t-caption helper" id="my-phone-h" data-testid="my-phone-help">
+          <Icon name="lock" />
+          <span>{t('set_myphone_h')}</span>
+        </p>
       </div>
       {p.myPhone && <Switch label={t('set_sendphone')} sub={t('set_sendphone_s')} on={p.sendPhone} testid="set-sendphone" onChange={(v) => family.setPrefs({ sendPhone: v })} />}
     </div>
