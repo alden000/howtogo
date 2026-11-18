@@ -47,7 +47,7 @@ FIXTURE_MODE = "1"
 [[kv_namespaces]]
 binding = "TOKEN_KV"
 # Create once: `npx wrangler kv namespace create howtogo-preview-TOKEN_KV` and paste the id here.
-id = "REPLACE_WITH_PREVIEW_KV_ID"
+id = "9117797d93c84067b99373afdbaa4bca"
 
 [[durable_objects.bindings]]
 name = "TRIP_SHARE"

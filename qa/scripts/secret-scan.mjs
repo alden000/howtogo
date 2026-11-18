@@ -53,7 +53,8 @@ if (/^\s*(ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY)\s*=/m.test(wt)) findings
 // KV namespace ids are not secrets (Director ruling, M2 gate): the reviewed TOKEN_KV id is allow-listed.
 // Any other real-looking id still needs QA review before it is added here.
 // 1e51…: TOKEN_KV recreated on the owner's account (3e27b40), reviewed by QA at the M3/M4 gate.
-const KV_ID_OK = new Set(['0dc8a4714f234b5bb8d23ffe36cb2107', '1e514bcf1539494db863191de13f5d3c']);
+// + preview KV id: Director 2026-11-18, KV ids are not secrets; QA to confirm.
+const KV_ID_OK = new Set(['0dc8a4714f234b5bb8d23ffe36cb2107', '1e514bcf1539494db863191de13f5d3c', '9117797d93c84067b99373afdbaa4bca']);
 for (const m of wt.matchAll(/^\s*id\s*=\s*"([^"]*)"/gm)) if (/^[0-9a-f]{32}$/.test(m[1]) && !KV_ID_OK.has(m[1])) findings.push('wrangler.toml: real-looking KV id (not a secret, but confirm intended)');
 // Files that must never be tracked.
 import { execSync } from 'node:child_process';
