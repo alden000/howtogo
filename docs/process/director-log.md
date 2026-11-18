@@ -199,3 +199,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Rulings: (1) production stays on the 0.3.0 sample deploy until the owner's OneMap/LTA secrets are in; the first `deploy:prod` waits for them (OQ9). New builds go to `howtogo-preview`. (2) `/api/health` keeps `lta: key|proxy|none`. (3) `/t/*` excluded from the SEO threshold (noindex by design). (4) AC 30 amended: static assets are the default deploy; embedding stays opt-in.
 - The Director creates the preview KV namespace when first deploying the preview (owner authorised hosting work on their account).
 - Next: M5 UI round (Creative §6f L1–L9 + 6f.11 smaller text size, Settings switch for error counts, OneMap logo resolution, "Delete all my data" completeness, expired-cache eviction).
+
+## 2026-11-18 — M5 UI rounds done; Creative review; integration
+- UI-1 (dev/m5-ui b3a92dc): L1 Privacy, L2 About (OneMap logo srcset), L5 battery saver, L7 Settings + error counts (ON), L8 links, 6f.11 85 % text, delete-all (stops share, clears storage/caches/IDB), expired cache eviction, a11y heading tests.
+- UI-2 (dev/m5-ui2 c2d86e8): L3 update bar + What's new, L4 install helper + in-app-browser bars (pure UA detection), L6 offline (Home/route), L9 field-test docs.
+- Rulings: Home JS budget stays 100 KB gz → lazy-load the non-first-paint UI. Privacy page ≤ 400 words, with Creative's cuts (396) and a unit test. The Docker image has no bold CJK, so bold Chinese is checked on a real phone.
+- Creative M5 UI review (2ca2dcf): APPROVED WITH FIXES (2 High, 4 Medium, 5 Low). All of them go into the integration round (dev/m5-int) with the remaining L6 Help/driver offline states, h1 on route detail/guidance, the Settings update bar and the flaky-test hardening.
