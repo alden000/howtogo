@@ -6,8 +6,8 @@
 import { useEffect } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { useServices } from '../context';
-import { tf, type UiKey } from '../i18n/ui';
-import { PRIVACY_NOTICE } from '../i18n/m5ui1';
+import { tf } from '../i18n/ui';
+import { PRIVACY_NOTICE, PV_EN, PV_ZH, type PvKey } from '../i18n/privacy';
 import { dataDate } from '../transit/m3';
 import { Bar, Icon, type IconName } from '../ui/kit';
 import { APP_VERSION } from '../version';
@@ -27,7 +27,7 @@ export function rich(text: string, onLink?: () => void, testid?: string): Compon
   });
 }
 
-const GLANCE: [IconName, UiKey][] = [
+const GLANCE: [IconName, PvKey][] = [
   ['lock', 'pv_g1'],
   ['check', 'pv_g2'],
   ['home', 'pv_g3'],
@@ -39,7 +39,9 @@ export function Privacy() {
   const qLang = q.get('lang');
   const external = qLang === 'zh' || qLang === 'en';
   const lang = external ? (qLang as 'zh' | 'en') : store.settings.value.lang;
-  const t = (k: UiKey, p?: Record<string, string | number>) => tf(lang, k, p);
+  const table = lang === 'en' ? PV_EN : PV_ZH;
+  const t = (k: PvKey, p: Record<string, string | number> = {}) => table[k].replace(/\{(\w+)\}/g, (m, x: string) => (x in p ? String(p[x]) : m));
+  const back = tf(lang, 'back');
   const inApp = router.depth.value > 0;
   useEffect(() => {
     if (q.get('s') === 'sent') document.getElementById('pv-h2')?.scrollIntoView({ block: 'start' });
@@ -49,7 +51,7 @@ export function Privacy() {
     if (external || !inApp) router.navigate('/settings');
     router.openSheet(sheet);
   };
-  const list = (keys: UiKey[], last?: { key: UiKey; sheet: string; testid: string }) => (
+  const list = (keys: PvKey[], last?: { key: PvKey; sheet: string; testid: string }) => (
     <ul class="dots" role="list">
       {keys.map((k) => (
         <li>{last && k === last.key ? rich(t(k), viaSettings(last.sheet), last.testid) : rich(t(k))}</li>
@@ -63,9 +65,9 @@ export function Privacy() {
       ) : (
         <header class="bar">
           {history.length > 1 ? (
-            <button type="button" class="backbtn" data-testid="back" aria-label={t('back')} onClick={() => history.back()}>
+            <button type="button" class="backbtn" data-testid="back" aria-label={back} onClick={() => history.back()}>
               <Icon name="back" />
-              <span>{t('back')}</span>
+              <span>{back}</span>
             </button>
           ) : (
             <a class="inlink" href="/" data-testid="pv-open" onClick={(e) => (e.preventDefault(), router.navigate('/', { replace: true }))}>

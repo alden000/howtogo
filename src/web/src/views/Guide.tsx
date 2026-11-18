@@ -8,6 +8,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import { createSaverState } from '../state/battery';
 import type { AlertState, Lang, Step } from '@howtogo/shared';
 import { online } from '../api/offline';
+import { useT5 } from '../i18n/m5lazy';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
 import { GuideMap } from '../map/GuideMap';
@@ -583,6 +584,7 @@ function GetOffAlert({ alert, t }: { alert: AlertState; t: TFn }) {
 function LeafChip() {
   const { runtime, store } = useServices();
   const t = useT();
+  const t5 = useT5();
   const saverState = useMemo(() => createSaverState(store), [store]);
   const on = runtime.power.value.saver;
   const was = useRef(on);
@@ -590,7 +592,7 @@ function LeafChip() {
   useEffect(() => {
     if (on && !was.current) {
       setFresh(true);
-      if (saverState.peek().reason === 'battery') announce(t('bs_announce'));
+      if (saverState.peek().reason === 'battery') announce(t5('bs_announce'));
     }
     was.current = on;
   }, [on]);
@@ -598,7 +600,7 @@ function LeafChip() {
   return (
     <span class={`leafchip${fresh ? ' fadein' : ''}`} data-testid="leaf-chip">
       <Icon name="leaf" />
-      {t('bs_row')}
+      {t5('bs_row')}
     </span>
   );
 }
@@ -606,6 +608,7 @@ function LeafChip() {
 // ------------------------------------------------------------------ G1 pocket view
 
 function Pocket({ trip, t }: { trip: ActiveTrip; t: TFn }) {
+  const t5 = useT5();
   const { runtime, store } = useServices();
   const tick = useTick();
   const ui = runtime.ui.value;
@@ -635,7 +638,7 @@ function Pocket({ trip, t }: { trip: ActiveTrip; t: TFn }) {
       </p>
       {runtime.power.value.saver && (
         <p class="saver" data-testid="pocket-saver">
-          {t('bs_row')}
+          {t5('bs_row')}
         </p>
       )}
       {pt.count && (

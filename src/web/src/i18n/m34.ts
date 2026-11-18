@@ -271,12 +271,6 @@ export const M34_ZH = {
   pl_name_ph: '比如：诊所',
   pl_change_home_sr: '换一个家',
   pl_remove_sr: '删掉：{p}',
-  priv_m4_device: '家人的电话、常去的地方和分享用的钥匙，也只存在这部手机里。',
-  priv_m4_share: '分享行程时，你的位置、要去的地方的名字、大约到达的时间和现在这一步（比如坐几号巴士）会发到我们的服务器，让家人看到；还有家人怎么称呼你，以及你同意时，你的电话号码。',
-  priv_m4_who: '有链接的人都看得到。',
-  priv_m4_time: '行程分享在你到了 30 分钟后自己停止；从“帮忙”开始的分享，在你按“我没事了”后停止。最长都是 4 小时，你也可以随时停止。停止后，你的位置马上删掉。',
-  priv_m4_setup: '家人帮你设置时，资料在他们的手机上先加密再发出。我们的服务器只存加密的资料，只能打开一次，24 小时后删掉。打开它的钥匙只在链接里，不会发给我们。',
-  priv_m4_delete: '在设置里按“清除所有资料”，就会删掉这部手机上的所有资料。',
 };
 
 type Shape = { [K in keyof typeof M34_ZH]: string };
@@ -536,10 +530,4 @@ export const M34_EN: Shape = {
   pl_name_ph: 'e.g. Clinic',
   pl_change_home_sr: 'Change Home',
   pl_remove_sr: 'Remove: {p}',
-  priv_m4_device: 'Family phone numbers, your places and the key for sharing also stay on this phone only.',
-  priv_m4_share: "When you share a trip, your position, the name of where you're going, about when you'll arrive and your current step (such as which bus you're on) are sent to our server so family can see them, with what your family calls you and, if you allow it, your phone number.",
-  priv_m4_who: 'Anyone with the link can see it.',
-  priv_m4_time: "A trip share stops by itself 30 minutes after you arrive. A share started from Help stops when you tap \"I'm okay now\". Either way it stops after 4 hours at most, and you can stop it any time. Your position is deleted when it stops.",
-  priv_m4_setup: "When family set things up for you, what they fill in is encrypted on their phone before it is sent. Our server keeps only the encrypted data: it can be opened once and is deleted after 24 hours. The key to open it is only in the link and never reaches us.",
-  priv_m4_delete: 'Tap "Delete all my data" in Settings to remove everything from this phone.',
 };

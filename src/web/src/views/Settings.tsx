@@ -8,6 +8,7 @@ import type { ComponentChildren } from 'preact';
 import type { BatterySaverPref, BatterySaverState } from '@howtogo/shared';
 import { createSaverState } from '../state/battery';
 import { SIZE_SR } from '../i18n/m5ui1';
+import { useT5 } from '../i18n/m5lazy';
 import { useServices, useT } from '../context';
 import { canInstall, promptInstall } from '../pwa/install';
 import { buildReport } from '../report';
@@ -126,6 +127,7 @@ function VoiceRows() {
 export function SettingsScreen() {
   const { store, router, flags } = useServices();
   const t = useT();
+  const t5 = useT5();
   const s = store.settings.value;
   const home = store.places.value.home;
   const nothing = store.recents.value.length === 0;
@@ -157,13 +159,13 @@ export function SettingsScreen() {
         <DisplayRows />
         {flags.has('guide') && <VoiceRows />}
         <TravelRows />
-        <h2 class="grp">{t('grp_privacy')}</h2>
+        <h2 class="grp">{t5('grp_privacy')}</h2>
         <div class="opts">
           <PhoneRows />
           <ErrorCountsRow />
           <Row icon="lock" label={t('pv_link')} testid="row-privacy" onClick={() => router.navigate('/privacy')} />
           <Row icon="trash" label={t('set_delete_all')} testid="row-delete-all" onClick={() => router.openSheet('delete-all')} />
-          <Row icon="trash" label={t('set_clear_recent')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
+          <Row icon="trash" label={t5('set_clear_recent')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
         </div>
         <h2 class="grp">{t('grp_app')}</h2>
         <div class="opts">
@@ -188,18 +190,19 @@ export function SettingsScreen() {
 function ErrorCountsRow() {
   const { store, router } = useServices();
   const t = useT();
+  const t5 = useT5();
   const on = store.settings.value.errorCounts !== false;
   return (
     <div class="swrow" data-testid="row-errors">
       <button type="button" class="row" role="switch" aria-checked={on} aria-describedby="set-errors-s" data-testid="set-errors" onClick={() => store.updateSettings({ errorCounts: !on })}>
-        <span class="tx">{t('set_errors')}</span>
+        <span class="tx">{t5('set_errors')}</span>
         <span class="val">{on ? t('on') : t('off')}</span>
       </button>
       <p class="t-caption swsub" id="set-errors-s">
-        {t('set_errors_s')}
+        {t5('set_errors_s')}
       </p>
       <button type="button" class="inlink" data-testid="set-errors-more" onClick={() => router.navigate('/privacy?s=sent')}>
-        <span class="u">{t('set_errors_more')}</span>
+        <span class="u">{t5('set_errors_more')}</span>
       </button>
     </div>
   );
@@ -216,23 +219,25 @@ export function batteryValue(pref: BatterySaverPref, st: BatterySaverState): 'bs
 function BatteryRow() {
   const { store, router } = useServices();
   const t = useT();
+  const t5 = useT5();
   const st = useMemo(() => createSaverState(store), [store]).value;
-  return <Row icon="leaf" label={t('bs_row')} value={t(batteryValue(store.settings.value.batterySaver ?? 'auto', st))} testid="row-battery" onClick={() => router.openSheet('battery')} />;
+  return <Row icon="leaf" label={t5('bs_row')} value={t5(batteryValue(store.settings.value.batterySaver ?? 'auto', st))} testid="row-battery" onClick={() => router.openSheet('battery')} />;
 }
 
 /** 6f.5 L5 Battery saver sheet: a stacked radiogroup (Auto / On / Off) with sub-lines; changes apply at once. */
 export function BatterySheet() {
   const { store } = useServices();
   const t = useT();
+  const t5 = useT5();
   const st = useMemo(() => createSaverState(store), [store]).value;
   const cur = store.settings.value.batterySaver ?? 'auto';
   const opts: [BatterySaverPref, string, string][] = [
-    ['auto', t('bs_auto'), t(st.autoAvailable ? 'bs_auto_s' : 'bs_auto_s_na')],
-    ['on', t('bs_on'), t('bs_on_s')],
-    ['off', t('bs_off'), t('bs_off_s')],
+    ['auto', t5('bs_auto'), t5(st.autoAvailable ? 'bs_auto_s' : 'bs_auto_s_na')],
+    ['on', t5('bs_on'), t5('bs_on_s')],
+    ['off', t5('bs_off'), t5('bs_off_s')],
   ];
   return (
-    <Sheet id="battery" title={t('bs_row')}>
+    <Sheet id="battery" title={t5('bs_row')}>
       <div class="seg stack opts2" role="radiogroup" aria-labelledby="battery-title">
         {opts.map(([v, l, sub]) => (
           <button type="button" role="radio" aria-checked={cur === v} data-testid={`battery-${v}`} onClick={() => store.updateSettings({ batterySaver: v })}>
@@ -246,7 +251,7 @@ export function BatterySheet() {
       </div>
       <p class="t-caption helper" style={{ color: 'var(--c-ink-2)', marginTop: 'var(--s-4)' }}>
         <Icon name="leaf" />
-        <span>{t('bs_note')}</span>
+        <span>{t5('bs_note')}</span>
       </p>
     </Sheet>
   );
@@ -427,6 +432,7 @@ const OM_LOGO_2X = 'https://www.onemap.gov.sg/web-assets/images/logo/om_logo_256
 export function About() {
   const { store, router } = useServices();
   const t = useT();
+  const t5 = useT5();
   const lang = store.settings.value.lang;
   return (
     <>
@@ -437,11 +443,11 @@ export function About() {
           {t('about_row')}
         </h1>
         <Wordmark name={t('app_name')} />
-        <p data-testid="about-version">{t('ab_version', { v: APP_VERSION, d: dataDate(BUILD_DATE, lang) })}</p>
+        <p data-testid="about-version">{t5('ab_version', { v: APP_VERSION, d: dataDate(BUILD_DATE, lang) })}</p>
         {sampleMode.value && (
           <p class="tripnote sample" data-testid="about-sample">
             <Icon name="info" />
-            <span>{t('ab_sample')}</span>
+            <span>{t5('ab_sample')}</span>
           </p>
         )}
         <h2 class="grp">{t('ab_maps_h')}</h2>
@@ -452,7 +458,7 @@ export function About() {
           </p>
           <p>{t('ab_maps')}</p>
           <p class="t-caption" data-testid="about-lta" lang="en">
-            <LtaLine text={t('ab_lta_on', { d: longDateEn(DATA_AS_OF) })} />
+            <LtaLine text={t5('ab_lta_on', { d: longDateEn(DATA_AS_OF) })} />
           </p>
           {lang === 'zh' && (
             <p class="t-caption" data-testid="about-data">
@@ -465,7 +471,7 @@ export function About() {
           <h2 class="grp" id="ab-priv-h">
             {t('ab_priv_h')}
           </h2>
-          <p>{t('ab_priv_line')}</p>
+          <p>{t5('ab_priv_line')}</p>
           <div class="opts">
             <Row icon="lock" label={t('pv_link')} testid="about-privacy" onClick={() => router.navigate('/privacy')} />
             <Row icon="report" label={t('report')} testid="about-report" onClick={() => router.openSheet('report')} />

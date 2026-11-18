@@ -5,7 +5,8 @@ import { nextAaSize, TEXT_SCALE, TEXT_SIZES, type ActiveTrip } from '../src/stat
 import { sanitize } from '../src/setup/setup';
 import { deleteAllData, keepCache } from '../src/state/deleteAll';
 import type { HelpShare } from '../src/state/helpShare';
-import { M5UI1_EN, M5UI1_ZH, PRIVACY_NOTICE, SIZE_SR } from '../src/i18n/m5ui1';
+import { M5UI1_EN, M5UI1_ZH, SIZE_SR } from '../src/i18n/m5ui1';
+import { PRIVACY_NOTICE, PV_EN, PV_ZH } from '../src/i18n/privacy';
 import { UI } from '../src/i18n/ui';
 import { matchRoute, STANDALONE } from '../src/router/routes';
 import { logLines, resetLog } from '../src/log';
@@ -27,7 +28,7 @@ describe('6f.11 text size 较小 85%', () => {
     expect(nextAaSize('xxlarge')).toBe('standard');
   });
   it('the setup link accepts small; every size has an SR name', () => {
-    expect(sanitize({ textSize: 'small' }).textSize).toBe('small');
+    expect(sanitize({ v: 1, textSize: 'small' }).textSize).toBe('small');
     for (const z of TEXT_SIZES) expect(UI.zh[SIZE_SR[z]]).toMatch(/，\d+%$/);
     expect(UI.en[SIZE_SR.small]).toBe('Smaller, 85%');
     expect(UI.zh.size_85).toBe('较小');
@@ -87,15 +88,16 @@ describe('L1 Privacy copy and route', () => {
     // and the family line, contact line and footer sit outside the notice body.
     const skip = new Set(['pv_link', 'pv_open', 'pv_footer', 'pv_glance', 'pv_g1', 'pv_g2', 'pv_g3', 'pv_family', 'pv_contact']);
     const pv = (o: Record<string, string>) => Object.entries(o).filter(([k]) => k.startsWith('pv_') && !skip.has(k));
-    const en = pv(M5UI1_EN).reduce((n, [, v]) => n + words(v), 0);
+    const en = pv(PV_EN).reduce((n, [, v]) => n + words(v), 0);
     expect(en).toBeLessThanOrEqual(400);
-    const han = pv(M5UI1_ZH).reduce((n, [, v]) => n + (v.match(/\p{Script=Han}/gu)?.length ?? 0), 0);
+    const han = pv(PV_ZH).reduce((n, [, v]) => n + (v.match(/\p{Script=Han}/gu)?.length ?? 0), 0);
     expect(han).toBeLessThanOrEqual(600); // Creative: zh ≈ 560 characters
     expect(Object.keys(M5UI1_EN).sort()).toEqual(Object.keys(M5UI1_ZH).sort());
+    expect(Object.keys(PV_EN).sort()).toEqual(Object.keys(PV_ZH).sort());
   });
   it('no contact e-mail in the copy (AC 23): questions go to Report a problem', () => {
-    for (const v of [...Object.values(M5UI1_ZH), ...Object.values(M5UI1_EN)]) expect(v).not.toMatch(/@[a-z0-9-]+\./i);
-    expect(M5UI1_EN.pv_contact).toContain('[Report a problem]');
+    for (const v of [...Object.values(M5UI1_ZH), ...Object.values(M5UI1_EN), ...Object.values(PV_ZH), ...Object.values(PV_EN)]) expect(v).not.toMatch(/@[a-z0-9-]+\./i);
+    expect(PV_EN.pv_contact).toContain('[Report a problem]');
     expect(PRIVACY_NOTICE.n).toBe(1);
   });
   it('/privacy is a standalone route (deep-linkable from the family page and /setup)', () => {
