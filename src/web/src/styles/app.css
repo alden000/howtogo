@@ -304,6 +304,6 @@ button.where{min-height:var(--tap);text-align:left}
 .inlink{color:var(--c-primary-text);font-weight:700;text-decoration:underline;text-underline-offset:2px}
 /* M3/M4 fix A: at 150/200 % a long CJK label next to a value may wrap (keep-all clipped "清除最近去过的地方"). */
 /* Creative m34-fix-a F1: CJK may break between characters but not strand one; the value sits on its own line, left. */
-:root[data-text-size="xlarge"] .row .tx:has(+ .val),:root[data-text-size="xxlarge"] .row .tx:has(+ .val){word-break:normal;overflow-wrap:normal;line-break:strict;text-wrap:pretty}
+:root[data-text-size="xlarge"] .row .tx:has(+ .val),:root[data-text-size="xxlarge"] .row .tx:has(+ .val){flex:1 1 0;word-break:normal;overflow-wrap:normal;line-break:strict;text-wrap:pretty}
 :root[data-text-size="xlarge"] .row:has(.tx + .val),:root[data-text-size="xxlarge"] .row:has(.tx + .val){flex-wrap:wrap}
 :root[data-text-size="xlarge"] .row[role=switch] .val,:root[data-text-size="xxlarge"] .row[role=switch] .val{margin-left:0;padding-left:0}
