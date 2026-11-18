@@ -342,21 +342,20 @@ test('AC-27 set Home via search, Take me home routes in one tap, stored on devic
 });
 
 test('AC-28 last 5 destinations under To; clearable in Settings', async ({ page }) => {
-  const others = ['A', 'B', 'C', 'D', 'E', 'F'].map((n, i) => ({ name: `Place ${n}`, lat: 1.30 + i / 100, lng: 103.85, at: Date.now() - i * 1000 }));
+  // Superseded in part by M3 AC 34/35 (0.3.0): a trip is recorded only when started (H5), not on route pick,
+  // and Home shows up to 5 recent trips. Seed 6 recents (M3 AC 34 format) and check the cap + Settings clear.
   await setup(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('qa-seeded')) return;
+    sessionStorage.setItem('qa-seeded', '1');
+    const d = Date.now();
+    localStorage.setItem('howtogo.recents', JSON.stringify(['A', 'B', 'C', 'D', 'E', 'F'].map((n, i) => ({ to: { name: `Place ${n}`, lat: 1.30 + i / 100, lng: 103.85 }, at: d - (i + 1) * 1e5 }))));
+  });
   await page.goto('/?demo=1');
-  for (const q of ['tan tock', 'raffles', 'bishan', 'ang mo kio', 'tan tock', 'raffles']) {
-    await page.getByTestId('to-field').click();
-    await page.getByTestId('search-input').fill(q);
-    await page.getByTestId('search-result-0').click();
-    await page.waitForTimeout(300);
-    await page.getByTestId('back').click();
-    await expect(page.getByTestId('to-field')).toBeVisible();
-  }
-  void others;
-  const recent = page.locator('[data-testid^=recent-]');
-  expect(await recent.count()).toBeGreaterThan(0);
-  expect(await recent.count()).toBeLessThanOrEqual(5);
+  await expect(page.getByTestId('to-field')).toBeVisible();
+  const rows = page.locator('[data-testid=recent-0], [data-testid=recent-1], [data-testid=recent-2], [data-testid=recent-3], [data-testid=recent-4], [data-testid=recent-5]');
+  await expect(rows.first()).toBeVisible();
+  expect(await rows.count(), 'up to 5 recent trips (M3 AC 34)').toBe(5);
   await page.getByTestId('nav-settings').click();
   await page.getByTestId('row-clear').click();
   await page.getByTestId('clear-recent').click();
@@ -372,7 +371,7 @@ test('AC-31 option card: total time, arrival, walking distance in metres, transf
   const txt = (await card.innerText()).replace(/\s+/g, ' ');
   expect.soft(txt, 'total time').toMatch(/\d+ 分钟/);
   expect.soft(txt, 'arrival clock').toMatch(/\d+:\d\d 到达/);
-  expect.soft(txt, 'transfers').toMatch(/转车|不用转车/);
+  expect.soft(txt, 'transfers').toMatch(/换车|不用换车/);
   expect.soft(await card.locator('.chip,.linetag,[class*=chip]').count(), 'mode chips').toBeGreaterThan(0);
   expect.soft(txt, 'walking distance in metres (AC 31)').toMatch(/\d+\s*米/);
 });
@@ -450,7 +449,7 @@ test('AC-42 report: version, UA, language, font size; no coordinates/addresses',
   await page.getByTestId('report').click();
   await page.getByTestId('report-see').click();
   const txt = await page.getByTestId('report-text').innerText();
-  expect(txt).toMatch(/0\.2\.0/); // M2 (QA-27)
+  expect(txt).toMatch(/0\.3\.0/); // M3/M4 (QA-47)
   expect(txt).toMatch(/Mozilla|Chrome/);
   expect(txt).toMatch(/zh/);
   expect(txt).toMatch(/125|large/);

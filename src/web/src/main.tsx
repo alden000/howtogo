@@ -6,6 +6,7 @@
  *    (`simulateFixes`) along the chosen itinerary; `&demoMs=<n>` sets ms per fix.
  * The mode sticks for the tab (sessionStorage) so in-app navigation and reloads keep it.
  */
+import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/app.css';
 import './styles/guide.css';

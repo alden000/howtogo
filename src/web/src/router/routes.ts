@@ -17,6 +17,7 @@ export type RouteName =
   | 'setup_start'
   | 'setup'
   | 'setup_import'
+  | 'places'
   | 'not_found';
 
 export interface RouteMatch {
@@ -43,6 +44,7 @@ const TABLE: { name: RouteName; re: RegExp; keys: string[] }[] = [
   { name: 'family_edit', re: /^\/family\/edit\/?$/, keys: [] },
   { name: 'setup_start', re: /^\/setup\/start\/?$/, keys: [] },
   { name: 'setup', re: /^\/setup\/?$/, keys: [] },
+  { name: 'places', re: /^\/places\/?$/, keys: [] },
   { name: 'setup_import', re: /^\/s\/([A-Za-z0-9]{6,32})\/?$/, keys: ['code'] },
 ];
 

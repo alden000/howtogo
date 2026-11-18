@@ -512,7 +512,7 @@ test('AC 32 (Should): Lift-friendly on → H5 alight/transfer "坐电梯：跟�
 });
 
 // ------------------------------------------------------------------ G. preferences
-test('AC 33: Route options sheet offers 最少走路 / 最少换车 / 最快 + Lift-friendly; choice persists', async ({ page }) => {
+test('AC 33: Route options sheet offers 最少走路 / 最少换车 / 最快 (Lift-friendly out of the sheet until M5, ruling); choice persists', async ({ page }) => {
   await m3(page);
   await page.getByTestId('to-field').click();
   await page.getByTestId('search-input').fill('tan tock');
@@ -599,6 +599,13 @@ test('AC 41: About says "Contains information from LTA DataMall" with the Singap
   await page.goto('/about');
   await expect(page.getByTestId('about-scroll')).toContainText('Contains information from LTA DataMall');
   await expect(page.getByRole('link', { name: /Open Data Licence/ })).toHaveAttribute('href', /data\.gov\.sg/);
+});
+
+// AC 44 (Should), amended by Director ruling 2026-11-18: About shows "交通资料日期：2026年11月17日".
+test('AC 44 (Should): About shows the transit data date "交通资料日期：YYYY年M月D日"', async ({ page }) => {
+  await m3(page);
+  await page.goto('/about');
+  await expect(page.getByTestId('about-data')).toContainText(/交通资料日期：\d{4}年\d{1,2}月\d{1,2}日/);
 });
 
 test('AC 42: change-only hooks — bus:chip, alerts:disrupted, alerts:offer, lifts:, exit:shown|hidden', async ({ page }) => {

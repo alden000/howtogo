@@ -5,12 +5,16 @@
  * Plus the taxi hand-off (6e.6) shown under the H10 address card.
  */
 import { useEffect, useState } from 'preact/hooks';
-import type { UiKey } from '../i18n/ui';
+import { tf, type UiKey } from '../i18n/ui';
 import { useServices, useT } from '../context';
 import { log } from '../log';
-import { family } from '../state/family';
+import { online } from '../api/offline';
+import { isApiError } from '../api/errors';
+import { family, type Contact } from '../state/family';
+import { helpShare } from '../state/helpShare';
+import { here } from '../state/location';
 import { Icon, Sheet, showToast } from '../ui/kit';
-import { openExternal } from './share';
+import { afterSend, openExternal, senderFor, setSharedWith, waUrl } from './share';
 import { DemoControls } from './tripSheets';
 
 export function HelpSheet() {
@@ -21,6 +25,10 @@ export function HelpSheet() {
   const sharing = !!trip?.share;
   const contacts = family.contacts.value;
   const first = contacts[0];
+  const offline = !online.value;
+  // QA-37 / Creative m34-fix-b M4: the share entry point (6e.1) shows only while nothing is shared
+  // (no trip share and no live help-only share, whatever the trip state).
+  const canShare = !sharing && !helpShare.current.value;
   useEffect(() => void platform.vibrate('tick'), []);
   const setHelp = () => {
     if (sharing && trip?.share?.status !== 'help') runtime.help();
@@ -105,7 +113,8 @@ export function HelpSheet() {
             </span>
             <span class="tx">
               <b>{t('find_again')}</b>
-              <span>{t('find_again_s')}</span>
+              {/* QA-39 (AC 38): rows that need the network say so instead of failing silently. */}
+              <span>{offline ? t('hp_needs_net') : t('find_again_s')}</span>
             </span>
             <Icon name="chev" />
           </button>
@@ -133,6 +142,7 @@ export function HelpSheet() {
             </button>
           )
         )}
+        {canShare && <HelpShareRow first={first ?? null} offline={offline} />}
         <button type="button" class="btn btn-danger-outline" data-testid="help-995" onClick={() => router.openSheet('confirm-995')}>
           <Icon name="phone" />
           {t('hp_995')}
@@ -140,6 +150,70 @@ export function HelpSheet() {
       </div>
       {guiding && <DemoControls />}
     </Sheet>
+  );
+}
+
+/**
+ * QA-37 (M4 AC 35, Director ruling 2026-11-18): "让家人看到我在哪里" — Help's share entry point while not
+ * sharing (6e.1). On a trip: start the trip's share with status `help`. Not on a trip: a help-only share
+ * ("我在这里", the position now). Then WhatsApp to the first contact with "我需要帮忙，我在这里：<link>".
+ * Offline, rate-limited or failed create (AC 47): WhatsApp still opens, with a plain "我需要帮忙" + the
+ * Where-am-I address (or coordinates) and a maps link.
+ */
+function HelpShareRow({ first, offline }: { first: Contact | null; offline: boolean }) {
+  const { store, router, runtime, platform, api } = useServices();
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    if (busy) return;
+    setBusy(true);
+    const lang = first?.lang ?? store.settings.peek().lang;
+    const sender = senderFor(first, store.settings.peek().name);
+    try {
+      if (!online.peek()) throw new Error('offline');
+      const trip = store.trip.peek();
+      let viewPath: string;
+      if (trip) {
+        const s = await runtime.startShare({ ...sender, help: true });
+        if (!s) throw new Error('no share');
+        viewPath = s.viewPath;
+      } else {
+        const fix = await platform.location.current().catch(() => null);
+        const pos = fix ?? here.peek();
+        const s = await helpShare.start(api, { destName: tf(lang, 'hp_here_dest'), lang, ...sender }, first?.name ?? null, pos);
+        viewPath = s.viewPath;
+      }
+      setSharedWith(first?.name ?? null);
+      const url = new URL(viewPath, location.origin).toString();
+      openExternal(waUrl(tf(lang, 'hp_share_msg', { url }), first));
+      afterSend(first ? t('sh_sent', { fam: first.name }) : t('sh_sent_any'));
+    } catch (e) {
+      log(`state:help-share-${isApiError(e) && e.status === 429 ? 'limited' : 'failed'}`);
+      openExternal(waUrl(await plainHelp(lang), first));
+    } finally {
+      setBusy(false);
+      void platform.vibrate('confirm');
+      router.closeSheet();
+    }
+  };
+  /** AC 47 fallback text: the Where-am-I address when known, else coordinates, else just "I need help". */
+  const plainHelp = async (lang: 'zh' | 'en') => {
+    const h = here.peek() ?? (await platform.location.current().then((f) => ({ ...f, label: null as string | null, address: undefined as string | undefined })).catch(() => null));
+    if (!h) return tf(lang, 'hp_need_help');
+    const a = h.address?.replace(/\s*Singapore\s*\d{6}$/i, '') || h.label || `${h.lat.toFixed(4)}, ${h.lng.toFixed(4)}`;
+    return tf(lang, 'hp_share_plain', { a, u: `https://maps.google.com/?q=${h.lat.toFixed(5)},${h.lng.toFixed(5)}` });
+  };
+  return (
+    <button type="button" class="opt" data-testid="help-share-loc" aria-busy={busy} disabled={busy} onClick={() => void go()}>
+      <span class="ic" style={{ background: 'var(--c-jade-soft)', color: 'var(--c-on-jade-soft)' }} aria-hidden="true">
+        {busy ? <span class="spin" /> : <Icon name="share" />}
+      </span>
+      <span class="tx">
+        <b>{t('hp_share')}</b>
+        <span>{offline ? t('hp_needs_net') : first ? t('hp_share_s', { fam: first.name }) : t('hp_share_s_any')}</span>
+      </span>
+      <Icon name="chev" />
+    </button>
   );
 }
 
@@ -172,13 +246,19 @@ export function Confirm995Sheet() {
   );
 }
 
-/** Trip note while help is showing on family's page (6e.3): "I'm okay now" → travelling. */
+/**
+ * Note while help is showing on family's page (6e.3): "I'm okay now". Trip share → back to travelling.
+ * Help-only share (QA-37, not on a trip; shown on Home) → the share ends (AC 35).
+ */
 export function HelpNote() {
-  const { store, runtime } = useServices();
+  const { store, runtime, api, platform } = useServices();
   const t = useT();
-  const s = store.trip.value?.share;
-  if (s?.status !== 'help') return null;
-  const fam = family.contacts.value[0]?.name ?? t('sh_family_fb');
+  const trip = store.trip.value;
+  const s = trip?.share;
+  // Creative m34-fix-b M4: a live help-only share always shows its off switch, on a trip too.
+  const hs = helpShare.current.value;
+  if (s?.status !== 'help' && !hs) return null;
+  const fam = (hs ? hs.fam : null) ?? family.contacts.value[0]?.name ?? t('sh_family_fb');
   return (
     <div class="tripnote helpnote" role="status" data-testid="help-note">
       <Icon name="help" />
@@ -190,8 +270,14 @@ export function HelpNote() {
         class="btn btn-secondary"
         data-testid="help-ok"
         onClick={() => {
-          runtime.clearHelp();
-          showToast('help-ok', t('hp_ok_toast', { fam }));
+          void platform.vibrate('confirm');
+          if (hs) {
+            void helpShare.end(api);
+            showToast('help-ok', t('hp_ok_end', { fam }));
+          } else {
+            runtime.clearHelp();
+            showToast('help-ok', t('hp_ok_toast', { fam }));
+          }
         }}
       >
         {t('hp_ok')}

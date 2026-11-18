@@ -5,10 +5,12 @@
 // `_headers` is parsed into a rules table and never embedded itself.
 //
 // Usage: node scripts/embed-assets.mjs              embed dist (fails if missing or > 5 MB)
-//        node scripts/embed-assets.mjs --if-missing  only when the generated file is absent;
-//                                                    writes an empty map (rules from
-//                                                    web/public/_headers) if dist is absent too
-//                                                    (keeps tests/typecheck working on a fresh checkout)
+//        node scripts/embed-assets.mjs --if-stale    only when the generated file is absent or older
+//                                                    than its inputs (dist/index.html, dist/_headers,
+//                                                    web/public/_headers, this script: QA-51); writes
+//                                                    an empty map (rules from web/public/_headers) if
+//                                                    dist is absent (keeps tests/typecheck working on
+//                                                    a fresh checkout). `--if-missing` is an alias.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
@@ -79,10 +81,12 @@ const walk = (dir) =>
     return statSync(p).isDirectory() ? walk(p) : [p];
   });
 
-const ifMissing = process.argv.includes("--if-missing");
-if (ifMissing && existsSync(OUT)) process.exit(0);
+const ifStale = process.argv.includes("--if-stale") || process.argv.includes("--if-missing");
+const mtime = (p) => (existsSync(p) ? statSync(p).mtimeMs : 0);
+const inputs = [join(DIST, "index.html"), join(DIST, "_headers"), resolve(here, "../../web/public/_headers"), fileURLToPath(import.meta.url)];
+if (ifStale && existsSync(OUT) && inputs.every((p) => mtime(p) <= mtime(OUT))) process.exit(0);
 if (!existsSync(join(DIST, "index.html"))) {
-  if (ifMissing) {
+  if (ifStale) {
     const pub = resolve(here, "../../web/public/_headers");
     write({}, existsSync(pub) ? parseHeaders(readFileSync(pub, "utf8")) : []);
     console.log("embed-assets: no web build — wrote an empty asset map (+ public/_headers rules)");

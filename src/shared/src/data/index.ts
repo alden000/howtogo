@@ -8,12 +8,15 @@ export {
   lineStations,
   lineTermini,
   normalizeStationCode,
+  onZhNameMissing,
+  reportZhNameMissing,
   stationByCode,
   stationByName,
   stationByStopId,
   stationForStop,
   stationLabel,
   stationNumber,
+  zhRailStopName,
   zhStationName,
 } from './network';
 export type { Heading, LineStop, LoopDirection, StopLike } from './network';

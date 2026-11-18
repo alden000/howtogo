@@ -47,7 +47,16 @@ step static-pwa 'grep -E "static-pwa (ok|FAIL)" -A3 | head -4' node "$QA/scripts
 # M2 AC 37: device APIs only via the Platform adapter (D-4).
 step platform-api 'tail -3' node "$QA/scripts/platform-grep.mjs"
 step secrets 'tail -n +1 | head -3' node "$QA/scripts/secret-scan.mjs" "$QA/.out/dist"
-step dev-e2e "grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)'" bash -c "cd '$WEB' && npx playwright test -c '$QA/playwright.dev.config.mjs'"
+# Visual baselines are Linux-recorded (Director 2026-11-18): on Windows (Git Bash) with Docker running, the
+# dev suite runs inside the Playwright Linux image (qa/scripts/dev-e2e-docker.sh); otherwise on the host.
+deve2e() {
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) if docker info >/dev/null 2>&1; then bash "$QA/scripts/dev-e2e-docker.sh"; return; fi
+      echo "dev-e2e: Docker not available, running on the Windows host (screenshot diffs are expected)";;
+  esac
+  (cd "$WEB" && npx playwright test -c "$QA/playwright.dev.config.mjs")
+}
+step dev-e2e "grep -E '^(dev-e2e|dev-e2e-docker:| +[0-9]+ (passed|failed|flaky|skipped))' | sed 's/mcr.microsoft.com.playwright://'" deve2e
 step qa-e2e "grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)'" bash -c "cd '$QA' && npx playwright test"
 # QA-20: Lighthouse judges the median of 3 runs per URL (LH_RUNS overrides).
 step lighthouse 'grep -E "^lighthouse"' "$QA/scripts/lighthouse.sh"

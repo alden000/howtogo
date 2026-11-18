@@ -30,3 +30,11 @@ export class ApiError extends Error {
 }
 
 export const isApiError = (e: unknown): e is ApiError => e instanceof ApiError;
+
+/** QA-45 (M4 AC 44/47): how a create failed, for the copy — rate limit, no network, or anything else. */
+export type FailKind = 'rate' | 'offline' | 'other';
+export function failKind(e: unknown): FailKind {
+  if (e instanceof ApiError && (e.status === 429 || e.code === 'rate_limited')) return 'rate';
+  if (e instanceof ApiError && (e.kind === 'offline' || e.kind === 'network')) return 'offline';
+  return 'other';
+}

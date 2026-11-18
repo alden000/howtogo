@@ -1,6 +1,6 @@
 import { env, runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { ARRIVED_GRACE_MS, newOwnerToken, newShareId, sha256Hex, shareTtlMs, type TripShare } from "../src/share";
+import { ARRIVED_GRACE_MS, MAX_VIEWERS, newOwnerToken, newShareId, sha256Hex, shareTtlMs, type TripShare } from "../src/share";
 import { ORIGIN, call } from "./helpers";
 
 interface Created {
@@ -243,6 +243,23 @@ describe("live WebSocket", () => {
   it("426 without Upgrade header", async () => {
     const c = await create();
     expect((await call(`/api/share/${c.id}/live`)).status).toBe(426);
+  });
+
+  it("QA-43: a plain GET on /live says too_many_viewers once the share has 50 viewers", async () => {
+    const c = await create();
+    const sockets: WebSocket[] = [];
+    for (let i = 0; i < MAX_VIEWERS; i++) {
+      const res = await call(`/api/share/${c.id}/live`, { headers: { Upgrade: "websocket" } });
+      expect(res.status).toBe(101);
+      res.webSocket!.accept();
+      sockets.push(res.webSocket!);
+    }
+    const over = await call(`/api/share/${c.id}/live`, { headers: { Upgrade: "websocket" } });
+    expect(over.status).toBe(429);
+    const probe = await call(`/api/share/${c.id}/live`);
+    expect(probe.status).toBe(429);
+    expect(await probe.json()).toMatchObject({ error: { code: "too_many_viewers" } });
+    sockets.forEach((w) => w.close(1000));
   });
 
   it("sends current state on connect, broadcasts updates and the end", async () => {

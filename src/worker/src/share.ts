@@ -400,6 +400,11 @@ export class TripShare extends DurableObject<Env> {
   /** WebSocket upgrade for viewers (hibernation API). */
   async fetch(request: Request): Promise<Response> {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
+      // QA-43 (M4 AC 25): a refused upgrade hides its status from the browser's WebSocket API, so a plain
+      // GET here tells the viewer page whether the share is full (429) before the usual 426.
+      if (this.ctx.getWebSockets().length >= MAX_VIEWERS) {
+        return errorResponse(429, "too_many_viewers", "Too many people are following this trip.");
+      }
       return errorResponse(426, "upgrade_required", "Use a WebSocket to follow this trip live.");
     }
     const r = await this.get();

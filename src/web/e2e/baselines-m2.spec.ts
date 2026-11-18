@@ -34,7 +34,12 @@ async function open(page: Page, v: Variant, perm: 'granted' | 'denied' = 'grante
   }, HOME);
   await page.goto('/?demo=1&demoMs=100000');
   await page.waitForFunction(() => '__howtogo' in window);
-  if (perm === 'denied') await page.evaluate(() => (window as unknown as W).__howtogo.platform.fake.setPermission('denied'));
+  if (perm === 'denied') {
+    // Deny only after Home has its fix (the frame is "location lost during guidance"). Denying before Home's
+    // first locate left H3 waiting for a start behind the F2 sheet (a race seen in the Docker image).
+    await page.waitForFunction(() => (window as unknown as { __howtogoLog?: string[] }).__howtogoLog?.includes('loc:ok'));
+    await page.evaluate(() => (window as unknown as W).__howtogo.platform.fake.setPermission('denied'));
+  }
 }
 async function start(page: Page, q: string) {
   await page.getByTestId('to-field').click();

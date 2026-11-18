@@ -5,11 +5,14 @@
  * and kept (last 200) for the redacted "Report a problem" log. Never log coordinates,
  * addresses or search text here.
  */
+import { onZhNameMissing } from '@howtogo/shared';
+
 const MAX = 200;
 const lines: string[] = [];
 const lastByKey = new Map<string, string>();
 /** Keys whose value is change-only per key (e.g. the same screen twice in a row is one line). */
-const PER_KEY = new Set(['screen', 'sheet', 'online', 'follow', 'trip']);
+const PER_KEY = new Set(['screen', 'sheet', 'online', 'follow', 'trip', 'exit']);
+const ONCE = new Set<string>();
 
 declare global {
   interface Window {
@@ -38,6 +41,13 @@ export function log(line: string): void {
   if (arr.length > MAX) arr.splice(0, arr.length - MAX);
 }
 
+/** Log a line at most once per page session (M3 AC 42 `zh_name_missing:<code>`). */
+export function logOnce(line: string): void {
+  if (ONCE.has(line)) return;
+  ONCE.add(line);
+  log(line);
+}
+
 export function logLines(): readonly string[] {
   return sink();
 }
@@ -46,4 +56,8 @@ export function logLines(): readonly string[] {
 export function resetLog(): void {
   sink().length = 0;
   lastByKey.clear();
+  ONCE.clear();
 }
+
+// M3 AC 42: a station shown in zh without a zh name (English fallback) is logged once per code.
+onZhNameMissing((code) => logOnce(`zh_name_missing:${code}`));

@@ -9,7 +9,7 @@ import { Header } from '../app';
 import { useServices, useT } from '../context';
 import type { UiKey } from '../i18n/ui';
 import { log } from '../log';
-import { ApiError } from '../api/errors';
+import { ApiError, failKind, type FailKind } from '../api/errors';
 import type { SearchResult } from '../api/types';
 import { family, formatPhone, MAX_CONTACTS, normalizePhone, RELATIONS, type Contact, type Relation } from '../state/family';
 import { TEXT_SIZES, type TextSize } from '../state/store';
@@ -68,7 +68,19 @@ export function FamilyList() {
   );
 }
 
+// ---------------------------------------------------------------- errors
+/** QA-45 (M4 AC 44/47): 429 → "请稍后再试", offline → "需要网络", anything else → the generic line. */
+const FAIL_COPY: Record<FailKind, UiKey> = { rate: 'err_rate', offline: 'su_offline', other: 'w_failed' };
+
 // ---------------------------------------------------------------- P4
+/** QA-42: arrow-key choice for a radiogroup (WAI-ARIA radio group pattern; wraps). null = not an arrow key. */
+export function radioStep<T>(list: readonly T[], cur: T | null, key: string): T | null {
+  const d = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 0;
+  if (!d || !list.length) return null;
+  const i = cur === null ? -1 : list.indexOf(cur);
+  if (i < 0) return list[d > 0 ? 0 : list.length - 1]!;
+  return list[(i + d + list.length) % list.length]!;
+}
 type FieldErr = { name?: string; phone?: string };
 
 export function ContactFields({ value, onChange, err }: { value: Partial<Contact> & { phoneRaw?: string }; onChange: (v: Partial<Contact> & { phoneRaw?: string }) => void; err: FieldErr }) {
@@ -90,12 +102,22 @@ export function ContactFields({ value, onChange, err }: { value: Partial<Contact
         <span class="lb" id="c-rel">
           {t('fam_rel')}
         </span>
-        <div class="chips" role="radiogroup" aria-labelledby="c-rel">
-          {RELATIONS.map((r) => (
-            <button type="button" role="radio" aria-checked={v.relation === r} aria-pressed={v.relation === r} data-testid={`rel-${r}`} onClick={() => onChange({ ...v, relation: r as Relation })}>
-              {t(`rel_${r}` as UiKey)}
-            </button>
-          ))}
+        {/* QA-42: a real radiogroup — aria-checked only (no aria-pressed), one tab stop, arrow keys move the choice. */}
+        <div class="chips" role="radiogroup" aria-labelledby="c-rel" onKeyDown={(e) => {
+          const next = radioStep(RELATIONS, v.relation ?? null, e.key);
+          if (!next) return;
+          e.preventDefault();
+          onChange({ ...v, relation: next });
+          (e.currentTarget as HTMLElement).querySelector<HTMLElement>(`[data-testid="rel-${next}"]`)?.focus();
+        }}>
+          {RELATIONS.map((r, i) => {
+            const on = v.relation === r;
+            return (
+              <button type="button" role="radio" aria-checked={on} tabIndex={on || (!v.relation && i === 0) ? 0 : -1} data-testid={`rel-${r}`} onClick={() => onChange({ ...v, relation: r as Relation })}>
+                {t(`rel_${r}` as UiKey)}
+              </button>
+            );
+          })}
         </div>
       </div>
       <div class={`field2${err.phone ? ' bad' : ''}`}>
@@ -551,7 +573,7 @@ export function SetupFamily() {
   const [sent, setSent] = useState<string | null>(null);
   const [handed, setHanded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [fail, setFail] = useState(false);
+  const [fail, setFail] = useState<FailKind | null>(null);
   const toPlace = (r: SearchResult): Place => ({ name: r.name, lat: r.lat, lng: r.lng, address: r.address, postal: r.postal });
   const addContact = () => {
     const r = validateContact(draft, t);
@@ -563,7 +585,7 @@ export function SetupFamily() {
   };
   const send = async () => {
     setBusy(true);
-    setFail(false);
+    setFail(null);
     try {
       const me = normalizePhone(selfPhone).e164;
       const data: SetupData = {
@@ -581,8 +603,8 @@ export function SetupFamily() {
       const box = await api.setupCreate(ct);
       setSent(new URL(`/s/${box.code}#k=${key}`, location.origin).toString());
       log('setup:sent');
-    } catch {
-      setFail(true);
+    } catch (e) {
+      setFail(failKind(e));
     } finally {
       setBusy(false);
     }
@@ -686,8 +708,8 @@ export function SetupFamily() {
           </div>
         </section>
         {fail && (
-          <p class="note" role="alert">
-            {t('w_failed')}
+          <p class="note" role="alert" data-testid="w-failed">
+            {t(FAIL_COPY[fail])}
           </p>
         )}
         <button type="button" class="btn btn-primary btn-hero" data-testid="w-send" disabled={busy} aria-busy={busy} onClick={() => void send()}>

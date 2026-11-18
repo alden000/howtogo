@@ -66,7 +66,13 @@ Bus services use the **bus badge**: an `c-ink` block with the bus icon and numbe
 Map tokens (`m-*`): land `#F1E9DC`/`#1C1815`, block `#E3D6C2`/`#2B241E`, park `#CFE3C2`/`#1E2B20`, water `#B9D9E4`/`#162A33`, road `#FFF`/`#3B332C`, casing `#D8C8B0`/`#2B241E`, expressway `#F6D7A4`/`#4A3A22`, label = ink-2 with a 5px land-colour halo, travelled route `m-done` `#B5A792`/`#5E544A`. With OneMap tiles: Default (light) and Night (dark), overlays unchanged.
 
 ### 1.2 Type
-Font stack: `"Atkinson Hyperlegible", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif` (Google Fonts, `display=swap`). Weights are **400 / 700 / 900 only**. Numerals use Atkinson and `tabular-nums`.
+- Font stack `"Atkinson Hyperlegible", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif`.
+- Atkinson is **self-hosted** (Latin subset, woff2, 400/700, `font-display: swap`, 700 preloaded). No third-party font request.
+- **CJK comes from the device font**, never a web font.
+- Only 400 and 700 really render, so a `900` role shows at 700. Hierarchy comes from size, never from 900 against 700.
+- **Wording:** in zh, "transfer" is always **换车** (最少换车, 不用换车, 换 [CC] …), never 转车.
+
+Numerals use Atkinson and `tabular-nums`.
 `html { font-size: calc(20px * var(--ts)) }`, where `--ts` ∈ {1, 1.25, 1.5, 2}. All type is in rem.
 
 | Role | Size (rem / px @100%) | Weight | Line height | Use |
@@ -138,6 +144,11 @@ There is no "reject" buzz: we never punish. Settings → 震动提示 turns all 
 - Screen readers: step changes go to a polite live region. Get-off goes to an assertive live region plus `role="alertdialog"`.
 
 ## 5. Components
+
+### 5.0 Segmented choice (`.seg`)
+- Labels never break inside a word (`keep-all`).
+- A set whose labels exceed 3 CJK characters, or that sits in a sheet, stacks as one column of full-width 56 px rows with the check on the right.
+- Every `.seg` stacks at 150 % and 200 %.
 
 ### 5.1 Big destination tile (`.tile`)
 A 2-column grid using `repeat(auto-fit, minmax(min(100%, 8rem), 1fr))`, so it becomes 1 column automatically at 200%. Min height 148px, `r-l`, `e-1`, padding 18. Contents: a 60px tinted icon square (`r` 20, 34px icon), name (`tile` role), sub-line (`caption`).
@@ -218,6 +229,8 @@ Shared rules for every frame:
 - Loading, no route, too close, outside SG, error, busy, offline: see **6b F3**.
 - No route (build): see 6b F3 `none` (M4 adds the "show a driver" option → H10).
 - **Back goes to:** H2 (or H1 if opened from a tile). Baselines: `H3-two`, `H3-one`, `H3-loading`, `H3-none`.
+
+- **Route options (M3):** the **选项 / Options** secondary button (`sliders`) sits under the From line, after 加一个地方. It opens the **路线选项 / Route options** sheet, which holds **先给我看 / Show first**: 最少走路 / Least walking (default) · 最少换车 / Fewest changes · 最快 / Fastest. A pick closes the sheet, re-ranks the cards and announces `现在先给你看：{label}` / `Now showing first: {label}`. The Lift-friendly switch joins the sheet only when its ranking ships (M5).
 
 ### H4 Trip overview
 - Title 去 陈笃生医院 / To Tan Tock Seng Hospital · 23 分钟 · 上午 10:39 到达.
@@ -410,6 +423,8 @@ Groups in this order; each row is 56px+ with label, current value in `c-ink-2`, 
     - 你随时可以在设置里删除称呼、家和最近去过的地方。/ You can remove your name, Home and recent places in Settings at any time.
     - 有问题请联系：{contact} / Questions? Contact {contact}. (**Owner to supply** the contact, the PDPA contact point.)
   - **No open-source licences screen** (owner preference).
+- **出行 / Travel (M3):** the rows are 先给我看 (stacked seg) · 我用轮椅或助行器 · 我有乐龄卡 · 少走楼梯，用电梯. 少走楼梯，用电梯 has the sub `路上会提醒你跟着电梯标志走。` / `On the way, I'll remind you to follow the lift signs.`
+- **About (M3):** the licence sentence links "Singapore Open Data Licence version 1.0" (`.inlink`, new tab). Under it, a `caption` reads `交通资料日期：2026年11月17日` / `Transit data date: 17 Nov 2026`.
 - **Back goes to:** sub-sheets → Settings; Settings → H1; About → Settings.
 - Baselines: `F6-settings`, `F6-name`, `F6-clear`, `F6-install-android`, `F6-install-ios`, `F6-report`, `F6-about`.
 
@@ -827,6 +842,7 @@ The CCL has no terminus, and 顺时针 / 逆时针 ("clockwise / anticlockwise")
 
 ### 6d.7 T7 Station names display rule (zh name + code + English sign text)
 Singapore station signs show the **English name**, the **Chinese name** and the **code**. Seniors must be able to match the screen to the sign. Rule:
+- Interim for M3: H4 rows may read `碧山 Bishan (NS17)` (zh, English, code in brackets). The full T7 primary-mention layout on H4 is M5.
 
 | Context | zh UI | en UI |
 |---|---|---|
@@ -854,7 +870,7 @@ Only when the OneMap itinerary has a fare (`fare` string); otherwise nothing is 
 
 ### 6d.9 T9 Recent trips (H1, H2)
 Stored on the device only (max 10, newest first; a trip is recorded when it **starts**, deduped on from+to).
-- **H1:** a section under the tiles, before the help row: header `最近的行程 / Recent trips` (`label`, ink-2) + up to **3** rows (`.ritem`, 72 px): `clock` icon · `去 陈笃生医院 / To Tan Tock Seng Hospital` (`headline`) · `从 家 · 上星期二 / From Home · last Tuesday` (`caption`) · chevron. Tap → H3 to that destination **from where the user is now** (the row's From is a memory aid). If the user is within 300 m of the destination → the F5 "already here" toast pattern: `你现在就在 {dest} 附近。/ You're already near {dest}.`
+- **H1:** a section under the tiles, before the help row: header `最近的行程 / Recent trips` (`label`, ink-2) + up to **5** rows (`.ritem`, 72 px): `clock` icon · `去 陈笃生医院 / To Tan Tock Seng Hospital` (`headline`) · `从 家 · 上星期二 / From Home · last Tuesday` (`caption`) · chevron. Tap → H3 to that destination **from where the user is now** (the row's From is a memory aid). If the user is within 300 m of the destination → the F5 "already here" toast pattern: `你现在就在 {dest} 附近。/ You're already near {dest}.`
 - Rows whose route uses a disrupted line show the line tag + `有些站没有地铁 / No trains at some stations` as a second caption line (T3).
 - Hidden when empty (no empty state on H1). Saved places (tiles) never appear as recent rows (no duplication); trips **to** a saved place do, because the From differs.
 - **H2:** the existing `最近去过 / Recent` list shows recent **destinations** (from the same store), max 5.
@@ -955,9 +971,12 @@ A plain web page, **no install, no login, no app chrome**. It must work on an ol
 | `nosignal` | `status: paused`, or `updatedAt` > 2 min old while travelling | {me}的手机暂时没有信号 / {me}'s phone has no signal right now | `c-surface-2` note, `wifi-off`: `最后位置：{near} 附近，{n} 分钟前 / Last seen near {near}, {n} min ago` · `在地铁里或大楼里常常这样，信号回来后会自己更新。/ This often happens in the MRT or inside buildings. It will update by itself when the signal returns.` · ETA kept with 约 and `（可能有变化）/ (may change)` · puck grey (6c.12) · call |
 | `ended` | `410 share_ended` / ws `ended`, not after arrival | {me}停止了分享 / {me} stopped sharing | `想知道她在哪里，可以打电话给她。/ To find out where she is, you can call her.` · no map, no last position (it was deleted) · call (if number known from earlier state) |
 | `endedArrived` | ended after `arrived` | {me}已经到了 {dest}。分享结束了。/ {me} arrived at {dest}. Sharing has ended. | jade check · no map |
+| `endedOk` | ended right after help was cleared | {me}说自己没事了。分享结束了。/ {me} says everything’s okay now. Sharing has ended. | jade check · `想再联系{me}，可以打电话。/ You can still give {me} a call.` · no map · call |
+| (note) `full` | 51st viewer (AC 25) | top note on any state, `clock`: **看的人太多了，请稍后再试 / Too many people are watching. Please try again later.** + `这一页还会自己更新，只是慢一点。/ This page still updates, just less often.` | last state stays; GET polling |
 | `expired` | `410 share_expired` / ws `expired` | 这个链接已经过期了 / This link has expired | `分享最长 4 小时。可以请{me}再发一个。/ Sharing lasts 4 hours at most. You can ask {me} for a new one.` · no map |
 | `invalid` | `404` / malformed id | 找不到这个链接 / We can't find this link | `请检查链接是否完整，或请家人再发一次。/ Check the whole link was copied, or ask your family member to send it again.` · no map, no call |
 | `offline` (viewer's own internet) | WebSocket closed and GET fails | a top note on any state: `你的网络断了，正在重新连接… / Your internet dropped. Reconnecting…` (`wifi-off`, spinner) | the last state stays on screen, last-updated keeps ticking honestly |
+- **在地图上打开 / Open in Maps** — secondary 56, `locate`, under the call button whenever a position is shown; `https://maps.google.com/?q={lat},{lng}`, new tab.
 
 - Pronouns: zh uses 她/他 only when the contact record says so; default zh "TA" is avoided by repeating `{me}`. en uses "they" unless set. (The share carries `senderName` and an optional pronoun, 6e.9.)
 - **Updates:** WebSocket `/api/share/:id/live`; reconnect with backoff (1, 2, 5, 10, 30 s). Each `state` message updates in place without layout jumps (fixed-height ETA line).
@@ -976,6 +995,8 @@ Title 别担心，我来帮你 / Don't worry, I'm here to help. Fixed order:
 2. **给司机看地址 / Show the driver** (saffron disc, `car`): sub `大字显示，也可以叫车 / Big address, or book a ride` → H10 + taxi hand-off (6e.6).
 3. **我在哪里？/ Where am I?** (`loc`): → H10 `here` tab, which gains **把我的位置发给{fam} / Send my location to {fam}** (secondary, WhatsApp with `我在这里：{address} {maps link}` / `I'm here: {address} {maps link}`).
 4. **帮我重新找路 / Find my way again** (`route`, trip only): → re-plan from here (H11 found / 6c.8). Not on a trip: **带我回家 / Take me home** (`home`) → H3 to Home.
+4b. **让家人看到我在哪里 / Let family see where I am** (`share`, `c-jade-soft` disc; only while nothing is shared): sub `用 WhatsApp 发链接给{fam}，说你需要帮忙 / Send {fam} a link by WhatsApp to say you need help` (no contact: `用 WhatsApp 发链接，说你需要帮忙 / Send a link by WhatsApp to say you need help`; offline: `需要网络 / Needs internet`). On a trip: starts the trip share with `status: help`. Not on a trip: a help-only share (`destName` 我在这里 / Where I am, `status: help`) that **keeps sending positions at the normal cadence until 我没事了 or 4 h**. Either way WhatsApp opens to the first contact with `我需要帮忙，我在这里：{url} / I need help. See where I am: {url}`. Failed, offline or 429 (AC 47): WhatsApp opens with `我需要帮忙。我在这里：{address} {maps link} / I need help. I'm here: {address} {maps link}`, or `我需要帮忙。/ I need help.` with no fix. Position rationale: Help runs from self-help to telling family to emergency.
+- Help-only note (Home and step card, `c-saffron-soft`): `{fam} 的页面显示你需要帮忙。` + **我没事了** → ends the share; toast `好的，已经停止分享。{fam} 的页面会显示你没事了。/ Okay, sharing has stopped. {fam}'s page will show you're okay.` Baseline `P2-helponly-note`.
 5. **紧急情况 · 拨打 995 / Emergency · Call 995** (danger outline, last). → confirm sheet: title `要打 995 吗？/ Call 995?` · `995 是救护车和消防。/ 995 is for an ambulance or the fire service.` · **拨打 995 / Call 995** (the **only** `c-danger` fill in the app, `c-on-danger`, 72 px) · **不用了 / No, go back** (secondary). Back = No.
 - **Help status:** when sharing, tapping 1 or confirming 5 PUTs `status: help` (bypasses the rate limit, D-7). The pill turns `help` and a trip note appears on the step card (6c.10, `help` icon): `{fam} 的页面显示你需要帮忙。/ {fam}'s page shows you need help.` + button **我没事了 / I'm okay now** (secondary 56) → PUT `travelling`, pill back to sharing, toast `好的，已经告诉{fam}你没事了。/ Okay, {fam}'s page now shows you're okay.` Opening the sheet alone never sends `help`.
 - Haptic: `tick` on open; `confirm` on each action. Voice: none (the user is reading). SR: each row's name = title + sub.
@@ -1050,6 +1071,9 @@ Under the always-light address card on H10 (all tabs), a button stack (`s-3` apa
 - **H1 help row** sub-line uses the first contact: `打电话给{fam}，或给司机看地址 / Call {fam}, or show a driver your address`; no contacts: `加一个家人的电话，有事一按就打 / Add a family number to call with one tap`.
 - **Settings** gains: `家人 / Family` → P3 · `让家人帮我设置 / Let family set it up for me` → P5a · (M3) 出行 / Travel · 隐私 / Privacy rows.
 - Baselines: `P7-home-contacts`, `P7-settings`.
+
+### 6e.7b P8 My places
+Title `常去的地方 / My places` · lead `家总是排在第一个。最多可以存 6 个地方。/ Home is always first. You can save up to 6 places.` · G2 `.stoplist` rows with a 44 px 5.1-tint disc: Home row first (edit → Home sheet; none → `设好你的家`), then ≤ 5 places, each with **改名字 / Rename** (`.dwell`) and ↑ ↓ 🗑 (56 px, 8 px gaps) · dashed **加一个地方 / Add a place** (72) → search; at the cap the caption `最多 6 个地方 / Up to 6 places` · rename sheet `改名字` / `名字` / placeholder `比如：诊所 / e.g. Clinic` / **保存** · remove confirm as P4. H1 shows the places as 5.1 tiles after Home; tint from the label (诊所 clinic · 巴刹 market · 女儿/family family · else `c-surface-2`). Baselines `P8-list`, `P8-max`, `P8-rename`, `P8-remove`.
 
 ### 6e.8 Voice and haptics added in M4
 | Moment | zh | en | Haptic |

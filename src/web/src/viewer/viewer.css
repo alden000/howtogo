@@ -69,6 +69,10 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:var(--tap-hero);padding:12px 24px;border-radius:var(--r-l);font-weight:700;font-size:1.15rem;line-height:1.2;text-align:center;text-decoration:none;overflow-wrap:anywhere}
 .btn svg.i{width:1.5em;height:1.5em}
 .btn-jade{background:var(--c-jade);color:var(--c-on-jade)}
+/* M3/M4 fix B (QA-44): secondary 56 px, as the app's .btn-secondary. */
+.btn-secondary{min-height:var(--tap);background:var(--c-surface);color:var(--c-ink);box-shadow:var(--e-1);border:2px solid var(--c-line);font-size:1rem}
+#call{display:flex;flex-direction:column;gap:12px}
+#call:empty{display:none}
 .rest{display:flex;flex-direction:column;gap:16px}
 .rest>div:empty{display:none}
 .foot{font-size:.9rem;color:var(--c-ink-2);text-align:center}

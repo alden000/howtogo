@@ -8,29 +8,34 @@ import { useServices, useT } from '../context';
 import { canInstall, promptInstall } from '../pwa/install';
 import { buildReport } from '../report';
 import { TEXT_SCALE, TEXT_SIZES, type Settings } from '../state/store';
+import { DATA_AS_OF } from '@howtogo/shared';
 import { APP_VERSION } from '../version';
-import { Bar, Icon, NumSteps, Sheet, showToast, Wordmark, type IconName } from '../ui/kit';
+import { announce, Bar, Icon, NumSteps, Sheet, showToast, Wordmark, type IconName } from '../ui/kit';
+import { dataDate } from '../transit/m3';
 import { HomeConfirm } from './HomeConfirm';
 
 const NAME_MAX = 20;
 export const isStandalone = () => typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches;
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
 
-function Seg<K extends keyof Settings>(props: { name: K; label: string; opts: [Settings[K], string][] }) {
+function Seg<K extends keyof Settings>(props: { name: K; label: string; opts: [Settings[K], string][]; stack?: boolean; onPick?: (v: Settings[K], label: string) => void }) {
   const { store } = useServices();
   const cur = store.settings.value[props.name];
   const id = `set-${String(props.name)}`;
   return (
     <div class="setrow">
       <h3 id={id}>{props.label}</h3>
-      <div class="seg" role="group" aria-labelledby={id}>
+      <div class={props.stack ? 'seg stack' : 'seg'} role="group" aria-labelledby={id}>
         {props.opts.map(([v, l]) => (
           <button
             type="button"
             aria-pressed={cur === v}
             lang={props.name === 'lang' ? (v === 'en' ? 'en' : 'zh-CN') : undefined}
             data-testid={`setting-${String(props.name)}-${String(v)}`}
-            onClick={() => store.updateSettings({ [props.name]: v } as Partial<Settings>)}
+            onClick={() => {
+              store.updateSettings({ [props.name]: v } as Partial<Settings>);
+              props.onPick?.(v, l);
+            }}
           >
             {l}
             {cur === v && <Icon name="check" />}
@@ -127,6 +132,8 @@ export function SettingsScreen() {
             testid="row-home"
             onClick={() => (home ? router.openSheet('home') : router.navigate('/search?mode=home'))}
           />
+          {/* QA-40 (AC 39): the My places editor (≤ 6 incl. Home). */}
+          <Row icon="loc" label={t('my_places')} value={String((home ? 1 : 0) + store.places.value.others.length)} testid="row-places" onClick={() => router.navigate('/places')} />
         </div>
         <M4Rows />
         <h2 class="grp">{t('grp_display')}</h2>
@@ -314,6 +321,7 @@ export function ReportSheet() {
 }
 
 export function About() {
+  const { store } = useServices();
   const t = useT();
   return (
     <>
@@ -331,12 +339,17 @@ export function About() {
           <img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" alt="OneMap" width={28} height={28} />
           <span>{t('ab_mapdata')}</span>
         </p>
-        <p class="t-caption">
-          {t('ab_lta')}
+        <p class="t-caption" data-testid="about-lta">
+          <LtaLine text={t('ab_lta')} />
+        </p>
+        <p class="t-caption" data-testid="about-data">
+          {/* Creative m34-fix-a F4: the data date in plain words; report.ts keeps `data: YYYY-MM-DD`. */}
+          <span class="num">{t('ab_data', { d: dataDate(DATA_AS_OF, store.settings.value.lang) })}</span>
         </p>
         <h2 class="grp">{t('ab_priv_h')}</h2>
         <ul class="bullets" data-testid="privacy">
-          {(['priv_1', 'priv_2', 'priv_3', 'priv_4', 'priv_5', 'priv_6', 'priv_7'] as const).map((k) => (
+          {/* QA-41 (M4 AC 50): on-device data, what a share sends, who sees it, how long, the setup box, delete all. */}
+          {(['priv_1', 'priv_2', 'priv_m4_device', 'priv_3', 'priv_m4_share', 'priv_m4_who', 'priv_m4_time', 'priv_m4_setup', 'priv_4', 'priv_5', 'priv_6', 'priv_7', 'priv_m4_delete'] as const).map((k) => (
             <li>{t(k)}</li>
           ))}
         </ul>
@@ -359,17 +372,77 @@ function Switch(props: { label: string; sub?: string; on: boolean; testid: strin
   );
 }
 
-/** M3 Settings → 出行 / Travel (6d.2, 6d.8, AC 28). */
+/** M3 AC 41: the licence sentence (English in both UIs) with the Singapore Open Data Licence linked. */
+export const ODL_URL = 'https://data.gov.sg/open-data-licence';
+const ODL_TEXT = 'Singapore Open Data Licence version 1.0';
+function LtaLine({ text }: { text: string }) {
+  const [a, b] = text.split(ODL_TEXT);
+  if (b === undefined) return <>{text}</>;
+  return (
+    <>
+      {a}
+      {/* QA-50: one 56 px target; the trailing punctuation sits inside it so it never strands on its own line. */}
+      <a class="inlink" href={ODL_URL} target="_blank" rel="noopener noreferrer" lang="en" data-testid="about-odl">
+        <span>
+          <span class="u">{ODL_TEXT}</span>
+          {b}
+        </span>
+      </a>
+    </>
+  );
+}
+
+/** M3 AC 33 / QA-30: route preference (least walking default, fewest changes, fastest); persisted in settings. */
+function PrefRow({ onPick }: { onPick?: (label: string) => void }) {
+  const t = useT();
+  return (
+    <Seg
+      name="preference"
+      label={t('pref_h')}
+      stack
+      {...(onPick ? { onPick: (_v: unknown, l: string) => onPick(l) } : {})}
+      opts={[
+        ['least_walk', t('label_least_walk')],
+        ['fewest_transfers', t('label_fewest')],
+        ['fastest', t('label_fastest')],
+      ]}
+    />
+  );
+}
+
+/**
+ * H3 Route options sheet (AC 33): Show first only. Creative m34-fix-a F2: the Lift-friendly switch joins
+ * the sheet when its ranking ships (M5). F7: a pick re-ranks, announces and closes the sheet (400 ms).
+ */
+export function RoutePrefsSheet() {
+  const { router } = useServices();
+  const t = useT();
+  const onPick = (label: string) => {
+    announce(t('pref_now', { label }));
+    const reduced = document.documentElement.classList.contains('rm');
+    setTimeout(() => {
+      if (router.sheet.value === 'route-prefs') router.closeSheet();
+    }, reduced ? 0 : 400);
+  };
+  return (
+    <Sheet id="route-prefs" title={t('pref_sheet_t')}>
+      <PrefRow onPick={onPick} />
+    </Sheet>
+  );
+}
+
+/** M3 Settings → 出行 / Travel (6d.2, 6d.8, AC 28, AC 33). */
 function TravelRows() {
   const t = useT();
   const p = family.prefs.value;
   return (
     <>
       <h2 class="grp">{t('set_travel')}</h2>
+      <PrefRow />
       <div class="opts">
         <Switch label={t('set_wheelchair')} on={p.wheelchair} testid="set-wheelchair" onChange={(v) => family.setPrefs({ wheelchair: v })} />
         <Switch label={t('set_concession')} on={p.concession} testid="set-concession" onChange={(v) => family.setPrefs({ concession: v })} />
-        <Switch label={t('set_liftfriendly')} on={p.liftFriendly} testid="set-liftfriendly" onChange={(v) => family.setPrefs({ liftFriendly: v })} />
+        <Switch label={t('set_liftfriendly')} sub={t('set_liftfriendly_s')} on={p.liftFriendly} testid="set-liftfriendly" onChange={(v) => family.setPrefs({ liftFriendly: v })} />
       </div>
     </>
   );

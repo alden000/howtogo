@@ -6,6 +6,7 @@
 import { online } from './api/offline';
 import { sampleMode } from './state/sample';
 import { useServices, useT } from './context';
+import { helpShare } from './state/helpShare';
 import { EndTripSheet } from './views/sheets';
 import { Home } from './views/Home';
 import { Search } from './views/Search';
@@ -15,7 +16,7 @@ import { Guide } from './views/Guide';
 import { ShareStart } from './views/ShareStart';
 import { Viewer } from './views/Viewer';
 import { Help } from './views/Help';
-import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, SettingsScreen } from './views/Settings';
+import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, RoutePrefsSheet, SettingsScreen } from './views/Settings';
 import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
 import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
@@ -24,6 +25,7 @@ import { AllStepsSheet, DriverSheet, DwellSheet, StaleSheet, VoiceHelpSheet } fr
 import { Confirm995Sheet, HelpSheet } from './views/helpSheet';
 import { ShareSheet } from './views/share';
 import { DisruptionOfferSheet, LtaNoticeSheet } from './views/transit';
+import { PlaceRemoveSheet, PlaceRenameSheet, PlacesScreen } from './views/places';
 import { DeleteAllSheet, FamilyEdit, FamilyList, SetupFamily, SetupImport, SetupStart } from './views/family';
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
@@ -33,9 +35,11 @@ import { ghost } from './ui/ghost';
 import { connectivityToasts } from './ui/toasts';
 
 export function App() {
-  const { router, store, runtime } = useServices();
+  const { router, store, runtime, api, platform } = useServices();
   const t = useT();
   const r = router.route.value;
+  // Creative m34-fix-b H1: a live help-only share keeps sending positions until 我没事了 or expiry.
+  useEffect(() => helpShare.track(api, platform), []);
   // D8: Back onto the guidance guard opens the End-trip sheet while a trip runs; after arrival it goes Home.
   useEffect(
     () =>
@@ -123,6 +127,9 @@ export function App() {
     case 'setup':
       view = <SetupFamily />;
       break;
+    case 'places':
+      view = <PlacesScreen />;
+      break;
     case 'setup_import':
       view = <SetupImport code={r.params.code!} />;
       break;
@@ -177,9 +184,12 @@ export function App() {
       {sheet === 'loc-denied' && <LocDeniedSheet />}
       {sheet === 'name' && <NameSheet />}
       {sheet === 'home' && <HomeSheet />}
+      {sheet === 'place-rename' && <PlaceRenameSheet />}
+      {sheet === 'place-remove' && <PlaceRemoveSheet />}
       {sheet === 'clear' && <ClearSheet />}
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
+      {sheet === 'route-prefs' && <RoutePrefsSheet />}
       <Toast />
       <LiveRegion />
       <div class="ghosts over" />

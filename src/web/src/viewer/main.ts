@@ -6,7 +6,7 @@ import { vibrate } from '../platform/vibrate';
 import './viewer.css';
 import { connectLive } from './live';
 import { renderParts } from './render';
-import { applyShare, deriveView, initialMemory, pickLang, SHARE_ID_RE, type Memory, type ViewKind } from './state';
+import { applyShare, deriveView, endShare, initialMemory, pickLang, SHARE_ID_RE, type Memory, type ViewKind } from './state';
 import type { ViewerMap } from './viewerMap';
 
 const LANG_KEY = 'howtogo.viewer.lang';
@@ -147,12 +147,17 @@ if (!SHARE_ID_RE.test(id)) {
       render();
     },
     terminal(t) {
-      mem = { ...mem, terminal: t, offline: false };
+      mem = endShare(mem, t, Date.now());
       render();
     },
     offline(down) {
       if (mem.offline === down) return;
       mem = { ...mem, offline: down };
+      render();
+    },
+    full(on) {
+      if (mem.full === on) return;
+      mem = { ...mem, full: on };
       render();
     },
   });

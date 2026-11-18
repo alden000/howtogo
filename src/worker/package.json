@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "embed": "node scripts/embed-assets.mjs",
-    "pretest": "node scripts/embed-assets.mjs --if-missing",
+    "pretest": "node scripts/embed-assets.mjs --if-stale",
     "test": "vitest run",
-    "pretypecheck": "node scripts/embed-assets.mjs --if-missing",
+    "pretypecheck": "node scripts/embed-assets.mjs --if-stale",
     "typecheck": "tsc --noEmit",
     "dev": "wrangler dev",
     "dev:fixtures": "wrangler dev --var FIXTURE_MODE:1",

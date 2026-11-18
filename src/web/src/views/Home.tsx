@@ -13,8 +13,13 @@ import { DisruptionBanner } from './transit';
 import { SetupUndo } from './family';
 import { family } from '../state/family';
 import { refreshAlerts, refreshLifts } from '../transit/live';
-import { relDay } from '../transit/m3';
-import { toLang } from '../state/store';
+import { relDate } from '../transit/m3';
+import { HOME_RECENTS, toLang } from '../state/store';
+import { placeKind, type PlaceKind } from '../state/places';
+import { HelpNote } from './helpSheet';
+import type { IconName } from '../ui/kit';
+
+const KIND_ICON: Record<PlaceKind, IconName> = { clinic: 'clinic', market: 'market', daughter: 'family', other: 'loc' };
 export const NEAR_HOME_M = 200;
 
 export function greetingKey(hour: number): 'greet_morning' | 'greet_afternoon' | 'greet_evening' {
@@ -30,6 +35,7 @@ export function Home() {
   const t = useT();
   const s = store.settings.value;
   const home = store.places.value.home;
+  const others = store.places.value.others;
   const trip = store.trip.value;
   const recents = store.recents.value;
   const near = here.value;
@@ -158,13 +164,14 @@ export function Home() {
           <span class="grow">{t('search_cta')}</span>
           <Icon name="search" />
         </button>
-        {home && (
+        {(home || others.length > 0) && (
           <>
             <div class="sect">
               <h2>{t('my_places')}</h2>
               <span class="t-caption">{today}</span>
             </div>
             <div class="tiles">
+              {home && (
               <button
                 type="button"
                 class="tile"
@@ -179,6 +186,29 @@ export function Home() {
                 <span class="nm">{t('home_tile')}</span>
                 <span class="sub">{home.name}</span>
               </button>
+              )}
+              {/* QA-40 (AC 39): the other saved places follow Home, in the order set in Settings → My places. */}
+              {others.map((p, i) => {
+                const k = placeKind(p.label);
+                return (
+                  <button type="button" class="tile" data-k={k} data-testid={`tile-place-${i}`} aria-label={p.label !== p.name ? `${p.label}${t('sr_sep')}${p.name}` : p.label} onClick={() => go(p)}>
+                    <span class="ic">
+                      <Icon name={KIND_ICON[k]} />
+                    </span>
+                    <span class="nm">{p.label}</span>
+                    {p.label !== p.name && <span class="sub">{p.name}</span>}
+                  </button>
+                );
+              })}
+              {/* Creative m34-fix-b L6: places but no Home → a 5.1 "Add a place"-style tile to set Home. */}
+              {!home && others.length > 0 && (
+                <button type="button" class="tile tile-add" data-testid="tile-set-home" onClick={() => router.navigate('/search?mode=home')}>
+                  <span class="ic" aria-hidden="true">
+                    <Icon name="home" />
+                  </span>
+                  <span class="nm">{t('set_your_home')}</span>
+                </button>
+              )}
             </div>
           </>
         )}
@@ -188,7 +218,7 @@ export function Home() {
               <h2 id="rt-h">{t('recent_trips')}</h2>
             </div>
             <ul class="rlist" data-testid="home-recent">
-              {recents.slice(0, 3).map((r, i) => (
+              {recents.slice(0, HOME_RECENTS).map((r, i) => (
                 <li key={`${r.to.name}-${i}`} class="rrow">
                   <button type="button" class="ritem" data-testid={`recent-${i}`} onClick={() => go(r.to)}>
                     <span class="ic" aria-hidden="true">
@@ -196,7 +226,7 @@ export function Home() {
                     </span>
                     <span class="tx">
                       <b>{t('recent_to', { p: r.to.name })}</b>
-                      <span>{t('recent_from', { p: r.from?.name ?? t('my_location'), d: relDay(r.at, Date.now(), toLang(s.lang)) })}</span>
+                      <span>{t('recent_from', { p: r.from?.name ?? t('my_location'), d: relDate(r.date, Date.now(), toLang(s.lang)) })}</span>
                     </span>
                     <Icon name="chev" />
                   </button>
@@ -214,6 +244,7 @@ export function Home() {
             </ul>
           </section>
         )}
+        <HelpNote />
         {flags.has('help') && (
         <button type="button" class="helprow" data-testid="nav-help" onClick={() => router.openSheet('help')}>
           <span class="ic" aria-hidden="true">

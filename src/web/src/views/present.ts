@@ -2,7 +2,7 @@
  * Pure presentation helpers for H3 route cards and the H4 timeline (copy keys from i18n/ui.ts).
  * Unit-tested in test/present.test.ts.
  */
-import type { Itinerary, Leg, OptionLabel, RankedItinerary } from '@howtogo/shared';
+import { zhRailStopName, type Itinerary, type Leg, type OptionLabel, type RankedItinerary, type Stop } from '@howtogo/shared';
 import type { UiKey } from '../i18n/ui';
 
 export type T = (k: UiKey, params?: Record<string, string | number>) => string;
@@ -98,12 +98,25 @@ export interface TimelineItem {
   line?: { code: string; token: string; before: string; after: string };
 }
 
+const isRailLeg = (l: Leg | undefined) => l?.mode === 'mrt' || l?.mode === 'lrt';
+
+/**
+ * QA-29 (M3 AC 11, T7): a rail stop in the zh UI is named from the data-round table by code,
+ * as on H5 ("碧山 Bishan (NS17)"); no zh name → OneMap's English name, reported once as
+ * `zh_name_missing:<code>`. Bus stops stay English as printed on the pole.
+ */
+function stopText(stop: Stop, rail: boolean, lang: 'zh' | 'en'): string {
+  const fallback = stop.displayName || stop.name;
+  return rail && lang === 'zh' ? zhRailStopName(stop, fallback) : fallback;
+}
+
 /** H4 timeline: one row per leg, then the arrival row. */
-export function timeline(it: Itinerary, dest: { name: string; address?: string | undefined }, t: T): TimelineItem[] {
+export function timeline(it: Itinerary, dest: { name: string; address?: string | undefined }, t: T, lang: 'zh' | 'en'): TimelineItem[] {
   const items: TimelineItem[] = it.legs.map((l, i): TimelineItem => {
     const last = i === it.legs.length - 1;
     if (l.mode === 'walk') {
-      return { kind: 'walk', title: t('st_walk', { p: last ? dest.name : l.to.displayName }), sub: t('st_walk_s', { n: minutes(l.durationS) }) };
+      const p = last ? dest.name : stopText(l.to, isRailLeg(it.legs[i + 1]), lang);
+      return { kind: 'walk', title: t('st_walk', { p }), sub: t('st_walk_s', { n: minutes(l.durationS) }) };
     }
     const n = stopsText(rideStops(l), t);
     if (l.mode === 'bus') {
@@ -117,7 +130,7 @@ export function timeline(it: Itinerary, dest: { name: string; address?: string |
     return {
       kind: 'train',
       title: `${before}${code}${after}`,
-      sub: t('st_ride_s', { p: l.to.displayName }),
+      sub: t('st_ride_s', { p: stopText(l.to, true, lang) }),
       line: { code, token: l.line?.colorToken ?? 'route-train', before, after },
     };
   });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { copy, stepLine, timeText } from '../src/viewer/copy';
 import { renderParts } from '../src/viewer/render';
 import {
-  applyShare, backoffMs, deriveView, initialMemory, pickLang, stepKindOf, terminalFromHttp, VIEW_KINDS,
+  applyShare, backoffMs, deriveView, endShare, initialMemory, pickLang, stepKindOf, terminalFromHttp, VIEW_KINDS,
   type Memory, type ShareWire,
 } from '../src/viewer/state';
 import { puckFeatures } from '../src/viewer/viewerMap';
@@ -18,7 +18,7 @@ const fold = (...states: Partial<ShareWire>[]) => states.reduce<Memory>((m, s) =
 const kind = (m: Memory, now = T0) => deriveView(m, now).kind;
 
 describe('viewer state mapping (STYLE-GUIDE §6e.2, M4 AC 21)', () => {
-  it('covers the 15 states', () => expect(VIEW_KINDS).toHaveLength(15));
+  it('covers the 16 states', () => expect(VIEW_KINDS).toHaveLength(16));
 
   it('loading before the first answer; waiting before the first PUT', () => {
     expect(kind(initialMemory())).toBe('loading');
@@ -97,6 +97,32 @@ describe('viewer state mapping (STYLE-GUIDE §6e.2, M4 AC 21)', () => {
     expect(deriveView(e, T0).pos).toBeNull();
   });
 
+  it('Creative m34-fix-b M2: ended while help shows or just after it was cleared → endedOk', () => {
+    const help = fold({}, { status: 'help', helpAt: '2026-11-17T02:20:00Z' });
+    // "我没事了" on a help-only share: PUT travelling, then DELETE (410 share_ended).
+    const ok = applyShare(help, share({ status: 'travelling' }), T0 + 1000);
+    const e1 = endShare(ok, 'ended', T0 + 2000);
+    expect(kind(e1, T0 + 10 * 60_000)).toBe('endedOk');
+    const p = renderParts(deriveView(e1, T0 + 3000), 'zh', null);
+    expect(p.status).toContain('妈妈说自己没事了。分享结束了。');
+    expect(p.status).toContain('想再联系妈妈，可以打电话。');
+    expect(p.title).toBe('妈妈没事了');
+    expect(deriveView(e1, T0).pos).toBeNull();
+    expect(deriveView(e1, T0).phone).toBe('+6591234567');
+    expect(renderParts(deriveView(e1, T0), 'en', null).title).toBe('妈妈 is okay');
+    // The PUT failed: help → ended directly.
+    expect(kind(applyShare(help, share({ status: 'ended' }), T0))).toBe('endedOk');
+    // Plain stop (no help) and a stop long after help cleared stay "ended".
+    expect(kind(endShare(fold({}), 'ended', T0))).toBe('ended');
+    expect(kind(endShare(ok, 'ended', T0 + 6 * 60_000))).toBe('ended');
+    expect(kind(endShare(help, 'expired', T0))).toBe('expired');
+  });
+
+  it('Creative m34-fix-b L5: the 51st viewer note says the page still updates', () => {
+    const v = deriveView({ ...fold({}), full: true }, T0);
+    expect(renderParts(v, 'zh', null).note).toContain('这一页还会自己更新，只是慢一点。');
+  });
+
   it('ended by the sender keeps a phone known from earlier, but no map', () => {
     const m = applyShare(fold({}), share({ status: 'ended', lat: null, lng: null, senderPhone: null }), T0);
     const v = deriveView(m, T0);
@@ -163,10 +189,12 @@ describe('viewer copy and markup', () => {
     expect(help.status).toContain('class="helpbox"');
     expect(help.status).toContain('href="tel:+6591234567"');
     expect(help.status).toContain('Toa Payoh Lorong 4 附近');
-    expect(help.call).toBe('');
+    // The call button lives in the panel; the call area keeps only "Open in Maps" (QA-44).
+    expect(help.call).not.toContain('viewer-call');
+    expect(help.call).toContain('data-testid="viewer-maps"');
     expect(help.title).toBe('妈妈按了帮忙');
     const noPhone = renderParts(deriveView(fold({ senderPhone: null }), T0), 'zh', null);
-    expect(noPhone.call).toBe('');
+    expect(noPhone.call).not.toContain('viewer-call');
     expect(noPhone.status + noPhone.call).not.toContain('tel:');
   });
 
@@ -187,5 +215,28 @@ describe('viewer copy and markup', () => {
       puckFeatures({ lat: 1.3, lng: 103.8, acc, heading, grey: false }).features.map((f) => f.properties!.kind);
     expect(kinds(12, null)).toEqual(['dot']);
     expect(kinds(45, 90)).toEqual(['acc', 'cone', 'dot']);
+  });
+});
+
+describe('M3/M4 fix B: viewer too many viewers (QA-43) and Open in Maps (QA-44)', () => {
+  it('a full share shows "看的人太多了，请稍后再试" over the last state; terminal states never do', () => {
+    const m = { ...fold({ status: 'travelling' }), full: true };
+    const p = renderParts(deriveView(m, T0), 'zh', null);
+    expect(p.note).toContain('看的人太多了，请稍后再试');
+    expect(p.note).toContain('data-testid="viewer-full"');
+    expect(p.status).not.toBe('');
+    expect(renderParts(deriveView(m, T0), 'en', null).note).toContain('Too many people are watching');
+    expect(deriveView({ ...m, terminal: 'ended' }, T0).full).toBe(false);
+    expect(renderParts(deriveView(fold({ status: 'travelling' }), T0), 'zh', null).note).not.toContain('viewer-full');
+  });
+  it('Open in Maps links the current position (Google Maps URL), only when there is one', () => {
+    const v = deriveView(fold({ status: 'travelling' }), T0);
+    expect(v.mapsUrl).toMatch(/^https:\/\/maps\.google\.com\/\?q=1\.\d{5},103\.\d{5}$/);
+    const p = renderParts(v, 'en', null);
+    expect(p.call).toContain('Open in Maps');
+    expect(p.call).toContain('rel="noopener noreferrer"');
+    expect(renderParts(v, 'zh', null).call).toContain('在地图上打开');
+    expect(deriveView(fold({ status: 'waiting', lat: null, lng: null }), T0).mapsUrl).toBeNull();
+    expect(deriveView({ ...fold({ status: 'travelling' }), terminal: 'ended' }, T0).mapsUrl).toBeNull();
   });
 });

@@ -119,7 +119,9 @@ export function Routes() {
 
   useEffect(() => {
     if (!plan.to) return;
-    if (plan.options.length && !walkOnlyPlan && plan.fetchedAt && Date.now() - plan.fetchedAt < FRESH_MS && attempt === 0) return;
+    // QA-30: options ranked for another preference are not reused (the Route options sheet changed it).
+    const samePref = (plan.pref ?? 'least_walk') === settings.preference;
+    if (plan.options.length && !walkOnlyPlan && plan.fetchedAt && Date.now() - plan.fetchedAt < FRESH_MS && attempt === 0 && samePref) return;
     let cancelled = false;
     (async () => {
       setPhase('loading');
@@ -159,7 +161,7 @@ export function Routes() {
             const options = rankItineraries(res.itineraries, pref).slice(0, 3);
             if (cancelled) return;
             log(`route:n=${options.length} pref=${pref}`);
-            store.setPlan({ options, selected: 0, start, fetchedAt: Date.now() });
+            store.setPlan({ options, selected: 0, start, fetchedAt: Date.now(), pref });
             setPhase('idle');
             return;
           }
@@ -251,6 +253,13 @@ export function Routes() {
             >
               <Icon name="plus" />
               {t('add_stop')}
+            </button>
+          )}
+          {plan.to && (
+            // M3 AC 33 / QA-30: Route options sheet (preference + Lift-friendly).
+            <button type="button" class="btn btn-secondary small" style={{ marginTop: 'var(--s-3)' }} data-testid="route-prefs" onClick={() => router.openSheet('route-prefs')}>
+              <Icon name="sliders" />
+              {t('pref_btn')}
             </button>
           )}
         </div>

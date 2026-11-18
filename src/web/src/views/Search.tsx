@@ -10,7 +10,8 @@ import { signal } from '@preact/signals';
 import { isApiError } from '../api/errors';
 import { online } from '../api/offline';
 import { here } from '../state/location';
-import { Bar, Icon, StatePanel, useStateHook } from '../ui/kit';
+import { Bar, HelpButton, Icon, showToast, StatePanel, useStateHook } from '../ui/kit';
+import { addPlace } from '../state/places';
 
 /** A Home picked in set-home mode, waiting for the "Yes, that's it" confirm card (F1 page 3 / F6). */
 export const pendingHome = signal<Place | null>(null);
@@ -25,8 +26,9 @@ export function Search() {
   const t = useT();
   const lang = store.settings.value.lang;
   const query = router.route.value.query;
-  /** to (default) · from (F8 From pill) · home (F1/F6 set-home mode). */
-  const mode = query.get('mode') === 'home' ? 'home' : query.get('mode') === 'add' ? 'add' : query.get('field') === 'from' ? 'from' : 'to';
+  /** to (default) · from (F8 From pill) · home (F1/F6 set-home mode) · add (G2 stop) · place (QA-40 My places). */
+  const qm = query.get('mode');
+  const mode = qm === 'home' ? 'home' : qm === 'add' ? 'add' : qm === 'place' ? 'place' : query.get('field') === 'from' ? 'from' : 'to';
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [phase, setPhase] = useState<Phase>('recent');
@@ -79,10 +81,16 @@ export function Search() {
       pendingHome.value = p;
       return router.back();
     }
+    if (mode === 'place') {
+      // QA-40: save to My places (label = the name until renamed) and return to the editor.
+      store.places.value = addPlace(store.places.peek(), p);
+      showToast('place-saved', t('fam_saved'));
+      return router.back();
+    }
     store.setPlan(mode === 'to' ? { to: p, options: [], stops: undefined, journey: undefined } : { [mode]: p, options: [] });
     if (mode === 'to') {
       // Destination picked → straight to route options (replacing Search, so Back from H3 returns to H1).
-      store.addRecent(p);
+      // Not recorded here: a recent trip is recorded when it starts (M3 AC 35).
       router.navigate('/routes', { replace: true });
     } else router.back();
   };
@@ -112,7 +120,8 @@ export function Search() {
     }
   };
 
-  const recents = store.recents.value;
+  // 6d.9 H2: the recent trips' destinations, newest first, each place once, max 5.
+  const recents = store.recents.value.filter((r, i, all) => all.findIndex((o) => o.to.name === r.to.name && o.to.lat === r.to.lat && o.to.lng === r.to.lng) === i).slice(0, 5);
   const row = (p: { name: string; address?: string | undefined }, icon: 'clock' | 'loc', onClick: () => void, testid: string) => (
     <button type="button" class="ritem" data-testid={testid} onClick={onClick}>
       <span class="ic" aria-hidden="true">
@@ -128,10 +137,12 @@ export function Search() {
 
   return (
     <>
-      <Bar />
+      <Bar>
+        <HelpButton />
+      </Bar>
       <main class="scroll">
         <h1 class="t-title" style={{ margin: '0 0 4px' }}>
-          {t(mode === 'home' ? 'find_home' : mode === 'add' ? 'add_place_title' : mode === 'from' ? 'from_title' : 'search_title')}
+          {t(mode === 'home' ? 'find_home' : mode === 'add' || mode === 'place' ? 'add_place_title' : mode === 'from' ? 'from_title' : 'search_title')}
         </h1>
         <div class="field">
           <label for="q" class="sr">

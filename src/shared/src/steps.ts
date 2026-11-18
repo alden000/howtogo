@@ -6,7 +6,7 @@
  */
 import { cumulativeDistances, polylineLength, snapToPolyline } from './geo';
 import { normalizeLang, t, t as tr } from './i18n/steps';
-import { inferHeading, LOOP_DIRECTION_LABEL, stationForStop, stationLabel } from './data/network';
+import { inferHeading, LOOP_DIRECTION_LABEL, reportZhNameMissing, stationForStop, zhRailStopName } from './data/network';
 import { parseExit } from './onemap';
 import type { Itinerary, Journey, Lang, LangInput, Leg, MessageParams, Step, StepKind, StepStop, StepTurn, Stop } from './types';
 
@@ -43,8 +43,7 @@ function lineParam(leg: Leg, lang: Lang): string {
 function stopName(stop: Stop, lang: Lang, isRail: boolean): string {
   const fallback = stop.displayName || stop.name;
   if (!isRail || lang !== 'zh-CN') return fallback;
-  const st = stationForStop(stop);
-  return st ? stationLabel(st, lang, stop.code) : fallback;
+  return zhRailStopName(stop, fallback);
 }
 
 /** Which way the train goes: a terminus (towards) or a loop direction (+ via). */
@@ -72,6 +71,7 @@ function nextStopName(leg: Leg, lang: Lang): string | undefined {
   if (!s) return undefined;
   const st = stationForStop(s);
   if (st) return lang === 'zh-CN' ? `${st.zh} ${st.en}` : st.en;
+  if (lang === 'zh-CN') reportZhNameMissing(s);
   return s.displayName || s.name;
 }
 

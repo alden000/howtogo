@@ -1,0 +1,25 @@
+/*
+ * QA-48 (Director ruling 2026-11-18): self-hosted fonts, no third-party font request.
+ * Atkinson Hyperlegible (§1.2 Latin + numerals), Latin subset, woff2, 400 and 700 (the only weights
+ * it has; 900 text uses the 700 face, as with the former Google Fonts CSS). SIL OFL 1.1, see
+ * src/fonts/OFL-Atkinson-Hyperlegible.txt. Source: @fontsource/atkinson-hyperlegible 5.3.0.
+ * CJK glyphs come from the device (the rest of the §1.2 stack, Creative m34-fix-a F5: PingFang SC /
+ * Hiragino Sans GB on Apple, Noto Sans CJK SC on Android/ChromeOS/Linux, Noto Sans SC / Source Han
+ * Sans SC if installed, Microsoft YaHei on Windows, then system-ui): a web CJK font is ~700 KB even subset.
+ */
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/atkinson-hyperlegible-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/atkinson-hyperlegible-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

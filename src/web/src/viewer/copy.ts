@@ -96,6 +96,10 @@ export function copy(c: CopyCtx) {
     ended: T(`${me}停止了分享`, `${Me} stopped sharing`),
     endedLine: T(`想知道${zhP}在哪里，可以打电话给${zhP}。`, 'To find out where they are, you can call them.'),
     endedArrived: T(`${me}已经到了 ${dest}。分享结束了。`, `${Me} arrived at ${dest}. Sharing has ended.`),
+    // Creative m34-fix-b M2: ended right after help was cleared.
+    endedOk: T(`${me}说自己没事了。分享结束了。`, `${Me} says everything’s okay now. Sharing has ended.`),
+    endedOkLine: T(`想再联系${me}，可以打电话。`, `You can still give ${me} a call.`),
+    titleOk: T(`${me}没事了`, `${Me} is okay`),
     expired: T('这个链接已经过期了', 'This link has expired'),
     expiredLine: T(`分享最长 4 小时。可以请${me}再发一个。`, `Sharing lasts 4 hours at most. You can ask ${me} for a new one.`),
     invalid: T('找不到这个链接', 'We can’t find this link'),
@@ -119,6 +123,11 @@ export function copy(c: CopyCtx) {
     titleArrived: T(`${me}到了`, `${Me} has arrived`),
     titleExpired: T('链接过期了', 'Link expired'),
     titleInvalid: T('找不到链接', 'Link not found'),
+    // M3/M4 fix B: AC 25 (zh verbatim from the AC; en for Creative review), AC 26 (zh/en from the AC).
+    tooMany: T('看的人太多了，请稍后再试', 'Too many people are watching. Please try again later.'),
+    openMaps: T('在地图上打开', 'Open in Maps'),
+    // Creative m34-fix-b L5: the 51st viewer still gets (polled) updates.
+    tooManyLine: T('这一页还会自己更新，只是慢一点。', 'This page still updates, just less often.'),
   };
 }
 export type Copy = ReturnType<typeof copy>;
