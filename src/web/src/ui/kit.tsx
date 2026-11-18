@@ -155,10 +155,11 @@ export function NumSteps({ items }: { items: string[] }) {
 }
 
 /** The wordmark is Home's h1; on pages with their own h1 (About, /setup, sheets) it is plain text (`tag="p"`, AC 13). */
-export function Wordmark({ name, tag = 'h1' }: { name: string; tag?: 'h1' | 'p' }) {
+/** `size={72}`: the L2 About seal (6f.2); everywhere else 44 px. */
+export function Wordmark({ name, tag = 'h1', size }: { name: string; tag?: 'h1' | 'p'; size?: 72 }) {
   const T = tag;
   return (
-    <T class="wordmark">
+    <T class={size ? `wordmark wm${size}` : 'wordmark'}>
       <SealSvg />
       <span>{name}</span>
     </T>

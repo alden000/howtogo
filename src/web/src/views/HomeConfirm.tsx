@@ -1,7 +1,7 @@
 /** F1 page 3 / F6 confirm card for a Home picked in set-home mode. Confirm → saved + toast "设好了！". */
 import { useServices, useT } from '../context';
 import { Icon, showToast } from '../ui/kit';
-import { pendingHome } from './Search';
+import { pendingHome } from '../state/pendingHome';
 
 export function HomeConfirm({ onDone }: { onDone?: () => void }) {
   const { store, router } = useServices();

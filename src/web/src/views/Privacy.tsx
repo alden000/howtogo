@@ -44,7 +44,11 @@ export function Privacy() {
   const back = tf(lang, 'back');
   const inApp = router.depth.value > 0;
   useEffect(() => {
-    if (q.get('s') === 'sent') document.getElementById('pv-h2')?.scrollIntoView({ block: 'start' });
+    if (q.get('s') === 'sent') {
+      const h = document.getElementById('pv-h2');
+      h?.scrollIntoView({ block: 'start' });
+      h?.focus({ preventScroll: true });
+    }
   }, []);
   /** From V/W (no app state) Settings opens first, then the sheet; in the app the sheet opens here. */
   const viaSettings = (sheet: string) => () => {
@@ -84,7 +88,7 @@ export function Privacy() {
             {t('pv_title')}
           </h1>
           <p class="lead t-body">{t('pv_lead')}</p>
-          <ul class="glance" aria-label={t('pv_glance')} data-testid="pv-glance">
+          <ul class="glance" role="list" aria-label={t('pv_glance')} data-testid="pv-glance">
             {GLANCE.map(([icon, k]) => (
               <li>
                 <span class="disc" aria-hidden="true">
@@ -108,7 +112,7 @@ export function Privacy() {
           {list(['pv_5a', 'pv_5b'], { key: 'pv_5a', sheet: 'delete-all', testid: 'pv-delete' })}
           <p class="t-caption famline">{t('pv_family')}</p>
           {/* AC 23: until the owner supplies a contact, questions go to Report a problem. */}
-          <p class="contact" data-testid="pv-contact">
+          <p class="pvcontact" data-testid="pv-contact">
             {rich(t('pv_contact'), viaSettings('report'), 'pv-report')}
           </p>
           <p class="t-caption pvfoot" data-testid="pv-footer">

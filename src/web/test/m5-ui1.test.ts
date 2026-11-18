@@ -95,6 +95,12 @@ describe('L1 Privacy copy and route', () => {
     expect(Object.keys(M5UI1_EN).sort()).toEqual(Object.keys(M5UI1_ZH).sort());
     expect(Object.keys(PV_EN).sort()).toEqual(Object.keys(PV_ZH).sort());
   });
+  it('everything visible on the en page counts ≤ 400 words (AC 22, Creative M5 review fix 3: 396)', () => {
+    // QA counts all visible text: headings, glance card, family and contact lines. Only the footer and the
+    // "Open 怎么去?" link are left out.
+    const all = Object.entries(PV_EN).filter(([k]) => k !== 'pv_open' && k !== 'pv_footer');
+    expect(all.reduce((n, [, v]) => n + words(v), 0)).toBeLessThanOrEqual(400);
+  });
   it('no contact e-mail in the copy (AC 23): questions go to Report a problem', () => {
     for (const v of [...Object.values(M5UI1_ZH), ...Object.values(M5UI1_EN), ...Object.values(PV_ZH), ...Object.values(PV_EN)]) expect(v).not.toMatch(/@[a-z0-9-]+\./i);
     expect(PV_EN.pv_contact).toContain('[Report a problem]');

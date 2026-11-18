@@ -26,9 +26,8 @@ async function treeProblems(page: Page): Promise<string[]> {
     const screen = document.querySelector('.stage > .screen') ?? document.body;
     const vis = (e: Element) => !!(e as HTMLElement).offsetParent || getComputedStyle(e).position === 'fixed';
     const h1 = [...screen.querySelectorAll('h1')].filter(vis);
-    // H4 route detail and H5 guidance have no h1 yet (their headlines are h2): reported to Creative/QA.
-    const trip = !!document.querySelector('.stage > .screen[data-screen=trip], .stage > .screen[data-screen=guide]');
-    if (h1.length > 1 || (h1.length === 0 && !trip)) out.push(`h1 count ${h1.length}`);
+    // M5 integration: every screen has exactly one h1, H4 route detail and H5 guidance included.
+    if (h1.length !== 1) out.push(`h1 count ${h1.length}`);
     let last = 0;
     for (const h of [...screen.querySelectorAll('h1,h2,h3,h4')].filter(vis)) {
       const n = Number(h.tagName[1]);
@@ -69,6 +68,9 @@ const SCREENS: [string, string, ((p: Page) => Promise<void>)?][] = [
       expect(await treeProblems(p), 'route detail').toEqual([]);
       await p.getByTestId('start-guide').click();
       await expect(p.getByTestId('guide')).toBeVisible();
+      // H5: the step headline is the screen's h1 (it keeps its look and its polite announcement).
+      await expect(p.locator('.stage h1')).toHaveCount(1);
+      await expect(p.getByTestId('current-step')).toHaveJSProperty('tagName', 'H1');
     },
   ],
 ];

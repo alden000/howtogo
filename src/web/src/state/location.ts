@@ -19,6 +19,11 @@ export interface Here extends LatLng {
 }
 
 export const here = signal<Here | null>(null);
+/**
+ * 6f.6 L6: the last fix that got an address, with its time (epoch ms). Memory only, like `here`: offline,
+ * Show the driver's 我在哪里 tab shows it with "这是 {time} 的位置。"; a cold offline start has none.
+ */
+export const lastAddress = signal<(Here & { at: number }) | null>(null);
 /** Last failure of a user-initiated locate. */
 export const locFailure = signal<'denied' | 'unavailable' | null>(null);
 
@@ -33,6 +38,7 @@ export async function locate(platform: Platform, api: Api): Promise<'ok' | 'deni
     const r = await api.revgeocode(f).catch(() => null);
     const label = r?.name || null;
     here.value = { lat: f.lat, lng: f.lng, label, acc: f.acc, ...(r?.address ? { address: r.address } : {}), ...(r?.postal ? { postal: r.postal } : {}) };
+    if (label || r?.address) lastAddress.value = { ...here.value, at: Date.now() };
     locFailure.value = null;
     return 'ok';
   } catch (e) {

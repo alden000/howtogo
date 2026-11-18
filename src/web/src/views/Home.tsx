@@ -25,7 +25,7 @@ import { refreshAlerts, refreshLifts } from '../transit/live';
 import { relDate } from '../transit/m3';
 import { HOME_RECENTS, toLang } from '../state/store';
 import { placeKind, type PlaceKind } from '../state/places';
-import { HelpNote } from './helpSheet';
+import { HelpNote } from './helpNote';
 import type { IconName } from '../ui/kit';
 
 const KIND_ICON: Record<PlaceKind, IconName> = { clinic: 'clinic', market: 'market', daughter: 'family', other: 'loc' };

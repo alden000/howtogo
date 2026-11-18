@@ -156,7 +156,10 @@ async function navigate(req: Request): Promise<Response> {
 }
 
 async function asset(req: Request): Promise<Response> {
-  const hit = await caches.match(req);
+  // Hashed, immutable files: match on the URL alone. A dynamic import() is a CORS request (it sends Origin), and
+  // a server that answers with `Vary: Origin` (vite preview does) made the precached copy unmatchable, so a lazy
+  // screen opened in a new offline tab never loaded (qa pwa AC-2 /settings).
+  const hit = await caches.match(req, { ignoreVary: true });
   if (hit) return hit;
   const res = await fetch(req);
   if (res.ok) await (await caches.open(RUNTIME)).put(req, res.clone());

@@ -14,6 +14,7 @@ const PLACES = {
   home: { name: '大巴窑 1 巷 123 座', lat: 1.3332, lng: 103.8466 },
   others: [{ name: 'Toa Payoh Polyclinic', label: '诊所', lat: 1.3346, lng: 103.8497 }],
 };
+const MEI = { name: '美玲', relation: 'daughter', phone: '+6591234567', callMe: '妈妈', lang: 'zh' };
 const RECENTS = [{ to: { name: 'Bishan MRT', lat: 1.3511, lng: 103.8485 }, date: '2026-11-17', done: true }];
 
 const UA = {
@@ -27,7 +28,7 @@ const UA = {
 
 test.use({ serviceWorkers: 'block', viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
 
-async function open(page: Page, v: V, opts: { q?: string; install?: unknown; recents?: boolean } = {}) {
+async function open(page: Page, v: V, opts: { q?: string; install?: unknown; recents?: boolean; path?: string } = {}) {
   await hermetic(page);
   await page.clock.setFixedTime(FIXED);
   await onboarded(page, { lang: v.lang, theme: v.theme, textSize: v.size === 200 ? 'xxlarge' : 'standard', motion: 'on' });
@@ -39,7 +40,7 @@ async function open(page: Page, v: V, opts: { q?: string; install?: unknown; rec
     },
     [PLACES, opts.recents ? RECENTS : null, opts.install ?? null] as const,
   );
-  await page.goto(`/?demo=1&demoMs=100000${opts.q ?? ''}`);
+  await page.goto(`${opts.path ?? '/'}?demo=1&demoMs=100000${opts.q ?? ''}`);
   await page.waitForFunction(() => '__howtogo' in window);
 }
 
@@ -94,6 +95,19 @@ test.describe('L3 update bar', () => {
       await shot(page, name('M5-L3-bar-home', v));
     });
   }
+
+  test('Settings: the bar sits at the top of the list, under the title', async ({ page }) => {
+    await open(page, LZ, { q: '&upd=1', path: '/settings' });
+    const bar = page.getByTestId('update-banner');
+    await expect(bar).toHaveAttribute('data-phase', 'waiting');
+    await expect(page.getByTestId('sw-update')).toHaveAccessibleName('有新版本，按一下更新');
+    // First thing after the h1, above the first group heading (6f.3: "Settings (top of the list)").
+    const order = await page.locator('main').evaluate((m) => [...m.children].map((c) => c.getAttribute('data-testid') ?? c.tagName.toLowerCase()));
+    expect(order.slice(0, 2)).toEqual(['h1', 'update-banner']);
+    await shot(page, name('M5-L3-bar-settings', LZ));
+    await page.getByTestId('update-later').click();
+    await expect(bar).toHaveCount(0);
+  });
 
   test('never during a trip: no bar on the guidance screen', async ({ page }) => {
     await open(page, LZ, { q: '&upd=1' });
@@ -289,6 +303,61 @@ test.describe('L6 offline cold start', () => {
       await expect(page.getByTestId('needs-net')).toHaveCount(0);
     });
   }
+
+  test('Help sheet offline: call family, Show the driver and 995 stay; Take me home and Where am I say 需要网络', async ({ page, context }) => {
+    await page.addInitScript((c) => localStorage.setItem('howtogo.family.v1', JSON.stringify(c)), [MEI]);
+    await open(page, LZ);
+    await context.setOffline(true);
+    await page.getByTestId('nav-help').click();
+    const sheet = page.getByTestId('sheet-help');
+    await expect(sheet).toBeVisible();
+    // Works offline: no caption on these.
+    for (const id of ['help-call', 'help-driver']) await expect(page.getByTestId(id).getByTestId('needs-net')).toHaveCount(0);
+    await expect(page.getByTestId('help-995')).toBeVisible();
+    // Need the network (M4 AC 38 wording): the caption is part of the row's name.
+    await expect(page.getByTestId('help-home')).toHaveAccessibleName(/需要网络/);
+    await expect(page.getByTestId('help-where')).toHaveAccessibleName(/需要网络/); // no last known address yet
+    await expect(page.getByTestId('help-share-loc')).toContainText('需要网络');
+    await shot(page, name('M5-L6-help-offline', LZ));
+    // Take me home offline: no navigation, the polite line instead.
+    await page.getByTestId('help-home').click();
+    await expect(sheet).toBeVisible();
+    await expect(page.getByTestId('live')).toHaveText('需要网络。连上网络以后再按。');
+    await context.setOffline(false);
+    await expect(sheet.getByTestId('needs-net')).toHaveCount(0);
+  });
+
+  test('Show the driver offline: Home works; 我在哪里 shows the last known address with its time, or says there is none', async ({ page, context }) => {
+    await page.addInitScript((c) => localStorage.setItem('howtogo.family.v1', JSON.stringify(c)), [MEI]);
+    await open(page, LZ);
+    // Cold offline: no address known yet.
+    await context.setOffline(true);
+    await page.getByTestId('nav-help').click();
+    await page.getByTestId('help-where').click();
+    await expect(page.getByTestId('here-none')).toHaveText('现在找不到地址。可以给司机看你家的地址。');
+    await expect(page.getByTestId('driver-card')).toHaveCount(0);
+    await expect(page.getByTestId('sheet-driver')).not.toContainText('正在');
+    // The Home tab is the driver card itself: fully offline.
+    await page.getByTestId('driver-tab-home').click();
+    await expect(page.getByTestId('driver-card')).toContainText('大巴窑 1 巷 123 座');
+    // Taxi hand-off needs the network: captioned, and a tap stays here.
+    await expect(page.getByTestId('taxi-grab')).toHaveAccessibleName(/需要网络/);
+    await expect(page.getByTestId('taxi-cdg')).toHaveAccessibleName(/需要网络/);
+    await page.getByTestId('taxi-cdg').click();
+    await expect(page.getByTestId('live')).toHaveText('需要网络。连上网络以后再按。');
+    await expect(page.getByTestId('sheet-driver')).toBeVisible();
+    await shot(page, name('M5-L6-driver-offline', LZ));
+    // Online once: the address is found; offline again it stays, with its time.
+    await context.setOffline(false);
+    await page.getByTestId('driver-tab-here').click();
+    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
+    await page.getByTestId('driver-tab-home').click();
+    await context.setOffline(true);
+    await page.getByTestId('driver-tab-here').click();
+    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
+    await expect(page.getByTestId('here-at')).toHaveText(/^这是 .*10:15 的位置。$/);
+    await expect(page.getByTestId('here-none')).toHaveCount(0);
+  });
 
   test('H3 options: cards say 需要网络 and stay put offline', async ({ page, context }) => {
     await open(page, LZ);

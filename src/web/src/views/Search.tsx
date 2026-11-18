@@ -6,15 +6,14 @@ import { addStop } from './viewUtil';
 import { announce } from '../ui/kit';
 import { useServices, useT } from '../context';
 import { log } from '../log';
-import { signal } from '@preact/signals';
 import { isApiError } from '../api/errors';
 import { online } from '../api/offline';
 import { here } from '../state/location';
 import { Bar, HelpButton, Icon, showToast, StatePanel, useStateHook } from '../ui/kit';
 import { addPlace } from '../state/places';
 
-/** A Home picked in set-home mode, waiting for the "Yes, that's it" confirm card (F1 page 3 / F6). */
-export const pendingHome = signal<Place | null>(null);
+export { pendingHome } from '../state/pendingHome';
+import { pendingHome } from '../state/pendingHome';
 
 export const DEBOUNCE_MS = 300;
 const MAX_RESULTS = 8;

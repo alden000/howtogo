@@ -32,18 +32,16 @@
 .sheet .iabhow{margin:var(--s-4) 0 0}
 
 /* L4d in-app-browser band: slim, full bleed, not sticky, at the very top of H1 */
-.iab{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2);margin:0 calc(-1 * var(--s-5)) var(--s-3);padding:4px var(--s-2) 4px var(--s-5);min-height:64px;background:var(--c-surface-2);font-weight:700;font-size:.9rem;line-height:1.3;animation:fadeIn var(--d-base) linear both}
-.iab>.i{flex:none}
-.iab .iabtx{flex:1 1 4em;min-width:0;overflow-wrap:anywhere}
-.iab .btn{width:auto;flex:none;padding:8px 16px}
-.iab .iconbtn{background:transparent;box-shadow:none;flex:none}
-:root[data-text-size="xlarge"] .iab,:root[data-text-size="xxlarge"] .iab{display:grid;grid-template-columns:auto 1fr auto;align-items:start;padding-top:var(--s-2);padding-bottom:var(--s-3)}
-:root[data-text-size="xlarge"] .iab>.i,:root[data-text-size="xxlarge"] .iab>.i{margin-top:4px}
-:root[data-text-size="xlarge"] .iab .iconbtn,:root[data-text-size="xxlarge"] .iab .iconbtn{grid-column:3;grid-row:1}
-:root[data-text-size="xlarge"] .iab .btn,:root[data-text-size="xxlarge"] .iab .btn{grid-column:1 / -1;grid-row:2;justify-self:start}
+/* Creative M5 review fix 6: the 200 % layout at every size — icon + text, ✕ top-right; the button on its own row, left-aligned, 56 px. */
+.iab{display:grid;grid-template-columns:auto 1fr auto;align-items:start;gap:var(--s-2);margin:0 calc(-1 * var(--s-5)) var(--s-3);padding:var(--s-2) var(--s-2) var(--s-3) var(--s-5);min-height:64px;background:var(--c-surface-2);font-weight:700;font-size:.9rem;line-height:1.3;animation:fadeIn var(--d-base) linear both}
+.iab>.i{flex:none;margin-top:4px}
+.iab .iabtx{min-width:0;overflow-wrap:anywhere}
+.iab .btn{width:auto;min-height:var(--tap);padding:8px 16px;grid-column:1 / -1;grid-row:2;justify-self:start}
+.iab .iconbtn{background:transparent;box-shadow:none;grid-column:3;grid-row:1}
 
 /* L6 "需要网络 / Needs internet": a caption second line (wifi-off 16 px, c-ink-2) on controls that need the network */
 span.neednet{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:.9rem;font-weight:400;line-height:1.3;color:var(--c-ink-2);overflow-wrap:anywhere}
 span.neednet .i{width:16px;height:16px;flex:none}
 .btn-primary span.neednet{color:inherit;justify-content:center}
+.btn-secondary span.neednet{justify-content:center}
 .btn .btnlbl{display:flex;flex-direction:column;align-items:center;min-width:0}

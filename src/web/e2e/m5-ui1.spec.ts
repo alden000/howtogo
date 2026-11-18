@@ -124,7 +124,12 @@ test.describe('L2 About', () => {
     await expect(page.getByTestId('about-lta')).toContainText(/accessed on \d{1,2} [A-Z][a-z]+ \d{4} which/);
     const logo = page.locator('[data-testid=about-attrib] img');
     await expect(logo).toHaveAttribute('alt', 'OneMap');
-    await expect(logo).toHaveAttribute('srcset', /om_logo_256\.png 2x/);
+    // Creative M5 review fix 10: self-hosted (works offline), never hotlinked.
+    await expect(logo).toHaveAttribute('srcset', /onemap-logo@2x[\w-]*\.png 2x/);
+    await expect(logo).not.toHaveAttribute('src', /onemap\.gov\.sg/);
+    await expect.poll(() => logo.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+    // Creative M5 review fix 10: the About seal is 72 px.
+    expect((await page.locator('main .wordmark svg').boundingBox())!.height).toBe(72);
     expect((await logo.boundingBox())!.height).toBeGreaterThanOrEqual(24);
     await expect(page.getByTestId('about-sample')).toHaveCount(0);
     await expect(page.locator('a[href$="licenses.txt"]')).toHaveCount(0);

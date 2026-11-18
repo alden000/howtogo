@@ -18,7 +18,7 @@ import { clock } from './present';
 import { ArrivedFamily, SharePill, useShareOnStart } from './share';
 import { ArrivalChip, rerouteAvoid, StepExtras, TripDisruption } from './transit';
 import { lineName } from '../transit/m3';
-import { HelpNote } from './helpSheet';
+import { HelpNote } from './helpNote';
 import {
   alertCopy,
   cardMaxHeight,
@@ -309,9 +309,10 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
             <Icon name={icon.icon} />
           </div>
           <div class="steptx">
-            <h2 aria-live="polite" tabIndex={-1} data-testid="current-step" lang={trip.lang}>
+            {/* M5 integration (a11y): the step headline is the guidance screen's h1. */}
+            <h1 aria-live="polite" tabIndex={-1} data-testid="current-step" lang={trip.lang}>
               {headline}
-            </h2>
+            </h1>
             {group === 'walk' && (step?.kind === 'walk_to_stop' || step?.kind === 'walk_transfer') && (
               <span class="sign" data-testid="walk-sign">
                 {String(step.params.stop ?? '')}

@@ -9,9 +9,8 @@ export const L5_ZH = {
   // L7 Settings
   grp_privacy: '隐私',
   set_errors: '发送匿名错误统计',
-  set_errors_s: '只发"哪种问题、几次"，帮我们修好它。不含位置、地址或搜索内容。',
+  set_errors_s: '只发“哪种问题、几次”，帮我们修好它。不含位置、地址或搜索内容。',
   set_errors_more: '详细',
-  set_clear_recent: '记录：清除最近去过的地方',
   // L5 battery saver
   bs_row: '省电模式',
   bs_auto: '自动',
@@ -20,7 +19,7 @@ export const L5_ZH = {
   bs_on: '开',
   bs_off: '关',
   bs_auto_s: '电量剩 20% 或更少、又没在充电时，自动打开。',
-  bs_auto_s_na: '这部手机不能告诉我电量，所以"自动"不会打开省电。需要时请选"开"。',
+  bs_auto_s_na: '这部手机不能告诉我电量，所以“自动”不会打开省电。需要时请选“开”。',
   bs_on_s: '一直省电。',
   bs_off_s: '不省电。',
   bs_note: '省电时，地图动得少一些，家人看到你位置的次数也少一些。下车提醒、帮忙和到达消息不会受影响。',
@@ -30,6 +29,11 @@ export const L5_ZH = {
   ab_sample: '现在是示范路线，不是真的巴士和地铁资料。',
   ab_lta_on: 'Contains information from LTA DataMall accessed on {d} which is made available under the terms of the Singapore Open Data Licence version 1.0.',
   ab_priv_line: '你的资料多数只留在这部手机里。',
+  // Creative M5 review fix 9: delete-all busy label
+  set_delete_all_busy: '正在清除…',
+  // 6f.6 L6: Show the driver, 我在哪里 tab offline
+  drv_here_at: '这是 {time} 的位置。',
+  drv_here_none: '现在找不到地址。可以给司机看你家的地址。',
 };
 
 export type M5Key = keyof typeof L5_ZH;
@@ -39,7 +43,6 @@ export const L5_EN: Record<M5Key, string> = {
   set_errors: 'Send anonymous error counts',
   set_errors_s: 'Only sends which kind of problem and how often, so we can fix it. No location, addresses or searches.',
   set_errors_more: 'Details',
-  set_clear_recent: 'History: clear recent places',
   bs_row: 'Battery saver',
   bs_auto: 'Auto',
   bs_auto_now: 'Auto (on now)',
@@ -56,6 +59,9 @@ export const L5_EN: Record<M5Key, string> = {
   ab_sample: 'These are sample routes, not real bus and train information.',
   ab_lta_on: 'Contains information from LTA DataMall accessed on {d} which is made available under the terms of the Singapore Open Data Licence version 1.0.',
   ab_priv_line: 'Most of your information stays on this phone.',
+  set_delete_all_busy: 'Deleting…',
+  drv_here_at: 'This was where you were at {time}.',
+  drv_here_none: 'No address right now. You can show the driver your home address.',
 };
 
 const fill = (s: string, p: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (m, k: string) => (k in p ? String(p[k]) : m));

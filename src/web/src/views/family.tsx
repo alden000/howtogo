@@ -14,6 +14,7 @@ import type { SearchResult } from '../api/types';
 import { family, formatPhone, MAX_CONTACTS, normalizePhone, RELATIONS, type Contact, type Relation } from '../state/family';
 import { TEXT_SCALE, TEXT_SIZES, type TextSize } from '../state/store';
 import { SIZE_SR } from '../i18n/m5ui1';
+import { useT5 } from '../i18n/m5lazy';
 import { browserStores, deleteAllData } from '../state/deleteAll';
 import { helpShare } from '../state/helpShare';
 import { announce, Icon, Sheet, showToast, Wordmark } from '../ui/kit';
@@ -738,6 +739,7 @@ export function SetupFamily() {
 export function DeleteAllSheet() {
   const { router, api, store } = useServices();
   const t = useT();
+  const t5 = useT5();
   const [busy, setBusy] = useState(false);
   return (
     <Sheet id="delete-all" title={t('set_delete_all_t')}>
@@ -756,7 +758,7 @@ export function DeleteAllSheet() {
           }}
         >
           <Icon name="trash" />
-          {t('set_delete_all')}
+          {busy ? t5('set_delete_all_busy') : t('set_delete_all')}
         </button>
         <button type="button" class="btn btn-primary" data-testid="delete-all-keep" onClick={() => router.closeSheet()}>
           {t('fam_keep')}

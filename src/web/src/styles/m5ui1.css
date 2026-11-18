@@ -13,9 +13,11 @@
 .dots li{position:relative;padding-left:20px}
 .dots li::before{content:"";position:absolute;left:2px;top:.6em;width:8px;height:8px;border-radius:50%;background:var(--c-ink-2)}
 .pv .famline{margin:var(--s-3) 0 0}
-.pv .contact{margin:var(--s-6) 0 var(--s-2)}
+.pv .pvcontact{margin:var(--s-6) 0 var(--s-2)}
 .pv .pvfoot{margin:var(--s-4) 0 0}
 .inlink.btnlink{background:none;border:0;padding:0;font:inherit;font-weight:700;cursor:pointer}
+/* Creative M5 review fix 2: inline links keep the 56 px hit area without breaking the sentence. */
+.pv li .inlink.btnlink,.pv .pvcontact .inlink.btnlink,.abattrib .inlink{display:inline;min-height:0;padding-block:16px;vertical-align:baseline}
 
 /* L2 About: sample-mode panel, attribution block on c-surface. */
 .tripnote.sample{background:var(--c-saffron-soft);color:var(--c-ink);margin:var(--s-3) 0 0}
@@ -52,3 +54,5 @@
 .row[data-testid=row-clear] .tx{flex:1 1 0;max-width:none}
 .row[data-testid=row-clear] .val{flex:none;white-space:nowrap}
 .swrow .inlink{min-width:var(--tap)}
+/* Creative M5 review fix 10: the About seal is 72 px (6f.2). */
+.wordmark.wm72 svg{width:72px;height:72px}

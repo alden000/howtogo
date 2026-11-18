@@ -19,6 +19,13 @@ import { sampleMode } from '../state/sample';
 import { announce, Bar, Icon, NumSteps, Sheet, showToast, Wordmark, type IconName } from '../ui/kit';
 import { dataDate } from '../transit/m3';
 import { HomeConfirm } from './HomeConfirm';
+import { lazyView } from '../ui/lazy';
+import omLogo from '../assets/onemap/onemap-logo.png';
+import omLogo2x from '../assets/onemap/onemap-logo@2x.png';
+import { showUpdBar } from '../pwa/launch';
+
+// 6f.3 L3: the update bar also sits at the top of the Settings list (lazy launch chunk, shared with H1).
+const UpdateBar = lazyView(() => import('./launch').then((m) => m.UpdateBar));
 
 const NAME_MAX = 20;
 export const isStandalone = () => typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches;
@@ -139,6 +146,7 @@ export function SettingsScreen() {
         <h1 class="t-title" style={{ margin: '0 0 var(--s-2)' }}>
           {t('settings')}
         </h1>
+        {showUpdBar.value && <UpdateBar />}
         <HomeConfirm />
         {/* 6f.7 L7: the final 1.0 order — Me · Display · Travel · Privacy · This app. */}
         <h2 class="grp">{t('grp_me')}</h2>
@@ -165,7 +173,7 @@ export function SettingsScreen() {
           <ErrorCountsRow />
           <Row icon="lock" label={t('pv_link')} testid="row-privacy" onClick={() => router.navigate('/privacy')} />
           <Row icon="trash" label={t('set_delete_all')} testid="row-delete-all" onClick={() => router.openSheet('delete-all')} />
-          <Row icon="trash" label={t5('set_clear_recent')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
+          <Row icon="trash" label={t('clear_recent_row')} value={nothing ? t('nothing_clear') : undefined} testid="row-clear" disabled={nothing} onClick={() => router.openSheet('clear')} />
         </div>
         <h2 class="grp">{t('grp_app')}</h2>
         <div class="opts">
@@ -425,8 +433,9 @@ export const longDateEn = (iso: string) => {
   return m ? `${Number(m[3])} ${MONTH_EN[Number(m[2]) - 1]} ${m[1]}` : iso;
 };
 /** The official OneMap logo: 32 px at 1x, the 256 px asset on denser screens (Lighthouse image-size-responsive). */
-const OM_LOGO = 'https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png';
-const OM_LOGO_2X = 'https://www.onemap.gov.sg/web-assets/images/logo/om_logo_256.png';
+// Creative M5 review fix 10: self-hosted (official OneMap assets), so About works offline (L6).
+const OM_LOGO = omLogo;
+const OM_LOGO_2X = omLogo2x;
 
 /** 6f.2 L2 About: wordmark + version (build date), sample-mode line, Maps and data, Your privacy, Report. */
 export function About() {
@@ -442,7 +451,7 @@ export function About() {
         <h1 class="t-title" style={{ margin: '0 0 var(--s-3)' }}>
           {t('about_row')}
         </h1>
-        <Wordmark name={t('app_name')} tag="p" />
+        <Wordmark name={t('app_name')} tag="p" size={72} />
         <p data-testid="about-version">{t5('ab_version', { v: APP_VERSION, d: dataDate(BUILD_DATE, lang) })}</p>
         {sampleMode.value && (
           <p class="tripnote sample" data-testid="about-sample">

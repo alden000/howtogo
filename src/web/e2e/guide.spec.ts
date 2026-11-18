@@ -453,6 +453,9 @@ test('F1/F2: H5 headline is the spoken guidance line, ≥ 32 px; walk chip has t
   expect(Number(n)).toBe(Math.max(1, Math.ceil(Number(m) / 67)));
 });
 
+/** qa/scripts/dev-e2e-docker.sh runs with CI=1 (Linux container, software GL). */
+const IN_CONTAINER = !!(globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.CI;
+
 test('AC 50: demo controls in Help (demo mode only) play the get-off alert, off route, weak GPS and arrival', async ({ page }) => {
   await boot(page);
   await startTo(page, 'tan tock');
@@ -469,5 +472,9 @@ test('AC 50: demo controls in Help (demo mode only) play the get-off alert, off 
   await expect(page.getByTestId('getoff-next')).toBeVisible();
   await page.getByTestId('getoff-ack').click();
   await play('arrive');
-  await expect(page.getByTestId('arrived')).toBeVisible({ timeout: 15_000 });
+  // M5 integration: "arrive" plays the rest of the scripted trip fix by fix. In the Docker container (software
+  // GL, CI=1) that runs ~7x slower and took 7–15 s against a 15 s limit; wait for the phase to change there with
+  // a container-sized budget. The assertion is unchanged: the arrival screen shows.
+  if (IN_CONTAINER) test.setTimeout(test.info().timeout + 45_000);
+  await expect(page.getByTestId('arrived')).toBeVisible({ timeout: IN_CONTAINER ? 45_000 : 15_000 });
 });

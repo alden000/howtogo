@@ -7,7 +7,10 @@ import { useEffect, useState } from 'preact/hooks';
 import type { Place } from '@howtogo/shared';
 import { DWELL_CHOICES_MIN } from '@howtogo/shared';
 import { useServices, useT } from '../context';
-import { here, locate } from '../state/location';
+import { here, lastAddress, locate } from '../state/location';
+import { online } from '../api/offline';
+import { useT5 } from '../i18n/m5lazy';
+import { clock } from './present';
 import { announce, Bar, Icon, NumSteps, Sheet } from '../ui/kit';
 import { log } from '../log';
 import { dwellLabel } from './viewUtil';
@@ -119,8 +122,12 @@ type DriverTab = 'dest' | 'home' | 'here';
 export function DriverSheet() {
   const { router, store, platform, api } = useServices();
   const t = useT();
+  const t5 = useT5();
   const trip = store.trip.value;
   const home = store.places.value.home;
+  // 6f.6 L6: offline, 我在哪里 shows the last known address (with its time) or says there is none; never "loading".
+  const offline = !online.value;
+  const last = offline ? lastAddress.value : null;
   const data = (router.sheetData.value ?? {}) as { tab?: DriverTab };
   const [tab, setTab] = useState<DriverTab>(data.tab === 'dest' && !trip ? 'home' : (data.tab ?? 'home'));
   const tabs = (['dest', 'home', 'here'] as DriverTab[]).filter((x) => x !== 'dest' || trip);
@@ -139,7 +146,11 @@ export function DriverSheet() {
   let p: Place | null = null;
   if (tab === 'dest') p = trip?.places[trip.places.length - 1] ?? null;
   else if (tab === 'home') p = home ?? null;
-  else p = here.value ? { name: here.value.label ?? '', lat: here.value.lat, lng: here.value.lng, ...(here.value.address ? { address: here.value.address } : {}), ...(here.value.postal ? { postal: here.value.postal } : {}) } : null;
+  else {
+    const h = last ?? here.value;
+    p = h ? { name: h.label ?? '', lat: h.lat, lng: h.lng, ...(h.address ? { address: h.address } : {}), ...(h.postal ? { postal: h.postal } : {}) } : null;
+  }
+  const noAddr = tab === 'here' && offline && !last;
   const hereLines = tab === 'here' && p ? whereAmILines(p) : null;
   const lines = hereLines ? hereLines.lines : p ? [p.name, p.address && p.address !== p.name ? p.address.replace(/\s*Singapore\s*\d{6}$/i, '') : ''].filter(Boolean) : [];
   const postal = p?.postal ?? /\b(\d{6})\b/.exec(p?.address ?? '')?.[1];
@@ -159,28 +170,39 @@ export function DriverSheet() {
             </button>
           ))}
         </div>
-        <div class="card2" lang="en" data-testid="driver-card">
-          <div class="please">
-            {head[0]}
-            <small lang="zh">{head[1]}</small>
-          </div>
-          <div class="lines">
-            {lines.length ? lines.map((l, i) => (i ? [<br />, l] : l)) : t(tab === 'home' ? 'set_your_home' : 'loading')}
-          </div>
-          {postal && (
-            <div>
-              <span class="postal num">Singapore {postal}</span>
+        {noAddr ? (
+          <p class="t-body" role="status" data-testid="here-none">
+            {t5('drv_here_none')}
+          </p>
+        ) : (
+          <div class="card2" lang="en" data-testid="driver-card">
+            <div class="please">
+              {head[0]}
+              <small lang="zh">{head[1]}</small>
             </div>
-          )}
-          {hereLines?.near && (
-            <div class="zh" data-testid="here-near">
-              Near · <span lang="zh">附近：</span>
-              {hereLines.near}
+            <div class="lines">
+              {lines.length ? lines.map((l, i) => (i ? [<br />, l] : l)) : t(tab === 'home' ? 'set_your_home' : 'loading')}
             </div>
-          )}
-        </div>
-        {tab === 'here' && here.value && !here.value.label && <HereFallback lat={here.value.lat} lng={here.value.lng} />}
-        {tab === 'here' && p && <SendMyLocation place={p} />}
+            {postal && (
+              <div>
+                <span class="postal num">Singapore {postal}</span>
+              </div>
+            )}
+            {hereLines?.near && (
+              <div class="zh" data-testid="here-near">
+                Near · <span lang="zh">附近：</span>
+                {hereLines.near}
+              </div>
+            )}
+          </div>
+        )}
+        {tab === 'here' && last && (
+          <p class="t-caption" style={{ color: 'var(--c-ink-2)', margin: 'var(--s-2) 0 0' }} data-testid="here-at">
+            {t5('drv_here_at', { time: clock(last.at, store.settings.value.lang) })}
+          </p>
+        )}
+        {tab === 'here' && !last && here.value && !here.value.label && <HereFallback lat={here.value.lat} lng={here.value.lng} />}
+        {tab === 'here' && p && !noAddr && <SendMyLocation place={p} />}
         <TaxiButtons />
       </div>
     </div>
