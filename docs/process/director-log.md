@@ -215,3 +215,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - 34 PASS / 4 FAIL / 6 DEFERRED. Lighthouse perf 93–100, others 100; unit 655; dev-e2e 239/239. Bugs QA-52…58 (6 S3, 1 S4) plus the owner-reported sample-mode location (QA-D1, renumbered QA-59, S2).
 - Rulings: QA-55: `smoke:live` treats `lta: proxy` as PASS for bus arrival; alerts and lifts report SKIP not_configured (WARN, not FAIL) until the owner sets LTA_ACCOUNT_KEY. The v1.0.0 tag needs live OneMap plus a bus-arrival PASS. The owner's checklist gains "LTA key → disruption and lift features". QA-58: LCP ≤ 2.5 s, no waiver; preload the Welcome chunk on a first visit (no profile) or make it eager if the budget allows. QA-56 (Should, prefetch) is built in this round if cheap.
 - One fix round on dev/m5-int: QA-52…59, then a QA re-check of the failures only.
+
+## 2026-11-18 — M5 re-check: QA-58 PASS on a quiet host
+- QA re-check (ead2de8): QA-52…57 and QA-59 FIXED. QA-58 failed at 2544 ms under 50–100 % host load. The cause was an orphaned `wrangler dev` from the engine round (since 09:46, ~27 000 CPU-s); the Director killed it. Re-measured with qa/scripts/lighthouse.sh (median of 3) at 20–36 % load: `/` perf 96, **LCP 2483 ms** → PASS. Lighthouse against remote URLs fails on this PC (NO_NAVSTART); PageSpeed Insights is not used (it would send the owner's domain to Google).
+- Lesson: every dev/QA brief must kill the servers it starts, and the Director checks for orphans before any perf measurement.
+- QA-60 (S4: idle preload fetches the viewer chunk → false chunk_load count offline) and the version string 1.0.0-rc.1 go into a short round, then the preview gets rc.1.
+- M5 duration so far: ~7 h wall clock (09:20–16:50) incl. two parallel UI rounds and the integration round.
