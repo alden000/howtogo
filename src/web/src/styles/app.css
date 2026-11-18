@@ -301,7 +301,9 @@ button.where{min-height:var(--tap);text-align:left}
 :root.rm .sheet,:root.rm .toast,:root.rm .banner{animation:fadeIn 120ms linear both!important}
 
 /* M3/M4 fix A: inline text link (About licence, AC 41). */
-.inlink{color:var(--c-primary-text);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+/* QA-50: the licence link is a 56 px target (`tap`), an atomic inline box whose text still wraps; only the name is underlined. */
+.inlink{display:inline-flex;align-items:center;min-height:var(--tap);color:var(--c-primary-text);font-weight:700}
+.inlink .u{text-decoration:underline;text-underline-offset:2px}
 /* M3/M4 fix A: at 150/200 % a long CJK label next to a value may wrap (keep-all clipped "清除最近去过的地方"). */
 /* Creative m34-fix-a F1: CJK may break between characters but not strand one; the value sits on its own line, left. */
 :root[data-text-size="xlarge"] .row .tx:has(+ .val),:root[data-text-size="xxlarge"] .row .tx:has(+ .val){flex:1 1 0;word-break:normal;overflow-wrap:normal;line-break:strict;text-wrap:pretty}

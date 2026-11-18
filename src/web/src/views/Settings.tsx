@@ -381,10 +381,13 @@ function LtaLine({ text }: { text: string }) {
   return (
     <>
       {a}
-      <a class="inlink" href={ODL_URL} target="_blank" rel="noopener noreferrer" lang="en">
-        {ODL_TEXT}
+      {/* QA-50: one 56 px target; the trailing punctuation sits inside it so it never strands on its own line. */}
+      <a class="inlink" href={ODL_URL} target="_blank" rel="noopener noreferrer" lang="en" data-testid="about-odl">
+        <span>
+          <span class="u">{ODL_TEXT}</span>
+          {b}
+        </span>
       </a>
-      {b}
     </>
   );
 }

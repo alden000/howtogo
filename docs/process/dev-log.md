@@ -1115,3 +1115,10 @@ Branch `dev/m34-fix` (worktree `howtogo-dev-c`) = `dev/m34-fix-a` + `dev/m34-fix
    - the Help share row is hidden while a help-only share is live, on a trip too;
    - Lift-friendly is gone from the H3 sheet.
 5. The gate on Windows uses `qa/scripts/dev-e2e-docker.sh`. The baselines now match that image.
+
+## 2026-11-18 — Developer: QA-50, QA-51 (0.3.0 RC re-check S4s)
+
+- **QA-50:** the About licence link has `data-testid="about-odl"` (the `about-*` pattern). `.inlink` is now an atomic `inline-flex` box with `min-height: var(--tap)` (56 px). Its text still wraps. The trailing "." sits inside the box so it never strands on its own line; only the licence name is underlined. No raw values. No other target sits within 8 px.
+- **QA-51:** `embed-assets.mjs --if-stale` (pretest/pretypecheck; `--if-missing` is an alias) regenerates `src/generated/assets.ts` when it is missing or older than `dist/index.html`, `dist/_headers`, `web/public/_headers` or the script itself. Cost: four `stat` calls when fresh.
+- Tests: typecheck green; worker 171/171, web 208/208; host `qa/tests/matrix.spec.ts` **12/12**; m3 AC 41 passes.
+- Baseline re-recorded in Docker: `M1-F6-about-light-100-zh.png` only. The about baseline, `fixa` QA-33/35 and the `ui` about test pass without update.
