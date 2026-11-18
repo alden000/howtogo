@@ -14,8 +14,11 @@ import { family, type Contact } from '../state/family';
 import { helpShare } from '../state/helpShare';
 import { here } from '../state/location';
 import { Icon, Sheet, showToast } from '../ui/kit';
-import { afterSend, openExternal, senderFor, setSharedWith, waUrl } from './share';
-import { DemoControls } from './tripSheets';
+import { afterSend, openExternal, senderFor, setSharedWith, waUrl } from './shareUtil';
+import { lazyView } from '../ui/lazy';
+
+// Demo-only controls live with the trip sheets (lazy chunk): Home's HelpNote must not pull them in (M5 AC 3).
+const DemoControls = lazyView(() => import('./tripSheets').then((m) => m.DemoControls));
 
 export function HelpSheet() {
   const { router, store, runtime, platform } = useServices();

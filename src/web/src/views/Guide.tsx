@@ -39,12 +39,8 @@ import {
 } from './guideModel';
 
 /** `tick` haptic for UI-only moments (the runtime gives every other haptic). */
-export function useTick() {
-  const { platform, store } = useServices();
-  return () => {
-    if (store.settings.peek().haptics) void platform.vibrate('tick');
-  };
-}
+export { useTick, dwellLabel } from './viewUtil';
+import { useTick, dwellLabel } from './viewUtil';
 
 const placeOf = (s: Step | undefined): string => String(s?.params.dest ?? s?.params.stop ?? '');
 const focusHeadline = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="current-step"]')?.focus());
@@ -630,9 +626,6 @@ function Pocket({ trip, t }: { trip: ActiveTrip; t: TFn }) {
 
 // ------------------------------------------------------------------ G3 waypoint arrival
 
-export function dwellLabel(min: number, t: TFn): string {
-  return t(min <= 15 ? 'dwell_15' : min <= 30 ? 'dwell_30' : min <= 60 ? 'dwell_60' : 'dwell_90');
-}
 
 function Waypoint({ trip }: { trip: ActiveTrip }) {
   const { runtime } = useServices();

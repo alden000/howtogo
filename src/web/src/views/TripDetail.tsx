@@ -13,7 +13,7 @@ import { here } from '../state/location';
 import { log } from '../log';
 import { Bar, HelpButton, Icon, useStateHook } from '../ui/kit';
 import { Chips } from './Routes';
-import { dwellLabel } from './Guide';
+import { dwellLabel } from './viewUtil';
 import { clock, minutes, timeline } from './present';
 import { ArrivalChip, DisruptionBanner, ExitForTrip, LiftFacts } from './transit';
 import { refreshAlerts, refreshLifts } from '../transit/live';

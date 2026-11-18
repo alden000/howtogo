@@ -9,8 +9,11 @@ import { HomeConfirm } from './HomeConfirm';
 import { Icon, showToast, useStateHook, Wordmark } from '../ui/kit';
 
 /** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
-import { DisruptionBanner } from './transit';
-import { SetupUndo } from './family';
+import { lazyView } from '../ui/lazy';
+
+// M5 AC 3: shown only when there is a disruption / a just-imported setup: separate chunks, warmed when idle.
+const DisruptionBanner = lazyView(() => import('./transit').then((m) => m.DisruptionBanner));
+const SetupUndo = lazyView(() => import('./family').then((m) => m.SetupUndo));
 import { family } from '../state/family';
 import { refreshAlerts, refreshLifts } from '../transit/live';
 import { relDate } from '../transit/m3';

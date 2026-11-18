@@ -8,7 +8,7 @@ import { useServices, useT } from '../context';
 import { log } from '../log';
 import { canAdd, LABEL_MAX, movePlace, placeKind, removePlace, renamePlace, type PlaceKind } from '../state/places';
 import { announce, Bar, Icon, Sheet, showToast, type IconName } from '../ui/kit';
-import { useTick } from './Guide';
+import { useTick } from './viewUtil';
 import { HomeConfirm } from './HomeConfirm';
 
 const KIND_ICON: Record<PlaceKind | 'home', IconName> = { home: 'home', clinic: 'clinic', market: 'market', daughter: 'family', other: 'loc' };

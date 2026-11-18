@@ -1,0 +1,4 @@
+# 怎么去? — family share pages (/t/) and setup links (/s/) send their own noindex headers; they stay crawlable so
+# link previews in chat apps keep working (generic OG tags only, M4).
+User-agent: *
+Disallow: /api/

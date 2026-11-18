@@ -13,26 +13,8 @@ import { clock } from './present';
 import { tf } from '../i18n/ui';
 import { failKind, type FailKind } from '../api/errors';
 
-/** Opens another app (wa.me, sms:, tel:, maps). One place so tests can stub `window.open`. */
-export function openExternal(url: string) {
-  const scheme = url.split(':')[0];
-  log(`ext:${scheme === 'https' ? new URL(url).host : scheme}`);
-  if (/^(tel|sms):/.test(url)) location.href = url;
-  else window.open(url, '_blank', 'noopener');
-}
-
-export const waUrl = (msg: string, c: Contact | null) => (c ? `https://wa.me/${waDigits(c.phone)}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`);
-export const smsUrl = (msg: string, c: Contact | null) => {
-  const ios = /iP(hone|ad|od)/.test(navigator.userAgent);
-  return `sms:${c?.phone ?? ''}${ios ? '&' : '?&'}body=${encodeURIComponent(msg)}`;
-};
-
-/** Sender fields for POST /api/share: what this contact calls the senior; phone only if allowed (OQ3). */
-export function senderFor(c: Contact | null, greetingName: string): { senderName?: string; senderPhone?: string } {
-  const p = family.prefs.peek();
-  const name = (c?.callMe || greetingName).trim().slice(0, 40);
-  return { ...(name ? { senderName: name } : {}), ...(p.sendPhone && p.myPhone ? { senderPhone: p.myPhone } : {}) };
-}
+import { afterSend, openExternal, senderFor, setSharedWith, sharedWithName, smsUrl, waUrl } from './shareUtil';
+export { afterSend, openExternal, senderFor, setSharedWith, sharedWithName, smsUrl, waUrl };
 
 /**
  * QA-46 (Director ruling 2026-11-18, M4 AC 5): no times in the message — a forwarded message must not leak a
@@ -48,9 +30,7 @@ function useShareMsg() {
   };
 }
 
-/** Who the current share was sent to (for pill copy); session memory only. */
-let sharedWith: string | null = null;
-const famName = (t: TFn) => sharedWith ?? t('sh_family_fb');
+const famName = (t: TFn) => sharedWithName() ?? t('sh_family_fb');
 
 type Channel = 'wa' | 'sms' | 'more' | 'copy';
 
@@ -80,7 +60,7 @@ export function ShareSheet() {
       if (!s) throw new Error('no trip');
       const url = new URL(s.viewPath, location.origin).toString();
       const msg = msgOf(url, c?.lang ?? lang, t);
-      sharedWith = c?.name ?? null;
+      setSharedWith(c?.name ?? null);
       log(`share:channel ${ch}`);
       if (ch === 'wa') openExternal(waUrl(msg, c));
       else if (ch === 'sms') openExternal(smsUrl(msg, c));
@@ -165,20 +145,6 @@ export function ShareSheet() {
   );
 }
 
-/** Toast once we're back in the app (page visible again), or after a moment if it never left. */
-export function afterSend(text: string) {
-  let done = false;
-  const show = () => {
-    if (done) return;
-    done = true;
-    document.removeEventListener('visibilitychange', onVis);
-    showToast('share-sent', text);
-  };
-  const onVis = () => document.visibilityState === 'visible' && show();
-  document.addEventListener('visibilitychange', onVis);
-  setTimeout(() => document.visibilityState === 'visible' && show(), 1200);
-}
-
 function WaIcon() {
   return <Icon name="msg" />;
 }
@@ -192,7 +158,7 @@ export function SharingSheet() {
   const lang = store.settings.value.lang;
   const url = new URL(share.viewPath, location.origin).toString();
   const msgOf = useShareMsg();
-  const first = family.contacts.value.find((c) => c.name === sharedWith) ?? null;
+  const first = family.contacts.value.find((c) => c.name === sharedWithName()) ?? null;
   return (
     <Sheet id="share" title={t('sh_sharing_t', { fam: famName(t) })}>
       <p class="t-body">{t('sh_sharing_lead', { t: share.expiresAt ? clock(Date.parse(share.expiresAt), lang) : '' })}</p>
@@ -246,7 +212,7 @@ export function SharePill({ onOpen }: { onOpen: () => void }) {
     state === 'help' ? t('sh_pill_help', { fam })
     : state === 'arrived' ? t('sh_pill_arrived', { t: clock(Date.now() + 30 * 60_000, lang) })
     : state === 'paused' ? t('sh_pill_paused')
-    : sharedWith ? t('sh_pill', { fam }) : t('sh_pill_any');
+    : sharedWithName() ? t('sh_pill', { fam }) : t('sh_pill_any');
   return (
     <button type="button" class={`sharepill s-${state}`} data-testid="share-pill" data-state={state} aria-label={text + t('sh_pill_sr')} onClick={onOpen}>
       {state === 'sharing' && <span class="live" aria-hidden="true" />}
@@ -258,16 +224,13 @@ export function SharePill({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-export const sharedWithName = () => sharedWith;
-/** Help's "let family see me" row (QA-37) sends the trip share to the first contact. */
-export const setSharedWith = (name: string | null) => void (sharedWith = name);
 
 /** H12 (6e.1): honest lines — "{fam}'s page shows you've arrived" when shared; otherwise a one-off WhatsApp "I've arrived". */
 export function ArrivedFamily({ shared, dest }: { shared: boolean; dest: string }) {
   const t = useT();
   const first = family.contacts.value[0] ?? null;
   const [told, setTold] = useState(false);
-  const fam = sharedWith ?? first?.name ?? t('sh_family_fb');
+  const fam = sharedWithName() ?? first?.name ?? t('sh_family_fb');
   if (shared)
     return (
       <p class="t-body" data-testid="arrived-shared">

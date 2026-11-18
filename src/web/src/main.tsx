@@ -20,7 +20,7 @@ import { offlineAware, watchOnline } from './api/offline';
 import type { Api } from './api/types';
 import { ServicesContext, type Services } from './context';
 import { log } from './log';
-import { createDemoPlatform, createFakePlatform, createWebPlatform, type FakePlatform, type Platform } from './platform';
+import { createWebPlatform, type FakePlatform, type Platform } from './platform';
 import { captureInstallPrompt } from './pwa/install';
 import { cacheTripTiles, clearTripTiles, registerServiceWorker } from './pwa/register';
 import { corridorTiles, styleForTheme } from './map/onemap';
@@ -36,6 +36,7 @@ import { installChunkReload } from './pwa/chunkReload';
 import { setUpdateGuard } from './pwa/register';
 import { createTelemetry, httpTransport, type Screen } from './telemetry/client';
 import { APP_VERSION } from './version';
+import { preloadViews, whenIdle } from './ui/lazy';
 import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
 
@@ -107,6 +108,8 @@ async function boot() {
     log(`platform:${platform.kind}`);
   }
   if (demo) {
+    // Demo only: the fake platform is its own chunk (M5 AC 3), never loaded in live mode.
+    const { createFakePlatform, createDemoPlatform } = await import('./platform/fake');
     fake = createFakePlatform({ start: { ...start!, acc: 8, t: Date.now() } });
     platform = createDemoPlatform(web, fake);
   }
@@ -239,6 +242,8 @@ async function boot() {
     ...httpTransport(apiBase),
   });
   telemetry.install();
+  // M5 AC 3/5: warm the lazy screen chunks once the first screen is up and the main thread is idle.
+  setTimeout(() => whenIdle(() => void preloadViews()), 3000);
   captureInstallPrompt();
   // M6 AC 4: no service worker inside the app (assets are local; updates come with a new APK).
   if (import.meta.env.PROD && !nativeApp && session.get('sw.disabled') !== '1') void registerServiceWorker();

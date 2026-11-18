@@ -55,8 +55,33 @@ function versionJson(): Plugin {
   };
 }
 
+/**
+ * M5 AC 5: inline the app stylesheet (first run + Home + everything else, ≈ 11 KB gz) into index.html, so the
+ * first paint needs no extra render-blocking request. The CSP allows inline styles ('unsafe-inline' is already
+ * required by MapLibre). The hashed .css file is still emitted (precache / lazy references) but not linked.
+ */
+function inlineCss(): Plugin {
+  return {
+    name: 'howtogo-inline-css',
+    apply: 'build',
+    enforce: 'post',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        if (!ctx.bundle || !/index\.html$/.test(ctx.filename)) return html;
+        return html.replace(/<link rel="stylesheet"(?: crossorigin)? href="\/(assets\/[^"]+\.css)">/g, (tag, file: string) => {
+          const asset = ctx.bundle![file];
+          if (!asset || asset.type !== 'asset') return tag;
+          const css = typeof asset.source === 'string' ? asset.source : new TextDecoder().decode(asset.source);
+          return `<style data-inline="${file}">${css.replace(/<\/style/gi, '<\\/style')}</style>`;
+        });
+      },
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [preact({ prerender: { enabled: false } }), versionJson(), serviceWorker(), viewerEntry()],
+  plugins: [preact({ prerender: { enabled: false } }), versionJson(), serviceWorker(), viewerEntry(), inlineCss()],
   build: {
     target: 'es2022',
     sourcemap: false,
@@ -66,6 +91,8 @@ export default defineConfig({
       input: { index: 'index.html', sw: 'src/sw/sw.ts', ...VIEWER_INPUT },
       output: {
         entryFileNames: (c) => (c.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js'),
+        // M5 note: manual chunk groups (rolldown `codeSplitting.groups`) were measured and made the eager set
+        // larger (lazy-only modules and the mock got pulled in); the default split is smaller.
       },
     },
   },

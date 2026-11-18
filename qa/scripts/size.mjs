@@ -1,16 +1,10 @@
-// Bundle budget (AC 46): app JS excl. MapLibre ≤ 150 KB gz; MapLibre must be a separate (lazy) chunk not referenced by index.html.
+// Gate `build` step, M5 AC 3 bundle budgets (gzip): Home entry ≤ 100 KB, app JS excl. MapLibre ≤ 250 KB, family viewer
+// ≤ 60 KB, CSS ≤ 30 KB, MapLibre a separate chunk never referenced by index.html. One implementation shared with the
+// web build: src/web/scripts/budget.mjs. An overrun prints the chunk names and sizes.
 import { fileURLToPath } from 'node:url';
-import { readdirSync, readFileSync } from 'node:fs';
-import { gzipSync } from 'node:zlib';
-import { join } from 'node:path';
+import { checkBudgets } from '../../src/web/scripts/budget.mjs';
 const dist = process.argv[2] ?? fileURLToPath(new URL('../.out/dist', import.meta.url));
-let app = 0, map = 0;
-for (const f of readdirSync(join(dist, 'assets')).filter((f) => f.endsWith('.js'))) {
-  const gz = gzipSync(readFileSync(join(dist, 'assets', f))).length;
-  if (/maplibre/i.test(f)) map += gz; else app += gz;
-}
-const html = readFileSync(join(dist, 'index.html'), 'utf8');
-const kb = (n) => (n / 1024).toFixed(1);
-const lazy = !/maplibre/i.test(html);
-console.log(`size: app js ${kb(app)} KB gz (budget 150) · maplibre ${kb(map)} KB gz · lazy=${lazy}`);
-if (app > 150 * 1024 || !lazy || map === 0) { console.log('size FAIL'); process.exit(1); }
+const r = checkBudgets(dist);
+console.log(`size: ${r.line}`);
+for (const f of r.fails) console.log(`size FAIL: ${f}`);
+if (!r.ok) process.exit(1);

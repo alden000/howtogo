@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Place } from '@howtogo/shared';
 import type { SearchResult } from '../api/types';
-import { addStop } from './Journey';
+import { addStop } from './viewUtil';
 import { announce } from '../ui/kit';
 import { useServices, useT } from '../context';
 import { log } from '../log';
