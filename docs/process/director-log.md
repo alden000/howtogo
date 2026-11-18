@@ -172,3 +172,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Merged dev/m34-fix into the session branch. **Deploy blocked:** wrangler not logged in to the owner's wwweeeiii.com account.
 - Duration: the M3/M4 gate + fix round took ~4.5 h wall clock (04:40–09:20), incl. one invalid gate run (Windows tooling).
 - Note: the Docker baseline image has no bold CJK font, so bold Chinese renders regular in the baselines only (real phones are fine). Consider adding fonts-noto-cjk to the image in M5.
+
+## 2026-11-18 — M5 Hardening started (owner's kickoff authorises M5 after the M3/M4 gate)
+- Rulings on M5 OQs: OQ1 answered by D-11 (production = howtogo.wwweeeiii.com on the owner's account; preview on that account's workers.dev). OQ2: no contact line until the owner supplies one; point to Report a problem. OQ3: ON (owner, D-11). OQ4: two Workers, `howtogo-preview` and `howtogo`, both on the owner's account. OQ5: Durable Object. OQ6: ≤ 20 % and not charging. OQ7: no waiver. OQ8: owner's call at field-test time (default stands). OQ9: no 1.0 in sample mode. OQ10: the owner runs `wrangler secret put`. OQ11: 1.0.0 = web.
+- Carry-ins from M3/M4: lift-friendly ranking, bus-routes-only re-query, Contact Picker, auto-share, save-as-place, chip lastgone/notrunning, `smoke:live` (M3 AC 45), viewer QR (M4 AC 42), viewer notify-me (M4 AC 30), CJK bold font in the Docker baseline image. PM to fold the ones that fit "hardening, no new features" into M5 and list the rest under Later.
+- Tracks in parallel: Creative M5 frames (dev/m5-creative) ‖ Developer engine round (dev/m5-engine: perf, battery logic, SW update/migrations, production config, monitoring-lite Worker side, smoke scripts). The UI round follows the frames, then the QA gate.
