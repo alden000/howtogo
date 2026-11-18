@@ -1,0 +1,83 @@
+/**
+ * M5 UI-2 copy for the lazy launch chunk (views/launch.tsx): L3 update bar + What's new, L4 install helper and
+ * in-app-browser bar. Exact copy from STYLE-GUIDE 6f.3 / 6f.4 (zh first). Kept out of i18n/ui.ts so the Home
+ * entry stays inside its JS budget (M5 AC 3); the install-sheet sentences shared with F6 come from ui.ts.
+ */
+import type { UiLang } from '../state/store';
+
+const zh = {
+  upd_bar: '有新版本 · 点这里更新',
+  upd_sr: '有新版本，按一下更新',
+  upd_later: '以后再说',
+  upd_updating: '正在更新…',
+  upd_slow: '这次没更新好，下次打开时会自动更新。',
+  wn_title: '怎么去? 1.0 来了',
+  wn_1: '现在用的是真的巴士和地铁资料。',
+  wn_2: '电量低时会自动省电，下车提醒照样准时。',
+  wn_3: '没有网络也能打开，你的家和家人电话都还在。',
+  wn_ok: '知道了',
+  inst_add: '放到主屏幕',
+  inst_not_now: '以后再说',
+  inst_later_settings: '以后也可以在设置里安装。',
+  inst_how: '看看怎么做',
+  ig_title: '放到主屏幕，三步就好',
+  ig_1_safari: '看不到？先按右下角的“⋯”。',
+  ig_1_chrome: '分享按钮在网址栏的右边。',
+  ig_1_edge: '先按下面中间的“⋯”，再按“分享”。',
+  ig_ok: '好了，我知道了',
+  saf_b: '在 iPhone 上，要用 Safari 才能放到主屏幕。',
+  saf_copy: '复制链接',
+  saf_toast: '已经复制了。打开 Safari，在网址栏按住，选“粘贴并前往”。',
+  saf_1: '按“复制链接”。',
+  saf_2: '打开 Safari（蓝色指南针图标）。',
+  saf_3: '在网址栏按住，选“粘贴并前往”。',
+  iab_region: '打开方式',
+  iab_text: '在浏览器里打开会更好用',
+  iab_chrome: '用 Chrome 打开',
+  iab_copy_toast: '已经复制了。打开 Chrome，贴到网址栏。',
+  iab_how: '怎么打开？',
+  iab_later: '以后再说',
+  iabs_title: '用 Safari 打开',
+  iabs_1: '按右上角或右下角的“⋯”，选“在浏览器中打开”。',
+  iabs_2: '没有这个选项？',
+};
+
+const en: typeof zh = {
+  upd_bar: 'New version · tap to update',
+  upd_sr: 'New version ready. Tap to update',
+  upd_later: 'Later',
+  upd_updating: 'Updating…',
+  upd_slow: "It didn't update this time. It will update next time you open the app.",
+  wn_title: '怎么去? 1.0 is here',
+  wn_1: 'Bus and train times are now real.',
+  wn_2: 'When your battery is low, it saves power by itself. Get-off alerts still come on time.',
+  wn_3: 'It opens without internet. Your Home and family numbers are still there.',
+  wn_ok: 'Got it',
+  inst_add: 'Add to home screen',
+  inst_not_now: 'Not now',
+  inst_later_settings: 'You can also do this later in Settings.',
+  inst_how: 'Show me how',
+  ig_title: 'Three steps to your home screen',
+  ig_1_safari: "Can't see it? First tap “⋯” at the bottom right.",
+  ig_1_chrome: 'The Share button is at the right of the address bar.',
+  ig_1_edge: 'First tap “⋯” at the bottom middle, then “Share”.',
+  ig_ok: 'OK, got it',
+  saf_b: 'On iPhone, only Safari can put it on your home screen.',
+  saf_copy: 'Copy link',
+  saf_toast: 'Copied. Open Safari, press and hold the address bar, then choose “Paste and Go”.',
+  saf_1: 'Tap “Copy link”.',
+  saf_2: 'Open Safari (the blue compass icon).',
+  saf_3: 'Press and hold the address bar and choose “Paste and Go”.',
+  iab_region: 'How to open',
+  iab_text: 'Works best in your browser',
+  iab_chrome: 'Open in Chrome',
+  iab_copy_toast: 'Copied. Open Chrome and paste it into the address bar.',
+  iab_how: 'How?',
+  iab_later: 'Later',
+  iabs_title: 'Open in Safari',
+  iabs_1: 'Tap “⋯” at the top or bottom right and choose “Open in browser”.',
+  iabs_2: 'No such option?',
+};
+
+export type LaunchKey = keyof typeof zh;
+export const LAUNCH: Record<UiLang, Record<LaunchKey, string>> = { zh, en };

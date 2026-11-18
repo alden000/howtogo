@@ -30,11 +30,14 @@ export const STORAGE_KEYS = {
     'notify.asked', // the notification prompt was shown once
     'm6.batteryGuideSeen', // Android app: OEM battery guide shown
     'telemetry.v1', // M5 §I pending anonymous error COUNTS (code, screen, n) + the day's send budget
+    // M5 UI-2
+    'install.v1', // install card: completed route views count, dismissals, snooze-until date, installed (no UA)
+    'whatsnew.v1', // What's new: shown once after updating to 1.0.0 ('seen' / 'fresh')
   ],
   /** Legacy keys a migration folds in and removes. */
   legacy: ['recents'],
   /** sessionStorage (per tab, gone when the tab closes): test/demo modes, the in-progress plan, SW flags. */
-  session: ['plan', 'mode.*', 'mock.scn.*', 'demo.idx', 'sw.updated', 'sw.disabled', 'chunk.reloadedAt', 'telemetry.force'],
+  session: ['plan', 'mode.*', 'mock.scn.*', 'demo.idx', 'sw.updated', 'sw.disabled', 'chunk.reloadedAt', 'telemetry.force', 'iab.off'],
   /** Demo/mock mode only (never in live mode). */
   demoOnly: ['mockshare.*', 'mocksetup.*'],
 } as const;

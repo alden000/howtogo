@@ -6,7 +6,8 @@ import { here, inSingapore, locate } from '../state/location';
 import { isApiError } from '../api/errors';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
-import { Bar, HelpButton, Icon, Seal, StatePanel, useStateHook } from '../ui/kit';
+import { announce, Bar, HelpButton, Icon, NeedsNet, Seal, StatePanel, useStateHook } from '../ui/kit';
+import { noteRouteView } from '../pwa/launch';
 import { cardLabel, chips, clock, facts, hasBus, minutes, tagText } from './present';
 
 /** OQ6: least-walk asks OneMap for ≤ 500 m walks first, widening to 1000 m if nothing is found. */
@@ -192,6 +193,12 @@ export function Routes() {
   }, [online.value]);
 
   const options = phase === 'idle' ? plan.options : [];
+  // M5 L4 (AC 26): the install card waits for the 2nd completed route view (counted once per fetch).
+  useEffect(() => {
+    if (phase === 'idle' && plan.options.length && !walkOnlyPlan) noteRouteView(plan.fetchedAt ?? 0);
+  }, [phase, plan.fetchedAt]);
+  // M5 L6: offline, the cards say "需要网络" and do not open (the trip needs fresh times).
+  const off = !online.value;
   // State panels log their own `state:` line; here only the list and loading states.
   useStateHook(phase === 'idle' ? `routes-${options.length === 1 ? 'one' : 'some'}` : phase === 'loading' || phase === 'need_loc' ? `routes-${phase}` : null);
   const from = plan.from ?? (me ? { name: me.label ?? t('my_location') } : plan.start);
@@ -364,8 +371,12 @@ export function Routes() {
                   key={o.itinerary.id}
                   class={`card${pos === 0 && !affected ? ' best' : ''}`}
                   data-testid={`route-option-${i}`}
-                  aria-label={cardLabel(o, i, options.length, lang, t)}
+                  aria-label={`${cardLabel(o, i, options.length, lang, t)}${off ? `${t('sr_sep')}${t('need_net')}` : ''}`}
                   onClick={() => {
+                    if (off) {
+                      void platform.vibrate('tick');
+                      return announce(t('need_net_sr'));
+                    }
                     store.setPlan({ selected: i });
                     router.navigate('/trip');
                   }}
@@ -396,6 +407,7 @@ export function Routes() {
                     <LiftFacts itinerary={o.itinerary} />
                     {pos === 0 && firstBus(o.itinerary) && <ArrivalLine stop={firstBus(o.itinerary)!.from.code} svc={firstBus(o.itinerary)!.route ?? ''} />}
                   </span>
+                  {off && <NeedsNet />}
                   <span class="choose">
                     {t('choose')}
                     <Icon name="chev" />

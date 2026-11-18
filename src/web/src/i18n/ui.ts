@@ -444,6 +444,9 @@ const zh = {
   hj_stay: "在 {p} 待 {d}",
   hj_note: "每到一个地方，你按“继续”后，我才从那里找下一段路。",
   hj_change: "改一改",
+  // M5 UI-2: L6 offline cold start (STYLE-GUIDE 6f.6)
+  need_net: "需要网络",
+  need_net_sr: "需要网络。连上网络以后再按。",
   ...M34_ZH,
   // M5 UI-1
   ...M5UI1_ZH,
@@ -883,6 +886,9 @@ const en: typeof zh = {
   hj_stay: "Stay {d} at {p}",
   hj_note: "At each place, I find the next part only after you tap Continue.",
   hj_change: "Change places",
+  // M5 UI-2: L6 offline cold start (STYLE-GUIDE 6f.6)
+  need_net: "Needs internet",
+  need_net_sr: "Needs internet. Tap again once you're online.",
   ...M34_EN,
   // M5 UI-1
   ...M5UI1_EN,

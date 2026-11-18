@@ -1,12 +1,12 @@
 /** H1 Home (STYLE-GUIDE §6 H1). Saved places beyond Home are M4. */
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { haversine, type Place } from '@howtogo/shared';
 import { useServices, useT } from '../context';
-import { applyUpdate, updateBar } from '../pwa/register';
+import { online } from '../api/offline';
 import { here, locate } from '../state/location';
 import { nextAaSize, TEXT_SCALE } from '../state/store';
 import { HomeConfirm } from './HomeConfirm';
-import { Icon, showToast, useStateHook, Wordmark } from '../ui/kit';
+import { announce, Icon, NeedsNet, showToast, useStateHook, Wordmark } from '../ui/kit';
 
 /** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
 import { lazyView } from '../ui/lazy';
@@ -14,6 +14,12 @@ import { lazyView } from '../ui/lazy';
 // M5 AC 3: shown only when there is a disruption / a just-imported setup: separate chunks, warmed when idle.
 const DisruptionBanner = lazyView(() => import('./transit').then((m) => m.DisruptionBanner));
 const SetupUndo = lazyView(() => import('./family').then((m) => m.SetupUndo));
+// M5 L3/L4 (6f.3, 6f.4): update bar, What's new, in-app-browser bar (top) and install card (under the tiles).
+// One lazy chunk that decides for itself (kept out of the Home entry, AC 3); nothing renders during a trip/share.
+const launch = () => import('./launch');
+const LaunchTop = lazyView(() => launch().then((m) => m.LaunchTop));
+const LaunchCard = lazyView(() => launch().then((m) => m.LaunchCard));
+
 import { family } from '../state/family';
 import { refreshAlerts, refreshLifts } from '../transit/live';
 import { relDate } from '../transit/m3';
@@ -43,7 +49,13 @@ export function Home() {
   const recents = store.recents.value;
   const near = here.value;
   const plan = store.plan.value;
-  const [bannerOff, setBannerOff] = useState(false);
+  // L6: offline, controls that need the network keep their label, add "需要网络" and do not navigate.
+  const off = !online.value;
+  const offTap = () => {
+    void platform.vibrate('tick');
+    announce(t('need_net_sr'));
+  };
+  const offSr = off ? `${t('sr_sep')}${t('need_net')}` : '';
 
  useEffect(() => {
     void refreshAlerts(api);
@@ -71,12 +83,14 @@ export function Home() {
   useStateHook(nearHome ? 'home-at-home' : near ? 'home-away' : 'home-default');
 
   const go = (to: Place) => {
+    if (off) return offTap();
     // A new destination starts a new plan: the G2 stop list is kept only until H1 (6c.3).
     store.setPlan({ to, options: [], stops: undefined, journey: undefined });
     router.navigate('/routes');
   };
   const takeMeHome = () => {
     if (!home) return;
+    if (off) return offTap();
     if (nearHome) return showToast('already-home', t('already_home'));
     go(home);
   };
@@ -125,19 +139,9 @@ export function Home() {
         </button>
       </header>
       <main class="scroll">
+        <LaunchTop />
         <SetupUndo />
         <DisruptionBanner where="home" />
-        {updateBar.value && !bannerOff && (
-          <div class="banner" data-testid="update-banner">
-            <button type="button" data-testid="sw-update" aria-label={t('upd_sr')} onClick={applyUpdate}>
-              <Icon name="refresh" />
-              <span>{t('upd_banner')}</span>
-            </button>
-            <button type="button" class="iconbtn sq" data-testid="update-later" aria-label={t('upd_later')} onClick={() => setBannerOff(true)}>
-              <Icon name="close" />
-            </button>
-          </div>
-        )}
         <HomeConfirm />
         <div class="greet">
           <h2 class="t-display" data-testid="greeting">
@@ -165,7 +169,10 @@ export function Home() {
           <span class="mic" aria-hidden="true">
             <Icon name="mic" />
           </span>
-          <span class="grow">{t('search_cta')}</span>
+          <span class="grow">
+            {t('search_cta')}
+            {off && <NeedsNet />}
+          </span>
           <Icon name="search" />
         </button>
         {(home || others.length > 0) && (
@@ -181,26 +188,26 @@ export function Home() {
                 class="tile"
                 data-k="home"
                 data-testid="tile-home"
-                aria-label={`${t('home_tile')}${t('sr_sep')}${home.name}`}
+                aria-label={`${t('home_tile')}${t('sr_sep')}${home.name}${offSr}`}
                 onClick={() => go(home)}
               >
                 <span class="ic">
                   <Icon name="home" />
                 </span>
                 <span class="nm">{t('home_tile')}</span>
-                <span class="sub">{home.name}</span>
+                {off ? <NeedsNet /> : <span class="sub">{home.name}</span>}
               </button>
               )}
               {/* QA-40 (AC 39): the other saved places follow Home, in the order set in Settings → My places. */}
               {others.map((p, i) => {
                 const k = placeKind(p.label);
                 return (
-                  <button type="button" class="tile" data-k={k} data-testid={`tile-place-${i}`} aria-label={p.label !== p.name ? `${p.label}${t('sr_sep')}${p.name}` : p.label} onClick={() => go(p)}>
+                  <button type="button" class="tile" data-k={k} data-testid={`tile-place-${i}`} aria-label={`${p.label !== p.name ? `${p.label}${t('sr_sep')}${p.name}` : p.label}${offSr}`} onClick={() => go(p)}>
                     <span class="ic">
                       <Icon name={KIND_ICON[k]} />
                     </span>
                     <span class="nm">{p.label}</span>
-                    {p.label !== p.name && <span class="sub">{p.name}</span>}
+                    {off ? <NeedsNet /> : p.label !== p.name && <span class="sub">{p.name}</span>}
                   </button>
                 );
               })}
@@ -216,6 +223,7 @@ export function Home() {
             </div>
           </>
         )}
+        <LaunchCard />
         {recents.length > 0 && (
           <section data-testid="recent-trips" aria-labelledby="rt-h">
             <div class="sect">
@@ -231,6 +239,7 @@ export function Home() {
                     <span class="tx">
                       <b>{t('recent_to', { p: r.to.name })}</b>
                       <span>{t('recent_from', { p: r.from?.name ?? t('my_location'), d: relDate(r.date, Date.now(), toLang(s.lang)) })}</span>
+                      {off && <NeedsNet />}
                     </span>
                     <Icon name="chev" />
                   </button>
@@ -265,7 +274,14 @@ export function Home() {
         {home ? (
           <button type="button" class="btn btn-primary" data-testid="take-me-home" onClick={takeMeHome}>
             <Icon name="home" />
-            {t('take_me_home')}
+            {off ? (
+              <span class="btnlbl">
+                {t('take_me_home')}
+                <NeedsNet />
+              </span>
+            ) : (
+              t('take_me_home')
+            )}
           </button>
         ) : (
           <button type="button" class="btn btn-primary" data-testid="set-your-home" onClick={() => router.navigate('/search?mode=home')}>
