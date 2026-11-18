@@ -202,7 +202,7 @@ export const M34_ZH = {
   set_sendphone_s: '家人的页面会有“打电话给我”的按钮。',
   set_delete_all: '清除所有资料',
   set_delete_all_t: '要清除所有资料吗？',
-  set_delete_all_b: '家、常去的地方、家人电话和设置都会从这部手机上删掉。',
+  set_delete_all_b: '家、常去的地方、家人电话、设置和暂存的地图都会从这部手机上删掉。如果正在分享，会先停止。',
   // 6e.5 setup (senior side + family page)
   su_t: '让家人帮你设置',
   su_lead: '请家人在他们的手机上打开这个链接，帮你加常去的地方和家人的电话。',
@@ -468,7 +468,7 @@ export const M34_EN: Shape = {
   set_sendphone_s: 'Their page gets a "Call me" button.',
   set_delete_all: 'Delete all my data',
   set_delete_all_t: 'Delete all your data?',
-  set_delete_all_b: 'Home, your places, family numbers and settings are removed from this phone.',
+  set_delete_all_b: 'Home, your places, family numbers, settings and saved maps are removed from this phone. If you are sharing a trip, sharing stops first.',
   su_t: 'Let family set it up for you',
   su_lead: 'Ask a family member to open this link on their phone. They can add your places and family phone numbers.',
   su_send_wa: 'Send by WhatsApp',

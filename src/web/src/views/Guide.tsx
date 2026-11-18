@@ -4,14 +4,15 @@
  * G1 pocket view, G3 waypoint arrival and H12 arrival. Everything is rendered from
  * `runtime.ui` + `store.trip`; every decision lives in the runtime (no logic duplicated here).
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { createSaverState } from '../state/battery';
 import type { AlertState, Lang, Step } from '@howtogo/shared';
 import { online } from '../api/offline';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
 import { GuideMap } from '../map/GuideMap';
 import { toLang, type ActiveTrip } from '../state/store';
-import { Icon, showToast, useStateHook, type IconName } from '../ui/kit';
+import { announce, Icon, showToast, useStateHook, type IconName } from '../ui/kit';
 import { clock } from './present';
 import { ArrivedFamily, SharePill, useShareOnStart } from './share';
 import { ArrivalChip, rerouteAvoid, StepExtras, TripDisruption } from './transit';
@@ -300,6 +301,7 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
           <span class="num" data-testid="guide-eta">
             {t('g_arrive_left', { t: clock(etaMs, lang), n: minLeft })}
           </span>
+          <LeafChip />
         </div>
         <div class="steprow">
           <div class={`stepicon ${icon.cls}`} aria-hidden="true">
@@ -571,6 +573,36 @@ function GetOffAlert({ alert, t }: { alert: AlertState; t: TFn }) {
   );
 }
 
+// ------------------------------------------------------------------ L5 leaf chip
+
+/**
+ * 6f.5 L5: while battery saver is active on a trip, a plain-text chip at the right end of the step meta row
+ * (not a button, not focusable). When Auto turns it on mid-trip it fades in and one polite line is announced;
+ * turning off (charging) removes it silently. No voice, toast or haptic.
+ */
+function LeafChip() {
+  const { runtime, store } = useServices();
+  const t = useT();
+  const saverState = useMemo(() => createSaverState(store), [store]);
+  const on = runtime.power.value.saver;
+  const was = useRef(on);
+  const [fresh, setFresh] = useState(false);
+  useEffect(() => {
+    if (on && !was.current) {
+      setFresh(true);
+      if (saverState.peek().reason === 'battery') announce(t('bs_announce'));
+    }
+    was.current = on;
+  }, [on]);
+  if (!on) return null;
+  return (
+    <span class={`leafchip${fresh ? ' fadein' : ''}`} data-testid="leaf-chip">
+      <Icon name="leaf" />
+      {t('bs_row')}
+    </span>
+  );
+}
+
 // ------------------------------------------------------------------ G1 pocket view
 
 function Pocket({ trip, t }: { trip: ActiveTrip; t: TFn }) {
@@ -601,6 +633,11 @@ function Pocket({ trip, t }: { trip: ActiveTrip; t: TFn }) {
       <p class="line" lang={trip.lang} data-testid="pocket-line">
         {t(pt.line.key, pt.line.p)}
       </p>
+      {runtime.power.value.saver && (
+        <p class="saver" data-testid="pocket-saver">
+          {t('bs_row')}
+        </p>
+      )}
       {pt.count && (
         <p class="count num" data-testid="pocket-count">
           {t(pt.count.key, pt.count.p)}

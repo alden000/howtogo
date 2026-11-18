@@ -83,7 +83,7 @@ export function sanitize(d: SetupData): SetupData {
       .slice(0, 5) as Contact[];
   if (d.myPhone && /^\+\d{8,15}$/.test(d.myPhone)) out.myPhone = d.myPhone;
   if (d.lang === 'zh' || d.lang === 'en') out.lang = d.lang;
-  if (d.textSize && ['standard', 'large', 'xlarge', 'xxlarge'].includes(d.textSize)) out.textSize = d.textSize;
+  if (d.textSize && ['small', 'standard', 'large', 'xlarge', 'xxlarge'].includes(d.textSize)) out.textSize = d.textSize;
   return out;
 }
 

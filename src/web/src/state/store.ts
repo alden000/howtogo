@@ -9,10 +9,16 @@ import type { AlertState, BatterySaverPref, GuidanceState, Itinerary, Journey, L
 import { local, readJSON, session, writeJSON, type KV } from './storage';
 
 export type UiLang = 'zh' | 'en';
-/** 100 / 125 / 150 / 200 % (STYLE-GUIDE §1.2 `--ts`). */
-export type TextSize = 'standard' | 'large' | 'xlarge' | 'xxlarge';
-export const TEXT_SCALE: Record<TextSize, number> = { standard: 1, large: 1.25, xlarge: 1.5, xxlarge: 2 };
+/** 85 / 100 / 125 / 150 / 200 % (STYLE-GUIDE §1.2 `--ts`, 6f.11 adds `small`). New installs default to `standard`. */
+export type TextSize = 'small' | 'standard' | 'large' | 'xlarge' | 'xxlarge';
+export const TEXT_SCALE: Record<TextSize, number> = { small: 0.85, standard: 1, large: 1.25, xlarge: 1.5, xxlarge: 2 };
 export const TEXT_SIZES = Object.keys(TEXT_SCALE) as TextSize[];
+/** 6f.11: the Home AA button cycles 100 → 125 → 150 → 200 → 100 and never lands on 85 %. */
+export const nextAaSize = (cur: TextSize): TextSize => {
+  const cycle: TextSize[] = ['standard', 'large', 'xlarge', 'xxlarge'];
+  const i = cycle.indexOf(cur);
+  return i < 0 ? 'standard' : cycle[(i + 1) % cycle.length]!;
+};
 /** Reduce motion: follow the OS, or force on/off (H13). */
 export type MotionPref = 'auto' | 'on' | 'off';
 export type Theme = 'auto' | 'light' | 'dark';

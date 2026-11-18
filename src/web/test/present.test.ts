@@ -110,8 +110,8 @@ describe('small pure bits', () => {
     expect(inSingapore({ lat: 1.5, lng: 103.8 })).toBe(false);
     expect(inSingapore({ lat: 1.3, lng: 104.2 })).toBe(false);
   });
-  it('text sizes 100/125/150/200 and new settings defaults', () => {
-    expect(Object.values(TEXT_SCALE)).toEqual([1, 1.25, 1.5, 2]);
+  it('text sizes 85/100/125/150/200 and new settings defaults', () => {
+    expect(Object.values(TEXT_SCALE)).toEqual([0.85, 1, 1.25, 1.5, 2]);
     const mem = new Map<string, string>();
     const kv = { get: (k: string) => mem.get(k) ?? null, set: (k: string, v: string) => void mem.set(k, v), remove: (k: string) => void mem.delete(k) };
     const s = createStore(kv, kv);

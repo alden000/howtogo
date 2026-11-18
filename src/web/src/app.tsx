@@ -25,6 +25,9 @@ const Viewer = lazyView(() => import('./views/Viewer').then((m) => m.Viewer));
 const Help = lazyView(() => import('./views/Help').then((m) => m.Help));
 const settings = () => import('./views/Settings');
 const About = lazyView(() => settings().then((m) => m.About));
+// M5 UI-1: L1 Privacy page, L5 battery saver sheet.
+const Privacy = lazyView(() => import('./views/Privacy').then((m) => m.Privacy));
+const BatterySheet = lazyView(() => settings().then((m) => m.BatterySheet));
 const ClearSheet = lazyView(() => settings().then((m) => m.ClearSheet));
 const HomeSheet = lazyView(() => settings().then((m) => m.HomeSheet));
 const InstallSheet = lazyView(() => settings().then((m) => m.InstallSheet));
@@ -136,6 +139,9 @@ export function App() {
     case 'about':
       view = <About />;
       break;
+    case 'privacy':
+      view = <Privacy />;
+      break;
     case 'welcome':
       view = <Welcome />;
       break;
@@ -237,6 +243,7 @@ export function App() {
       {sheet === 'clear' && <ClearSheet />}
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
+      {sheet === 'battery' && <BatterySheet />}
       {sheet === 'route-prefs' && <RoutePrefsSheet />}
       <Toast />
       <LiveRegion />

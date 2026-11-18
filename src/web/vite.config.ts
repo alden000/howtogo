@@ -4,6 +4,10 @@ import preact from '@preact/preset-vite';
 import { APP_VERSION } from './src/version.ts';
 import { VIEWER_INPUT, isViewerFile, viewerEntry } from './vite.viewer.ts';
 
+declare const process: { env: Record<string, string | undefined> };
+/** M5 L2: the build date (UTC day) shown on About and written to /version.json; BUILD_DATE pins it. */
+const BUILT = process.env.BUILD_DATE ?? new Date().toISOString().slice(0, 10);
+
 /**
  * Service worker: src/sw/sw.ts is a second build entry emitted as /sw.js (no hash).
  * After bundling, the placeholder string '__PRECACHE__' is replaced with the list of
@@ -49,7 +53,7 @@ function versionJson(): Plugin {
     apply: 'build',
     generateBundle() {
       const version = APP_VERSION;
-      const built = new Date().toISOString().slice(0, 10);
+      const built = BUILT;
       this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version, built }) + '\n' });
     },
   };
@@ -82,6 +86,7 @@ function inlineCss(): Plugin {
 
 export default defineConfig({
   plugins: [preact({ prerender: { enabled: false } }), versionJson(), serviceWorker(), viewerEntry(), inlineCss()],
+  define: { __BUILD_DATE__: JSON.stringify(BUILT) },
   build: {
     target: 'es2022',
     sourcemap: false,

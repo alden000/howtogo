@@ -4,7 +4,7 @@ import { haversine, type Place } from '@howtogo/shared';
 import { useServices, useT } from '../context';
 import { applyUpdate, updateBar } from '../pwa/register';
 import { here, locate } from '../state/location';
-import { TEXT_SCALE, TEXT_SIZES } from '../state/store';
+import { nextAaSize, TEXT_SCALE } from '../state/store';
 import { HomeConfirm } from './HomeConfirm';
 import { Icon, showToast, useStateHook, Wordmark } from '../ui/kit';
 
@@ -82,7 +82,8 @@ export function Home() {
   };
   const greet = t(greetingKey(sgHour()));
   const pct = Math.round(TEXT_SCALE[s.textSize] * 100);
-  const nextSize = TEXT_SIZES[(TEXT_SIZES.indexOf(s.textSize) + 1) % TEXT_SIZES.length]!;
+  // 6f.11: AA cycles 100 → 125 → 150 → 200 → 100 and never lands on 85 % (from 85 % it goes to 100 %).
+  const nextSize = nextAaSize(s.textSize);
   const today = new Date().toLocaleDateString(s.lang === 'zh' ? 'zh-CN' : 'en-SG', {
     weekday: 'long',
     month: 'long',

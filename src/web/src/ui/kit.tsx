@@ -16,7 +16,9 @@ export type IconName =
   // §1.4 base icons used from M2 + the 6c icons approved by the Director (exit, moon, plus, arrow-up, arrow-down):
   | 'speaker' | 'mute' | 'bell' | 'car' | 'phone' | 'eye' | 'exit' | 'moon' | 'plus' | 'arrow-up' | 'arrow-down'
   // §6d.10 / §6e.9 icons approved with the M3/M4 frames (+ msg from §1.4):
-  | 'seat' | 'stand' | 'full' | 'wheelchair' | 'wheelchair-no' | 'deck2' | 'train-off' | 'card' | 'copy' | 'edit' | 'qr' | 'msg';
+  | 'seat' | 'stand' | 'full' | 'wheelchair' | 'wheelchair-no' | 'deck2' | 'train-off' | 'card' | 'copy' | 'edit' | 'qr' | 'msg'
+  // M5 UI-1: 6f.10 leaf (battery saver), creative/m5/icons.svg
+  | 'leaf';
 
 /** Icon paths copied from the prototype's <symbol>s (24px grid, 2.2px stroke). */
 const PATHS: Record<IconName, string> = {
@@ -36,6 +38,8 @@ const PATHS: Record<IconName, string> = {
   sliders: '<path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/>',
   nav: '<path d="M12 3l7 17-7-4-7 4z"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  // M5 UI-1 (creative/m5/icons.svg)
+  leaf: '<path d="M19.5 4.5C10.5 4.5 5 9 5 15.2c0 1.5.3 2.8.9 3.9 1.1.6 2.4.9 3.9.9C16 20 19.5 14.5 19.5 4.5z"/><path d="M4 20l8.5-8.5"/>',
   loc: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   share: '<circle cx="12" cy="12" r="2.3"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 8a5.7 5.7 0 0 1 0 8M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/>',

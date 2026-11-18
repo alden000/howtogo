@@ -250,6 +250,10 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 .radiocard{display:flex;align-items:center;gap:var(--s-3);min-height:var(--tap-hero);padding:12px 18px;border-radius:var(--r-l);background:var(--c-surface);border:3px solid var(--c-line);font-weight:700;text-align:left}
 .radiocard[aria-checked=true]{border-color:var(--c-primary);background:var(--c-primary-soft);color:var(--c-on-primary-soft)}
 .radiogrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr));gap:var(--s-3)}
+/* M5 UI-1 6f.11: the fifth size card spans the row; the size segment is a 3 + 2 grid at 85/100/125 %. */
+.radiogrid > :last-child:nth-child(odd){grid-column:1/-1}
+.seg.sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,5rem),1fr))}
+:root[data-text-size="xlarge"] .seg.sizes,:root[data-text-size="xxlarge"] .seg.sizes{grid-template-columns:1fr}
 .dots{display:flex;gap:6px}
 .dots i{width:.5rem;height:.5rem;border-radius:50%;background:var(--c-line)}
 .dots i.on{background:var(--c-primary)}

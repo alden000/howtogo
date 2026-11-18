@@ -11,6 +11,7 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/guide.css';
 import './styles/m34.css';
+import './styles/m5ui1.css'; // M5 UI-1
 import { render } from 'preact';
 import { effect, untracked } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
@@ -242,6 +243,11 @@ async function boot() {
     ...httpTransport(apiBase),
   });
   telemetry.install();
+  // M5 UI-1 (6f.7 L7, AC 40): switching error counts off drops the queued counts at once (flush() while
+  // disabled removes them and logs `telemetry:dropped`).
+  effect(() => {
+    if (store.settings.value.errorCounts === false) void untracked(() => telemetry.flush());
+  });
   // M5 AC 3/5: warm the lazy screen chunks once the first screen is up and the main thread is idle.
   setTimeout(() => whenIdle(() => void preloadViews()), 3000);
   captureInstallPrompt();

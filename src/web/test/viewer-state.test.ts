@@ -240,3 +240,16 @@ describe('M3/M4 fix B: viewer too many viewers (QA-43) and Open in Maps (QA-44)'
     expect(deriveView({ ...fold({ status: 'travelling' }), terminal: 'ended' }, T0).mapsUrl).toBeNull();
   });
 });
+
+describe('M5 UI-1 L8: viewer footer privacy link', () => {
+  it('links /privacy in the viewer language, on live and terminal footers', () => {
+    const v = deriveView(fold({}), T0 + 1000);
+    expect(renderParts(v, 'zh', null).foot).toContain('href="/privacy?lang=zh"');
+    expect(renderParts(v, 'zh', null).foot).toContain('隐私说明');
+    expect(renderParts(v, 'en', null).foot).toContain('href="/privacy?lang=en"');
+    const p = renderParts(v, 'en', null).foot;
+    expect(p.indexOf('30 minutes')).toBeLessThan(p.indexOf('/privacy'));
+    const ended = deriveView({ ...fold({}), terminal: 'expired' }, T0);
+    expect(renderParts(ended, 'en', null).foot).toContain('href="/privacy?lang=en"');
+  });
+});
