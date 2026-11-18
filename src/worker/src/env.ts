@@ -15,7 +15,10 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   /** Lifetime of a live trip share in hours (default 4, clamped 1..24). */
   SHARE_TTL_HOURS?: string;
-  /** "test" only in wrangler.toml [env.test]; unlocks SHARE_TEST_TTL_SECONDS. Never set in production. */
+  /**
+   * "preview" (top level), "production" ([env.production]) or "test" ([env.test] only; unlocks
+   * SHARE_TEST_TTL_SECONDS, never set in production).
+   */
   ENVIRONMENT?: string;
   /** M4 OQ6: short share lifetime in seconds for the two-browser e2e test. Honoured only when ENVIRONMENT = "test". */
   SHARE_TEST_TTL_SECONDS?: string;
@@ -26,7 +29,7 @@ export interface Env {
   FIXTURE_MODE?: string;
   /**
    * Workers Static Assets binding (wrangler.toml `[assets]`). Absent in the preview deploy
-   * (wrangler.preview.toml), which serves the embedded build instead (src/static.ts).
+   * (wrangler.embed.toml), which serves the embedded build instead (src/static.ts).
    */
   ASSETS?: Fetcher;
   /** KV namespace that holds the cached OneMap token. */
@@ -35,4 +38,14 @@ export interface Env {
   TRIP_SHARE: DurableObjectNamespace<import("./share").TripShare>;
   /** Durable Object namespace: one SetupBox per caregiver setup code (M4 AC 41). */
   SETUP_BOX: DurableObjectNamespace<import("./setup").SetupBox>;
+  /** M5 AC 39: one `Stats` Durable Object (name "stats") with anonymous counts (src/stats.ts). */
+  STATS: DurableObjectNamespace<import("./stats").Stats>;
+  /** M5 AC 39: owner-only token for `GET /api/stats` (Worker secret; unset → the endpoint is a 404). */
+  STATS_TOKEN?: string;
+  /**
+   * M5 AC 34: production only — the custom-domain origin (e.g. "https://howtogo.example"). When set,
+   * HTML pages requested on any other *.workers.dev host redirect there (except /t/* and /api/*), and
+   * HSTS is sent on that origin. Unset on the preview Worker and in tests.
+   */
+  CANONICAL_ORIGIN?: string;
 }

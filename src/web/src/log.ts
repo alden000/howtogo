@@ -30,7 +30,22 @@ function sink(): string[] {
   return window.__howtogoLog;
 }
 
+const listeners = new Set<(line: string) => void>();
+
+/** M5 §I: observe every log line (before de-duplication). The telemetry client maps lines to error codes. */
+export function onLog(cb: (line: string) => void): () => void {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
 export function log(line: string): void {
+  for (const cb of listeners) {
+    try {
+      cb(line);
+    } catch {
+      /* an observer never breaks logging */
+    }
+  }
   const arr = sink();
   const key = line.split(':', 1)[0] ?? line;
   if (PER_KEY.has(key)) {

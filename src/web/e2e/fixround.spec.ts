@@ -82,7 +82,8 @@ test('H2 From mode title, AC 31 metres, QA-6 focus moves to the new screen headi
   expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('search-input');
   await page.goBack();
   await page.getByTestId('nav-settings').click();
-  expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('H1');
+  // M5: Settings is a lazy chunk; its heading takes focus as soon as it renders.
+  await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('H1');
   await page.goBack();
   await toRoutes(page);
   await expect(page.getByTestId('route-option-0')).toContainText(/走路 \d+0 米/);

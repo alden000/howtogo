@@ -3,7 +3,7 @@
  * scripted fix stream (normally the shared engine's `simulateFixes`), played
  * back on a timer or stepped manually. Everything else records what it was asked.
  */
-import type { CuePriority, Lang } from '@howtogo/shared';
+import type { BatteryReading, CuePriority, Lang } from '@howtogo/shared';
 import type { LocationFix, NotifyCue, NotifyPermission, PermissionState, Platform, PlatformCapabilities, PlatformError, ShareOutcome, Unsubscribe, VibratePattern, VoiceSupport } from './types';
 
 export interface FakeControls {
@@ -39,6 +39,10 @@ export interface FakeControls {
   emitError(e: PlatformError): void;
   /** `intervalMs` of every `location.watch` call, in order (AC 38 location profile). */
   readonly watchIntervals: (number | undefined)[];
+  /** M5 AC 7: the full options of every `location.watch` call, in order (interval + accuracy per leg). */
+  readonly watchOptions: { intervalMs?: number | undefined; highAccuracy?: boolean | undefined }[];
+  /** M5 AC 8: the battery the fake reports (`battery.watch`); e.g. `{ supported: true, level: 0.15, charging: false }`. */
+  setBattery(r: BatteryReading): void;
   readonly wakeLockRequests: number;
 }
 
@@ -58,6 +62,8 @@ export interface FakePlatformOptions {
   start?: LocationFix;
   timers?: FakeTimers;
   shareOutcome?: ShareOutcome;
+  /** M5 AC 8: initial battery (default 80 %, not charging). */
+  battery?: BatteryReading;
   capabilities?: Partial<PlatformCapabilities>;
   voices?: VoiceSupport;
   wakeLockOk?: boolean;
@@ -89,6 +95,9 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
   const visWatchers = new Set<(v: boolean) => void>();
   const errWatchers = new Set<(e: PlatformError) => void>();
   const watchIntervals: (number | undefined)[] = [];
+  const watchOptions: { intervalMs?: number | undefined; highAccuracy?: boolean | undefined }[] = [];
+  let batteryReading: BatteryReading = opts.battery ?? { supported: true, level: 0.8, charging: false };
+  const batteryWatchers = new Set<(r: BatteryReading) => void>();
 
   const deliver = (f: LocationFix) => {
     position = f;
@@ -170,6 +179,11 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
       for (const w of [...errWatchers]) w(e);
     },
     watchIntervals,
+    watchOptions,
+    setBattery(r: BatteryReading) {
+      batteryReading = r;
+      for (const cb of [...batteryWatchers]) cb(r);
+    },
     get wakeLockRequests() {
       return wakeLockRequests;
     },
@@ -196,6 +210,7 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
       },
       async watch(onFix, onError, o = {}): Promise<Unsubscribe> {
         watchIntervals.push(o.intervalMs);
+        watchOptions.push({ intervalMs: o.intervalMs, highAccuracy: o.highAccuracy });
         watchers.add(onFix);
         if (onError) errWatchers.add(onError);
         if (permission === 'denied') queueMicrotask(() => onError?.({ code: 'denied', message: 'fake: denied' }));
@@ -257,10 +272,15 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
     },
     battery: {
       async level() {
-        return 0.8;
+        return batteryReading.level;
       },
       async onLow() {
         return () => {};
+      },
+      async watch(cb) {
+        batteryWatchers.add(cb);
+        cb(batteryReading);
+        return () => batteryWatchers.delete(cb);
       },
     },
   };

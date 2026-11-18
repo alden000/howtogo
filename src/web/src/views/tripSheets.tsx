@@ -10,7 +10,7 @@ import { useServices, useT } from '../context';
 import { here, locate } from '../state/location';
 import { announce, Bar, Icon, NumSteps, Sheet } from '../ui/kit';
 import { log } from '../log';
-import { dwellLabel } from './Guide';
+import { dwellLabel } from './viewUtil';
 import { HereFallback, SendMyLocation, TaxiButtons } from './helpSheet';
 import { stepGroup, vehicleIcon } from './guideModel';
 import type { FakePlatform } from '../platform';

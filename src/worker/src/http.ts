@@ -11,11 +11,22 @@ export class HttpError extends Error {
   }
 }
 
+/** M5 AC 39: what went wrong upstream (server-side stats only; never shown or logged with details). */
+export type UpstreamKind = "timeout" | "4xx" | "5xx";
+
 export class UpstreamError extends HttpError {
-  constructor(message = "The transport data service is not responding. Please try again shortly.") {
+  constructor(
+    message = "The transport data service is not responding. Please try again shortly.",
+    public kind: UpstreamKind = "5xx",
+  ) {
     super(502, "upstream_unavailable", message);
   }
 }
+
+/** UpstreamError for a failed fetch (network error or the 8 s timeout). */
+export const upstreamTimeout = () => new UpstreamError(undefined, "timeout");
+/** UpstreamError for a non-2xx upstream status. */
+export const upstreamStatus = (status: number) => new UpstreamError(undefined, status >= 400 && status < 500 ? "4xx" : "5xx");
 
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
@@ -51,11 +62,20 @@ export function allowedOrigins(env: Env): string[] {
     .filter(Boolean);
 }
 
-/** Returns true if the request may proceed (no Origin header, or Origin is allow-listed). */
+/** The request's own origin: the PWA served by this Worker is always allowed (both Workers, M5 AC 32). */
+const sameOrigin = (request: Request, origin: string) => {
+  try {
+    return new URL(request.url).origin === origin;
+  } catch {
+    return false;
+  }
+};
+
+/** Returns true if the request may proceed (no Origin header, same origin, or Origin is allow-listed). */
 export function originAllowed(request: Request, env: Env): boolean {
   const origin = request.headers.get("Origin");
   if (!origin) return true;
-  return allowedOrigins(env).includes(origin);
+  return sameOrigin(request, origin) || allowedOrigins(env).includes(origin);
 }
 
 export function preflight(request: Request, env: Env): Response {
@@ -82,7 +102,7 @@ export function finalize(response: Response, request: Request, env: Env): Respon
   const res = new Response(response.body, response);
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
   const origin = request.headers.get("Origin");
-  if (origin && allowedOrigins(env).includes(origin)) {
+  if (origin && !sameOrigin(request, origin) && allowedOrigins(env).includes(origin)) {
     res.headers.set("Access-Control-Allow-Origin", origin);
     res.headers.set("Access-Control-Expose-Headers", "Retry-After, X-Cache");
   }

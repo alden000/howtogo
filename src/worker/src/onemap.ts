@@ -1,5 +1,6 @@
 import type { Env } from "./env";
-import { HttpError, UpstreamError } from "./http";
+import { HttpError, UpstreamError, upstreamStatus, upstreamTimeout } from "./http";
+import { bump } from "./stats";
 
 export const ONEMAP_BASE = "https://www.onemap.gov.sg";
 export const TOKEN_URL = `${ONEMAP_BASE}/api/auth/post/getToken`;
@@ -56,12 +57,12 @@ async function requestNewToken(env: Env): Promise<TokenRecord> {
       body: JSON.stringify({ email: env.ONEMAP_EMAIL, password: env.ONEMAP_PASSWORD }),
     });
   } catch {
-    throw new UpstreamError();
+    throw upstreamTimeout();
   }
   if (!res.ok) {
     // Never echo the upstream body: it may reflect the credentials.
     console.error("onemap_token_renew_failed", res.status);
-    throw new UpstreamError();
+    throw upstreamStatus(res.status);
   }
   let data: { access_token?: unknown; expiry_timestamp?: unknown };
   try {
@@ -71,6 +72,7 @@ async function requestNewToken(env: Env): Promise<TokenRecord> {
   }
   if (typeof data.access_token !== "string" || !data.access_token) throw new UpstreamError();
   const rec = { token: data.access_token, expiresAt: parseExpiry(data.expiry_timestamp) };
+  bump("token_renew");
   try {
     const ttl = Math.max(60, Math.floor((rec.expiresAt - Date.now()) / 1000));
     await env.TOKEN_KV.put(TOKEN_KV_KEY, JSON.stringify(rec), { expirationTtl: ttl });
@@ -134,7 +136,7 @@ export async function oneMapGet(env: Env, pathAndQuery: string, opts: { requireT
     try {
       return await fetchWithTimeout(url, { headers: token ? { Authorization: token } : {} });
     } catch {
-      throw new UpstreamError();
+      throw upstreamTimeout();
     }
   };
   let token = await getOneMapToken(env);
@@ -145,7 +147,7 @@ export async function oneMapGet(env: Env, pathAndQuery: string, opts: { requireT
   }
   if (!res.ok) {
     console.error("onemap_upstream_error", pathAndQuery.split("?")[0], res.status);
-    throw new UpstreamError();
+    throw upstreamStatus(res.status);
   }
   return res;
 }

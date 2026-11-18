@@ -7,6 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./data": "./src/data/index.ts",
+    "./telemetry": "./src/telemetry.ts",
+    "./battery": "./src/battery.ts",
     "./fixtures": "./test/fixtures/index.ts"
   },
   "scripts": {

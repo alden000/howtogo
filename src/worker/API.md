@@ -23,7 +23,7 @@ All responses are JSON (`application/json; charset=utf-8`) unless noted.
 - Other codes: `400 invalid_*` / `missing_query`, `404 not_found`, `405 method_not_allowed`, `413 payload_too_large` (bodies > 4 KB; `POST /api/setup` allows the 4096-byte ciphertext in base64url, ≈ 5.5 KB), `500 internal_error`.
 
 ## GET /api/health
-`{"ok":true,"fixtureMode":true|false,"lta":"key"|"proxy"|"none"}`, `Cache-Control: no-store`, not rate-limited. `lta`: `key` = own `LTA_ACCOUNT_KEY` secret (all LTA endpoints); `proxy` = no key but the `LTA_PROXY` service binding to `whereisthebus-lta-proxy` (bus arrival only; `/api/alerts` and `/api/lifts` answer 503 `not_configured`); `none` = no LTA data. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
+`{"ok":true,"fixtureMode":true|false,"onemap":"ok"|"missing"|"fixture","lta":"key"|"proxy"|"none","version":"x.y.z"}` (M5 AC 31: `onemap` = credentials set or not, never token expiry; `version` = the deployed web build), `Cache-Control: no-store`, not rate-limited. `lta`: `key` = own `LTA_ACCOUNT_KEY` secret (all LTA endpoints); `proxy` = no key but the `LTA_PROXY` service binding to `whereisthebus-lta-proxy` (bus arrival only; `/api/alerts` and `/api/lifts` answer 503 `not_configured`); `none` = no LTA data. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
 
 ## GET /api/search?q=
 OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 24 h per lower-cased, whitespace-collapsed query (`Cache-Control: private, max-age=86400`).
@@ -89,6 +89,12 @@ LTA `v2/FacilitiesMaintenance` (API guide v6.11 §2.23: ad hoc lift maintenance 
 - `liftId`: optional in LTA's data → `null` when absent. `desc`: LTA's `LiftDesc` (exit/level text, English).
 - `fetchedAt`: when the Worker fetched LTA. M3 AC 31: the "lifts OK" fact needs `fetchedAt` < 15 min old.
 - Sorted by station code (numeric-aware), then lift id; duplicates removed.
+
+## POST /api/telemetry (M5 §I, anonymous error counts)
+Body: a JSON array of 1–20 rows `{"v":"1.0.0","code":"api_timeout","screen":"routes","n":2}` and nothing else (shared `parseTelemetry`, `src/shared/src/telemetry.ts`): `code` from the fixed client enum, `screen` a router screen id, `n` an integer 1–1000, body ≤ 2 KB. Any extra field or unknown value → `400 invalid_telemetry`, nothing stored. `204` on success. Per IP 12 reports/hour (in-memory, hashed, never stored) → `429`. Rows are filed in the `Stats` Durable Object under the Singapore day they arrive (day × version × code × screen → n), deleted after 90 days. The Worker adds its own rows (`screen:"worker"`): upstream OneMap/LTA 4xx/5xx/timeouts, token renewals, share creates/ends, rate-limit hits.
+
+## GET /api/stats?days=N (owner only)
+`Authorization: Bearer <STATS_TOKEN>` (Worker secret, ≥ 16 chars) → `{"days":7,"rows":[{"day","v","code","screen","n"}]}`, `no-store`; `days` 1–90 (default 7). Without the secret, without the header or with a wrong token → plain `404 not_found`.
 
 ## Live trip sharing
 One Durable Object per share id. The id is 12 base62 characters (~71 bits). The owner token is 32 random bytes in base64url, and only its SHA-256 hash is stored.

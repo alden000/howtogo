@@ -7,7 +7,8 @@ import { MAX_JOURNEY_STOPS, type Place } from "@howtogo/shared";
 import { useServices, useT } from "../context";
 import { here } from "../state/location";
 import { announce, Bar, Icon, useStateHook } from "../ui/kit";
-import { dwellLabel, useTick } from "./Guide";
+import { dwellLabel, useTick } from "./viewUtil";
+export { addStop } from "./viewUtil";
 
 /** Pure list edits (unit-tested). */
 export function moveStop(stops: Place[], i: number, d: -1 | 1): Place[] {
@@ -20,10 +21,6 @@ export function moveStop(stops: Place[], i: number, d: -1 | 1): Place[] {
 export function removeStop(stops: Place[], i: number): Place[] {
   return stops.length <= 1 ? stops : stops.filter((_, k) => k !== i);
 }
-export function addStop(stops: Place[], p: Place): Place[] {
-  return stops.length >= MAX_JOURNEY_STOPS ? stops : [...stops, p];
-}
-
 export function JourneyBuilder() {
   const { store, router, runtime } = useServices();
   const t = useT();

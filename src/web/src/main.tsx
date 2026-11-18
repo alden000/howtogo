@@ -12,7 +12,7 @@ import './styles/app.css';
 import './styles/guide.css';
 import './styles/m34.css';
 import { render } from 'preact';
-import { effect } from '@preact/signals';
+import { effect, untracked } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
 import { App } from './app';
 import { createHttpApi } from './api/client';
@@ -20,7 +20,7 @@ import { offlineAware, watchOnline } from './api/offline';
 import type { Api } from './api/types';
 import { ServicesContext, type Services } from './context';
 import { log } from './log';
-import { createDemoPlatform, createFakePlatform, createWebPlatform, type FakePlatform, type Platform } from './platform';
+import { createWebPlatform, type FakePlatform, type Platform } from './platform';
 import { captureInstallPrompt } from './pwa/install';
 import { cacheTripTiles, clearTripTiles, registerServiceWorker } from './pwa/register';
 import { corridorTiles, styleForTheme } from './map/onemap';
@@ -28,13 +28,21 @@ import { isDark } from './map/MapPanel';
 import { createRouter } from './router/router';
 import { parseRouteLink } from './router/deeplink';
 import { checkSampleMode, sampleMode } from './state/sample';
-import { session } from './state/storage';
+import { local, session } from './state/storage';
+import { runMigrations } from './state/migrations';
+import { createSaverState, watchBattery } from './state/battery';
+import { helpShare } from './state/helpShare';
+import { installChunkReload } from './pwa/chunkReload';
+import { setUpdateGuard } from './pwa/register';
+import { createTelemetry, httpTransport, type Screen } from './telemetry/client';
+import { APP_VERSION } from './version';
+import { preloadViews, whenIdle } from './ui/lazy';
 import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
 
 const DEMO_DEFAULT_MS = 400;
-/** Production Worker origin for the Android app (D-11 domain once live; the workers.dev origin works meanwhile). */
-const NATIVE_API_BASE = 'https://howtogo.raus-ums.workers.dev';
+/** Production Worker origin for the Android app (D-11 custom domain, live since the first deploy). */
+const NATIVE_API_BASE = 'https://howtogo.wwweeeiii.com';
 const DEFAULT_FLAGS = ['guide', 'help'];
 
 async function boot() {
@@ -100,11 +108,21 @@ async function boot() {
     log(`platform:${platform.kind}`);
   }
   if (demo) {
+    // Demo only: the fake platform is its own chunk (M5 AC 3), never loaded in live mode.
+    const { createFakePlatform, createDemoPlatform } = await import('./platform/fake');
     fake = createFakePlatform({ start: { ...start!, acc: 8, t: Date.now() } });
     platform = createDemoPlatform(web, fake);
   }
 
+  // M5 AC 17d: migrate stored data to this build's schema BEFORE anything reads it.
+  const mig = runMigrations(local);
+  if (mig.ran.length) log(`storage:migrated ${mig.from}->${mig.to}`);
+  else if (mig.newer) log('storage:newer');
   const store = createStore();
+  // M5 AC 18: a failed lazy chunk → one clean reload (trip flushed first), never a loop.
+  installChunkReload({ beforeReload: () => store.flushTrip() });
+  // M5 AC 8: low-battery mode (Settings row + H5 chip come in the UI round).
+  const saverState = createSaverState(store);
   // AC 6: the shared deep link `/#/route?from=lat,lng&to=lat,lng` restores Route options (from is optional = my location).
   const deep = await parseRouteLink(location.hash, api);
   if (deep) {
@@ -121,6 +139,7 @@ async function boot() {
     store,
     platform,
     api,
+    saver: () => saverState.peek().active,
     onAttach: fake
       ? (trip, resumed) => {
           const fixes = simulateFixes(trip.itinerary, { speedWalk: 3, intervalS: 2, jitterM: 2, waitCapS: 20, seed: 7 });
@@ -204,6 +223,27 @@ async function boot() {
     }
   });
 
+  // M5 AC 8: watch the battery; re-apply the power policy when low-battery mode flips.
+  void watchBattery(platform, store, () => runtime.syncPower());
+  // M5 AC 17: no update bar and no reload while a trip or a share is active.
+  effect(() => {
+    const tr = store.trip.value;
+    const tripActive = !!tr && tr.phase !== 'arrived' && tr.guidance.status !== 'arrived';
+    setUpdateGuard(tripActive || !!tr?.share || !!helpShare.current.value);
+  });
+  // M5 §I: anonymous error counts (live mode only; Settings switch `errorCounts`, UI round). Never on /t/:id.
+  if (q.get('telemetry') === '1') session.set('telemetry.force', '1');
+  const automation = (navigator as Navigator & { webdriver?: boolean }).webdriver === true && session.get('telemetry.force') !== '1';
+  const telemetry = createTelemetry({
+    kv: local,
+    version: APP_VERSION,
+    enabled: () => import.meta.env.PROD && !mock && !automation && store.settings.peek().errorCounts !== false,
+    screen: () => untracked(() => router.route.value.name as Screen),
+    ...httpTransport(apiBase),
+  });
+  telemetry.install();
+  // M5 AC 3/5: warm the lazy screen chunks once the first screen is up and the main thread is idle.
+  setTimeout(() => whenIdle(() => void preloadViews()), 3000);
   captureInstallPrompt();
   // M6 AC 4: no service worker inside the app (assets are local; updates come with a new APK).
   if (import.meta.env.PROD && !nativeApp && session.get('sw.disabled') !== '1') void registerServiceWorker();

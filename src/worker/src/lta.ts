@@ -1,5 +1,5 @@
 import type { Env } from "./env";
-import { HttpError, UpstreamError } from "./http";
+import { HttpError, UpstreamError, upstreamStatus, upstreamTimeout } from "./http";
 import { fetchWithTimeout } from "./onemap";
 
 export const LTA_BASE = "https://datamall2.mytransport.sg/ltaodataservice";
@@ -13,11 +13,11 @@ export async function ltaGet(env: Env, pathAndQuery: string): Promise<string> {
       headers: { AccountKey: env.LTA_ACCOUNT_KEY, Accept: "application/json" },
     });
   } catch {
-    throw new UpstreamError();
+    throw upstreamTimeout();
   }
   if (!res.ok) {
     console.error("lta_upstream_error", pathAndQuery.split("?")[0], res.status);
-    throw new UpstreamError();
+    throw upstreamStatus(res.status);
   }
   return res.text();
 }
@@ -43,11 +43,11 @@ export async function ltaBusArrival(env: Env, stop: string): Promise<string> {
   try {
     res = await env.LTA_PROXY.fetch(new Request("https://lta-proxy/bus-arrival?BusStopCode=" + stop));
   } catch {
-    throw new UpstreamError();
+    throw upstreamTimeout();
   }
   if (!res.ok) {
     console.error("lta_proxy_error", "/bus-arrival", res.status);
-    throw new UpstreamError();
+    throw upstreamStatus(res.status);
   }
   let entry: unknown;
   try {

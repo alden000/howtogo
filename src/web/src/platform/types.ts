@@ -4,7 +4,7 @@
  * Native-friendly rules: every call is async (or fire-and-forget), payloads are
  * plain JSON-able objects, and no DOM types appear in signatures.
  */
-import { HAPTIC_PATTERNS, type CuePriority, type HapticName, type Lang } from '@howtogo/shared';
+import { HAPTIC_PATTERNS, type BatteryReading, type CuePriority, type HapticName, type Lang } from '@howtogo/shared';
 
 export interface LocationFix {
   lat: number;
@@ -98,6 +98,11 @@ export interface BatteryApi {
   level(): Promise<number | null>;
   /** Fires when level drops below `threshold` (default 0.2) and not charging. */
   onLow(cb: (level: number) => void, threshold?: number): Promise<Unsubscribe>;
+  /**
+   * M5 AC 8: level + charging now and on every change (low-battery mode). Optional: a platform without it is
+   * treated as "Battery API unsupported" (Auto behaves like Off).
+   */
+  watch?(cb: (r: BatteryReading) => void): Promise<Unsubscribe>;
 }
 
 /** Speech-to-text for the search mic (H2). Absent when the platform cannot do it (the mic is hidden). */

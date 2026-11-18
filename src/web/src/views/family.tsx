@@ -15,7 +15,7 @@ import { family, formatPhone, MAX_CONTACTS, normalizePhone, RELATIONS, type Cont
 import { TEXT_SIZES, type TextSize } from '../state/store';
 import { announce, Icon, Sheet, showToast, Wordmark } from '../ui/kit';
 import { applySetup, openSetup, parseSetupLink, replaces, sealSetup, undoSetup, type SetupData, type Snapshot } from '../setup/setup';
-import { openExternal } from './share';
+import { openExternal } from './shareUtil';
 
 // ---------------------------------------------------------------- P3
 export function FamilyList() {

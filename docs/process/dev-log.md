@@ -1122,3 +1122,181 @@ Branch `dev/m34-fix` (worktree `howtogo-dev-c`) = `dev/m34-fix-a` + `dev/m34-fix
 - **QA-51:** `embed-assets.mjs --if-stale` (pretest/pretypecheck; `--if-missing` is an alias) regenerates `src/generated/assets.ts` when it is missing or older than `dist/index.html`, `dist/_headers`, `web/public/_headers` or the script itself. Cost: four `stat` calls when fresh.
 - Tests: typecheck green; worker 171/171, web 208/208; host `qa/tests/matrix.spec.ts` **12/12**; m3 AC 41 passes.
 - Baseline re-recorded in Docker: `M1-F6-about-light-100-zh.png` only. The about baseline, `fixa` QA-33/35 and the `ui` about test pass without update.
+
+## 2026-11-18 — Developer: M5 engine round
+
+Branch `dev/m5-engine` (worktree `howtogo-m5e`). No new user-visible UI. Not pushed and nothing deployed. No wrangler command ran against Cloudflare; I used only local `wrangler dev --local` and `wrangler deploy --dry-run`.
+
+**A. Performance (AC 1–5)**
+- Measured first: release build, `qa/scripts/lighthouse.sh`, mobile, median of 3.
+  - **Before:** `/` perf 83 (one run of 3 failed), `/about` 81, `/settings` 92. a11y 100, best practices 100/96/100. FCP 2.1–2.7 s, LCP 2.5–3.1 s, TBT 370–756 ms, CLS 0.
+  - **After** (final build): `/` **96**, `/about` **95**, `/settings` **96**, `/t/<id>` 100. a11y 100 everywhere, best practices 100/96/100/100, SEO 100/100/100 (`/t/*` 54, noindex). `/`: LCP 2393 ms, TBT 78 ms, CLS 0. One `/` run of 3 scored 85: host noise, and the median is 96.
+- Home eager JS went from **121.6 KB gz** (one 106 KB entry) to **98.9 KB** (budget 100).
+  - Every screen and sheet that Home and the first run do not need is now a lazy chunk (`src/ui/lazy.ts` `lazyView()`).
+  - `preloadViews()` warms them 3 s after boot, when the browser is idle. The SW precaches them, so they work offline.
+  - Helpers that pulled Guide, Journey and share into the entry moved to `views/viewUtil.ts` and `views/shareUtil.ts`. The old modules re-export them.
+  - The demo fake platform loads only in demo mode.
+  - Help stays eager (D-7).
+- The app CSS is inlined into `index.html` by the vite plugin `inlineCss` (10.7 KB gz).
+- Added a meta description (placeholder copy for Creative) and `public/robots.txt` (it disallows `/api/` only).
+- AC 3 budgets are in `src/web/scripts/budget.mjs`. Both `npm run build` and the gate (`qa/scripts/size.mjs`) use it.
+  - Results: home 98.9 / 100, app 150.3 / 250, viewer 24.1 / 60, css 10.7 / 30. MapLibre is lazy and not referenced by `index.html`.
+  - An overrun prints the chunk names and sizes.
+  - `size-viewer.mjs` is folded into `budget.mjs`.
+- Gate raised in `lighthouse.sh` (RELEASE-GATE rows 5 and 10):
+  - perf ≥ 90, a11y ≥ 95, best practices ≥ 90, SEO ≥ 90;
+  - LCP ≤ 2.5 s and TBT ≤ 200 ms on `/`;
+  - CLS ≤ 0.05 everywhere.
+  - URLs come from `LH_PATHS`. `/t/*` is judged without SEO.
+- Caching (AC 5) is enforced by the Worker (`src/worker/src/pages.ts`):
+  - hashed `/assets/*`: `public, max-age=31536000, immutable`;
+  - `index.html`, `sw.js`, the manifest and `version.json`: `no-cache`.
+  - `smoke:deploy` against local `wrangler dev` checks this: **29/29 PASS**.
+- Not done:
+  - AC 6, MapLibre prefetch after 3 s idle (a Should).
+  - The AC 2 repeat-visit ≤ 1.0 s measurement.
+  - `/privacy` and `/route` in the Lighthouse list. They need the UI-round page and a seeded plan.
+  - `/about` best practices is 96 because of `image-size-responsive` on the 28 px OneMap logo. Fix in the UI round: a 2× logo or explicit sizes.
+
+**B. Battery (AC 7–9)**
+- `src/shared/src/battery.ts` (pure functions):
+  - `batterySaver(pref, reading)`: on at ≤ 20 % and not charging (OQ6). Without the Battery API, Auto behaves like Off and `autoAvailable` is false.
+  - `powerPolicy`:
+    - pocket view after 20 s instead of 45 s;
+    - map animations off, and the map renders only on camera change;
+    - share cadence 30 s moving / 120 s still (normal: 15 s / 60 s).
+    - `shareCadence(…,'help')` keeps the normal cadence (D-7).
+  - `gpsProfile(step, stopsLeft, saver)`:
+    - walk 2 s, wait 5 s, ride 5 s (bus) or 10 s (train), last 2 stops 2 s;
+    - `highAccuracy:false` only when more than 3 stops are left before the alighting stop;
+    - battery saver widens only that middle-of-ride interval, to 10 s.
+  - `gateFix` drops fixes that arrive faster than the profile interval (10 % jitter tolerance).
+- Tests (`shared/test/battery.test.ts`, 20):
+  - The AC 9 test replays the bus-only trip and the 9-stop MRT trip at 1 Hz through the gate, normal vs battery saver.
+  - Both modes give the same alert sequence: get-off next stop, get-off now, arrival, and no off-route.
+  - Each alert fires within 2 s of normal mode.
+- Runtime (`trip/runtime.ts`):
+  - `gpsProfile` and the fix gate run in `onFix`.
+  - The gate is on by default for real platforms and off for demo/fake, which keeps the M2 demo timing (option `fixGate`).
+  - The share cadence and the pocket `idleMs` come from the policy.
+  - Alerts, Help and arrival paths are untouched.
+  - New log line: `loc:accuracy high|low`.
+
+**D. Updates / offline (AC 17, 18)**
+- `state/migrations.ts`: `howtogo.schema`, `CURRENT_SCHEMA = 1`, and the `STORAGE_KEYS` inventory (AC 25). It runs in `main.tsx` before `createStore`.
+  - The v1 step is idempotent and repairs shapes without dropping data.
+  - A newer schema is never rewritten.
+  - A failing step stops the chain; it is retried on the next launch.
+- Tests (`web/test/migrations.test.ts`) cover:
+  - a 0.x install with an active trip and share: the trip and the share id survive;
+  - running twice changes nothing;
+  - repair of broken shapes;
+  - a newer schema left alone;
+  - a failing step;
+  - every key used in `src/` is documented.
+- `pwa/register.ts`:
+  - `updateBar` = `updateReady` and no active trip or share. `setUpdateGuard` in main feeds it.
+  - `applyUpdate()` does nothing while busy.
+  - A controller change while busy is deferred (`pendingReload`) and reloads once when idle.
+  - Home's existing bar now reads `updateBar`.
+- `pwa/chunkReload.ts`: a failed chunk (`vite:preloadError`, a dynamic-import rejection or a lazy view) flushes the trip and reloads once. A second failure within 60 s only logs `chunk:reload-skipped`.
+- Edge: `[assets] not_found_handling="none"`. The Worker does the SPA fallback for page paths, so a missing chunk is a real 404 (before: `index.html` with 200).
+
+**G. Production config (AC 30–34)**
+- `wrangler.toml`:
+  - Top level = **`howtogo-preview`**: FIXTURE_MODE "1", its own KV placeholder `REPLACE_WITH_PREVIEW_KV_ID`.
+  - **`[env.production]` = `howtogo`**:
+    - custom domain route howtogo.wwweeeiii.com;
+    - `CANONICAL_ORIGIN`;
+    - FIXTURE_MODE "0";
+    - the existing `howtogo-TOKEN_KV`;
+    - ALLOWED_ORIGINS = the production origin + `https://localhost`.
+  - `[env.test]` is unchanged, plus STATS.
+  - `account_id` is pinned. The LTA_PROXY note is kept.
+- Static assets are the default for both Workers, with `run_worker_first = ["/*", "!/assets/*"]`.
+- The embed path is opt-in:
+  - `src/index.embed.ts` plus a generated `wrangler.embed.toml` (`scripts/embed-config.mjs`; `config.test.ts` fails if it is stale).
+  - `src/index.ts` no longer bundles the build. Dry-run bundle: 103 KB.
+- `src/app.ts` has `createWorker(embedded)`. Same-origin requests are always allowed.
+- `pages.ts`:
+  - per-origin CSP (it allows the origin's own `wss:`), HSTS, nosniff, Permissions-Policy;
+  - no-referrer on `/setup*` and `/s/*`;
+  - HTML pages on workers.dev redirect (302) to the custom domain, except `/t/*` and `/api/*`.
+- The raus-ums origin is gone everywhere. `NATIVE_API_BASE` = the custom domain.
+- `/api/health` returns `{ok, fixtureMode, onemap, lta, version}`. The build emits `/version.json`.
+- New commands:
+  - `npm run deploy:preview` / `deploy:prod` (`scripts/deploy.mjs`). It refuses placeholder KV ids; flags `--embed` and `--dry-run`.
+  - `npm run smoke:deploy -- <url> [--expect-live]`.
+  - `npm run smoke:live -- <url>`:
+    - exit 2 (BLOCKED) with no URL, in fixture mode, or without credentials;
+    - at most 20 requests, at least 300 ms apart;
+    - `--json` for a report.
+- Docs: `docs/process/DEPLOY.md` (exact owner commands, secrets, rollback, key rotation, the Web Analytics note) and `src/worker/API.md`.
+
+**I. Monitoring-lite (AC 38–39; the AC 40 switch comes in the UI round)**
+- Contract: `src/shared/src/telemetry.ts`.
+- Worker (`src/worker/src/stats.ts`):
+  - `Stats` Durable Object (SQLite): day × version × code × screen.
+  - Rows older than 90 days are pruned on every write and by a daily alarm. Versions and rows are capped.
+  - `POST /api/telemetry`: strict schema (400 on any extra field), 12 reports per hour per IP, 2 KB body limit.
+  - `GET /api/stats`: Bearer `STATS_TOKEN`, otherwise 404.
+  - Server-side counts are coalesced and flushed at most once a minute: upstream 4xx/5xx/timeout (via `UpstreamError.kind`), token renewals, share creates and ends, 429s.
+  - Nothing is logged.
+- Client (`src/web/src/telemetry/client.ts`):
+  - Codes come from log lines and window errors.
+  - At most one report per 5 min and 20 per day; `sendBeacon` when the page is hidden.
+  - Pending counts are kept in `howtogo.telemetry.v1`.
+  - Switched off (`settings.errorCounts=false`): everything is dropped.
+  - Off under `navigator.webdriver` unless the tab sets `?telemetry=1`.
+  - Live mode only, never on `/t/`.
+
+**Tests**
+- Typecheck green.
+- Unit tests, all pass: shared **159**, web **229**, worker **220**.
+  - New: battery 20, migrations 7, m5-engine 14, worker stats / pages / config.
+- `smoke:deploy`: 29/29 against local `wrangler dev` (static assets).
+- `wrangler dev --env test`: `/t/`, `/settings`, a missing chunk (404), share create and telemetry all checked.
+- Dev e2e (Docker, full suite): **156/156**. Nothing was re-recorded, so no baseline changed. The first runs failed in three places; all three are fixed:
+  - `vite:preloadError` fires for ANY error in an import chain. In Docker, a MapLibre constructor error triggered the chunk reload mid-test.
+    - Fix: reload only for a real load failure of a non-MapLibre chunk (`shouldReloadFor`).
+    - Also: never reload while offline (`chunk:offline`). A lazy view retries on `online`.
+  - Focus on a lazy screen's heading: `app.tsx` now waits for the heading, up to 3 s, with a MutationObserver. `e2e/fixround.spec.ts` QA-6 now polls the focus instead of reading it at once.
+  - The exit-motion ghost (`ui/ghost.ts`) now starts its 280 ms clock when the new (lazy) screen has content. The stage is never empty, and the hand-over looks as it did with eager screens.
+
+**Hooks for the UI round (exact names)**
+- Update bar (Home and Settings only): `updateBar`, `applyUpdate()`, `justUpdated`, `pendingReload` (`src/web/src/pwa/register.ts`).
+- Battery saver:
+  - `settings.batterySaver` ('auto' | 'on' | 'off');
+  - `createSaverState(store)` → `{active, reason, autoAvailable}`, and `batteryReading` (`src/web/src/state/battery.ts`);
+  - `runtime.power` `{saver, profile, accepted, dropped}` for the H5 leaf chip;
+  - `runtime.syncPower()`;
+  - log line `battery:saver on|off`;
+  - fake platform: `platform.fake.setBattery(r)` and `platform.fake.watchOptions`.
+- **Map, not wired yet:** GuideMap / MapPanel should read `powerPolicy(runtime.power.value.saver)` → `mapAnimations` and `mapRenderOnCameraChangeOnly`.
+- Error-counts switch: `settings.errorCounts` (default true, OQ3). The Privacy page lists `STORAGE_KEYS` (`src/web/src/state/migrations.ts`). QA can force telemetry with `?telemetry=1`.
+- Log hooks:
+  - `sw:update-deferred`, `sw:reload`;
+  - `chunk:failed`, `chunk:reload`, `chunk:reload-skipped`;
+  - `storage:migrated a->b`, `storage:newer`;
+  - `telemetry:sent n`.
+
+**Needs a Director ruling**
+1. `/api/health` `lta` keeps its M3 values (`key|proxy|none`) instead of AC 31's `"ok"`. `onemap` is `ok|missing|fixture`. `smoke:live` treats `lta:"key"` as live.
+2. Lighthouse SEO on `/t/*` is 45, because the page is noindex by design. I excluded `/t/*` from the SEO threshold.
+3. **The production Worker deployed today runs the OLD single-Worker config: FIXTURE_MODE "1", so sample routes on the custom domain.** The new `deploy:prod` is live-only. Without the owner's secrets it answers 503 ("Can't find routes"). The owner should set the secrets before the first `deploy:prod`.
+4. The preview KV id is a placeholder until the owner runs `wrangler kv namespace create howtogo-preview-TOKEN_KV` (DEPLOY.md step 1).
+5. AC 30 says "embedded assets (D-10)". Per the brief, static assets are now the default and the embed path is opt-in (`--embed`).
+
+**Next steps**
+- UI round:
+  - the bars, chips and switches above;
+  - `/privacy`, then add `/privacy` and `/route` to `LH_PATHS`;
+  - wire the map power policy;
+  - AC 6 prefetch;
+  - the AC 19/20 "需要网络" states;
+  - the AC 21 What's-new sheet.
+- QA:
+  - run the raised Lighthouse gate;
+  - the two-build SW-update test with an active trip and share (AC 17);
+  - the delete-a-chunk test (AC 18);
+  - a Playwright check of the telemetry payload (`?telemetry=1`).

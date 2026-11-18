@@ -1,4 +1,4 @@
-// Static PWA serving for the preview deploy without Workers Static Assets (wrangler.preview.toml).
+// Static PWA serving for the preview deploy without Workers Static Assets (wrangler.embed.toml).
 // The web build is embedded at build time by scripts/embed-assets.mjs; `_headers` rules are applied
 // here exactly as Cloudflare would (every matching rule's headers, first value wins on clashes).
 

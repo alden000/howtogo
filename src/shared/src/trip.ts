@@ -158,6 +158,8 @@ export interface PocketContext {
   blocked: boolean;
   /** Manual mode hides Pocket (no position updates to wait for). */
   manual: boolean;
+  /** M5 AC 8: idle time before pocket view (battery saver: 20 s). Default POCKET_IDLE_MS (45 s). */
+  idleMs?: number;
 }
 
 export type PocketEvent =
@@ -192,13 +194,13 @@ export function pocketReducer(s: PocketState, ev: PocketEvent, ctx: PocketContex
       return pocketEligible(ctx) ? { on: true, since: ev.t } : s;
     case 'tick':
       if (s.on && ctx.blocked) return { on: false, since: ev.t };
-      if (!s.on && pocketEligible(ctx) && ev.t - s.since >= POCKET_IDLE_MS) return { on: true, since: s.since };
+      if (!s.on && pocketEligible(ctx) && ev.t - s.since >= (ctx.idleMs ?? POCKET_IDLE_MS)) return { on: true, since: s.since };
       return s;
   }
 }
 
 export function pocketDueAt(s: PocketState, ctx: PocketContext): number | null {
-  return !s.on && pocketEligible(ctx) ? s.since + POCKET_IDLE_MS : null;
+  return !s.on && pocketEligible(ctx) ? s.since + (ctx.idleMs ?? POCKET_IDLE_MS) : null;
 }
 
 // --------------------------------------------------------------- manual mode

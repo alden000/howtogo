@@ -2,15 +2,18 @@
 import { useEffect, useState } from 'preact/hooks';
 import { haversine, type Place } from '@howtogo/shared';
 import { useServices, useT } from '../context';
-import { applyUpdate, updateReady } from '../pwa/register';
+import { applyUpdate, updateBar } from '../pwa/register';
 import { here, locate } from '../state/location';
 import { TEXT_SCALE, TEXT_SIZES } from '../state/store';
 import { HomeConfirm } from './HomeConfirm';
 import { Icon, showToast, useStateHook, Wordmark } from '../ui/kit';
 
 /** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
-import { DisruptionBanner } from './transit';
-import { SetupUndo } from './family';
+import { lazyView } from '../ui/lazy';
+
+// M5 AC 3: shown only when there is a disruption / a just-imported setup: separate chunks, warmed when idle.
+const DisruptionBanner = lazyView(() => import('./transit').then((m) => m.DisruptionBanner));
+const SetupUndo = lazyView(() => import('./family').then((m) => m.SetupUndo));
 import { family } from '../state/family';
 import { refreshAlerts, refreshLifts } from '../transit/live';
 import { relDate } from '../transit/m3';
@@ -123,7 +126,7 @@ export function Home() {
       <main class="scroll">
         <SetupUndo />
         <DisruptionBanner where="home" />
-        {updateReady.value && !bannerOff && (
+        {updateBar.value && !bannerOff && (
           <div class="banner" data-testid="update-banner">
             <button type="button" data-testid="sw-update" aria-label={t('upd_sr')} onClick={applyUpdate}>
               <Icon name="refresh" />

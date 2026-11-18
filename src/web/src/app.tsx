@@ -7,26 +7,56 @@ import { online } from './api/offline';
 import { sampleMode } from './state/sample';
 import { useServices, useT } from './context';
 import { helpShare } from './state/helpShare';
-import { EndTripSheet } from './views/sheets';
 import { Home } from './views/Home';
 import { Search } from './views/Search';
-import { Routes } from './views/Routes';
-import { TripDetail } from './views/TripDetail';
-import { Guide } from './views/Guide';
-import { ShareStart } from './views/ShareStart';
-import { Viewer } from './views/Viewer';
-import { Help } from './views/Help';
-import { About, ClearSheet, HomeSheet, InstallSheet, NameSheet, ReportSheet, RoutePrefsSheet, SettingsScreen } from './views/Settings';
-import { LocDeniedSheet, LocExplainSheet } from './views/LocationSheets';
 import { Welcome } from './views/Welcome';
 import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
-import { JourneyBuilder } from './views/Journey';
-import { AllStepsSheet, DriverSheet, DwellSheet, StaleSheet, VoiceHelpSheet } from './views/tripSheets';
 import { Confirm995Sheet, HelpSheet } from './views/helpSheet';
-import { ShareSheet } from './views/share';
-import { DisruptionOfferSheet, LtaNoticeSheet } from './views/transit';
-import { PlaceRemoveSheet, PlaceRenameSheet, PlacesScreen } from './views/places';
-import { DeleteAllSheet, FamilyEdit, FamilyList, SetupFamily, SetupImport, SetupStart } from './views/family';
+import { lazyView } from './ui/lazy';
+
+// M5 AC 3/5: screens and sheets Home / the first run do not need are separate chunks (precached by the SW,
+// warmed when idle by preloadViews() in main.tsx).
+const EndTripSheet = lazyView(() => import('./views/sheets').then((m) => m.EndTripSheet));
+const Routes = lazyView(() => import('./views/Routes').then((m) => m.Routes));
+const TripDetail = lazyView(() => import('./views/TripDetail').then((m) => m.TripDetail));
+const Guide = lazyView(() => import('./views/Guide').then((m) => m.Guide));
+const ShareStart = lazyView(() => import('./views/ShareStart').then((m) => m.ShareStart));
+const Viewer = lazyView(() => import('./views/Viewer').then((m) => m.Viewer));
+const Help = lazyView(() => import('./views/Help').then((m) => m.Help));
+const settings = () => import('./views/Settings');
+const About = lazyView(() => settings().then((m) => m.About));
+const ClearSheet = lazyView(() => settings().then((m) => m.ClearSheet));
+const HomeSheet = lazyView(() => settings().then((m) => m.HomeSheet));
+const InstallSheet = lazyView(() => settings().then((m) => m.InstallSheet));
+const NameSheet = lazyView(() => settings().then((m) => m.NameSheet));
+const ReportSheet = lazyView(() => settings().then((m) => m.ReportSheet));
+const RoutePrefsSheet = lazyView(() => settings().then((m) => m.RoutePrefsSheet));
+const SettingsScreen = lazyView(() => settings().then((m) => m.SettingsScreen));
+const locSheets = () => import('./views/LocationSheets');
+const LocDeniedSheet = lazyView(() => locSheets().then((m) => m.LocDeniedSheet));
+const LocExplainSheet = lazyView(() => locSheets().then((m) => m.LocExplainSheet));
+const JourneyBuilder = lazyView(() => import('./views/Journey').then((m) => m.JourneyBuilder));
+const tripSheets = () => import('./views/tripSheets');
+const AllStepsSheet = lazyView(() => tripSheets().then((m) => m.AllStepsSheet));
+const DriverSheet = lazyView(() => tripSheets().then((m) => m.DriverSheet));
+const DwellSheet = lazyView(() => tripSheets().then((m) => m.DwellSheet));
+const StaleSheet = lazyView(() => tripSheets().then((m) => m.StaleSheet));
+const VoiceHelpSheet = lazyView(() => tripSheets().then((m) => m.VoiceHelpSheet));
+const ShareSheet = lazyView(() => import('./views/share').then((m) => m.ShareSheet));
+const places = () => import('./views/places');
+const PlaceRemoveSheet = lazyView(() => places().then((m) => m.PlaceRemoveSheet));
+const PlaceRenameSheet = lazyView(() => places().then((m) => m.PlaceRenameSheet));
+const PlacesScreen = lazyView(() => places().then((m) => m.PlacesScreen));
+const transitSheets = () => import('./views/transit');
+const DisruptionOfferSheet = lazyView(() => transitSheets().then((m) => m.DisruptionOfferSheet));
+const LtaNoticeSheet = lazyView(() => transitSheets().then((m) => m.LtaNoticeSheet));
+const familyViews = () => import('./views/family');
+const DeleteAllSheet = lazyView(() => familyViews().then((m) => m.DeleteAllSheet));
+const FamilyEdit = lazyView(() => familyViews().then((m) => m.FamilyEdit));
+const FamilyList = lazyView(() => familyViews().then((m) => m.FamilyList));
+const SetupFamily = lazyView(() => familyViews().then((m) => m.SetupFamily));
+const SetupImport = lazyView(() => familyViews().then((m) => m.SetupImport));
+const SetupStart = lazyView(() => familyViews().then((m) => m.SetupStart));
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
 const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
@@ -72,10 +102,28 @@ export function App() {
   const first = useRef(true);
   useLayoutEffect(() => {
     if (first.current) return void (first.current = false);
-    const h = stage.current?.querySelector<HTMLElement>(':scope > .screen h1') ?? stage.current?.querySelector<HTMLElement>(':scope > .screen main');
-    if (!h) return;
-    if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
-    h.focus({ preventScroll: true });
+    const find = () => stage.current?.querySelector<HTMLElement>(':scope > .screen h1') ?? stage.current?.querySelector<HTMLElement>(':scope > .screen main');
+    const focus = (h: HTMLElement) => {
+      if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
+      h.focus({ preventScroll: true });
+    };
+    const h = find();
+    if (h) return focus(h);
+    // M5: a lazy screen renders a moment later (its chunk loads): focus its heading as soon as it appears (≤ 3 s).
+    const host = stage.current;
+    if (!host || typeof MutationObserver === 'undefined') return;
+    const mo = new MutationObserver(() => {
+      const el = find();
+      if (!el) return;
+      mo.disconnect();
+      if (document.activeElement === document.body || !document.activeElement) focus(el);
+    });
+    mo.observe(host, { childList: true, subtree: true });
+    const stop = setTimeout(() => mo.disconnect(), 3000);
+    return () => {
+      clearTimeout(stop);
+      mo.disconnect();
+    };
   }, [r.path]);
   let view;
   switch (r.name) {

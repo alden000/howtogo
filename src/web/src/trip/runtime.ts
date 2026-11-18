@@ -26,7 +26,13 @@ import {
   isManualMode,
   journeyEtaMs,
   journeyProgress,
-  locationProfile,
+  gateFix,
+  gpsProfile,
+  initialFixGate,
+  powerPolicy,
+  shareCadence,
+  type FixGateState,
+  type GpsProfile,
   manualDueAt,
   mrtEstimate,
   normalizeDwell,
@@ -197,6 +203,27 @@ export interface TripRuntimeOptions {
   idFactory?: () => string;
   /** Network state (default: the `online` signal, which also triggers the offline re-route retry). */
   isOnline?: () => boolean;
+  /**
+   * M5 AC 8: low-battery mode is on (src/state/battery.ts `saver`). Changes only the GPS middle-of-ride
+   * interval, the share cadence (not Help) and the pocket-view delay; call `syncPower()` when it flips.
+   */
+  saver?: () => boolean;
+  /**
+   * M5 AC 7b: drop fixes that arrive faster than the leg profile before they reach guidance, the map and the
+   * share. Default: on for real platforms, off for the demo platform (its scripted stream keeps M2 timing).
+   */
+  fixGate?: boolean;
+}
+
+/** M5 §B state for the UI round (H5 leaf chip, diagnostics): `runtime.power`. */
+export interface TripPower {
+  /** Low-battery mode on. */
+  saver: boolean;
+  /** Current GPS profile (null when not watching). */
+  profile: GpsProfile | null;
+  /** Fixes let through / dropped by the gate since the trip attached. */
+  accepted: number;
+  dropped: number;
 }
 
 /** Options for `start()`: a multi-stop journey from `planTrip()`. */
@@ -227,6 +254,11 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   let tick: unknown = null;
   let attached = false;
   let watchInterval: number | undefined;
+  let watchKey: string | undefined;
+  let gate: FixGateState = initialFixGate();
+  const saver = o.saver ?? (() => false);
+  const fixGateOn = o.fixGate ?? (platform.kind !== 'demo' && platform.kind !== 'fake');
+  const power = signal<TripPower>({ saver: false, profile: null, accepted: 0, dropped: 0 });
   let watchingSince = 0;
   let lastGoodFixAt: number | undefined;
   let lastFixT = -Infinity;
@@ -499,6 +531,13 @@ export function createTripRuntime(o: TripRuntimeOptions) {
 
   function onFix(f: LocationFix) {
     if (f.t <= lastFixT) return; // duplicate or out-of-order (AC 21)
+    if (fixGateOn && watchInterval !== undefined) {
+      // M5 AC 7b: the web cannot set a watch interval, so fixes faster than the leg profile stop here.
+      const g = gateFix(gate, f.t, watchInterval);
+      gate = g.state;
+      power.value = { ...power.peek(), accepted: gate.accepted, dropped: gate.dropped };
+      if (!g.pass) return;
+    }
     lastFixT = f.t;
     lastFixAt = now();
     locationError.value = null;
@@ -535,6 +574,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       stepKind: curStep(t)?.kind,
       blocked: !t || !attached || t.phase !== 'guiding' || !!t.alert || sheetOpen || u.reroute !== 'idle' || u.voiceUnlockNeeded || u.stale !== null || u.mrtPreAlert,
       manual: u.manual,
+      idleMs: powerPolicy(saver()).pocketIdleMs,
     };
   }
 
@@ -558,19 +598,26 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   }
 
   // ------------------------------------------------------------ location profile (AC 38)
+  /** M5 AC 7/8: the leg profile (M2 intervals; low accuracy mid-ride; battery saver widens mid-ride to 10 s). */
+  const currentProfile = (): GpsProfile => gpsProfile(curStep(), ui.peek().stopsLeft, saver());
+  const profileKey = (p: GpsProfile) => `${p.intervalMs}:${p.highAccuracy ? 'hi' : 'lo'}`;
+
   function syncProfile() {
     if (!attached || !stopWatch) return;
     if (platform.trip) return syncNative();
-    const p = locationProfile(curStep(), ui.peek().stopsLeft);
-    if (p.intervalMs !== watchInterval) void startWatch();
+    if (profileKey(currentProfile()) !== watchKey) void startWatch();
   }
 
   async function startWatch() {
     stopWatch?.();
     stopWatch = null;
-    const p = locationProfile(curStep(), ui.peek().stopsLeft);
+    const p = currentProfile();
+    const prevAcc = watchKey?.split(':')[1];
     watchInterval = p.intervalMs;
+    watchKey = profileKey(p);
+    power.value = { ...power.peek(), saver: saver(), profile: p };
     log(`loc:profile ${p.intervalMs}`);
+    if (prevAcc !== (p.highAccuracy ? 'hi' : 'lo')) log(`loc:accuracy ${p.highAccuracy ? 'high' : 'low'}`);
     const stop = await platform.location.watch(
       onFix,
       (e) => {
@@ -581,9 +628,9 @@ export function createTripRuntime(o: TripRuntimeOptions) {
           syncManual();
         }
       },
-      p,
+      { intervalMs: p.intervalMs, highAccuracy: p.highAccuracy },
     );
-    if (!attached || watchInterval !== p.intervalMs) return stop(); // superseded while awaiting
+    if (!attached || watchKey !== profileKey(p)) return stop(); // superseded while awaiting
     stopWatch = stop;
     if (platform.trip) {
       nativeLegKey = nativeArmKey = '';
@@ -817,10 +864,14 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     if (!lastSent) return true;
     if (g.stepIndex !== lastSent.step || t.share.status !== lastSent.status) return true;
     const age = now() - lastSent.at;
-    if (age >= SHARE_STILL_MS) return true;
+    // M5 AC 8: battery saver 30 s moving / 120 s still; Help keeps the normal cadence (D-7). Normal = 15 s / 60 s.
+    const c = shareCadence(saver(), t.share.status);
+    const stillMs = saver() ? c.stillMs : SHARE_STILL_MS;
+    const movingMs = saver() ? c.movingMs : SHARE_MOVING_MS;
+    if (age >= stillMs) return true;
     const f = g.fix;
-    if (!f || lastSent.lat === undefined) return age >= SHARE_MOVING_MS;
-    return age >= SHARE_MOVING_MS && haversine(f, { lat: lastSent.lat, lng: lastSent.lng! }) >= SHARE_MOVE_M;
+    if (!f || lastSent.lat === undefined) return age >= movingMs;
+    return age >= movingMs && haversine(f, { lat: lastSent.lat, lng: lastSent.lng! }) >= SHARE_MOVE_M;
   }
 
   function sharePayload(t: ActiveTrip, share: ShareSession): SharePut {
@@ -958,6 +1009,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     stopHeading?.();
     stopWatch = stopHeading = null;
     watchInterval = undefined;
+    watchKey = undefined;
+    power.value = { ...power.peek(), profile: null };
     if (tick !== null) timers.clearInterval(tick);
     tick = null;
     for (const k of ['manual', 'pocket', 'mrtPre', 'mrtCheck', 'reroute']) clear(k);
@@ -984,6 +1037,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     wakeFailLogged = false;
     firedLocal.clear();
     lastFixT = -Infinity;
+    gate = initialFixGate();
+    power.value = { saver: saver(), profile: null, accepted: 0, dropped: 0 };
     ui.value = { ...INITIAL_UI };
   }
 
@@ -1092,6 +1147,18 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   return {
     /** One signal with every UI state (see `TripUi`). */
     ui,
+    /** M5 §B: battery-saver state, GPS profile and fix-gate counters (UI round: H5 leaf chip). */
+    power,
+    /**
+     * M5 AC 8: re-apply the power policy after low-battery mode flips (GPS profile, pocket delay; the share
+     * cadence is read on every fix). Never touches alerts, Help or arrival.
+     */
+    syncPower() {
+      power.value = { ...power.peek(), saver: saver() };
+      if (!attached) return;
+      syncProfile();
+      syncPocket();
+    },
     heading,
     locationError,
     rerouting,

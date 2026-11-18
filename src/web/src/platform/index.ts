@@ -1,3 +1,4 @@
 export * from './types';
 export { createWebPlatform } from './web';
-export { createFakePlatform, createDemoPlatform, type FakePlatform, type FakeControls } from './fake';
+// The fake/demo platform is loaded on demand (main.tsx, demo mode only; M5 AC 3): types only here.
+export type { FakePlatform, FakeControls } from './fake';
