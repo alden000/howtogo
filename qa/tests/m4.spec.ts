@@ -67,6 +67,7 @@ async function liveSenior(b: Browser, contacts: unknown[] = [MEI], prefs?: Recor
   await page.addInitScript(
     ([c, p]) => {
       if (!localStorage.getItem('howtogo.settings')) localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, motion: 'on' }));
+      localStorage.getItem('howtogo.whatsnew.v1') || localStorage.setItem('howtogo.whatsnew.v1', 'seen'); // an existing 1.0 user: What's new already seen
       if (!localStorage.getItem('howtogo.family.v1')) localStorage.setItem('howtogo.family.v1', JSON.stringify(c));
       if (p) localStorage.setItem('howtogo.prefs.m34', JSON.stringify(p));
     },
@@ -123,7 +124,8 @@ test('AC 1: parity — Help on H1/H2/H3/H4/H5, Share on H4 and H5, pill while sh
   await expect(page.getByTestId('route-option-0')).toBeVisible();
   expect.soft(await help().isVisible(), 'H3: Help button').toBe(true);
   await page.getByTestId('route-option-0').click();
-  expect.soft(await help().isVisible(), 'H4: Help button').toBe(true);
+  // M5: H4 is a lazy chunk; wait for it instead of sampling visibility once.
+  await expect.soft(help(), 'H4: Help button').toBeVisible();
   await expect(page.getByTestId('share-before'), 'H4 share').toBeVisible();
   await page.getByTestId('start-guide').click();
   await expect(page.getByTestId('guide-help'), 'H5').toBeVisible();
@@ -551,22 +553,42 @@ test('AC 35: "让家人看到我在哪里" — sets help on a live share, or cre
   await expect(page.getByText(/让家人看到我在哪里|Let family see where I am/)).toBeVisible({ timeout: 3000 });
 });
 
-test('AC 36: 我在哪里 — reverse-geocoded address huge + postal; offline → coordinates + "给别人看这个号码"', async ({ page, context }) => {
-  await senior(page, { contacts: [MEI] });
-  await page.getByTestId('nav-help').click();
-  await page.getByTestId('help-where').click();
-  await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
-  await expect(page.getByTestId('driver-card')).toContainText('310177');
-  await expect(page.getByTestId('driver-card')).toContainText(/I am here/);
-  const p2 = await context.newPage();
-  await capture(p2);
-  await boot(p2);
-  await context.setOffline(true);
-  await p2.getByTestId('nav-help').click();
-  await p2.getByTestId('help-where').click();
-  await expect(p2.getByTestId('here-coords')).toContainText(/1\.\d{3,}, 103\.\d{3,}/);
-  await expect(p2.getByTestId('here-coords')).toContainText('给别人看这个号码');
-  await context.setOffline(false);
+// Re-check 1.0.0-rc1: this file blocks service workers, and `vite preview` serves chunks with Cache-Control: no-cache,
+// so offline the lazy driver-sheet chunk (tripSheets) could only come from a lucky earlier load in tab 2. The real
+// offline path is the SW precache, so AC 36 runs with the SW allowed.
+test.describe('AC 36 with the service worker', () => {
+  test.use({ serviceWorkers: 'allow' });
+  test('AC 36: 我在哪里 — reverse-geocoded address huge + postal; offline → coordinates + "给别人看这个号码"', async ({ page, context }) => {
+    await senior(page, { contacts: [MEI] });
+    await page.getByTestId('nav-help').click();
+    await page.getByTestId('help-where').click();
+    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
+    await expect(page.getByTestId('driver-card')).toContainText('310177');
+    await expect(page.getByTestId('driver-card')).toContainText(/I am here/);
+    // Re-check 1.0.0-rc1 (QA-57): the old version booted tab 2 online and went offline at once, racing Home's reverse
+    // geocode. When the geocode won, 6f.6 L6 rightly shows the remembered address + its time (here-at), not coordinates.
+    // Now deterministic: (a) tab 2 cold-started offline from the SW has a fix but no remembered address → the
+    // no-address line AND the coordinates + 给别人看这个号码; (b) tab 1 offline → the remembered address + time.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+    await expect(page.getByTestId('from-field')).toContainText('Toa Payoh'); // Home's reverse geocode done → remembered
+    await page.waitForTimeout(1500); // let the SW finish precaching (as m5 AC 20)
+    await context.setOffline(true);
+    const p2 = await context.newPage();
+    await capture(p2);
+    await boot(p2);
+    await p2.getByTestId('nav-help').click();
+    await p2.getByTestId('help-where').click();
+    await expect(p2.getByTestId('here-none')).toBeVisible();
+    await expect(p2.getByTestId('here-coords')).toContainText(/1\.\d{3,}, 103\.\d{3,}/);
+    await expect(p2.getByTestId('here-coords')).toContainText('给别人看这个号码');
+    await p2.close();
+    await page.bringToFront();
+    await expect(page.getByTestId('here-at')).toBeVisible();
+    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
+    await context.setOffline(false);
+  });
 });
 
 test('AC 37: 给司机看地址 — tabs Where I\'m going · My home · Where I am; "Please take me to / 请送我去", name + address + postal; wake lock', async ({ page }) => {
@@ -628,7 +650,8 @@ test('AC 39: Family contacts — validation (SG 8 digits → +65), max 5, first 
   await add('阿明', '83456789');
   expect.soft(await page.getByTestId('contact-add').count(), 'no 6th contact (max 5)').toBe(0);
   await page.goto('/settings');
-  expect.soft(await page.getByText(/常去的地方/).count(), 'Settings → My places (≤ 6, add/rename/remove/↑↓)').toBeGreaterThan(0);
+  // M5: Settings is a lazy chunk, so wait for the row instead of counting at once.
+  await expect.soft(page.getByTestId('row-places'), 'Settings → My places (≤ 6, add/rename/remove/↑↓)').toContainText('常去的地方');
 });
 
 // ================================================================ H. caregiver setup (real Worker)
@@ -734,8 +757,9 @@ test('AC 50: Settings "清除所有资料" (with confirm) removes contacts, plac
   await page.getByTestId('row-delete-all').click();
   await page.getByTestId('delete-all-go').click();
   await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter((k) => /family|prefs|places|recents|share/.test(k) && localStorage.getItem(k) !== '[]' && localStorage.getItem(k) !== 'null'))).toEqual([]);
-  await page.goto('/about');
-  await expect(page.getByTestId('privacy')).toContainText(/分享|链接/);
+  // M5 L1: the privacy text lives on /privacy (About links it).
+  await page.goto('/privacy');
+  await expect(page.getByTestId('privacy-page')).toContainText(/分享|链接/);
 });
 
 test('AC 52 (Should): H7 lock line — anyone with the link can see it; stops by itself', async ({ page }) => {

@@ -12,7 +12,11 @@ import { log } from '../log';
 import { ApiError, failKind, type FailKind } from '../api/errors';
 import type { SearchResult } from '../api/types';
 import { family, formatPhone, MAX_CONTACTS, normalizePhone, RELATIONS, type Contact, type Relation } from '../state/family';
-import { TEXT_SIZES, type TextSize } from '../state/store';
+import { TEXT_SCALE, TEXT_SIZES, type TextSize } from '../state/store';
+import { SIZE_SR } from '../i18n/m5ui1';
+import { useT5 } from '../i18n/m5lazy';
+import { browserStores, deleteAllData } from '../state/deleteAll';
+import { helpShare } from '../state/helpShare';
 import { announce, Icon, Sheet, showToast, Wordmark } from '../ui/kit';
 import { applySetup, openSetup, parseSetupLink, replaces, sealSetup, undoSetup, type SetupData, type Snapshot } from '../setup/setup';
 import { openExternal } from './shareUtil';
@@ -538,7 +542,7 @@ function WHeader() {
   return (
     <>
       <header class="whead">
-        <Wordmark name={t('app_name')} />
+        <Wordmark name={t('app_name')} tag="p" />
         <button
           type="button"
           class="iconbtn"
@@ -647,6 +651,12 @@ export function SetupFamily() {
           <Icon name="lock" />
           {t('w_lead')}
         </p>
+        {/* 6f.8 L8: the privacy page, in this page's language (same tab). */}
+        <p style={{ margin: 0 }}>
+          <a class="inlink" href={`/privacy?lang=${store.settings.value.lang}`} data-testid="w-privacy">
+            <span class="u">{t('pv_link')}</span>
+          </a>
+        </p>
         <section class="card">
           <div class="field2">
             <label for="w-name">{t('w_name')}</label>
@@ -692,10 +702,11 @@ export function SetupFamily() {
               </button>
             ))}
           </div>
-          <div class="seg" role="group" style={{ marginTop: '8px' }}>
-            {TEXT_SIZES.map((s, i) => (
-              <button type="button" aria-pressed={size === s} onClick={() => setSize(s)}>
-                {['100%', '125%', '150%', '200%'][i]}
+          {/* 6f.11: five sizes (85 % first), SR names "较小，85%"…; the default stays 125 %. */}
+          <div class="seg sizes" role="group" style={{ marginTop: '8px' }}>
+            {TEXT_SIZES.map((s) => (
+              <button type="button" aria-pressed={size === s} aria-label={t(SIZE_SR[s])} data-testid={`w-size-${s}`} onClick={() => setSize(s)}>
+                {`${Math.round(TEXT_SCALE[s] * 100)}%`}
                 {size === s && <Icon name="check" />}
               </button>
             ))}
@@ -721,10 +732,15 @@ export function SetupFamily() {
   );
 }
 
-/** Settings → 清除所有资料 (M4 AC 50): confirm, then remove everything this app stored on the phone. */
+/**
+ * Settings → 清除所有资料 (M4 AC 50, L1 fact 1): confirm, stop a live share, then remove everything this app
+ * stored on the phone (storage, Cache Storage, IndexedDB; state/deleteAll.ts) and reload.
+ */
 export function DeleteAllSheet() {
-  const { router } = useServices();
+  const { router, api, store } = useServices();
   const t = useT();
+  const t5 = useT5();
+  const [busy, setBusy] = useState(false);
   return (
     <Sheet id="delete-all" title={t('set_delete_all_t')}>
       <p class="t-body">{t('set_delete_all_b')}</p>
@@ -733,18 +749,16 @@ export function DeleteAllSheet() {
           type="button"
           class="btn btn-secondary"
           data-testid="delete-all-go"
-          onClick={() => {
-            try {
-              for (const k of Object.keys(localStorage)) if (k.startsWith('howtogo.')) localStorage.removeItem(k);
-              sessionStorage.clear();
-            } catch {
-              /* ignore */
-            }
+          disabled={busy}
+          aria-busy={busy}
+          onClick={async () => {
+            setBusy(true);
+            await deleteAllData({ api, trip: store.trip, disposeStore: () => store.dispose(), help: helpShare.current, ...browserStores() });
             location.replace('/');
           }}
         >
           <Icon name="trash" />
-          {t('set_delete_all')}
+          {busy ? t5('set_delete_all_busy') : t('set_delete_all')}
         </button>
         <button type="button" class="btn btn-primary" data-testid="delete-all-keep" onClick={() => router.closeSheet()}>
           {t('fam_keep')}

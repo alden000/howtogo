@@ -11,6 +11,7 @@ export type RouteName =
   | 'help'
   | 'settings'
   | 'about'
+  | 'privacy'
   | 'welcome'
   | 'family'
   | 'family_edit'
@@ -39,6 +40,7 @@ const TABLE: { name: RouteName; re: RegExp; keys: string[] }[] = [
   { name: 'help', re: /^\/help\/?$/, keys: [] },
   { name: 'settings', re: /^\/settings\/?$/, keys: [] },
   { name: 'about', re: /^\/about\/?$/, keys: [] },
+  { name: 'privacy', re: /^\/privacy\/?$/, keys: [] },
   { name: 'welcome', re: /^\/welcome\/?$/, keys: [] },
   { name: 'family', re: /^\/family\/?$/, keys: [] },
   { name: 'family_edit', re: /^\/family\/edit\/?$/, keys: [] },
@@ -61,8 +63,8 @@ export function matchRoute(url: string): RouteMatch {
   return { name: 'not_found', path: u.pathname, params: {}, query: u.searchParams };
 }
 
-/** Public standalone pages: Back from them leaves the app (no seeded Home entry). */
-export const STANDALONE: ReadonlySet<RouteName> = new Set(['viewer', 'setup']);
+/** Public standalone pages: Back from them leaves the app (no seeded Home entry). L1 /privacy is linked from V and W. */
+export const STANDALONE: ReadonlySet<RouteName> = new Set(['viewer', 'setup', 'privacy']);
 
 /** Screens that are the root of the in-app stack (no Home seeded underneath). F1 first run is a root. */
 export const ROOTS: ReadonlySet<RouteName> = new Set(['home', 'welcome']);

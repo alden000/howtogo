@@ -653,6 +653,7 @@ test('Upgrade 0.2.0 → 0.3.0: settings, Home, recents kept', async ({ page }) =
     if (sessionStorage.getItem('seeded')) return;
     sessionStorage.setItem('seeded', '1');
     localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, lang: 'en', textSize: 'large', theme: 'dark' }));
+    localStorage.setItem('howtogo.whatsnew.v1', 'seen'); // 1.0 shows What's new on this upgrade (m5 AC 21)
     localStorage.setItem('howtogo.places', JSON.stringify({ home: { name: 'Toa Payoh Central', address: 'Toa Payoh Central Singapore 310177', lat: 1.3328, lng: 103.8475 }, others: [] }));
     localStorage.setItem('howtogo.recents', JSON.stringify([{ to: { name: 'Tan Tock Seng Hospital', lat: 1.32135, lng: 103.8465 }, at: Date.now() - 1e6 }]));
   });

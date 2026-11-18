@@ -1,0 +1,61 @@
+/* M5 UI-1 (STYLE-GUIDE §6f L1 Privacy, L2 About, L5 battery saver, L7 Settings). Existing tokens only. */
+
+/* L1 Privacy page: max content width 480, glance card, five h2 sections with 8 px dot bullets. */
+.pv{max-width:480px}
+.pv h2{margin:var(--s-6) 0 var(--s-3)}
+.pv .lead{margin:0 0 var(--s-4)}
+.glance{list-style:none;margin:0;padding:var(--s-3) var(--s-4);background:var(--c-surface);border-radius:var(--r-l);display:flex;flex-direction:column;gap:var(--s-3)}
+.glance li{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.glance .disc{flex:none;width:48px;height:48px;border-radius:50%;background:var(--c-surface-2);display:grid;place-items:center}
+.glance .disc svg.i{width:28px;height:28px}
+.glance li>span:last-child{flex:1 1 10rem;min-width:0}
+.pv-bullets{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s-2)}
+.pv-bullets li{position:relative;padding-left:20px}
+.pv-bullets li::before{content:"";position:absolute;left:2px;top:.6em;width:8px;height:8px;border-radius:50%;background:var(--c-ink-2)}
+.pv .famline{margin:var(--s-3) 0 0}
+.pv .pvcontact{margin:var(--s-6) 0 var(--s-2)}
+.pv .pvfoot{margin:var(--s-4) 0 0}
+.inlink.btnlink{background:none;border:0;padding:0;font:inherit;font-weight:700;cursor:pointer}
+/* Creative M5 review fix 2: inline links keep the 56 px hit area without breaking the sentence. */
+/* A <button> cannot be truly inline (Chrome lays it out as inline-block), so vertical padding there still grew the
+   line. The 56 px hit area comes from an invisible ::after instead; the box itself takes no extra room. */
+.pv li .inlink.btnlink,.pv .pvcontact .inlink.btnlink,.abattrib .inlink{display:inline;min-height:0;padding:0;vertical-align:baseline;position:relative}
+.pv li .inlink.btnlink::after,.pv .pvcontact .inlink.btnlink::after,.abattrib .inlink::after{content:"";position:absolute;left:0;right:0;top:50%;height:var(--tap);transform:translateY(-50%)}
+
+/* L2 About: sample-mode panel, attribution block on c-surface. */
+.tripnote.sample{background:var(--c-saffron-soft);color:var(--c-ink);margin:var(--s-3) 0 0}
+.abattrib{background:var(--c-surface);border-radius:var(--r-l);padding:18px}
+.abattrib p{margin:0 0 var(--s-2)}
+.abattrib p:last-child{margin-bottom:0}
+.omline{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-weight:700}
+.omline img{flex:none;width:28px;height:28px}
+.omline span{flex:1 1 10rem;min-width:0}
+
+/* L7 error-counts row: switch row, sub-line, then "Details" as its own target. */
+.swrow{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-1)}
+.swrow .swsub{margin:0;padding:0 16px;color:var(--c-ink-2)}
+.swrow .inlink{margin-left:16px}
+
+/* L5 battery saver sheet: stacked radio options with a sub-line. */
+.seg [role=radio]{text-align:left;justify-content:flex-start}
+.seg [role=radio][aria-checked=true]{border-color:var(--c-primary);background:var(--c-primary-soft);color:var(--c-on-primary-soft)}
+.seg [role=radio][aria-checked=true] svg.i{margin-left:auto}
+.seg [role=radio] .tx{flex:1 1 auto;min-width:0}
+.seg [role=radio] .tx strong{display:block}
+.seg [role=radio] .tx small{display:block;font-weight:400;font-size:.9rem;line-height:1.35;word-break:normal;overflow-wrap:anywhere}
+
+/* L5 H5 leaf chip (in the step card's meta row; wraps under the step counter at 200 %), G1 caption line. */
+.leafchip{display:inline-flex;align-items:center;gap:6px;margin-left:auto;padding:4px 10px;border-radius:var(--r-s);background:var(--c-surface-2);color:var(--c-ink);font-size:.9rem;font-weight:700}
+.leafchip svg.i{width:18px;height:18px;flex:none}
+:root[data-text-size="xxlarge"] .leafchip,:root[data-text-size="xlarge"] .leafchip{flex-basis:100%;margin-left:0;width:fit-content}
+.pocket .saver{font-size:.85rem;margin:6px 0 0;color:#CFC3B5}
+@media (prefers-reduced-motion:no-preference){:root:not(.rm) .leafchip.fadein{animation:leafin 280ms ease-out}}
+@keyframes leafin{from{opacity:0}to{opacity:1}}
+/* 6f.11: at 85 % nothing but map attribution goes under the 14.5 px caption floor (the switch sub-lines). */
+:root[data-text-size="small"] .row .tx small{font-size:.85rem}
+/* L7: the longer "记录：清除最近去过的地方" label wraps; its value "没有记录" stays in one piece. */
+.row[data-testid=row-clear] .tx{flex:1 1 0;max-width:none}
+.row[data-testid=row-clear] .val{flex:none;white-space:nowrap}
+.swrow .inlink{min-width:var(--tap)}
+/* Creative M5 review fix 10: the About seal is 72 px (6f.2). */
+.wordmark.wm72 svg{width:72px;height:72px}

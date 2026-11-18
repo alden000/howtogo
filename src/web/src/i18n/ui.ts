@@ -5,6 +5,7 @@
  */
 import type { UiLang } from '../state/store';
 import { M34_EN, M34_ZH } from './m34';
+import { M5UI1_EN, M5UI1_ZH } from './m5ui1'; // M5 UI-1
 
 const zh = {
   app_name: '怎么去?',
@@ -239,7 +240,7 @@ const zh = {
   cancel: "不用了",
   nothing_clear: "没有记录",
   grp_app: "这个应用",
-  about_row: "关于和隐私",
+  about_row: "关于",
   version: "版本 {v}",
   inst_t: "把 怎么去? 放到主屏幕",
   inst_b: "以后一按图标就能打开，像普通应用一样。",
@@ -255,17 +256,9 @@ const zh = {
   rep_send: "发送报告",
   rep_see: "看看会发送什么",
   ab_maps_h: "地图和数据",
-  ab_maps: "地图和地址来自 OneMap，新加坡土地管理局。",
-  ab_mapdata: "Map data © OneMap / Singapore Land Authority",
-  ab_lta: "交通资料：Contains information from LTA DataMall which is made available under the terms of the Singapore Open Data Licence version 1.0.",
+  ab_maps: "地图和地址来自 OneMap（新加坡土地管理局）。",
+  ab_mapdata: "Map data © contributors, Singapore Land Authority",
   ab_priv_h: "你的隐私",
-  priv_1: "不用注册，也不用账号。",
-  priv_2: "你的称呼、家和最近去过的地方只存在这部手机里。",
-  priv_3: "找路时，起点和终点会发给 OneMap 算路线，我们不保存。",
-  priv_4: "我们的记录里没有你的位置、地址或搜索内容。",
-  priv_5: "报告问题时，发不发、发给谁，由你决定。",
-  priv_6: "没有广告，不追踪你。",
-  priv_7: "你随时可以在设置里删除称呼、家和最近去过的地方。",
   upd_banner: "有新版本 · 更新",
   upd_sr: "有新版本，按一下更新",
   upd_later: "以后再说",
@@ -451,7 +444,12 @@ const zh = {
   hj_stay: "在 {p} 待 {d}",
   hj_note: "每到一个地方，你按“继续”后，我才从那里找下一段路。",
   hj_change: "改一改",
+  // M5 UI-2: L6 offline cold start (STYLE-GUIDE 6f.6)
+  need_net: "需要网络",
+  need_net_sr: "需要网络。连上网络以后再按。",
   ...M34_ZH,
+  // M5 UI-1
+  ...M5UI1_ZH,
 };
 
 const en: typeof zh = {
@@ -687,7 +685,7 @@ const en: typeof zh = {
   cancel: "Cancel",
   nothing_clear: "Nothing to clear",
   grp_app: "This app",
-  about_row: "About & privacy",
+  about_row: "About",
   version: "Version {v}",
   inst_t: "Put 怎么去? on your home screen",
   inst_b: "Then one tap on the icon opens it, like any other app.",
@@ -703,17 +701,9 @@ const en: typeof zh = {
   rep_send: "Send report",
   rep_see: "See what's sent",
   ab_maps_h: "Maps and data",
-  ab_maps: "Maps and addresses come from OneMap, Singapore Land Authority.",
-  ab_mapdata: "Map data © OneMap / Singapore Land Authority",
-  ab_lta: "Contains information from LTA DataMall which is made available under the terms of the Singapore Open Data Licence version 1.0.",
+  ab_maps: "Maps and addresses come from OneMap (Singapore Land Authority).",
+  ab_mapdata: "Map data © contributors, Singapore Land Authority",
   ab_priv_h: "Your privacy",
-  priv_1: "No sign-up, no account.",
-  priv_2: "Your name, Home and recent places stay on this phone only.",
-  priv_3: "To find a route, the start and end are sent to OneMap to work it out. We don't keep them.",
-  priv_4: "Our logs never contain your location, addresses or searches.",
-  priv_5: "If you report a problem, you decide whether to send it and to whom.",
-  priv_6: "No ads, no tracking.",
-  priv_7: "You can remove your name, Home and recent places in Settings at any time.",
   upd_banner: "New version ready · Update",
   upd_sr: "New version ready. Tap to update",
   upd_later: "Later",
@@ -896,7 +886,12 @@ const en: typeof zh = {
   hj_stay: "Stay {d} at {p}",
   hj_note: "At each place, I find the next part only after you tap Continue.",
   hj_change: "Change places",
+  // M5 UI-2: L6 offline cold start (STYLE-GUIDE 6f.6)
+  need_net: "Needs internet",
+  need_net_sr: "Needs internet. Tap again once you're online.",
   ...M34_EN,
+  // M5 UI-1
+  ...M5UI1_EN,
 };
 
 export type UiKey = keyof typeof zh;

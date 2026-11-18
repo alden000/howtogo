@@ -8,23 +8,30 @@ import { sampleMode } from './state/sample';
 import { useServices, useT } from './context';
 import { helpShare } from './state/helpShare';
 import { Home } from './views/Home';
-import { Search } from './views/Search';
-import { Welcome } from './views/Welcome';
-import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
 import { Confirm995Sheet, HelpSheet } from './views/helpSheet';
+import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
 import { lazyView } from './ui/lazy';
 
 // M5 AC 3/5: screens and sheets Home / the first run do not need are separate chunks (precached by the SW,
 // warmed when idle by preloadViews() in main.tsx).
+// M5 integration (AC 3 Home ≤ 100 KB): the first run is shown only right after the first download (so the
+// network is there) and never again, so it is lazy. H2 Search is lazy too but fetched right after the first paint
+// (main.tsx), not at idle. The Help sheet stays in the entry: it must open offline even before the service
+// worker has precached the lazy chunks.
+export const Search = lazyView(() => import('./views/Search').then((m) => m.Search));
 const EndTripSheet = lazyView(() => import('./views/sheets').then((m) => m.EndTripSheet));
 const Routes = lazyView(() => import('./views/Routes').then((m) => m.Routes));
 const TripDetail = lazyView(() => import('./views/TripDetail').then((m) => m.TripDetail));
 const Guide = lazyView(() => import('./views/Guide').then((m) => m.Guide));
 const ShareStart = lazyView(() => import('./views/ShareStart').then((m) => m.ShareStart));
-const Viewer = lazyView(() => import('./views/Viewer').then((m) => m.Viewer));
+// QA-60: not precached (vite.viewer.ts isViewerFile), so not in the idle preload either.
+const Viewer = lazyView(() => import('./views/Viewer').then((m) => m.Viewer), { idle: false });
 const Help = lazyView(() => import('./views/Help').then((m) => m.Help));
 const settings = () => import('./views/Settings');
 const About = lazyView(() => settings().then((m) => m.About));
+// M5 UI-1: L1 Privacy page, L5 battery saver sheet.
+const Privacy = lazyView(() => import('./views/Privacy').then((m) => m.Privacy));
+const BatterySheet = lazyView(() => settings().then((m) => m.BatterySheet));
 const ClearSheet = lazyView(() => settings().then((m) => m.ClearSheet));
 const HomeSheet = lazyView(() => settings().then((m) => m.HomeSheet));
 const InstallSheet = lazyView(() => settings().then((m) => m.InstallSheet));
@@ -57,12 +64,20 @@ const FamilyList = lazyView(() => familyViews().then((m) => m.FamilyList));
 const SetupFamily = lazyView(() => familyViews().then((m) => m.SetupFamily));
 const SetupImport = lazyView(() => familyViews().then((m) => m.SetupImport));
 const SetupStart = lazyView(() => familyViews().then((m) => m.SetupStart));
+// M5 UI-2: L3 What's new, L4b picture guide, L4d iOS in-app-browser help (6f.3, 6f.4).
+const launchViews = () => import('./views/launch');
+const WhatsNewSheet = lazyView(() => launchViews().then((m) => m.WhatsNewSheet));
+const InstallGuideSheet = lazyView(() => launchViews().then((m) => m.InstallGuideSheet));
+const IabHelpSheet = lazyView(() => launchViews().then((m) => m.IabHelpSheet));
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
 const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { ghost } from './ui/ghost';
 import { connectivityToasts } from './ui/toasts';
+// QA-58 (AC 2): F1 is in the entry again — as a lazy chunk it added a request wave before the first-run LCP.
+// Room in the 100 KB Home budget came from the trip-tile helpers (now lazy, main.tsx).
+import { Welcome } from './views/Welcome';
 
 export function App() {
   const { router, store, runtime, api, platform } = useServices();
@@ -86,7 +101,9 @@ export function App() {
   const depth = router.depth.value;
   useEffect(() => connectivityToasts(t), [t]);
   // Screen push/pop (§2): direction from the in-app history depth; the key remounts the screen so it animates in.
-  const prev = useRef({ path: r.path, depth, dir: 'push' as 'push' | 'pop' });
+  // QA-58: the first screen on launch does not slide in (no navigation happened); an opacity-0 entrance held back
+  // the first-run LCP. Only in-app navigation animates.
+  const prev = useRef({ path: r.path, depth, dir: 'none' as 'push' | 'pop' | 'none' });
   const stage = useRef<HTMLDivElement>(null);
   const lastSheet = useRef(sheet);
   if (prev.current.path !== r.path) {
@@ -135,6 +152,9 @@ export function App() {
       break;
     case 'about':
       view = <About />;
+      break;
+    case 'privacy':
+      view = <Privacy />;
       break;
     case 'welcome':
       view = <Welcome />;
@@ -195,7 +215,7 @@ export function App() {
     <div class="stage" ref={stage}>
       <div class="ghosts" />
       <IconSprite />
-      <div class={`screen enter-${prev.current.dir}`} key={r.path} data-screen={r.name}>
+      <div class={prev.current.dir === 'none' ? 'screen' : `screen enter-${prev.current.dir}`} key={r.path} data-screen={r.name}>
         {!online.value && r.name === 'home' && (
           <p class="note" role="status" data-testid="offline-notice">
             {t('offline_notice')}
@@ -237,7 +257,11 @@ export function App() {
       {sheet === 'clear' && <ClearSheet />}
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
+      {sheet === 'battery' && <BatterySheet />}
       {sheet === 'route-prefs' && <RoutePrefsSheet />}
+      {sheet === 'whatsnew' && <WhatsNewSheet />}
+      {sheet === 'install-guide' && <InstallGuideSheet />}
+      {sheet === 'iab-help' && <IabHelpSheet />}
       <Toast />
       <LiveRegion />
       <div class="ghosts over" />

@@ -20,7 +20,7 @@ for i in $(seq 1 30); do curl -sf "http://localhost:$PORT/" >/dev/null && break;
 # QA-20 (Director ruling): host noise can swing perf by ±10, so each URL is run RUNS times (default 3)
 # and the gate judges the MEDIAN of each category. Every run's scores are printed for the record.
 RUNS="${LH_RUNS:-3}"
-PATHS="${LH_PATHS:-/?demo=1 /about?demo=1 /settings?demo=1 /t/LhFixture0001?demo=1}"
+PATHS="${LH_PATHS:-/?demo=1 /about?demo=1 /settings?demo=1 /privacy?demo=1 /t/LhFixture0001?demo=1}"
 rc=0; summary=()
 for path in $PATHS; do
   name=$(echo "$path" | tr -c 'a-zA-Z0-9' '_' | sed 's/^_*//;s/_*$//'); [ -z "$name" ] && name=home

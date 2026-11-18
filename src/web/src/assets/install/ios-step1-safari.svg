@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-frame" x="40" y="-30" width="200" height="198" rx="30"/>
+<rect class="ig-bar" x="62" y="14" width="120" height="8" rx="4"/><rect class="ig-bar" x="62" y="30" width="150" height="8" rx="4"/><rect class="ig-bar" x="62" y="46" width="96" height="8" rx="4"/>
+<rect class="ig-quiet" x="58" y="84" width="164" height="28" rx="14"/><rect class="ig-bar" x="104" y="94" width="72" height="8" rx="4"/>
+<path class="ig-glyph" d="M76 130l-8 8 8 8M102 130l8 8-8 8"/>
+<circle class="ig-hi" cx="140" cy="138" r="21"/>
+<path class="ig-hi-glyph" d="M136 138h-4v14h16v-14h-4M140 128v14M135 133l5-5 5 5"/>
+<path class="ig-glyph" d="M173 131c3-1.5 6-1.5 9 0 3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0-3-1.5-6-1.5-9 0zM182 131v14"/>
+<rect class="ig-glyph" x="207" y="133" width="12" height="12" rx="2"/><path class="ig-glyph" d="M211 129h10a2 2 0 0 1 2 2v10"/>
+</svg>

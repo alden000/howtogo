@@ -73,11 +73,15 @@ npm run deploy:prod
 npm run smoke:deploy -- https://howtogo.wwweeeiii.com --expect-live
 npm run smoke:live -- https://howtogo.wwweeeiii.com
 ```
-- `smoke:live` exit codes: 0 PASS, 1 FAIL, 2 BLOCKED (fixture mode or missing credentials; BLOCKED is not FAIL).
+- `smoke:live` exit codes: 0 PASS, 1 FAIL, 2 BLOCKED (fixture mode or missing credentials; BLOCKED is not FAIL). It exits cleanly on Windows too (no crash code after BLOCKED).
+- LTA (Director ruling, QA-55): `/api/health` `lta: key` or `lta: proxy` both count as live.
+  - `lta: proxy` (the `LTA_PROXY` service binding, no `LTA_ACCOUNT_KEY`): bus arrival must PASS through the proxy. Alerts and lifts answer 503 `not_configured`; the script prints them as `WARN … SKIP not_configured`, which is not a FAIL.
+  - `lta: none`: BLOCKED.
+  - Setting `LTA_ACCOUNT_KEY` later turns alerts and lifts on; they are then checked like the rest.
   - It makes at most 20 requests, at least 300 ms apart.
   - It prints no tokens, no response bodies, and no coordinates except the fixed public test points.
   - `--json` writes `qa/.out/smoke-live.json`.
-- 1.0.0 is tagged only after `smoke:live` PASS on production (OQ9).
+- 1.0.0 is tagged only after `smoke:live` PASS on production (OQ9): live OneMap (search, routes, revgeocode) and bus arrival PASS. WARN lines for alerts/lifts under `lta: proxy` do not hold the tag.
 
 ## 5. Rollback
 ```bash

@@ -12,8 +12,8 @@ import { online } from '../api/offline';
 import { isApiError } from '../api/errors';
 import { family, type Contact } from '../state/family';
 import { helpShare } from '../state/helpShare';
-import { here } from '../state/location';
-import { Icon, Sheet, showToast } from '../ui/kit';
+import { here, lastAddress } from '../state/location';
+import { announce, Icon, NeedsNet, Sheet, showToast } from '../ui/kit';
 import { afterSend, openExternal, senderFor, setSharedWith, waUrl } from './shareUtil';
 import { lazyView } from '../ui/lazy';
 
@@ -29,6 +29,11 @@ export function HelpSheet() {
   const contacts = family.contacts.value;
   const first = contacts[0];
   const offline = !online.value;
+  // 6f.6 L6: a row that needs the network keeps its label, says 需要网络 and, tapped, only ticks and says why.
+  const offTap = () => {
+    void platform.vibrate('tick');
+    announce(t('need_net_sr'));
+  };
   // QA-37 / Creative m34-fix-b M4: the share entry point (6e.1) shows only while nothing is shared
   // (no trip share and no live help-only share, whatever the trip state).
   const canShare = !sharing && !helpShare.current.value;
@@ -97,7 +102,8 @@ export function HelpSheet() {
           </span>
           <span class="tx">
             <b>{t('where_am_i')}</b>
-            <span>{t('where_am_i_s')}</span>
+            {/* L6: offline with no last known address, the tab can only show coordinates. */}
+            {offline && !lastAddress.value ? <NeedsNet /> : <span>{t('where_am_i_s')}</span>}
           </span>
           <Icon name="chev" />
         </button>
@@ -117,7 +123,7 @@ export function HelpSheet() {
             <span class="tx">
               <b>{t('find_again')}</b>
               {/* QA-39 (AC 38): rows that need the network say so instead of failing silently. */}
-              <span>{offline ? t('hp_needs_net') : t('find_again_s')}</span>
+              {offline ? <NeedsNet /> : <span>{t('find_again_s')}</span>}
             </span>
             <Icon name="chev" />
           </button>
@@ -129,6 +135,7 @@ export function HelpSheet() {
               class="opt"
               data-testid="help-home"
               onClick={() => {
+                if (!online.peek()) return offTap();
                 const home = store.places.peek().home!;
                 store.setPlan({ from: null, to: home, options: [], selected: 0 });
                 router.closeSheet();
@@ -140,6 +147,7 @@ export function HelpSheet() {
               </span>
               <span class="tx">
                 <b>{t('hp_home')}</b>
+                {offline && <NeedsNet />}
               </span>
               <Icon name="chev" />
             </button>
@@ -213,7 +221,7 @@ function HelpShareRow({ first, offline }: { first: Contact | null; offline: bool
       </span>
       <span class="tx">
         <b>{t('hp_share')}</b>
-        <span>{offline ? t('hp_needs_net') : first ? t('hp_share_s', { fam: first.name }) : t('hp_share_s_any')}</span>
+        {offline ? <NeedsNet /> : <span>{first ? t('hp_share_s', { fam: first.name }) : t('hp_share_s_any')}</span>}
       </span>
       <Icon name="chev" />
     </button>
@@ -249,54 +257,24 @@ export function Confirm995Sheet() {
   );
 }
 
-/**
- * Note while help is showing on family's page (6e.3): "I'm okay now". Trip share → back to travelling.
- * Help-only share (QA-37, not on a trip; shown on Home) → the share ends (AC 35).
- */
-export function HelpNote() {
-  const { store, runtime, api, platform } = useServices();
-  const t = useT();
-  const trip = store.trip.value;
-  const s = trip?.share;
-  // Creative m34-fix-b M4: a live help-only share always shows its off switch, on a trip too.
-  const hs = helpShare.current.value;
-  if (s?.status !== 'help' && !hs) return null;
-  const fam = (hs ? hs.fam : null) ?? family.contacts.value[0]?.name ?? t('sh_family_fb');
-  return (
-    <div class="tripnote helpnote" role="status" data-testid="help-note">
-      <Icon name="help" />
-      <div class="tx">
-        <b>{t('hp_note', { fam })}</b>
-      </div>
-      <button
-        type="button"
-        class="btn btn-secondary"
-        data-testid="help-ok"
-        onClick={() => {
-          void platform.vibrate('confirm');
-          if (hs) {
-            void helpShare.end(api);
-            showToast('help-ok', t('hp_ok_end', { fam }));
-          } else {
-            runtime.clearHelp();
-            showToast('help-ok', t('hp_ok_toast', { fam }));
-          }
-        }}
-      >
-        {t('hp_ok')}
-      </button>
-    </div>
-  );
-}
+export { HelpNote } from './helpNote';
 
 const GRAB_ANDROID = 'intent://open#Intent;scheme=grab;package=com.grabtaxi.passenger;S.browser_fallback_url=https%3A%2F%2Fwww.grab.com%2Fsg%2Ftransport%2F;end';
 const CDG_ZIG = 'https://www.cdgtaxi.com.sg/';
 
 /** 6e.6 taxi hand-off under the address card: Grab (app if installed), CDG Zig, call (number unverified → hidden, OQ10). */
 export function TaxiButtons() {
+  const { platform } = useServices();
   const t = useT();
   const [noGrab, setNoGrab] = useState(false);
+  // 6f.6 L6: booking a taxi needs the network; offline the buttons say so and stay put.
+  const offline = !online.value;
+  const offTap = () => {
+    void platform.vibrate('tick');
+    announce(t('need_net_sr'));
+  };
   const grab = () => {
+    if (!online.peek()) return offTap();
     log('taxi:grab');
     const android = /Android/i.test(navigator.userAgent);
     if (android) return void (location.href = GRAB_ANDROID);
@@ -310,16 +288,30 @@ export function TaxiButtons() {
     <div class="stack" data-testid="taxi" style={{ marginTop: '16px' }}>
       <button type="button" class="btn btn-secondary" data-testid="taxi-grab" onClick={grab}>
         <Icon name="car" />
-        {t('tx_grab')}
+        {offline ? (
+          <span>
+            {t('tx_grab')}
+            <NeedsNet />
+          </span>
+        ) : (
+          t('tx_grab')
+        )}
       </button>
       {noGrab && (
         <p class="t-caption" role="status" data-testid="taxi-nograb">
           {t('tx_nograb')}
         </p>
       )}
-      <button type="button" class="btn btn-secondary" data-testid="taxi-cdg" onClick={() => openExternal(CDG_ZIG)}>
+      <button type="button" class="btn btn-secondary" data-testid="taxi-cdg" onClick={() => (online.peek() ? openExternal(CDG_ZIG) : offTap())}>
         <Icon name="car" />
-        {t('tx_cdg')}
+        {offline ? (
+          <span>
+            {t('tx_cdg')}
+            <NeedsNet />
+          </span>
+        ) : (
+          t('tx_cdg')
+        )}
       </button>
       <p class="t-caption" style={{ display: 'flex', gap: '8px' }}>
         <Icon name="info" />

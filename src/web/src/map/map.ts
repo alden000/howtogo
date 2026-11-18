@@ -28,6 +28,8 @@ export function cssColor(el: Element, token: string): string {
 export interface MapOptions {
   dark: boolean;
   reducedMotion: boolean;
+  /** M5 AC 8: camera easing allowed now (battery saver turns it off; read on every camera move). */
+  animations?: () => boolean;
   /** Interactive gestures (false for small previews). */
   interactive?: boolean;
   /**
@@ -165,7 +167,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
   let routeSteps: Step[] = [];
   let dark = opts.dark;
   let followZoom: number | undefined;
-  const duration = opts.reducedMotion ? 0 : 600;
+  const dur = () => (opts.reducedMotion || opts.animations?.() === false ? 0 : 600);
 
   const ready = new Promise<void>((r) => (map.loaded() ? r() : map.once('load', () => r())));
 
@@ -227,7 +229,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
   function applyFollow() {
     if (follow.value !== 'follow' || !lastPuck) return;
     const cam = followCamera(lastPuck.pos, lastPuck.heading, followZoom);
-    map.easeTo({ ...cam, duration });
+    map.easeTo({ ...cam, duration: dur() });
   }
 
   const ctl = {
@@ -252,7 +254,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     /** Overview recentre button: centre on the dot (AC 39). */
     centerOnMe() {
       if (!lastPuck) return;
-      map.easeTo({ center: [lastPuck.pos.lng, lastPuck.pos.lat], zoom: Math.max(map.getZoom(), 16), duration });
+      map.easeTo({ center: [lastPuck.pos.lng, lastPuck.pos.lat], zoom: Math.max(map.getZoom(), 16), duration: dur() });
       log('map:centre-me');
     },
     resize() {
@@ -293,7 +295,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
       const b = boundsOf(routeSteps.flatMap((s) => s.geometry));
       if (!b) return;
       dispatchFollow({ type: 'overview' });
-      map.fitBounds(b, { padding, duration, bearing: 0, pitch: 0 });
+      map.fitBounds(b, { padding, duration: dur(), bearing: 0, pitch: 0 });
     },
     setTheme(isDark: boolean) {
       if (isDark === dark) return;

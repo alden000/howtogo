@@ -112,6 +112,8 @@ export function copy(c: CopyCtx) {
     locate: T(`回到${zhP}的位置`, 'Back to their position'),
     foot1: T(`${me}到了 30 分钟后，这个链接会停止（最长 4 小时）。`, `This link stops 30 minutes after ${me} arrives (4 hours at most).`),
     foot2: T('怎么去? 不会保存任何人的位置。', '怎么去? doesn’t keep anyone’s location.'),
+    // M5 UI-1 (6f.8 L8): footer link to the privacy page.
+    privacy: T('隐私说明', 'Privacy'),
     whatIs: T('这是什么？', 'What is this?'),
     whatIsBody: T(
       `怎么去? 是一个帮长辈坐巴士和地铁的应用。${me}用它一步一步地走，也用它让家人看到${zhP}在哪里。`,

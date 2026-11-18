@@ -77,6 +77,9 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 .rest>div:empty{display:none}
 .foot{font-size:.9rem;color:var(--c-ink-2);text-align:center}
 .foot p{margin:0 0 6px}
+/* M5 UI-1 (6f.8 L8): privacy link, `.inlink` as in the app (56 px target). */
+.inlink{display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap);color:var(--c-primary-text);font-weight:700}
+.inlink .u{text-decoration:underline;text-underline-offset:2px}
 details.what{font-size:.9rem;color:var(--c-ink-2)}
 details.what summary{min-height:var(--tap);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--c-primary-text);text-decoration:underline;text-underline-offset:4px;font-weight:700;list-style:none}
 details.what summary::-webkit-details-marker{display:none}

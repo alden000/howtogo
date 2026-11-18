@@ -1300,3 +1300,341 @@ Branch `dev/m5-engine` (worktree `howtogo-m5e`). No new user-visible UI. Not pus
   - the two-build SW-update test with an active trip and share (AC 17);
   - the delete-a-chunk test (AC 18);
   - a Playwright check of the telemetry payload (`?telemetry=1`).
+
+## 2026-11-18 — Developer UI-1: M5 UI round
+
+*Reconstructed at integration from UI-1's commits d21b82d, 00caf7e and b3a92dc (Creative M5 review fix 4). b3a92dc had committed UI-2's entry in place of this one.*
+
+Branch `dev/m5-ui`. Not pushed, nothing deployed, no wrangler run against Cloudflare.
+
+**What was built**
+- **L1 Privacy** (`views/Privacy.tsx`, copy in `i18n/privacy.ts`, lazy chunk): one h1, five h2, the glance card, the contact line pointing to Report a problem (AC 23), and the footer with the notice version (`PRIVACY_NOTICE`). `/privacy` is a standalone route, deep-linkable from the family page and `/setup` (`?lang=`).
+- **L2 About** rework: version with the build date (`BUILD_DATE`, `/version.json`), the sample-mode line, Maps and data with the OneMap logo, the LTA line with the data date, the privacy row (→ L1) and Report.
+- **L5 Battery saver**: the Settings row (自动 / 开 / 关, "not on this phone" when the Battery API is missing), the sheet with its note, the H5 leaf chip, and calmer map animations while saving.
+- **L7 Settings**: the 1.0 group order (Me · Display · Travel · Privacy · This app) and the error-counts switch row with Details → L1 h2 2 (default on, OQ3). Off drops queued counts.
+- **L8**: privacy links on the family page footer and `/setup`.
+- **6f.11 text size 85 %** (owner request): `small` = `--ts .85` on first run (F1), Settings and `/setup`. Default stays 100 %. The Home AA cycle skips 85 %.
+- **Delete all my data** (`state/deleteAll.ts`): stops a live share first, then clears localStorage, sessionStorage, Cache Storage and IndexedDB.
+- SW API cache pruning (expired search/route results are evicted).
+- Sheets return focus to their trigger.
+
+**Budget**
+- Copy used only by lazy screens moved to `i18n/m5lazy.ts` and `i18n/privacy.ts`. Home entry 98.9 / 100 KB.
+
+**Tests**
+- Unit: `test/m5-ui1.test.ts` (85 % size, delete-all completeness, battery row values, privacy copy limits).
+- e2e: `e2e/m5-ui1.spec.ts` (L1, L2, L5, L7, L8, 6f.11) and `e2e/a11y.spec.ts` (an a11y-tree check per screen + a keyboard pass).
+
+**Baselines** (51 files, Docker, DPR 1)
+- New: `M5-F1-size-{85,100,200}`, `M5-H1-default`, `M5-H13-size`, `M5-H5-walk`, `M5-H6-bus`, `M5-L1-top` (4), `M5-L1-full` (2), `M5-L2-live` (2), `M5-L2-sample`, `M5-L5-g1`, `M5-L5-h5-chip` (2), `M5-L5-row`, `M5-L5-sheet` (2), `M5-L5-sheet-unsupported`, `M5-L7-settings` (4), `M5-L7-errors-off`, `M5-L8-setup-link`, `M5-W-size-85`.
+- Re-recorded: `M1-F1-lang`, `M1-F6-about`, `M1-F6-settings` (3), `M4-W-form`, and the family-page `M4-V-*` set (footer privacy link).
+
+**Visible changes (Creative pre-flight)**
+1. New Privacy page; About reworked.
+2. Settings in the final order, with the Privacy group, the error-counts row and the battery-saver row.
+3. The 较小 85 % size option on first run, Settings and `/setup`.
+4. The battery-saver sheet and the H5 leaf chip.
+5. Privacy links on the family page and `/setup`.
+
+**Left for the integration round:** the Settings update bar (UI-2's TODO), the Home budget after both merges, and the missing `h1` on guidance.
+
+## 2026-11-18 — Developer UI-2: M5 UI round
+
+Branch `dev/m5-ui2` (worktree `howtogo-m5u2`). Not pushed, nothing deployed, no wrangler run against Cloudflare. Settings, Privacy, About, text size and delete-all were left alone (UI-1).
+
+**L3 Update bar + What's new (6f.3, AC 17/21; replaces F7)**
+- `views/launch.tsx` `UpdateBar`, with the state in `pwa/launch.ts` (`updPhase`, `updHidden`, `showUpdBar`, `startUpdate()`):
+  - **waiting**: 有新版本 · 点这里更新 / New version · tap to update, plus ✕ 以后再说;
+  - **updating**: the refresh icon turns (static with reduce motion), `aria-busy`, ✕ hidden;
+  - **slow**: after 10 s with no new controller, 这次没更新好… with ✕ back. No retry loop.
+- Announced once, politely. ✕ hides the bar until the next launch.
+- It uses only the engine's `updateBar` / `applyUpdate()`, so it never shows during a trip or share. On H1 it sits under the top bar.
+- **TODO for UI-1's merge:** put `{showUpdBar.value && <UpdateBar />}` at the top of the Settings list.
+  - Import `UpdateBar` with `lazyView(() => import('./launch').then((m) => m.UpdateBar))` and `showUpdBar` from `../pwa/launch`.
+  - Then record `M5-L3-bar-settings`.
+- What's new sheet (`whatsnew`): the 1.0 copy, `bus` / `leaf` / `wifi-off` rows and one button, 知道了 / Got it.
+  - Focus goes to the title, then back to H1's search button.
+  - It shows once per device. Flag `whatsnew.v1` is in `pwa/whatsnew.ts` (eager, tiny).
+  - It is due only when the build is ≥ 1.0.0 AND the device was onboarded before this launch. A fresh 1.0 install stamps `fresh` on its first run.
+  - H1 opens it only when no trip or share is running and no sheet is open.
+  - The "updated" toast is skipped while What's new is due.
+  - QA hooks, mock/demo only: `?whatsnew=1` forces the sheet, `?upd=1` shows the bar.
+- The lazy chunk's copy is in `i18n/m5launch.ts`, not `ui.ts`, to stay inside the Home budget. The old `upd_*` keys in `ui.ts` are now unused.
+
+**L4 Install helper (6f.4, AC 26–29)**
+- Pure functions in `pwa/launch.ts`:
+  - `detectInAppBrowser(ua)`: WhatsApp, Facebook, Instagram, Telegram, WeChat, Line;
+  - `uaOs`, `iosVersion`, `iosBrowser`, `installVariant`, `installCardDue`, `afterDismiss`, `afterRouteView`, `chromeIntentUrl`.
+- The card sits under the place tiles, above Recent. It appears after the **2nd completed route view**: H3 with options, counted once per fetch, in `Routes.tsx`.
+  - It never shows when standalone or `navigator.standalone`, in the Android app, during a trip or share, or once installed.
+  - Dismiss hides it for 14 days. The second showing adds the Settings caption. A second dismissal means never again. State is in `install.v1`.
+- Card variants:
+  - **L4a** with a captured prompt: 放到主屏幕 opens the native prompt. Accepted → the card goes and the `installed` toast shows. Dismissed → counts as a dismissal.
+  - **L4a** without a prompt (Firefox): 看看怎么做 opens the F6 install sheet (Android steps).
+  - **L4b** iOS Safari, and iOS Chrome / Edge ≥ 16.4: a 3-step picture-guide sheet.
+    - The 6 drawn SVGs are inlined from `src/web/src/assets/install/` (copied from `creative/m5/install/`), so they follow dark mode.
+    - Step 1 uses the Chrome picture and hint for Chrome, and the Edge hint for Edge.
+    - 好了，我知道了 is not counted as a dismissal.
+  - **L4c** other iOS browsers and iOS < 16.4: Open in Safari. Copy link copies the **site root** and shows the toast with the 3 steps.
+- **L4d** in-app band at the very top of H1, `role=region` 打开方式, not sticky:
+  - Android: 用 Chrome 打开 (`intent://…`). If the page is still visible after 1.5 s, the button becomes 复制链接.
+  - iOS: 怎么打开？ opens the "Open in Safari" sheet.
+  - ✕ hides it for the session (`iab.off`). It is never shown during a trip or in the app.
+  - In-app browsers get the band instead of the card.
+- Log lines: `install:shown`, `install:accepted`, `install:dismissed`. No UA string is logged.
+- Icons `leaf` and `open-browser` are drawn inline in the lazy chunk, not added to the eager sprite. UI-1 or the merge may move them into `kit.tsx`.
+
+**L6 Offline cold start (6f.6, AC 20)**
+- While `online` is false, these controls keep their label and gain the `NeedsNet` caption (`ui/kit.tsx`, `wifi-off` 16 px, 需要网络 / Needs internet):
+  - H1's search button;
+  - place tiles (the caption replaces the sub-line);
+  - Recent rows;
+  - 带我回家;
+  - H3 route cards.
+- The caption is also part of each control's accessible name.
+- Tiles, Recent, Take me home and the H3 cards then do not navigate: haptic `tick` and a polite 需要网络。连上网络以后再按。
+- The search button still opens H2, which shows F4 offline.
+- Everything returns to normal when the app is back `online`.
+- **Not done:** the Help-sheet offline details (Show the driver last-known-address caption, 我在哪里 sub-line, baselines `M5-L6-help-offline` and `M5-L6-driver-offline`).
+
+**L9 Field-test kit (AC 41)**
+- `docs/field-test/`:
+  - `feedback-form.html` and `.pdf`, copied from Creative;
+  - `consent.md` with the zh/en consent line;
+  - `questions.md`, the plain-text question list;
+  - `script.md`: the owner-run ≈ 60-min script with the zh/en phrases to say, the no-recording / no-names rules, and the notes template.
+
+**Budget**
+- Home entry is **99.8 / 100 KB**; it was 98.9.
+- All L3/L4 UI is one lazy chunk (`launch`). Home mounts `LaunchTop` and `LaunchCard`, and each decides for itself.
+- The eager additions are only `NeedsNet`, two i18n keys, the offline branches in Home and `pwa/whatsnew.ts`.
+- **UI-1's merge will very likely push Home over 100 KB.** The Director should rule on raising the budget, or on what moves out.
+
+**Tests**
+- Typecheck green. Web unit tests **261** (was 229). New: `test/m5-ui2.test.ts`, 32 tests:
+  - in-app detection, 11 UAs plus 9 real-browser negatives;
+  - card variants;
+  - card timing;
+  - What's new;
+  - update phases.
+- Dev e2e: `e2e/m5-ui2.spec.ts`, 17 tests, covering:
+  - bar phases, and no bar during a trip;
+  - What's new zh/en;
+  - the card after the 2nd route view, its placement, prompt accepted and dismissed, the second dismissal, the no-prompt sheet;
+  - the iOS guide and the Chrome guide;
+  - L4c copying the root;
+  - the Android band falling back to Copy link, ✕ for the session;
+  - the iOS band sheet;
+  - L6 Home at 100/200 (no horizontal scroll) and H3 cards offline.
+- Docker, full dev suite: **168 passed, 5 failed** on the first run.
+  - Three passed on a rerun: `fixround:114`, `guide:153`, `ui:119`.
+  - `guide:456` (AC 50 demo get-off) is a pre-existing Docker timing flake. I timed it: base bf22bd9 took 7.8 s and 15.0 s, this branch 13.4 s and 7.3 s, against a 15 s expect. Same distribution.
+  - All 90 screenshot specs pass without update: `baselines*.spec.ts` + `m5-ui2.spec.ts`.
+- qa/tests `pwa.spec.ts`: 5/6.
+  - The failing test is "AC-2 SW precaches the shell… /settings offline in a new tab" (`row-about` not found).
+  - **It fails on base bf22bd9 too** (checked by building it), probably from the lazy Settings chunk and the SW precache. → QA / engine.
+  - AC-4 (two builds: banner → Update → "已更新" toast) passes with the new bar.
+
+**Baselines changed:** new only, 16 files in `src/web/e2e/baselines/`:
+- `M5-L3-bar-home-{light-100-zh,dark-200-en}`, `M5-L3-updating`, `M5-L3-slow`, `M5-L3-whatsnew-{zh,en}`;
+- `M5-L4a-card`, `M5-L4a-card-second`, `M5-L4b-card`, `M5-L4b-guide`, `M5-L4b-guide-chrome`, `M5-L4c-safari`;
+- `M5-L4d-android`, `M5-L4d-ios`, `M5-L4d-ios-sheet`;
+- `M5-L6-home-offline`.
+
+They were recorded in Docker at DPR 1, like the other dev baselines. No existing baseline was re-recorded.
+
+**Visible changes (Creative pre-flight)**
+1. H1 update bar: new copy, updating and slow states.
+2. What's new sheet.
+3. Install card in its 4 variants on H1, under the tiles.
+4. iOS picture-guide sheet; Open-in-Safari card and sheet.
+5. In-app band at the top of H1. At 100 % the zh text wraps to 3 lines beside the button; at 200 % it moves to the grid layout.
+6. 需要网络 captions on H1 (search, tiles, Recent, dock) and on the H3 cards while offline.
+
+**Next steps**
+- UI-1 merge:
+  - Settings update bar (TODO above) and `M5-L3-bar-settings`;
+  - the Home budget;
+  - `leaf` icon dedupe;
+  - `STORAGE_KEYS` conflicts (added `install.v1`, `whatsnew.v1`, session `iab.off`).
+- L6 Help / driver offline states and their baselines.
+- Real-device checks: the Android intent hand-off from the WhatsApp/Facebook/Line browsers, the iOS Edge share position (⚠ in 6f.4), and clipboard access in in-app browsers.
+- QA: the pre-existing pwa AC-2 `/settings` offline failure.
+
+## 2026-11-18 — Developer: M5 integration round
+
+Branch `dev/m5-int` (worktree `howtogo-m5i`) = `dev/m5-ui` (UI-1 + Creative review 2ca2dcf) + the session branch + `dev/m5-ui2`. Not pushed, nothing deployed, no wrangler run against Cloudflare.
+
+**Merges**
+- `dev/m5-ui2`: one conflict in `main.tsx`; both stylesheets are imported (`m5ui1.css`, then `m5.css`).
+- `dev/m5-ui` again for Creative's review (`creative/reviews/m5-ui.md`): no conflicts.
+
+**Home budget (Director ruling: it stays 100 KB gz)**
+- Home JS is **98.3 / 100 KB**. After the merges it was 101.1.
+- Moved out of the entry:
+  - **F1 first run** (`Welcome`). It shows only right after the first download, when the network is there.
+  - **H2 Search**. It is lazy, but `main.tsx` fetches it right after the first paint, not at idle.
+  - `pendingHome` moved to `state/pendingHome.ts` and `HelpNote` to `views/helpNote.tsx`, so Home and HomeConfirm do not import the Search or Help modules.
+- The **Help sheet stays in the entry.** Lazy, it saved another 1.5 KB. But in a test with no service worker, it could not open offline. Help must open offline even before the service worker has precached anything.
+- The L3/L4 UI (install card, iOS guide, What's new, in-app bar) and the battery sheet were already lazy.
+- The biggest remaining eager items (gz) are:
+  - `i18n/ui.ts` ≈ 11.6 KB;
+  - the station table ≈ 10.6 KB, pulled in by the trip runtime through `guidance`;
+  - `i18n/m34.ts` ≈ 8 KB.
+- These are the next levers if Home grows. Moving the station table out means making the trip runtime lazy.
+
+**L3: update bar in Settings**
+- The bar sits at the top of the Settings list, under the h1. It is the same lazy `UpdateBar` as on H1.
+- e2e covers its order and ✕. New baseline `M5-L3-bar-settings`.
+
+**L6: Help and Show the driver offline (6f.6, M4 AC 38)**
+- These Help rows say 需要网络 (the `NeedsNet` caption, also part of the row's name):
+  - 带我回家: a tap only ticks and announces 需要网络。连上网络以后再按。;
+  - 我在哪里？: only when there is no last known address;
+  - 让家人看到我在哪里 and 帮我重新找路: these were plain text before.
+- Call family, Show the driver and 995 have no caption. They work offline.
+- Show the driver:
+  - The Home and destination cards work offline as before.
+  - 我在哪里 offline shows the last known address with 这是 {time} 的位置。. The address is the last fix with an address, kept in memory only (`lastAddress` in `state/location.ts`).
+  - With no last known address it shows 现在找不到地址。可以给司机看你家的地址。 and never "loading". The coordinates fallback stays.
+  - Grab and CDG Zig say 需要网络 and stay put offline.
+- New baselines: `M5-L6-help-offline`, `M5-L6-driver-offline`.
+
+**a11y (headings)**
+- On H5 guidance, the step headline (`current-step`) is now the h1. It looks the same and keeps its polite live region.
+- H4 route detail already had its h1 (去 X). The a11y-tree test hid this behind an exemption, and the exemption is gone.
+- `a11y.spec.ts` now requires exactly one h1 on every screen, H4 and H5 included.
+
+**Creative M5 review: all 11 fixes applied**
+1. `.contact` → `pvcontact`.
+2. Inline links keep their 56 px hit area without breaking the sentence.
+   - Creative's CSS (inline + vertical padding) still broke the line, because a `<button>` lays out as inline-block in Chrome.
+   - So the same selectors get `display:inline; padding:0` and an invisible 56 px `::after` hit area.
+   - e2e checks that the contact line is one line and that the link is hit at ±27 px.
+3. Privacy cuts, exactly as the table. The en page counts 395 words with everything visible except the footer and the Open link. A new unit test fails above 400.
+4. UI-1's dev-log entry, reconstructed from its commits. It is above UI-2's, which appears once.
+5. On F1, the 85 % note sits directly under the size cards.
+6. The in-app band uses the 200 % layout at every size: text, ✕ top-right, button below.
+7. zh curly quotes in `set_errors_s`, `bs_auto_s_na` and `pv_2d`.
+8. The Settings clear row uses `clear_recent_row`; `set_clear_recent` is deleted.
+9. While busy, Delete all reads 正在清除… / Deleting…
+10. About:
+    - the seal is 72 px (`Wordmark size={72}`);
+    - the OneMap logo is self-hosted: the official 32 px and 256 px files are in `src/assets/onemap/`, bundled as hashed assets, so the SW precaches them;
+    - the map's attribution logo is unchanged.
+11. The glance list has `role="list"`, and Details focuses `#pv-h2`.
+- Item 12 needs no action.
+
+**Flaky and failing e2e**
+- `guide.spec` AC 50: the "arrive" demo plays the rest of the trip fix by fix.
+  - In the container (`CI=1`) it waits up to 45 s and the test gets +45 s. On the host it is still 15 s.
+  - The assertion is unchanged.
+- `fixround` exit motion: a MutationObserver records every ghost as it is inserted. The test asserts at least one ghost, and that each one is inert, aria-hidden and has no testids. Before, it hoped to catch the 120 ms ghost after a lazy screen loaded.
+- Family page (`e2e-viewer`), locally 43/45 → 45/45. Both failures were stale tests, not product bugs:
+  - after "I'm okay" the share ends as `endedOk` (Creative m34-fix-b M2);
+  - `#call` now holds only 在地图上打开 (Fix B).
+- qa `pwa.spec` AC-2 (/settings in a new offline tab) was a **product bug**, and it is fixed:
+  - The SW's asset handler matched precached chunks with `caches.match(req)`.
+  - A dynamic `import()` is a CORS request, and a `Vary: Origin` response (vite preview sends it) made the precached copy unmatchable. So a lazy screen never loaded in a fresh offline tab.
+  - It now uses `ignoreVary: true`. The asset URLs are content-hashed.
+  - AC-2 passes locally (5 passed, AC-4 skipped without `dist-b`).
+- Since the Help sheet, Search and the first run moved, some tests now wait for the lazy screen before reading it (`fixb` helpIds, `M1-F4-offline`, a11y H4).
+- e2e runs block service workers, so the m5-ui2 offline tests call `__howtogoPreload()` before going offline, in place of the SW precache. This hook exists in mock and demo only.
+
+**Tests**
+- Typecheck green.
+- Unit: shared 159, web 276 (+2: the privacy whole-page word count, `lastAddress`), worker 220.
+- Docker dev-e2e (full run, no update): **239/239 passed** (13.9 min). Docker was only used alone; an earlier run shared the 4 cores with local Playwright runs, and the extra failures from that run all passed on a clean rerun.
+- Locally: family page 45/45; qa pwa 5 passed.
+
+**Baselines** (Docker, DPR 1, only the screens changed this round)
+- New: `M5-L3-bar-settings`, `M5-L6-help-offline`, `M5-L6-driver-offline`.
+- Re-recorded:
+  - `M1-F6-about`;
+  - `M5-F1-size-85`;
+  - `M5-L1-full-{zh,en}`;
+  - `M5-L2-live` ×2 and `M5-L2-sample`;
+  - `M5-L4d-android`, `M5-L4d-ios`, `M5-L4d-ios-sheet`;
+  - `M5-L5-sheet-unsupported`;
+  - `M5-L7-settings` ×3 and `M5-L7-errors-off`.
+
+**Visible changes (Creative)**
+1. The update bar at the top of Settings.
+2. The Help sheet and Show the driver offline: 需要网络 lines, the last-known-address caption and the no-address line.
+3. All of review items 1–3 and 5–11, as above. The inline-link fix differs from the review's CSS for the reason given.
+
+**For QA**
+- Real-device checks are still open: the Android intent hand-off, the iOS Edge share position, clipboard in in-app browsers, and CJK bold (review 12).
+
+## 2026-11-18 — Developer: M5 fix round
+Branch `dev/m5-int`, on top of QA's gate commit `d4f996f`. One batched round for QA-52 to QA-59. Nothing deployed, and no wrangler run against Cloudflare.
+
+**Fixes**
+- **QA-52** `smoke:deploy`: the MapLibre check now flags only a `src`/`href` URL that contains `maplibre` (chunk, modulepreload or script). Before, it also matched the inlined `.maplibregl-*` CSS selectors.
+- **QA-53** First-run step dots: the privacy list class is renamed from `.dots` to `.pv-bullets` (m5ui1.css, Privacy.tsx). Welcome's `.dots` is a row again at every size.
+  - New guard in `M5-F1-size-{85,100,200}` (dev-e2e): every dot has the same top and the row has `flex-direction: row`. Re-recorded baselines can no longer hide this.
+- **QA-54** `smoke:live` / `smoke:deploy`: they set `process.exitCode` and let the event loop drain, instead of calling `process.exit()` right after `fetch` (the Windows libuv assertion). BLOCKED exits 2: checked against a local stub Worker on this PC (fixture → 2, proxy → 0) and by m5 AC 36 on the real local Worker.
+- **QA-55** (ruling): `lta: proxy` counts as live, and bus arrival must PASS through it. Alerts and lifts that answer 503 `not_configured` print `WARN … SKIP not_configured` and are not FAILs. `lta: none` is BLOCKED. `--json` adds `lta` and `warnings`. Updated in DEPLOY.md §4 and RELEASE-GATE.md (`smoke:live` row).
+- **QA-56** (AC 6): `src/map/prefetch.ts` adds one `<link rel="prefetch" crossorigin>` for the MapLibre chunk after the screen has been idle 3 s. This happens on Home, Search and Route options only, never on the first paint or other screens, and not with Save-Data or battery saver on.
+  - The hashed URL comes from `virtual:maplibre-url`, a bundler file reference in vite.config.ts, so the entry's hash follows MapLibre's. MapLibre is still one lazy chunk and is still absent from index.html.
+- **QA-57** (M4 AC 36, §6f L6): offline 我在哪里 with a position but no remembered address shows the coordinates and 给别人看这个号码 under the no-address line. When an address is remembered, the address and its time show as before (tripSheets.tsx).
+- **QA-58** (AC 2, first-run LCP):
+  - Welcome is in the entry again. To make room, the trip-tile helpers (`map/onemap`) are now lazy. Home JS is 99.1 KB of 100 KB.
+  - The first screen on launch no longer slides in. Its opacity-0 entrance held back LCP. Only in-app navigation animates.
+  - On a first visit, Search waits for the 3 s idle preload, and `/api/health` waits for idle (the first run shows no banner).
+  - Demo mode fetches its mock and fake chunks in parallel.
+  - The 400 face is preloaded next to the 700 face.
+  - Tried and dropped: a hidden CJK font warm-up in index.html. On Windows, the first Chinese layout costs about 150 ms (trace: `Layout` 154 ms in the render task). The warm-up moved that cost earlier, but dev-e2e became slow and flaky in Docker (H2-empty failed 1 of 6), so it is not in this round.
+- **QA-59** (ruling): in fixture mode, `/api/revgeocode` returns `200 {"name":"","address":"","postal":"","sample":true}` for any valid point, still with `X-Fixture: 1`, and validation still applies. It never snaps to a sample place now. API.md is updated.
+  - The app keeps the real coordinates (the route origin is unchanged). The point shows as 我的位置 / My location, as AC 26 already does.
+  - On 我在哪里 the driver card reads "My location · 我的位置", with a sample note and the coordinates.
+
+**Lighthouse** (`qa/scripts/lighthouse.sh`, median of 3, owner's PC with other projects' dev servers running)
+- `/?demo=1` cold first run, final release build: **LCP 2495 ms** median (runs 2454 / 2495 / 2649), perf 95, TBT 0, CLS 0. Earlier runs of near-identical builds read 2523–2674 ms, so the margin is within host noise. QA please re-measure on a quiet host.
+- An A/B in the same session, built from `d4f996f` without these fixes: 2612–2616 ms. This host reads about 100 ms slower than at QA's gate (QA: 2504 ms).
+- Live-mode `/`: about 2.7 s here. But `vite preview` answers `/api/health` with the 14 KB SPA fallback; production answers a few bytes of JSON.
+- Also tried and dropped:
+  - Merging the 24 small eager chunks with rolldown `codeSplitting` groups. The viewer pulled in the shell (157 KB) and Home went to 100.1 KB.
+  - Removing the font preloads (worse).
+
+**Tests**
+- Typecheck green.
+- Unit: shared 159, web 280 (+4: QA-56 prefetch ×3, QA-59 `locate()`), worker 220 (QA-59 fixture test rewritten).
+- Docker dev-e2e, final full run with no update: **240/240 passed** (13.8 min).
+  - Two earlier full runs each had 1–3 `search-input` timeouts. All passed when re-run alone. I traced them to the font warm-up, which is now dropped.
+- QA specs (local, release build + local Worker):
+  - `m5.spec.ts`: 47/48. The failure is "expired API cache entries…", which fails the same way on a `d4f996f` build on this PC (Home's alerts/lifts/revgeocode get cached after `controlled()`'s reload). This round did not cause it.
+  - AC 6, AC 33 (`smoke:deploy`), AC 36 (exit 2) and the 85 % dots test PASS.
+  - `m4.spec.ts` AC 36: fails the same way on the `d4f996f` build here. In the second tab the service worker does not register (`sw:failed`), so the lazy Show the driver chunk can't load offline (`chunk:failed`) before QA-57's code runs. QA please re-check on the gate host.
+
+**Baselines** (Docker, re-recorded with `-g`)
+- `M1-F1-lang-light-100-zh` and `M5-F1-size-{85,100,200}-light-100-zh`: the step dots are a row.
+- No others changed: the full run without updates is green.
+
+**Visible changes (Creative)**
+1. QA-59 sample mode, 我在哪里: "My location · 我的位置" on the driver card, then the caption 示范模式，暂时不显示地址。 / Sample mode: address not shown yet. (proposed copy), then the coordinates with 给别人看这个号码. The Director suggested 你的位置 / Your location. I kept the app's existing term 我的位置 / My location (AC 26, Home "从我的位置出发"), so the same point is not named two ways. Creative, please pick one.
+2. QA-57: offline 我在哪里 with a position but no remembered address shows the no-address line, then the coordinates (L6). Please confirm the copy.
+3. The first screen on launch appears without the slide-in. In-app navigation is unchanged.
+4. First-run step dots are back in a row (QA-53).
+
+## 2026-11-18 — 1.0.0-rc.1 version + QA-60 (Developer, branch dev/m5-int)
+
+**Done**
+- Version `1.0.0-rc.1` in `src/web/package.json` and `src/web/src/version.ts`. Everything else reads one of these: About, Privacy footer, Report, `/version.json`, the Worker's `/api/health` and stats rows, `deploy.mjs` and `smoke:deploy`. Telemetry `VERSION_RE` already accepts `-rc.1`.
+- What's new: `major()` reads `1` from `1.0.0-rc.1`, so the sheet and its "1.0 来了 / 1.0 is here" copy show on rc builds too. A unit test now covers this.
+- QA-60:
+  - `lazyView(…, { idle: false })` keeps the family Viewer (not precached) out of the 3 s idle `preloadViews()`.
+  - `preloadViews()` runs inside `quietChunkErrors()`. While it is running, the global `vite:preloadError` handler steps aside, so a failed preload rejects to its own `allSettled`: no `chunk:failed`, no `chunk_load` count, no reload.
+  - A screen the user opens still reports a real failure: the lazy view's own catch calls `handleChunkError` (AC 18 unchanged).
+  - New `src/web/test/qa60-preload.test.ts` (3 tests).
+- Tests: now that the build really is 1.0, What's new shows to any seeded "onboarded" user. The test seeders (`qa/tests/helpers.ts`, `m2helpers.ts`, `m3`/`m4`/`m5` seeds, `src/web/e2e/util.ts`) also seed `howtogo.whatsnew.v1 = seen`. Changes to individual tests:
+  - m5 AC 21 checks "once" with a real relaunch, without the `?whatsnew=1` force.
+  - The m5 delete-all test allows the fresh-install `whatsnew.v1` stamp.
+  - The dev e2e version regexes allow a prerelease suffix.
+
+**Tests**
+- typecheck: clean. Unit tests: worker 159, web 283, shared 220, all pass.
+- qa m5: 49/51. AC 31 and AC 38/40 fail the same way on an untouched `ead2de8` build and tests on this PC. The page is live with the SW not blocked: search gets a 200 that is not JSON, then shows the error state. QA, please re-check on the gate host.
+- qa m3 Upgrade and m4 AC 36: pass.
+- dev e2e (Docker): 240/240 after the regex fix. The m34 Help timeout passed on rerun.
+- Baselines: none changed. About and Privacy mask the version.

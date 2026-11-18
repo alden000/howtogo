@@ -51,7 +51,9 @@ export function renderParts(v: View, lang: Lang, near: string | null): Parts {
     map: v.pos !== null, mapLabel: c.mapLabel, locate: c.locate,
   };
   const details = `<details class="what"><summary>${esc(c.whatIs)}</summary><p>${esc(c.whatIsBody)}</p></details>`;
-  P.foot = `<div class="foot"><p>${esc(c.foot1)}</p><p>${esc(c.foot2)}</p>${details}</div>`;
+  // 6f.8 L8: the privacy page in the viewer's language (same tab), after the 30 min / 4 h line.
+  const priv = `<p><a class="inlink" href="/privacy?lang=${lang}" data-testid="viewer-privacy"><span class="u">${esc(c.privacy)}</span></a></p>`;
+  P.foot = `<div class="foot"><p>${esc(c.foot1)}</p>${priv}<p>${esc(c.foot2)}</p>${details}</div>`;
 
   const travelling = () => {
     // Review ruling: the structured step renders the §6e.2 template in the viewer's language;
@@ -134,13 +136,13 @@ export function renderParts(v: View, lang: Lang, near: string | null): Parts {
       break;
     case 'invalid':
       P.status = `<section class="card" aria-labelledby="st">${head(c.invalid, c.invalidLine, `<span class="avatar" aria-hidden="true">${ic('link')}</span>`)}</section>`;
-      P.foot = `<div class="foot"><p>${esc(c.foot2)}</p></div>`;
+      P.foot = `<div class="foot"><p>${esc(c.foot2)}</p>${priv}</div>`;
       P.title = c.titleInvalid;
       P.live = c.invalid;
       break;
   }
   // Review P2 #5: once the link has stopped, the "stops 30 min after…" line reads wrong.
-  if (v.base === 'ended' || v.base === 'endedArrived' || v.base === 'endedOk' || v.base === 'expired') P.foot = `<div class="foot"><p>${esc(c.foot2)}</p>${details}</div>`;
+  if (v.base === 'ended' || v.base === 'endedArrived' || v.base === 'endedOk' || v.base === 'expired') P.foot = `<div class="foot"><p>${esc(c.foot2)}</p>${priv}${details}</div>`;
   // Review P3 #7: break zh "这个链接 / 已经过期了" at the word boundary.
   if (v.base === 'expired') P.status = P.status.replace('这个链接已经', '这个链接<wbr>已经');
   P.call += mapsBtn;

@@ -159,5 +159,7 @@ test('no phone in the share → no call button and no placeholder', async ({ pag
   await page.goto(`/t/${ID}`);
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-state', 'bus');
   await expect(page.getByTestId('viewer-call')).toHaveCount(0);
-  await expect(page.locator('#call')).toBeEmpty();
+  // Fix B (viewer maps): the call area now holds only "在地图上打开"; no call button, no empty placeholder.
+  await expect(page.locator('#call > *')).toHaveCount(1);
+  await expect(page.locator('#call > *')).toHaveAttribute('data-testid', 'viewer-maps');
 });

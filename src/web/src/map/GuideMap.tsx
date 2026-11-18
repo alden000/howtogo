@@ -5,7 +5,7 @@
  * is the accessible source of truth.
  */
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { LatLng, Step } from '@howtogo/shared';
+import { powerPolicy, type LatLng, type Step } from '@howtogo/shared';
 import { useServices } from '../context';
 import { isDark } from './MapPanel';
 import type { MapController, PuckInput } from './map';
@@ -26,7 +26,7 @@ export interface GuideMapProps {
 }
 
 export function GuideMap(p: GuideMapProps) {
-  const { store } = useServices();
+  const { store, runtime } = useServices();
   const el = useRef<HTMLDivElement>(null);
   const attrib = useRef<HTMLDivElement>(null);
   const [ctl, setCtl] = useState<MapController | null>(null);
@@ -39,7 +39,7 @@ export function GuideMap(p: GuideMapProps) {
     let dead = false;
     const reduced = document.documentElement.classList.contains('rm');
     import('./map')
-      .then((m) => m.createMapController(el.current!, { dark, reducedMotion: reduced, attributionHost: attrib.current!, onGesture: () => gesture.current() }))
+      .then((m) => m.createMapController(el.current!, { dark, reducedMotion: reduced, animations: () => powerPolicy(runtime.power.peek().saver).mapAnimations, attributionHost: attrib.current!, onGesture: () => gesture.current() }))
       .then((m) => {
         if (dead) return m.destroy();
         c = m;

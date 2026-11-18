@@ -3,6 +3,7 @@ import { effect } from '@preact/signals';
 import { online } from '../api/offline';
 import type { TFn } from '../context';
 import { justUpdated } from '../pwa/register';
+import { whatsNew } from '../pwa/whatsnew';
 import { showToast, toast } from './kit';
 
 export const FLAP_MS = 3000;
@@ -33,7 +34,8 @@ export function connectivityToasts(t: TFn): void {
     }
   });
   effect(() => {
-    if (justUpdated.value) showToast('updated', tr('toast_updated'));
+    // M5 L3: the first launch on 1.0.0 shows What's new instead (no toast on top of a sheet).
+    if (justUpdated.value && !whatsNew.peek()) showToast('updated', tr('toast_updated'));
   });
   addEventListener('appinstalled', () => showToast('installed', tr('toast_installed')));
 }

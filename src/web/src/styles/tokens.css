@@ -70,6 +70,7 @@
 }
 
 /* Text size (§1.2: html font-size = 20px × --ts; H13 offers 100/125/150/200 %). */
+:root[data-text-size="small"]{--ts:.85}
 :root[data-text-size="large"]{--ts:1.25}
 :root[data-text-size="xlarge"]{--ts:1.5}
 :root[data-text-size="xxlarge"]{--ts:2}

@@ -33,8 +33,11 @@ async function startTo(page: Page, query: string) {
   await page.getByTestId('start-guide').click();
   await expect(page.getByTestId('guide')).toBeVisible();
 }
-const helpIds = (page: Page) =>
-  page.locator('[data-testid=sheet-help] [data-testid^=help-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
+/** The Help sheet is a lazy chunk (M5 integration, Home budget): wait for its last row before reading the order. */
+const helpIds = async (page: Page) => {
+  await expect(page.getByTestId('help-995')).toBeVisible();
+  return page.locator('[data-testid=sheet-help] [data-testid^=help-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
+};
 
 test('QA-36: H2 Search has Help', async ({ page }) => {
   await boot(page, { contacts: [MEI] });

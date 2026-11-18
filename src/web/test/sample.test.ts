@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { checkSampleMode, sampleMode } from '../src/state/sample';
+import { here, lastAddress, locate } from '../src/state/location';
 
 const res = (body: unknown, status = 200) =>
   Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
@@ -30,5 +31,17 @@ describe('D-10 sample-routes mode (GET /api/health)', () => {
     expect(await checkSampleMode('', (() => Promise.resolve(new Response('<html>'))) as typeof fetch)).toBe(false);
     expect(await checkSampleMode('', (() => res({ ok: true, fixtureMode: '1' })) as typeof fetch)).toBe(false);
     expect(sampleMode.value).toBe(false);
+  });
+});
+
+describe('QA-59 sample-mode reverse geocoding never names the position', () => {
+  it('locate() keeps the real coordinates, no label/address, flags sample, and remembers no address', async () => {
+    here.value = null;
+    lastAddress.value = null;
+    const platform = { location: { current: async () => ({ lat: 1.4401, lng: 103.8002, acc: 12 }) } };
+    const api = { revgeocode: async () => ({ name: '', address: '', postal: '', sample: true }) };
+    expect(await locate(platform as never, api as never)).toBe('ok');
+    expect(here.value).toEqual({ lat: 1.4401, lng: 103.8002, label: null, acc: 12, sample: true });
+    expect(lastAddress.value).toBeNull();
   });
 });

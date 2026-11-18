@@ -11,10 +11,12 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/guide.css';
 import './styles/m34.css';
+import './styles/m5ui1.css'; // M5 UI-1
+import './styles/m5.css'; // M5 UI-2
 import { render } from 'preact';
 import { effect, untracked } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
-import { App } from './app';
+import { App, Search } from './app';
 import { createHttpApi } from './api/client';
 import { offlineAware, watchOnline } from './api/offline';
 import type { Api } from './api/types';
@@ -23,7 +25,6 @@ import { log } from './log';
 import { createWebPlatform, type FakePlatform, type Platform } from './platform';
 import { captureInstallPrompt } from './pwa/install';
 import { cacheTripTiles, clearTripTiles, registerServiceWorker } from './pwa/register';
-import { corridorTiles, styleForTheme } from './map/onemap';
 import { isDark } from './map/MapPanel';
 import { createRouter } from './router/router';
 import { parseRouteLink } from './router/deeplink';
@@ -33,10 +34,13 @@ import { runMigrations } from './state/migrations';
 import { createSaverState, watchBattery } from './state/battery';
 import { helpShare } from './state/helpShare';
 import { installChunkReload } from './pwa/chunkReload';
-import { setUpdateGuard } from './pwa/register';
+import { setUpdateGuard, updateReady } from './pwa/register';
+import { initWhatsNew } from './pwa/whatsnew';
 import { createTelemetry, httpTransport, type Screen } from './telemetry/client';
 import { APP_VERSION } from './version';
 import { preloadViews, whenIdle } from './ui/lazy';
+import { installMapPrefetch } from './map/prefetch';
+import maplibreUrl from 'virtual:maplibre-url';
 import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
 
@@ -45,7 +49,18 @@ const DEMO_DEFAULT_MS = 400;
 const NATIVE_API_BASE = 'https://howtogo.wwweeeiii.com';
 const DEFAULT_FLAGS = ['guide', 'help'];
 
+/** QA-58: a first visit (no settings saved, or not onboarded yet) — the first run is the first screen. */
+function firstVisit(): boolean {
+  try {
+    const raw = localStorage.getItem('howtogo.settings');
+    return !raw || (JSON.parse(raw) as { onboarded?: unknown } | null)?.onboarded !== true;
+  } catch {
+    return false;
+  }
+}
+
 async function boot() {
+  const first = (location.pathname === '/' || location.pathname === '/welcome') && firstVisit();
   const q = new URLSearchParams(location.search);
   // Caregiver setup: keep the fragment key in memory before the router rewrites the URL (never stored, never sent).
   if (/^\/s\//.test(location.pathname) && /#k=/.test(location.hash)) (globalThis as { __setupKey?: string }).__setupKey = /#k=([A-Za-z0-9_-]+)/.exec(location.hash)![1];
@@ -76,6 +91,8 @@ async function boot() {
 
   let api: Api;
   let start = undefined as undefined | { lat: number; lng: number };
+  // QA-58: demo fetches its two chunks in parallel, not one after the other.
+  const fakeChunk = demo ? import('./platform/fake') : null;
   if (mock) {
     const m = await import('./api/mock');
     api = m.createMockApi();
@@ -89,8 +106,10 @@ async function boot() {
     }
   } else {
     api = createHttpApi({ base: apiBase });
-    // D-10: the preview Worker answers from fixtures → show the sample-routes banner.
-    void checkSampleMode(apiBase);
+    // D-10: the preview Worker answers from fixtures → show the sample-routes banner. QA-58: the first run shows no
+    // banner, so there the check waits for idle instead of joining the requests before the first paint.
+    if (first) whenIdle(() => void checkSampleMode(apiBase));
+    else void checkSampleMode(apiBase);
   }
   if (q.get('sample') === '1') session.set('mode.sample', '1');
   if (q.get('sample') === '0') session.remove('mode.sample');
@@ -109,7 +128,7 @@ async function boot() {
   }
   if (demo) {
     // Demo only: the fake platform is its own chunk (M5 AC 3), never loaded in live mode.
-    const { createFakePlatform, createDemoPlatform } = await import('./platform/fake');
+    const { createFakePlatform, createDemoPlatform } = await fakeChunk!;
     fake = createFakePlatform({ start: { ...start!, acc: 8, t: Date.now() } });
     platform = createDemoPlatform(web, fake);
   }
@@ -119,6 +138,10 @@ async function boot() {
   if (mig.ran.length) log(`storage:migrated ${mig.from}->${mig.to}`);
   else if (mig.newer) log('storage:newer');
   const store = createStore();
+  // M5 L3: What's new once after updating to 1.0.0 (a fresh 1.0 install never sees it). Mock/demo QA hooks:
+  // `?whatsnew=1` forces the sheet, `?upd=1` shows the update bar (no service worker in tests).
+  initWhatsNew({ version: APP_VERSION, onboarded: !!store.settings.peek().onboarded, force: mock && q.get('whatsnew') === '1' });
+  if (mock && q.get('upd') === '1') updateReady.value = true;
   // M5 AC 18: a failed lazy chunk → one clean reload (trip flushed first), never a loop.
   installChunkReload({ beforeReload: () => store.flushTrip() });
   // M5 AC 8: low-battery mode (Settings row + H5 chip come in the UI round).
@@ -184,7 +207,10 @@ async function boot() {
     tilesFor = key;
     if (!tr) return clearTripTiles();
     const pts = tr.guidance.steps.flatMap((st) => st.geometry).filter((_, i) => i % 3 === 0);
-    cacheTripTiles(corridorTiles(pts, [15, 16, 17], styleForTheme(isDark(store.settings.peek().theme))));
+    // QA-58: the tile helpers are a lazy chunk (only needed once a trip exists), keeping Home JS under budget.
+    void import('./map/onemap').then(({ corridorTiles, styleForTheme }) => {
+      if (tilesFor === key) cacheTripTiles(corridorTiles(pts, [15, 16, 17], styleForTheme(isDark(store.settings.peek().theme))));
+    });
   });
   const flush = () => store.flushTrip();
   addEventListener('pagehide', flush);
@@ -210,6 +236,9 @@ async function boot() {
     </ServicesContext.Provider>,
     document.getElementById('app')!,
   );
+  // M5 integration: H2 is out of the Home entry (AC 3) but is the next screen almost every time: fetch it now.
+  // QA-58: on the first run it is several screens away: the 3 s idle preloadViews() below fetches it instead.
+  if (!first) void Search.preload().catch(() => {});
 
   // Resume an unfinished trip after a reload / relaunch (OQ5): straight into H5, or the G4 stale sheet on H1.
   void runtime.resume().then((resumed) => {
@@ -242,12 +271,22 @@ async function boot() {
     ...httpTransport(apiBase),
   });
   telemetry.install();
+  // M5 UI-1 (6f.7 L7, AC 40): switching error counts off drops the queued counts at once (flush() while
+  // disabled removes them and logs `telemetry:dropped`).
+  effect(() => {
+    if (store.settings.value.errorCounts === false) void untracked(() => telemetry.flush());
+  });
   // M5 AC 3/5: warm the lazy screen chunks once the first screen is up and the main thread is idle.
   setTimeout(() => whenIdle(() => void preloadViews()), 3000);
+  // QA-56 (AC 6): prefetch the MapLibre chunk after 3 s idle on Home/Search/Route options (not on Save-Data or saver).
+  installMapPrefetch({ url: maplibreUrl, route: router.route, saver: () => saverState.peek().active, idle: (fn) => whenIdle(fn) });
   captureInstallPrompt();
   // M6 AC 4: no service worker inside the app (assets are local; updates come with a new APK).
   if (import.meta.env.PROD && !nativeApp && session.get('sw.disabled') !== '1') void registerServiceWorker();
   (window as unknown as { __howtogo?: Services }).__howtogo = services;
+  // Test hook, mock/demo only: load every lazy chunk now — what the service worker's precache gives the app,
+  // for e2e runs that block service workers and then go offline.
+  if (mock) (window as unknown as { __howtogoPreload?: () => Promise<unknown> }).__howtogoPreload = preloadViews;
 }
 
 void boot();

@@ -114,8 +114,22 @@ test('QA-9 Back from the walking overview returns to the too-close state', async
 test('Exit motion leaves no extra testids or text behind (ghost is inert and unselectable)', async ({ page }) => {
   await setup(page, { motion: 'off' });
   await page.goto('/?demo=1');
+  // M5 integration: record the ghost when it is inserted (a MutationObserver), instead of hoping to catch it
+  // after the click — in the container the lazy Settings chunk can arrive after the 120 ms exit has ended.
+  await page.evaluate(() => {
+    const w = window as unknown as { __ghosts: { inert: boolean; hidden: boolean; testids: number }[] };
+    w.__ghosts = [];
+    new MutationObserver((ms) => {
+      for (const m of ms)
+        for (const n of m.addedNodes)
+          if (n instanceof HTMLElement && n.classList.contains('ghost'))
+            w.__ghosts.push({ inert: n.inert, hidden: n.getAttribute('aria-hidden') === 'true', testids: n.querySelectorAll('[data-testid]').length });
+    }).observe(document.body, { childList: true, subtree: true });
+  });
   await page.getByTestId('nav-settings').click();
   await expect(page.getByTestId('back')).toHaveCount(1);
-  expect(await page.locator('.ghosts .ghost').count()).toBeGreaterThan(0);
+  const seen = await page.evaluate(() => (window as unknown as { __ghosts: { inert: boolean; hidden: boolean; testids: number }[] }).__ghosts);
+  expect(seen.length).toBeGreaterThan(0);
+  for (const g of seen) expect(g).toEqual({ inert: true, hidden: true, testids: 0 });
   await expect(page.locator('.ghosts .ghost')).toHaveCount(0, { timeout: 2000 });
 });

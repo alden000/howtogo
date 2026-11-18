@@ -43,7 +43,7 @@ const settled = (page: Page) =>
   page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
 const shot = async (page: Page, name: string) => {
   await settled(page);
-  await expect(page).toHaveScreenshot(`${name}.png`, { mask: [page.locator('[data-testid=map], img')] });
+  await expect(page).toHaveScreenshot(`${name}.png`, { mask: [page.locator('[data-testid=map], img, [data-testid=about-version]')] });
 };
 /** Open a sheet over Home through the app's router (the same call the screens make). */
 const openSheet = async (p: Page, name: string) => {
@@ -135,6 +135,8 @@ const FRAMES: { name: string; variants: Variant[]; places?: unknown; recents?: u
     recents: RECENTS,
     go: async (p) => {
       await p.getByTestId('to-field').click();
+      // H2 is a lazy chunk (precached by the SW in the app; SWs are blocked here): let it load, then go offline.
+      await expect(p.getByTestId('search-input')).toBeVisible();
       await p.context().setOffline(true);
       await p.getByTestId('search-input').fill('tan tock');
       await expect(p.getByTestId('state-search-offline')).toBeVisible();

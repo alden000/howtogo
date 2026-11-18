@@ -9,3 +9,9 @@ interface ImportMetaEnv {
   /** Comma-separated feature flags baked into a build (e.g. "guide" for M2). */
   readonly VITE_FLAGS?: string;
 }
+
+/** QA-56: the hashed MapLibre chunk URL (build) or null (dev); see vite.config.ts maplibreUrl(). */
+declare module 'virtual:maplibre-url' {
+  const url: string | null;
+  export default url;
+}

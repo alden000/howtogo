@@ -45,7 +45,7 @@ OneMap revgeocode (`buffer=50&addressType=All`); the location is rounded to 5 dp
 ```json
 {"name":"Bishan Community Club","address":"51 Bishan Street 13 Bishan Community Club Singapore 579799","postal":"579799"}
 ```
-Prefers the nearest entry with a building name. `404 not_found` when nothing is within 50 m.
+Prefers the nearest entry with a building name. `404 not_found` when nothing is within 50 m. Fixture mode: empty strings plus `"sample":true` (see Fixture mode).
 
 ## GET /api/bus-arrival?stop=<5 digits>[&service=<no>]
 LTA DataMall BusArrival v3 (own key; else via the `LTA_PROXY` service binding, same output). Upstream cached 20 s per stop; `etaMin` is recomputed on every request.
@@ -168,7 +168,7 @@ Storage: `{box:{state,expiresAt}, ct}` only. The alarm deletes `ct` at 24 h whet
 With `FIXTURE_MODE=1` (`npm run dev:fixtures -w @howtogo/worker`, i.e. `wrangler dev --var FIXTURE_MODE:1`) no credentials are needed and nothing is sent upstream. Input validation still applies. Responses carry `X-Fixture: 1` and `Cache-Control: no-store`.
 - `/api/route`: one of 5 SYNTHETIC OneMap plans (3 from `@howtogo/shared/fixtures`, 2 in `src/worker/fixtures/trips.ts`): Toa Payoh → TTSH, Bishan → Raffles Place, Ang Mo Kio → TTSH, Jurong East → NUH, Bedok → Changi General Hospital. The trip whose destination (then origin) is nearest the request is picked (`X-Fixture-Trip: <name>`) and re-timed to start at the requested date/time.
 - `/api/search`: the 9 fixture places, matched on name, address, postal code or Chinese alias (e.g. `陈笃生`, `樟宜`).
-- `/api/revgeocode`: the nearest fixture place.
+- `/api/revgeocode`: `200 {"name":"","address":"","postal":"","sample":true}` for any valid point (QA-59 ruling: sample mode never names a real position; the app shows "我的位置 / My location" and a sample-mode note). The coordinates are not used.
 - `/api/bus-arrival`: the BusArrival v3 fixture for any stop, times moved so buses arrive in the next minutes.
 - `/api/alerts`: `normal`. `/api/lifts`: SYNTHETIC outages at Bishan NS17 (Exit A), Buona Vista CC22 and Serangoon NE12.
 - **Scenarios (M3 AC 39):** add `?fixture=<name>` (ignored outside fixture mode; unknown name → `400 invalid_fixture`):

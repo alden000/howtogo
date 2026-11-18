@@ -16,7 +16,9 @@ export type IconName =
   // §1.4 base icons used from M2 + the 6c icons approved by the Director (exit, moon, plus, arrow-up, arrow-down):
   | 'speaker' | 'mute' | 'bell' | 'car' | 'phone' | 'eye' | 'exit' | 'moon' | 'plus' | 'arrow-up' | 'arrow-down'
   // §6d.10 / §6e.9 icons approved with the M3/M4 frames (+ msg from §1.4):
-  | 'seat' | 'stand' | 'full' | 'wheelchair' | 'wheelchair-no' | 'deck2' | 'train-off' | 'card' | 'copy' | 'edit' | 'qr' | 'msg';
+  | 'seat' | 'stand' | 'full' | 'wheelchair' | 'wheelchair-no' | 'deck2' | 'train-off' | 'card' | 'copy' | 'edit' | 'qr' | 'msg'
+  // M5 UI-1: 6f.10 leaf (battery saver), creative/m5/icons.svg
+  | 'leaf';
 
 /** Icon paths copied from the prototype's <symbol>s (24px grid, 2.2px stroke). */
 const PATHS: Record<IconName, string> = {
@@ -36,6 +38,8 @@ const PATHS: Record<IconName, string> = {
   sliders: '<path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/>',
   nav: '<path d="M12 3l7 17-7-4-7 4z"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  // M5 UI-1 (creative/m5/icons.svg)
+  leaf: '<path d="M19.5 4.5C10.5 4.5 5 9 5 15.2c0 1.5.3 2.8.9 3.9 1.1.6 2.4.9 3.9.9C16 20 19.5 14.5 19.5 4.5z"/><path d="M4 20l8.5-8.5"/>',
   loc: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   share: '<circle cx="12" cy="12" r="2.3"/><path d="M8 8a5.7 5.7 0 0 0 0 8M16 8a5.7 5.7 0 0 1 0 8M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/>',
@@ -128,6 +132,17 @@ export function StatePanel(props: { id: string; icon: IconName; title: string; b
   );
 }
 
+/** M5 UI-2 L6 (6f.6): the "需要网络 / Needs internet" caption second line on controls that need the network. */
+export function NeedsNet() {
+  const t = useT();
+  return (
+    <span class="neednet" data-testid="needs-net">
+      <Icon name="wifi-off" />
+      {t('need_net')}
+    </span>
+  );
+}
+
 /** Numbered how-to steps (F2/F6): body size, number in a 32px primary-soft disc. */
 export function NumSteps({ items }: { items: string[] }) {
   return (
@@ -139,12 +154,15 @@ export function NumSteps({ items }: { items: string[] }) {
   );
 }
 
-export function Wordmark({ name }: { name: string }) {
+/** The wordmark is Home's h1; on pages with their own h1 (About, /setup, sheets) it is plain text (`tag="p"`, AC 13). */
+/** `size={72}`: the L2 About seal (6f.2); everywhere else 44 px. */
+export function Wordmark({ name, tag = 'h1', size }: { name: string; tag?: 'h1' | 'p'; size?: 72 }) {
+  const T = tag;
   return (
-    <h1 class="wordmark">
+    <T class={size ? `wordmark wm${size}` : 'wordmark'}>
       <SealSvg />
       <span>{name}</span>
-    </h1>
+    </T>
   );
 }
 
@@ -183,10 +201,17 @@ export function Sheet(props: { id: string; title: string; close?: boolean; top?:
   const t = useT();
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
+    // M5 AC 12: focus moves into the sheet and back to its trigger when it closes (same screen only).
+    const trigger = document.activeElement as HTMLElement | null;
+    const path = router.route.value.path;
     ref.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && router.closeSheet();
     addEventListener('keydown', onKey);
-    return () => removeEventListener('keydown', onKey);
+    return () => {
+      removeEventListener('keydown', onKey);
+      if (trigger && trigger !== document.body && router.route.value.path === path)
+        setTimeout(() => trigger.isConnected && !document.querySelector('.sheet') && trigger.focus({ preventScroll: true }));
+    };
   }, []);
   const titleId = `${props.id}-title`;
   return (

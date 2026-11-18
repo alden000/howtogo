@@ -4,19 +4,21 @@
  * G1 pocket view, G3 waypoint arrival and H12 arrival. Everything is rendered from
  * `runtime.ui` + `store.trip`; every decision lives in the runtime (no logic duplicated here).
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { createSaverState } from '../state/battery';
 import type { AlertState, Lang, Step } from '@howtogo/shared';
 import { online } from '../api/offline';
+import { useT5 } from '../i18n/m5lazy';
 import { useServices, useT, type TFn } from '../context';
 import { log } from '../log';
 import { GuideMap } from '../map/GuideMap';
 import { toLang, type ActiveTrip } from '../state/store';
-import { Icon, showToast, useStateHook, type IconName } from '../ui/kit';
+import { announce, Icon, showToast, useStateHook, type IconName } from '../ui/kit';
 import { clock } from './present';
 import { ArrivedFamily, SharePill, useShareOnStart } from './share';
 import { ArrivalChip, rerouteAvoid, StepExtras, TripDisruption } from './transit';
 import { lineName } from '../transit/m3';
-import { HelpNote } from './helpSheet';
+import { HelpNote } from './helpNote';
 import {
   alertCopy,
   cardMaxHeight,
@@ -300,15 +302,17 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
           <span class="num" data-testid="guide-eta">
             {t('g_arrive_left', { t: clock(etaMs, lang), n: minLeft })}
           </span>
+          <LeafChip />
         </div>
         <div class="steprow">
           <div class={`stepicon ${icon.cls}`} aria-hidden="true">
             <Icon name={icon.icon} />
           </div>
           <div class="steptx">
-            <h2 aria-live="polite" tabIndex={-1} data-testid="current-step" lang={trip.lang}>
+            {/* M5 integration (a11y): the step headline is the guidance screen's h1. */}
+            <h1 aria-live="polite" tabIndex={-1} data-testid="current-step" lang={trip.lang}>
               {headline}
-            </h2>
+            </h1>
             {group === 'walk' && (step?.kind === 'walk_to_stop' || step?.kind === 'walk_transfer') && (
               <span class="sign" data-testid="walk-sign">
                 {String(step.params.stop ?? '')}
@@ -571,9 +575,41 @@ function GetOffAlert({ alert, t }: { alert: AlertState; t: TFn }) {
   );
 }
 
+// ------------------------------------------------------------------ L5 leaf chip
+
+/**
+ * 6f.5 L5: while battery saver is active on a trip, a plain-text chip at the right end of the step meta row
+ * (not a button, not focusable). When Auto turns it on mid-trip it fades in and one polite line is announced;
+ * turning off (charging) removes it silently. No voice, toast or haptic.
+ */
+function LeafChip() {
+  const { runtime, store } = useServices();
+  const t = useT();
+  const t5 = useT5();
+  const saverState = useMemo(() => createSaverState(store), [store]);
+  const on = runtime.power.value.saver;
+  const was = useRef(on);
+  const [fresh, setFresh] = useState(false);
+  useEffect(() => {
+    if (on && !was.current) {
+      setFresh(true);
+      if (saverState.peek().reason === 'battery') announce(t5('bs_announce'));
+    }
+    was.current = on;
+  }, [on]);
+  if (!on) return null;
+  return (
+    <span class={`leafchip${fresh ? ' fadein' : ''}`} data-testid="leaf-chip">
+      <Icon name="leaf" />
+      {t5('bs_row')}
+    </span>
+  );
+}
+
 // ------------------------------------------------------------------ G1 pocket view
 
 function Pocket({ trip, t }: { trip: ActiveTrip; t: TFn }) {
+  const t5 = useT5();
   const { runtime, store } = useServices();
   const tick = useTick();
   const ui = runtime.ui.value;
@@ -601,6 +637,11 @@ function Pocket({ trip, t }: { trip: ActiveTrip; t: TFn }) {
       <p class="line" lang={trip.lang} data-testid="pocket-line">
         {t(pt.line.key, pt.line.p)}
       </p>
+      {runtime.power.value.saver && (
+        <p class="saver" data-testid="pocket-saver">
+          {t5('bs_row')}
+        </p>
+      )}
       {pt.count && (
         <p class="count num" data-testid="pocket-count">
           {t(pt.count.key, pt.count.p)}

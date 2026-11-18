@@ -20,6 +20,7 @@ export async function setup(page: Page, settings: Record<string, unknown> = {}, 
     ([x, p]) => {
       try {
         if (!localStorage.getItem('howtogo.settings')) localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, ...(x as object) }));
+        localStorage.getItem('howtogo.whatsnew.v1') || localStorage.setItem('howtogo.whatsnew.v1', 'seen'); // an existing 1.0 user: What's new already seen
         if (p && !localStorage.getItem('howtogo.places')) localStorage.setItem('howtogo.places', JSON.stringify(p));
       } catch {
         /* ignore */
@@ -92,6 +93,9 @@ export async function layoutProblems(page: Page, opts: { spacing?: boolean } = {
     );
     for (const el of ctrls) {
       const r = el.getBoundingClientRect();
+      // Inline link in a sentence (Creative M5 review fix 2): display:inline + an invisible ≥ 56 px ::after hit area.
+      // WCAG 2.5.8 exempts inline targets; still flagged if the ::after hit area is missing.
+      if (getComputedStyle(el).display === 'inline' && parseFloat(getComputedStyle(el, '::after').height) >= 55.5) continue;
       if (r.height < 55.5 || r.width < 55.5) out.push(`small ${name(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
     }
     for (let i = 0; i < ctrls.length; i++)

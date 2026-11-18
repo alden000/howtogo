@@ -45,7 +45,8 @@ test('app share → family page live: walk step from the structured step, help, 
 
   await senior.getByTestId('share-pill').click();
   await senior.getByTestId('share-stop').click();
-  await expect(v).toHaveAttribute('data-state', 'ended', { timeout: 8000 });
+  // Creative m34-fix-b M2: a share stopped after "I'm okay" ends as `endedOk` ("妈妈说自己没事了。分享结束了。").
+  await expect(v).toHaveAttribute('data-state', 'endedOk', { timeout: 8000 });
   await a.close();
   await b.close();
 });

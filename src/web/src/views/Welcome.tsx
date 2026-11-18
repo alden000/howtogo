@@ -6,15 +6,16 @@ import { here, locate } from '../state/location';
 import { TEXT_SIZES, type TextSize } from '../state/store';
 import { Icon, showToast } from '../ui/kit';
 import { HomeConfirm } from './HomeConfirm';
-import { pendingHome } from './Search';
+import { pendingHome } from '../state/pendingHome';
 
-const SIZE_KEY: Record<TextSize, 'size_100' | 'size_125' | 'size_150' | 'size_200'> = {
+const SIZE_KEY: Record<TextSize, 'size_85' | 'size_100' | 'size_125' | 'size_150' | 'size_200'> = {
+  small: 'size_85',
   standard: 'size_100',
   large: 'size_125',
   xlarge: 'size_150',
   xxlarge: 'size_200',
 };
-const PCT: Record<TextSize, string> = { standard: '100%', large: '125%', xlarge: '150%', xxlarge: '200%' };
+const PCT: Record<TextSize, string> = { small: '85%', standard: '100%', large: '125%', xlarge: '150%', xxlarge: '200%' };
 
 export function Welcome() {
   const { store, router, platform, api } = useServices();
@@ -117,6 +118,12 @@ export function Welcome() {
                 </button>
               ))}
             </div>
+            {/* Creative M5 review fix 5: the 85 % caption sits directly under the size cards, above the fold. */}
+            {s.textSize === 'small' && (
+              <p class="t-caption" style={{ color: 'var(--c-ink-2)', margin: 'var(--s-2) 0 0' }} data-testid="size-85-note">
+                {t('size_85_note')}
+              </p>
+            )}
             <div class="confirm" style={{ marginTop: 'var(--s-4)' }}>
               <p class="t-display" style={{ margin: 0 }} data-testid="fr-preview">
                 {t('fr_preview')}

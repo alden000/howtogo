@@ -69,6 +69,22 @@ export function isOptionalChunk(reason: unknown): boolean {
 /** Only a real load failure of an app chunk reloads. */
 export const shouldReloadFor = (reason: unknown): boolean => isChunkLoadError(reason) && !isOptionalChunk(reason);
 
+let quiet = 0;
+
+/**
+ * QA-60: runs a best-effort preload during which Vite's global `vite:preloadError` is left alone, so the error
+ * reaches the caller (which swallows it) instead of being logged as `chunk:failed` and reloading. A lazy view
+ * opened meanwhile still reports its own failure (ui/lazy.ts catches it), and an unhandled rejection still does.
+ */
+export async function quietChunkErrors<T>(run: () => Promise<T>): Promise<T> {
+  quiet++;
+  try {
+    return await run();
+  } finally {
+    quiet--;
+  }
+}
+
 /**
  * Installs the listeners: Vite's `vite:preloadError` and unhandled dynamic-import rejections. Vite fires
  * `vite:preloadError` for ANY error in a dynamic-import chain (e.g. a MapLibre constructor error), so the reason
@@ -76,6 +92,7 @@ export const shouldReloadFor = (reason: unknown): boolean => isChunkLoadError(re
  */
 export function installChunkReload(deps: ChunkReloadDeps = {}): void {
   addEventListener('vite:preloadError', (e) => {
+    if (quiet > 0) return; // an idle preload: let it reject to its caller, which swallows it (QA-60)
     if (!shouldReloadFor((e as Event & { payload?: unknown }).payload)) return; // the caller's own catch handles it
     e.preventDefault(); // we handle it; don't also throw
     handleChunkError(deps);

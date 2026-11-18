@@ -2,7 +2,8 @@
  * 怎么去? service worker (hand-written, classic script, no imports).
  *  - precaches the app shell (list injected at build time into PRECACHE);
  *  - OneMap tiles: cache-first, bounded LRU (800 tiles); trip corridor tiles in their own cache;
- *  - /api GETs (except share): network-first, short-TTL cached fallback;
+ *  - /api GETs (except share): network-first, short-TTL cached fallback; expired entries are deleted on read,
+ *    on activate, at most every 10 min after a write, and on `API_PRUNE` (L1 fact 2: "recent" results only);
  *  - navigations: network-first (3 s) → cached shell, so a cold offline start shows Home;
  *  - update flow: a new SW waits until the page posts SKIP_WAITING (prompt-to-refresh).
  */
@@ -37,6 +38,7 @@ sw.addEventListener('activate', (e) => {
   e.waitUntil(
     (async () => {
       for (const k of await caches.keys()) if (!KEEP.has(k)) await caches.delete(k);
+      await pruneApi();
       await sw.clients.claim();
     })(),
   );
@@ -47,6 +49,7 @@ sw.addEventListener('message', (e) => {
   if (d?.type === 'SKIP_WAITING') void sw.skipWaiting();
   else if (d?.type === 'TRIP_TILES' && Array.isArray(d.urls)) e.waitUntil(cacheTripTiles(d.urls.slice(0, MAX_TRIP_TILES)));
   else if (d?.type === 'TRIP_TILES_CLEAR') e.waitUntil(caches.delete(TRIP_TILES));
+  else if (d?.type === 'API_PRUNE') e.waitUntil(pruneApi().then((n) => e.source?.postMessage({ type: 'API_PRUNED', n })));
 });
 
 async function cacheTripTiles(urls: string[]) {
@@ -101,6 +104,24 @@ function timeout<T>(p: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+/** TTL of a cached /api response by its endpoint (unknown endpoints: 60 s). */
+const ttlOf = (url: string) => API_TTL_MS[/^\/api\/([a-z-]+)/.exec(new URL(url).pathname)?.[1] ?? ''] ?? 60_000;
+const expired = (res: Response | undefined, url: string, now = Date.now()) => !res || now - Number(res.headers.get('x-sw-cached-at') ?? 0) >= ttlOf(url);
+
+/** L1 fact 2: delete every expired /api entry (search/revgeocode 24 h, route 10 min, others ≤ 5 min). */
+async function pruneApi(): Promise<number> {
+  const c = await caches.open(API);
+  let n = 0;
+  for (const req of await c.keys()) {
+    if (expired(await c.match(req), req.url)) {
+      await c.delete(req);
+      n++;
+    }
+  }
+  return n;
+}
+let lastPrune = 0;
+
 async function api(req: Request, endpoint: string): Promise<Response> {
   const c = await caches.open(API);
   try {
@@ -110,12 +131,17 @@ async function api(req: Request, endpoint: string): Promise<Response> {
       const headers = new Headers(res.headers);
       headers.set('x-sw-cached-at', String(Date.now()));
       await c.put(req, new Response(body, { status: res.status, statusText: res.statusText, headers }));
+      if (Date.now() - lastPrune > 10 * 60_000) {
+        lastPrune = Date.now();
+        void pruneApi();
+      }
     }
     return res;
   } catch (err) {
     const hit = await c.match(req);
     const at = Number(hit?.headers.get('x-sw-cached-at') ?? 0);
     if (hit && Date.now() - at < (API_TTL_MS[endpoint] ?? 60_000)) return hit;
+    if (hit) await c.delete(req); // expired: never served, and not kept either
     throw err;
   }
 }
@@ -130,7 +156,10 @@ async function navigate(req: Request): Promise<Response> {
 }
 
 async function asset(req: Request): Promise<Response> {
-  const hit = await caches.match(req);
+  // Hashed, immutable files: match on the URL alone. A dynamic import() is a CORS request (it sends Origin), and
+  // a server that answers with `Vary: Origin` (vite preview does) made the precached copy unmatchable, so a lazy
+  // screen opened in a new offline tab never loaded (qa pwa AC-2 /settings).
+  const hit = await caches.match(req, { ignoreVary: true });
   if (hit) return hit;
   const res = await fetch(req);
   if (res.ok) await (await caches.open(RUNTIME)).put(req, res.clone());
