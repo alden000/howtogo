@@ -1460,3 +1460,108 @@ They were recorded in Docker at DPR 1, like the other dev baselines. No existing
 - L6 Help / driver offline states and their baselines.
 - Real-device checks: the Android intent hand-off from the WhatsApp/Facebook/Line browsers, the iOS Edge share position (⚠ in 6f.4), and clipboard access in in-app browsers.
 - QA: the pre-existing pwa AC-2 `/settings` offline failure.
+
+## 2026-11-18 — Developer: M5 integration round
+
+Branch `dev/m5-int` (worktree `howtogo-m5i`) = `dev/m5-ui` (UI-1 + Creative review 2ca2dcf) + the session branch + `dev/m5-ui2`. Not pushed, nothing deployed, no wrangler run against Cloudflare.
+
+**Merges**
+- `dev/m5-ui2`: one conflict in `main.tsx`; both stylesheets are imported (`m5ui1.css`, then `m5.css`).
+- `dev/m5-ui` again for Creative's review (`creative/reviews/m5-ui.md`): no conflicts.
+
+**Home budget (Director ruling: it stays 100 KB gz)**
+- Home JS is **98.3 / 100 KB**. After the merges it was 101.1.
+- Moved out of the entry:
+  - **F1 first run** (`Welcome`). It shows only right after the first download, when the network is there.
+  - **H2 Search**. It is lazy, but `main.tsx` fetches it right after the first paint, not at idle.
+  - `pendingHome` moved to `state/pendingHome.ts` and `HelpNote` to `views/helpNote.tsx`, so Home and HomeConfirm do not import the Search or Help modules.
+- The **Help sheet stays in the entry.** Lazy, it saved another 1.5 KB. But in a test with no service worker, it could not open offline. Help must open offline even before the service worker has precached anything.
+- The L3/L4 UI (install card, iOS guide, What's new, in-app bar) and the battery sheet were already lazy.
+- The biggest remaining eager items (gz) are:
+  - `i18n/ui.ts` ≈ 11.6 KB;
+  - the station table ≈ 10.6 KB, pulled in by the trip runtime through `guidance`;
+  - `i18n/m34.ts` ≈ 8 KB.
+- These are the next levers if Home grows. Moving the station table out means making the trip runtime lazy.
+
+**L3: update bar in Settings**
+- The bar sits at the top of the Settings list, under the h1. It is the same lazy `UpdateBar` as on H1.
+- e2e covers its order and ✕. New baseline `M5-L3-bar-settings`.
+
+**L6: Help and Show the driver offline (6f.6, M4 AC 38)**
+- These Help rows say 需要网络 (the `NeedsNet` caption, also part of the row's name):
+  - 带我回家: a tap only ticks and announces 需要网络。连上网络以后再按。;
+  - 我在哪里？: only when there is no last known address;
+  - 让家人看到我在哪里 and 帮我重新找路: these were plain text before.
+- Call family, Show the driver and 995 have no caption. They work offline.
+- Show the driver:
+  - The Home and destination cards work offline as before.
+  - 我在哪里 offline shows the last known address with 这是 {time} 的位置。. The address is the last fix with an address, kept in memory only (`lastAddress` in `state/location.ts`).
+  - With no last known address it shows 现在找不到地址。可以给司机看你家的地址。 and never "loading". The coordinates fallback stays.
+  - Grab and CDG Zig say 需要网络 and stay put offline.
+- New baselines: `M5-L6-help-offline`, `M5-L6-driver-offline`.
+
+**a11y (headings)**
+- On H5 guidance, the step headline (`current-step`) is now the h1. It looks the same and keeps its polite live region.
+- H4 route detail already had its h1 (去 X). The a11y-tree test hid this behind an exemption, and the exemption is gone.
+- `a11y.spec.ts` now requires exactly one h1 on every screen, H4 and H5 included.
+
+**Creative M5 review: all 11 fixes applied**
+1. `.contact` → `pvcontact`.
+2. Inline links keep their 56 px hit area without breaking the sentence.
+   - Creative's CSS (inline + vertical padding) still broke the line, because a `<button>` lays out as inline-block in Chrome.
+   - So the same selectors get `display:inline; padding:0` and an invisible 56 px `::after` hit area.
+   - e2e checks that the contact line is one line and that the link is hit at ±27 px.
+3. Privacy cuts, exactly as the table. The en page counts 395 words with everything visible except the footer and the Open link. A new unit test fails above 400.
+4. UI-1's dev-log entry, reconstructed from its commits. It is above UI-2's, which appears once.
+5. On F1, the 85 % note sits directly under the size cards.
+6. The in-app band uses the 200 % layout at every size: text, ✕ top-right, button below.
+7. zh curly quotes in `set_errors_s`, `bs_auto_s_na` and `pv_2d`.
+8. The Settings clear row uses `clear_recent_row`; `set_clear_recent` is deleted.
+9. While busy, Delete all reads 正在清除… / Deleting…
+10. About:
+    - the seal is 72 px (`Wordmark size={72}`);
+    - the OneMap logo is self-hosted: the official 32 px and 256 px files are in `src/assets/onemap/`, bundled as hashed assets, so the SW precaches them;
+    - the map's attribution logo is unchanged.
+11. The glance list has `role="list"`, and Details focuses `#pv-h2`.
+- Item 12 needs no action.
+
+**Flaky and failing e2e**
+- `guide.spec` AC 50: the "arrive" demo plays the rest of the trip fix by fix.
+  - In the container (`CI=1`) it waits up to 45 s and the test gets +45 s. On the host it is still 15 s.
+  - The assertion is unchanged.
+- `fixround` exit motion: a MutationObserver records every ghost as it is inserted. The test asserts at least one ghost, and that each one is inert, aria-hidden and has no testids. Before, it hoped to catch the 120 ms ghost after a lazy screen loaded.
+- Family page (`e2e-viewer`), locally 43/45 → 45/45. Both failures were stale tests, not product bugs:
+  - after "I'm okay" the share ends as `endedOk` (Creative m34-fix-b M2);
+  - `#call` now holds only 在地图上打开 (Fix B).
+- qa `pwa.spec` AC-2 (/settings in a new offline tab) was a **product bug**, and it is fixed:
+  - The SW's asset handler matched precached chunks with `caches.match(req)`.
+  - A dynamic `import()` is a CORS request, and a `Vary: Origin` response (vite preview sends it) made the precached copy unmatchable. So a lazy screen never loaded in a fresh offline tab.
+  - It now uses `ignoreVary: true`. The asset URLs are content-hashed.
+  - AC-2 passes locally (5 passed, AC-4 skipped without `dist-b`).
+- Since the Help sheet, Search and the first run moved, some tests now wait for the lazy screen before reading it (`fixb` helpIds, `M1-F4-offline`, a11y H4).
+- e2e runs block service workers, so the m5-ui2 offline tests call `__howtogoPreload()` before going offline, in place of the SW precache. This hook exists in mock and demo only.
+
+**Tests**
+- Typecheck green.
+- Unit: shared 159, web 276 (+2: the privacy whole-page word count, `lastAddress`), worker 220.
+- Docker dev-e2e (full run, no update): **239/239 passed** (13.9 min). Docker was only used alone; an earlier run shared the 4 cores with local Playwright runs, and the extra failures from that run all passed on a clean rerun.
+- Locally: family page 45/45; qa pwa 5 passed.
+
+**Baselines** (Docker, DPR 1, only the screens changed this round)
+- New: `M5-L3-bar-settings`, `M5-L6-help-offline`, `M5-L6-driver-offline`.
+- Re-recorded:
+  - `M1-F6-about`;
+  - `M5-F1-size-85`;
+  - `M5-L1-full-{zh,en}`;
+  - `M5-L2-live` ×2 and `M5-L2-sample`;
+  - `M5-L4d-android`, `M5-L4d-ios`, `M5-L4d-ios-sheet`;
+  - `M5-L5-sheet-unsupported`;
+  - `M5-L7-settings` ×3 and `M5-L7-errors-off`.
+
+**Visible changes (Creative)**
+1. The update bar at the top of Settings.
+2. The Help sheet and Show the driver offline: 需要网络 lines, the last-known-address caption and the no-address line.
+3. All of review items 1–3 and 5–11, as above. The inline-link fix differs from the review's CSS for the reason given.
+
+**For QA**
+- Real-device checks are still open: the Android intent hand-off, the iOS Edge share position, clipboard in in-app browsers, and CJK bold (review 12).
