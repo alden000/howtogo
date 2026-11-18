@@ -210,3 +210,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Cause: FIXTURE_MODE reverse geocoding snaps the real GPS fix to the nearest of the few FIXTURE_PLACES, so most of Singapore reads "Ang Mo Kio". That's a realistic-looking wrong address, which breaks the never-mislead rule. Bug QA-D1 (S2: wrong "Where am I" info, safety-adjacent).
 - Ruling: in fixture mode, reverse geocoding returns no name or address. The app labels the point "你的位置 / Your location" with a sample-mode note (Creative to word it). The route origin keeps using the real coordinates. Goes into the M5 fix round.
 - Preview deployed: https://howtogo-preview.genixm.workers.dev (dev/m5-int 43fc5a1). smoke:deploy 29/30: MapLibre referenced from index.html (sent to QA). Also seen: first-run step dots stacked vertically (sent to QA).
+
+## 2026-11-18 — M5 gate (qa/reports/1.0.0-rc1-m5.md): PASS WITH FIXES
+- 34 PASS / 4 FAIL / 6 DEFERRED. Lighthouse perf 93–100, others 100; unit 655; dev-e2e 239/239. Bugs QA-52…58 (6 S3, 1 S4) plus the owner-reported sample-mode location (QA-D1, renumbered QA-59, S2).
+- Rulings: QA-55: `smoke:live` treats `lta: proxy` as PASS for bus arrival; alerts and lifts report SKIP not_configured (WARN, not FAIL) until the owner sets LTA_ACCOUNT_KEY. The v1.0.0 tag needs live OneMap plus a bus-arrival PASS. The owner's checklist gains "LTA key → disruption and lift features". QA-58: LCP ≤ 2.5 s, no waiver; preload the Welcome chunk on a first visit (no profile) or make it eager if the budget allows. QA-56 (Should, prefetch) is built in this round if cheap.
+- One fix round on dev/m5-int: QA-52…59, then a QA re-check of the failures only.
