@@ -8,17 +8,18 @@ import { sampleMode } from './state/sample';
 import { useServices, useT } from './context';
 import { helpShare } from './state/helpShare';
 import { Home } from './views/Home';
-import { Welcome } from './views/Welcome';
+import { Confirm995Sheet, HelpSheet } from './views/helpSheet';
 import { Bar, Icon, IconSprite, LiveRegion, Toast } from './ui/kit';
 import { lazyView } from './ui/lazy';
 
 // M5 AC 3/5: screens and sheets Home / the first run do not need are separate chunks (precached by the SW,
 // warmed when idle by preloadViews() in main.tsx).
-// M5 integration (AC 3 Home ≤ 100 KB): Search and the Help sheet are not needed for Home's first paint.
-const Search = lazyView(() => import('./views/Search').then((m) => m.Search));
-const helpSheet = () => import('./views/helpSheet');
-const HelpSheet = lazyView(() => helpSheet().then((m) => m.HelpSheet));
-const Confirm995Sheet = lazyView(() => helpSheet().then((m) => m.Confirm995Sheet));
+// M5 integration (AC 3 Home ≤ 100 KB): the first run is shown only right after the first download (so the
+// network is there) and never again, so it is lazy. H2 Search is lazy too but fetched right after the first paint
+// (main.tsx), not at idle. The Help sheet stays in the entry: it must open offline even before the service
+// worker has precached the lazy chunks.
+const Welcome = lazyView(() => import('./views/Welcome').then((m) => m.Welcome));
+export const Search = lazyView(() => import('./views/Search').then((m) => m.Search));
 const EndTripSheet = lazyView(() => import('./views/sheets').then((m) => m.EndTripSheet));
 const Routes = lazyView(() => import('./views/Routes').then((m) => m.Routes));
 const TripDetail = lazyView(() => import('./views/TripDetail').then((m) => m.TripDetail));

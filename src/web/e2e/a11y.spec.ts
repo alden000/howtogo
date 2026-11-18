@@ -65,6 +65,8 @@ const SCREENS: [string, string, ((p: Page) => Promise<void>)?][] = [
       await expect(p.getByTestId('route-option-0')).toBeVisible();
       expect(await treeProblems(p), 'routes').toEqual([]);
       await p.getByTestId('route-option-0').click();
+      // H4 is a lazy screen: wait for it before reading the tree (slow in the container).
+      await expect(p.getByTestId('start-guide')).toBeVisible();
       expect(await treeProblems(p), 'route detail').toEqual([]);
       await p.getByTestId('start-guide').click();
       await expect(p.getByTestId('guide')).toBeVisible();

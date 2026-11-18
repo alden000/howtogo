@@ -17,7 +17,10 @@
 .pv .pvfoot{margin:var(--s-4) 0 0}
 .inlink.btnlink{background:none;border:0;padding:0;font:inherit;font-weight:700;cursor:pointer}
 /* Creative M5 review fix 2: inline links keep the 56 px hit area without breaking the sentence. */
-.pv li .inlink.btnlink,.pv .pvcontact .inlink.btnlink,.abattrib .inlink{display:inline;min-height:0;padding-block:16px;vertical-align:baseline}
+/* A <button> cannot be truly inline (Chrome lays it out as inline-block), so vertical padding there still grew the
+   line. The 56 px hit area comes from an invisible ::after instead; the box itself takes no extra room. */
+.pv li .inlink.btnlink,.pv .pvcontact .inlink.btnlink,.abattrib .inlink{display:inline;min-height:0;padding:0;vertical-align:baseline;position:relative}
+.pv li .inlink.btnlink::after,.pv .pvcontact .inlink.btnlink::after,.abattrib .inlink::after{content:"";position:absolute;left:0;right:0;top:50%;height:var(--tap);transform:translateY(-50%)}
 
 /* L2 About: sample-mode panel, attribution block on c-surface. */
 .tripnote.sample{background:var(--c-saffron-soft);color:var(--c-ink);margin:var(--s-3) 0 0}

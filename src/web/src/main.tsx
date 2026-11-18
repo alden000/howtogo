@@ -16,7 +16,7 @@ import './styles/m5.css'; // M5 UI-2
 import { render } from 'preact';
 import { effect, untracked } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
-import { App } from './app';
+import { App, Search } from './app';
 import { createHttpApi } from './api/client';
 import { offlineAware, watchOnline } from './api/offline';
 import type { Api } from './api/types';
@@ -217,6 +217,8 @@ async function boot() {
     </ServicesContext.Provider>,
     document.getElementById('app')!,
   );
+  // M5 integration: H2 is out of the Home entry (AC 3) but is the next screen almost every time: fetch it now.
+  void Search.preload().catch(() => {});
 
   // Resume an unfinished trip after a reload / relaunch (OQ5): straight into H5, or the G4 stale sheet on H1.
   void runtime.resume().then((resumed) => {
@@ -260,6 +262,9 @@ async function boot() {
   // M6 AC 4: no service worker inside the app (assets are local; updates come with a new APK).
   if (import.meta.env.PROD && !nativeApp && session.get('sw.disabled') !== '1') void registerServiceWorker();
   (window as unknown as { __howtogo?: Services }).__howtogo = services;
+  // Test hook, mock/demo only: load every lazy chunk now — what the service worker's precache gives the app,
+  // for e2e runs that block service workers and then go offline.
+  if (mock) (window as unknown as { __howtogoPreload?: () => Promise<unknown> }).__howtogoPreload = preloadViews;
 }
 
 void boot();

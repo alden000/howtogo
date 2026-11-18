@@ -28,7 +28,7 @@ const UA = {
 
 test.use({ serviceWorkers: 'block', viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
 
-async function open(page: Page, v: V, opts: { q?: string; install?: unknown; recents?: boolean; path?: string } = {}) {
+async function open(page: Page, v: V, opts: { q?: string; install?: unknown; recents?: boolean; path?: string; mock?: boolean } = {}) {
   await hermetic(page);
   await page.clock.setFixedTime(FIXED);
   await onboarded(page, { lang: v.lang, theme: v.theme, textSize: v.size === 200 ? 'xxlarge' : 'standard', motion: 'on' });
@@ -40,8 +40,15 @@ async function open(page: Page, v: V, opts: { q?: string; install?: unknown; rec
     },
     [PLACES, opts.recents ? RECENTS : null, opts.install ?? null] as const,
   );
-  await page.goto(`${opts.path ?? '/'}?demo=1&demoMs=100000${opts.q ?? ''}`);
+  // `mock`: the real web platform (with clearPermissions(), nothing is located before the test goes offline).
+  await page.goto(`${opts.path ?? '/'}?${opts.mock ? 'mock=1' : 'demo=1&demoMs=100000'}${opts.q ?? ''}`);
   await page.waitForFunction(() => '__howtogo' in window);
+}
+
+/** Service workers are blocked here: load the lazy chunks the SW would have precached, then go offline. */
+async function goOffline(page: Page) {
+  await page.evaluate(() => (window as unknown as { __howtogoPreload: () => Promise<unknown> }).__howtogoPreload());
+  await page.context().setOffline(true);
 }
 
 /** H1 → search → H3 route options (demo fixtures). */
@@ -279,7 +286,7 @@ test.describe('L6 offline cold start', () => {
   for (const v of [LZ, { theme: 'light', size: 200, lang: 'zh' }] as V[]) {
     test(`Home says 需要网络 and does not navigate (${v.size})`, async ({ page, context }) => {
       await open(page, v, { recents: true });
-      await context.setOffline(true);
+      await goOffline(page);
       await expect(page.getByTestId('offline-notice')).toBeVisible();
       await expect(page.getByTestId('tile-home')).toHaveAccessibleName(/需要网络$/);
       await expect(page.getByTestId('take-me-home')).toContainText('需要网络');
@@ -306,8 +313,9 @@ test.describe('L6 offline cold start', () => {
 
   test('Help sheet offline: call family, Show the driver and 995 stay; Take me home and Where am I say 需要网络', async ({ page, context }) => {
     await page.addInitScript((c) => localStorage.setItem('howtogo.family.v1', JSON.stringify(c)), [MEI]);
-    await open(page, LZ);
-    await context.setOffline(true);
+    await page.context().clearPermissions(); // a cold start: nothing has been located yet
+    await open(page, LZ, { mock: true });
+    await goOffline(page);
     await page.getByTestId('nav-help').click();
     const sheet = page.getByTestId('sheet-help');
     await expect(sheet).toBeVisible();
@@ -327,11 +335,11 @@ test.describe('L6 offline cold start', () => {
     await expect(sheet.getByTestId('needs-net')).toHaveCount(0);
   });
 
-  test('Show the driver offline: Home works; 我在哪里 shows the last known address with its time, or says there is none', async ({ page, context }) => {
+  test('Show the driver, cold offline: Home works; 我在哪里 says there is no address; taxis say 需要网络', async ({ page }) => {
     await page.addInitScript((c) => localStorage.setItem('howtogo.family.v1', JSON.stringify(c)), [MEI]);
-    await open(page, LZ);
-    // Cold offline: no address known yet.
-    await context.setOffline(true);
+    await page.context().clearPermissions(); // a cold start: nothing has been located yet
+    await open(page, LZ, { mock: true });
+    await goOffline(page);
     await page.getByTestId('nav-help').click();
     await page.getByTestId('help-where').click();
     await expect(page.getByTestId('here-none')).toHaveText('现在找不到地址。可以给司机看你家的地址。');
@@ -347,22 +355,27 @@ test.describe('L6 offline cold start', () => {
     await expect(page.getByTestId('live')).toHaveText('需要网络。连上网络以后再按。');
     await expect(page.getByTestId('sheet-driver')).toBeVisible();
     await shot(page, name('M5-L6-driver-offline', LZ));
-    // Online once: the address is found; offline again it stays, with its time.
-    await context.setOffline(false);
-    await page.getByTestId('driver-tab-here').click();
-    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
-    await page.getByTestId('driver-tab-home').click();
-    await context.setOffline(true);
-    await page.getByTestId('driver-tab-here').click();
-    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
+  });
+
+  test('Show the driver offline after a fix: 我在哪里 keeps the last known address, with its time', async ({ page, context }) => {
+    await open(page, LZ);
+    // Home located the demo position online (address found), then the network goes.
+    await page.waitForFunction(() => (window as unknown as { __howtogoLog: string[] }).__howtogoLog.includes('api:revgeocode 200'));
+    await goOffline(page);
+    await page.getByTestId('nav-help').click();
+    await expect(page.getByTestId('help-where').getByTestId('needs-net')).toHaveCount(0);
+    await page.getByTestId('help-where').click();
+    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh');
     await expect(page.getByTestId('here-at')).toHaveText(/^这是 .*10:15 的位置。$/);
     await expect(page.getByTestId('here-none')).toHaveCount(0);
+    await context.setOffline(false);
+    await expect(page.getByTestId('here-at')).toHaveCount(0);
   });
 
   test('H3 options: cards say 需要网络 and stay put offline', async ({ page, context }) => {
     await open(page, LZ);
     await toRoutes(page);
-    await context.setOffline(true);
+    await goOffline(page);
     await expect(page.getByTestId('route-option-0')).toContainText('需要网络');
     await page.getByTestId('route-option-0').click();
     await expect(page).toHaveURL(/\/routes/);

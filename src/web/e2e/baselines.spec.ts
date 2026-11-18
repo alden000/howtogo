@@ -135,6 +135,8 @@ const FRAMES: { name: string; variants: Variant[]; places?: unknown; recents?: u
     recents: RECENTS,
     go: async (p) => {
       await p.getByTestId('to-field').click();
+      // H2 is a lazy chunk (precached by the SW in the app; SWs are blocked here): let it load, then go offline.
+      await expect(p.getByTestId('search-input')).toBeVisible();
       await p.context().setOffline(true);
       await p.getByTestId('search-input').fill('tan tock');
       await expect(p.getByTestId('state-search-offline')).toBeVisible();

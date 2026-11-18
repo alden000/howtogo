@@ -4,7 +4,7 @@ import { ApiError, failKind } from '../src/api/errors';
 import type { Api } from '../src/api/types';
 import { tf } from '../src/i18n/ui';
 import { createHelpShare } from '../src/state/helpShare';
-import { here, locate } from '../src/state/location';
+import { here, lastAddress, locate } from '../src/state/location';
 import { addPlace, canAdd, MAX_OTHERS, movePlace, placeKind, removePlace, renamePlace } from '../src/state/places';
 import { memoryKV } from '../src/state/storage';
 import { createStore, type SavedPlaces } from '../src/state/store';
@@ -19,6 +19,18 @@ describe('QA-38 where am I (AC 36): address + postal + 附近', () => {
     const api = { revgeocode: async () => ({ name: 'Bishan Community Club', address: '51 Bishan Street 13 Bishan Community Club Singapore 579799', postal: '579799' }) };
     expect(await locate(platform as never, api as never)).toBe('ok');
     expect(here.value).toMatchObject({ label: 'Bishan Community Club', address: '51 Bishan Street 13 Bishan Community Club Singapore 579799', postal: '579799' });
+  });
+  it('L6: the last fix with an address is kept (with its time) when a later lookup fails offline', async () => {
+    const platform = { location: { current: async () => ({ lat: 1.3521, lng: 103.8198, acc: 10 }) } };
+    const ok = { revgeocode: async () => ({ name: 'Bishan Community Club', address: '51 Bishan Street 13 Singapore 579799', postal: '579799' }) };
+    const offline = { revgeocode: async () => Promise.reject(new Error('offline')) };
+    vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    await locate(platform as never, ok as never);
+    vi.spyOn(Date, 'now').mockReturnValue(9_000);
+    await locate(platform as never, offline as never);
+    expect(here.value?.label).toBeNull();
+    expect(lastAddress.value).toMatchObject({ label: 'Bishan Community Club', postal: '579799', at: 1_000 });
+    vi.restoreAllMocks();
   });
   it('splits the building name off the street address as the "near" line', () => {
     expect(whereAmILines({ name: 'Bishan Community Club', address: '51 Bishan Street 13 Bishan Community Club Singapore 579799' })).toEqual({ lines: ['51 Bishan Street 13'], near: 'Bishan Community Club' });

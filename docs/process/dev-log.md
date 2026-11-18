@@ -1301,6 +1301,43 @@ Branch `dev/m5-engine` (worktree `howtogo-m5e`). No new user-visible UI. Not pus
   - the delete-a-chunk test (AC 18);
   - a Playwright check of the telemetry payload (`?telemetry=1`).
 
+## 2026-11-18 — Developer UI-1: M5 UI round
+
+*Reconstructed at integration from UI-1's commits d21b82d, 00caf7e and b3a92dc (Creative M5 review fix 4). b3a92dc had committed UI-2's entry in place of this one.*
+
+Branch `dev/m5-ui`. Not pushed, nothing deployed, no wrangler run against Cloudflare.
+
+**What was built**
+- **L1 Privacy** (`views/Privacy.tsx`, copy in `i18n/privacy.ts`, lazy chunk): one h1, five h2, the glance card, the contact line pointing to Report a problem (AC 23), and the footer with the notice version (`PRIVACY_NOTICE`). `/privacy` is a standalone route, deep-linkable from the family page and `/setup` (`?lang=`).
+- **L2 About** rework: version with the build date (`BUILD_DATE`, `/version.json`), the sample-mode line, Maps and data with the OneMap logo, the LTA line with the data date, the privacy row (→ L1) and Report.
+- **L5 Battery saver**: the Settings row (自动 / 开 / 关, "not on this phone" when the Battery API is missing), the sheet with its note, the H5 leaf chip, and calmer map animations while saving.
+- **L7 Settings**: the 1.0 group order (Me · Display · Travel · Privacy · This app) and the error-counts switch row with Details → L1 h2 2 (default on, OQ3). Off drops queued counts.
+- **L8**: privacy links on the family page footer and `/setup`.
+- **6f.11 text size 85 %** (owner request): `small` = `--ts .85` on first run (F1), Settings and `/setup`. Default stays 100 %. The Home AA cycle skips 85 %.
+- **Delete all my data** (`state/deleteAll.ts`): stops a live share first, then clears localStorage, sessionStorage, Cache Storage and IndexedDB.
+- SW API cache pruning (expired search/route results are evicted).
+- Sheets return focus to their trigger.
+
+**Budget**
+- Copy used only by lazy screens moved to `i18n/m5lazy.ts` and `i18n/privacy.ts`. Home entry 98.9 / 100 KB.
+
+**Tests**
+- Unit: `test/m5-ui1.test.ts` (85 % size, delete-all completeness, battery row values, privacy copy limits).
+- e2e: `e2e/m5-ui1.spec.ts` (L1, L2, L5, L7, L8, 6f.11) and `e2e/a11y.spec.ts` (an a11y-tree check per screen + a keyboard pass).
+
+**Baselines** (51 files, Docker, DPR 1)
+- New: `M5-F1-size-{85,100,200}`, `M5-H1-default`, `M5-H13-size`, `M5-H5-walk`, `M5-H6-bus`, `M5-L1-top` (4), `M5-L1-full` (2), `M5-L2-live` (2), `M5-L2-sample`, `M5-L5-g1`, `M5-L5-h5-chip` (2), `M5-L5-row`, `M5-L5-sheet` (2), `M5-L5-sheet-unsupported`, `M5-L7-settings` (4), `M5-L7-errors-off`, `M5-L8-setup-link`, `M5-W-size-85`.
+- Re-recorded: `M1-F1-lang`, `M1-F6-about`, `M1-F6-settings` (3), `M4-W-form`, and the family-page `M4-V-*` set (footer privacy link).
+
+**Visible changes (Creative pre-flight)**
+1. New Privacy page; About reworked.
+2. Settings in the final order, with the Privacy group, the error-counts row and the battery-saver row.
+3. The 较小 85 % size option on first run, Settings and `/setup`.
+4. The battery-saver sheet and the H5 leaf chip.
+5. Privacy links on the family page and `/setup`.
+
+**Left for the integration round:** the Settings update bar (UI-2's TODO), the Home budget after both merges, and the missing `h1` on guidance.
+
 ## 2026-11-18 — Developer UI-2: M5 UI round
 
 Branch `dev/m5-ui2` (worktree `howtogo-m5u2`). Not pushed, nothing deployed, no wrangler run against Cloudflare. Settings, Privacy, About, text size and delete-all were left alone (UI-1).

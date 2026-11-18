@@ -124,7 +124,7 @@ test('Exit motion leaves no extra testids or text behind (ghost is inert and uns
         for (const n of m.addedNodes)
           if (n instanceof HTMLElement && n.classList.contains('ghost'))
             w.__ghosts.push({ inert: n.inert, hidden: n.getAttribute('aria-hidden') === 'true', testids: n.querySelectorAll('[data-testid]').length });
-    }).observe(document.querySelector('.stage')!, { childList: true, subtree: true });
+    }).observe(document.body, { childList: true, subtree: true });
   });
   await page.getByTestId('nav-settings').click();
   await expect(page.getByTestId('back')).toHaveCount(1);

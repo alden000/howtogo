@@ -72,6 +72,18 @@ test.describe('L1 privacy page', () => {
     await expect(page.getByRole('list', { name: '一眼看懂' })).toBeVisible();
     await expect(page.getByTestId('pv-footer')).toHaveText(/^说明版本 1 · 2026年11月18日（怎么去\? \d+\.\d+\.\d+）$/);
     await expect(page.getByTestId('pv-contact')).toHaveText('有问题？用设置里的 报告问题。');
+    // Creative M5 review fixes 1+2: the contact line is plain text (no M4 contact card), and the inline link sits in
+    // its sentence (one line here) while keeping a 56 px hit area.
+    const contact = page.getByTestId('pv-contact');
+    expect(await contact.evaluate((e) => getComputedStyle(e).boxShadow)).toBe('none');
+    expect((await contact.boundingBox())!.height).toBeLessThan(48);
+    const hit = await page.getByTestId('pv-report').evaluate((el) => {
+      el.scrollIntoView({ block: 'center' });
+      const r = el.getBoundingClientRect();
+      const at = (dy: number) => document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2 + dy);
+      return [at(-27), at(27)].every((x) => x === el || el.contains(x));
+    });
+    expect(hit).toBe(true);
     expect(await page.locator('.pv').innerText()).not.toMatch(/@\w/);
     await page.getByTestId('pv-report').click();
     await expect(page.getByTestId('sheet-report')).toBeVisible();
@@ -160,7 +172,7 @@ test.describe('L7 Settings', () => {
     await expect(sw).toHaveAttribute('role', 'switch');
     await expect(sw).toHaveAttribute('aria-checked', 'true');
     await expect(sw).toHaveAccessibleName(/发送匿名错误统计/);
-    await expect(sw).toHaveAccessibleDescription(/只发"哪种问题、几次"/);
+    await expect(sw).toHaveAccessibleDescription(/只发“哪种问题、几次”/);
     await page.evaluate(() => localStorage.setItem('howtogo.telemetry.v1', JSON.stringify({ day: '2026-11-18', sent: 0, lastAt: 0, rows: [{ v: '0', code: 'js_error', screen: 'home', n: 1 }] })));
     await sw.click();
     await expect(sw).toHaveAttribute('aria-checked', 'false');
@@ -198,7 +210,7 @@ test.describe('L5 battery saver', () => {
     await battery(page, { supported: false, level: null, charging: null });
     await expect(row).toContainText('自动（这部手机不支持）');
     await row.click();
-    await expect(page.getByTestId('battery-auto-sub')).toHaveText('这部手机不能告诉我电量，所以"自动"不会打开省电。需要时请选"开"。');
+    await expect(page.getByTestId('battery-auto-sub')).toHaveText('这部手机不能告诉我电量，所以“自动”不会打开省电。需要时请选“开”。');
     await expect(page.getByRole('radiogroup')).toBeVisible();
     await page.getByTestId('battery-on').click();
     await expect(page.getByTestId('battery-on')).toHaveAttribute('aria-checked', 'true');
