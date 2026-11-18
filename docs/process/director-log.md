@@ -225,3 +225,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 ## 2026-11-18 — 1.0.0-rc.1 on the preview
 - Merged dev/m5-int (341ca33: version 1.0.0-rc.1, QA-60 fixed). m5 AC 31/38/40 failed under load in the dev round and pass 3/3 alone (flakes). Deployed `howtogo-preview` version 7b6e0625; smoke:deploy 30/30. Tagged v1.0.0-rc.1.
 - v1.0.0 (production, live mode) waits for the owner: OneMap secrets on production, then `deploy:prod` + smoke:deploy + smoke:live. The field test is the owner's call (OQ8). Then M6 (APK on a device; keystore from the owner).
+
+## 2026-11-19 — v1.0.0 LIVE at https://howtogo.wwweeeiii.com (live mode)
+- The owner set ONEMAP_EMAIL, ONEMAP_PASSWORD and LTA_ACCOUNT_KEY on production (names verified, values never seen). The OneMap registration "access code" is a one-time email verification, not needed by the app.
+- rc.1 deploy:prod (72ed2d81) passed smoke:deploy 31/31 (fixtureMode false, onemap ok, lta key) and smoke:live 11/11. The Director then bumped the version to 1.0.0 (package.json, version.ts, fixa test), ran unit tests, deployed (0fa796a0): smoke:deploy 31/31, smoke:live 11/11. Pixel 7 check: no sample banner, search 200, no console errors, no horizontal scroll. Tagged v1.0.0.
+- Still open (owner): field test (OQ8), privacy contact, old raus-ums Worker. Next: M6 (APK on a device; keystore from the owner). QA-60 fixed; known flakes listed in qa/reports/1.0.0-rc1-m5.md.
