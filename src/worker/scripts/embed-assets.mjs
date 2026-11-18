@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Embeds src/web/dist into the Worker bundle (src/generated/assets.ts, gitignored).
-// Used by the preview deploy (wrangler.preview.toml, no [assets]): in this environment the
+// Used by the preview deploy (wrangler.embed.toml, no [assets]): in this environment the
 // HTTPS proxy overwrites the JWT that wrangler's /workers/assets/upload step needs → 401.
 // `_headers` is parsed into a rules table and never embedded itself.
 //

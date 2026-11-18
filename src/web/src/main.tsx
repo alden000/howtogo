@@ -33,8 +33,8 @@ import { createStore } from './state/store';
 import { createTripRuntime } from './trip/runtime';
 
 const DEMO_DEFAULT_MS = 400;
-/** Production Worker origin for the Android app (D-11 domain once live; the workers.dev origin works meanwhile). */
-const NATIVE_API_BASE = 'https://howtogo.raus-ums.workers.dev';
+/** Production Worker origin for the Android app (D-11 custom domain, live since the first deploy). */
+const NATIVE_API_BASE = 'https://howtogo.wwweeeiii.com';
 const DEFAULT_FLAGS = ['guide', 'help'];
 
 async function boot() {

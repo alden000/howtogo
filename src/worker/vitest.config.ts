@@ -4,8 +4,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [
     cloudflareTest({
-      // The deployed preview config (no [assets]: the embedded build is served by src/static.ts).
-      wrangler: { configPath: "./wrangler.preview.toml" },
+      // The embedded-assets variant of wrangler.toml (no [assets]: the embedded build is served by src/static.ts),
+      // top level = the preview Worker's bindings.
+      wrangler: { configPath: "./wrangler.embed.toml" },
       miniflare: {
         bindings: {
           ONEMAP_EMAIL: "test@example.com",
@@ -16,7 +17,7 @@ export default defineConfig({
           // wrangler.toml turns fixture mode on for the preview (D-10); unit tests start from real mode.
           FIXTURE_MODE: "0",
         },
-        // wrangler.preview.toml binds LTA_PROXY to the owner's whereisthebus-lta-proxy Worker, which does
+        // wrangler.embed.toml binds LTA_PROXY to the owner's whereisthebus-lta-proxy Worker, which does
         // not exist locally; stand in a dead service (tests pass their own fake via env, test/lta-proxy.test.ts).
         serviceBindings: { LTA_PROXY: () => new Response("LTA_PROXY not available in tests", { status: 502 }) },
       },

@@ -1,0 +1,164 @@
+# GENERATED from wrangler.toml by scripts/embed-config.mjs — do not edit; run `npm run embed:config -w @howtogo/worker`.
+# Embedded-assets variant: identical to wrangler.toml except WITHOUT [assets] and with main = src/index.embed.ts
+# (the build is bundled into the Worker by scripts/embed-assets.mjs and served by src/static.ts with the same
+# paths, SPA fallback and headers). Opt-in only: `npm run deploy:preview -- --embed`.
+# 怎么去? — ONE Worker serves the PWA (Workers Static Assets) and the API (D-10), deployed as TWO
+# Workers on the owner's Cloudflare account (M5 AC 30, OQ4):
+#   top level          → `howtogo-preview` (preview / release candidates, workers.dev, FIXTURE_MODE "1"
+#                        until the owner's keys are in)      deploy: `npm run deploy:preview`
+#   [env.production]   → `howtogo` (production, custom domain howtogo.wwweeeiii.com, live data only)
+#                                                            deploy: `npm run deploy:prod`
+#   [env.test]         → local two-browser e2e only (`wrangler dev --local --env test`), never deployed.
+# The top level is the preview ON PURPOSE: a bare `wrangler deploy` can never reach production.
+# wrangler.embed.toml is GENERATED from this file (scripts/embed-config.mjs; test/config.test.ts keeps them
+# identical apart from [assets]): the same Workers with the build embedded in the bundle, for networks
+# where wrangler's assets upload fails. Docs: docs/process/DEPLOY.md.
+# Placeholders only — no secrets in this file. Secrets (owner, `wrangler secret put <NAME> [--env production]`):
+#   ONEMAP_EMAIL, ONEMAP_PASSWORD, LTA_ACCOUNT_KEY (none needed while FIXTURE_MODE = "1"), STATS_TOKEN (optional,
+#   unlocks GET /api/stats).
+# Build first: `npm run build:release` (root) builds src/web/dist, which is served below.
+name = "howtogo-preview"
+main = "src/index.embed.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+# The owner's account (workers.dev subdomain `genixm`; the zone wwweeeiii.com). Pinned because wrangler sees
+# two accounts on the owner's machine. An account id is not a secret. Inherited by every environment.
+account_id = "bda70e28e71059956f5f02287522bb66"
+
+[vars]
+ENVIRONMENT = "preview"
+# Extra browser origins besides the Worker's own (same origin is always allowed, src/http.ts):
+# the M6 WebView (https://localhost) and local dev (vite dev 5173, vite preview 4173, wrangler dev 8787).
+ALLOWED_ORIGINS = "https://localhost,http://localhost:5173,http://localhost:4173,http://localhost:8787"
+SHARE_TTL_HOURS = "4"
+# FIXTURE_MODE "1": search/route/revgeocode/bus-arrival/alerts answer from bundled SYNTHETIC
+# fixtures (AC 21) and /api/health reports fixtureMode:true, so the PWA shows the
+# "示范路线 / Sample routes" banner. PREVIEW ONLY (D-10); production sets "0" below.
+FIXTURE_MODE = "1"
+
+[[kv_namespaces]]
+binding = "TOKEN_KV"
+# Create once: `npx wrangler kv namespace create howtogo-preview-TOKEN_KV` and paste the id here.
+id = "REPLACE_WITH_PREVIEW_KV_ID"
+
+[[durable_objects.bindings]]
+name = "TRIP_SHARE"
+class_name = "TripShare"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TripShare"]
+
+# Optional: reuse the LTA key of the owner's existing Worker via a service binding (src/lta.ts).
+# Only used for bus arrival when the LTA_ACCOUNT_KEY secret is unset. Resolves only when this Worker
+# is deployed to the SAME Cloudflare account as `whereisthebus-lta-proxy`; wrangler deploy errors if
+# that Worker does not exist in the target account (remove this block for other accounts).
+[[services]]
+binding = "LTA_PROXY"
+service = "whereisthebus-lta-proxy"
+
+[observability]
+enabled = false
+
+# M4 AC 41: one-time caregiver setup box (ciphertext only, 24 h).
+[[durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["SetupBox"]
+
+# M5 AC 39: anonymous error counts (day × version × code × screen), 90-day retention (src/stats.ts).
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Stats"]
+
+# ---------------------------------------------------------------------------
+# PRODUCTION: `howtogo` — live data only (FIXTURE_MODE "0"; without the owner's secrets the API answers 503,
+# never sample routes). Bindings are not inherited by environments, so every one is repeated here.
+# ---------------------------------------------------------------------------
+[env.production]
+name = "howtogo"
+workers_dev = true
+# M5 AC 34 (D-11): the custom domain. workers.dev stays live; its HTML pages redirect here (src/pages.ts).
+routes = [{ pattern = "howtogo.wwweeeiii.com", custom_domain = true }]
+
+[env.production.vars]
+ENVIRONMENT = "production"
+# Only the production origin (+ the M6 WebView). The Worker's own origin is always allowed.
+ALLOWED_ORIGINS = "https://howtogo.wwweeeiii.com,https://localhost"
+CANONICAL_ORIGIN = "https://howtogo.wwweeeiii.com"
+SHARE_TTL_HOURS = "4"
+FIXTURE_MODE = "0"
+
+[[env.production.kv_namespaces]]
+binding = "TOKEN_KV"
+# `howtogo-TOKEN_KV`, created 2026-11-17 on the owner's account (HANDOVER.md).
+id = "1e514bcf1539494db863191de13f5d3c"
+
+[[env.production.durable_objects.bindings]]
+name = "TRIP_SHARE"
+class_name = "TripShare"
+
+[[env.production.durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"
+
+[[env.production.durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"
+
+[[env.production.migrations]]
+tag = "v1"
+new_sqlite_classes = ["TripShare"]
+
+[[env.production.migrations]]
+tag = "v2"
+new_sqlite_classes = ["SetupBox"]
+
+[[env.production.migrations]]
+tag = "v3"
+new_sqlite_classes = ["Stats"]
+
+# Same note as the top level: the owner's `whereisthebus-lta-proxy` must exist on this account.
+[[env.production.services]]
+binding = "LTA_PROXY"
+service = "whereisthebus-lta-proxy"
+
+[env.production.observability]
+enabled = false
+
+# ---------------------------------------------------------------------------
+# M4 OQ6: test-only environment for the two-browser e2e (`wrangler dev --local --env test`).
+# SHARE_TEST_TTL_SECONDS is honoured ONLY when ENVIRONMENT = "test"; test/config.test.ts fails if
+# either appears outside this block. Bindings are not inherited by environments, so they are repeated.
+# ---------------------------------------------------------------------------
+[env.test]
+name = "howtogo-api-test"
+
+[env.test.vars]
+ENVIRONMENT = "test"
+SHARE_TEST_TTL_SECONDS = "90"
+SHARE_TTL_HOURS = "4"
+ALLOWED_ORIGINS = "http://localhost:4173,http://localhost:5173"
+
+[[env.test.kv_namespaces]]
+binding = "TOKEN_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[env.test.durable_objects.bindings]]
+name = "TRIP_SHARE"
+class_name = "TripShare"
+
+[[env.test.durable_objects.bindings]]
+name = "SETUP_BOX"
+class_name = "SetupBox"
+
+[[env.test.durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"

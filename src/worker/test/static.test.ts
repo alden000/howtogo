@@ -5,7 +5,7 @@ import { call } from "./helpers";
 
 // Exactly the CSP in src/web/public/_headers (the embedded rules are parsed from it at build time).
 const CSP =
-  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://www.onemap.gov.sg; connect-src 'self' wss://howtogo.raus-ums.workers.dev wss://howtogo.wwweeeiii.com https://www.onemap.gov.sg; worker-src 'self' blob:; child-src blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://www.onemap.gov.sg; connect-src 'self' https://www.onemap.gov.sg; worker-src 'self' blob:; child-src blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 const IMMUTABLE = "public, max-age=31536000, immutable";
 
 const text = (body: string, contentType: string, etag: string): EmbeddedAsset => ({ body, base64: false, contentType, etag });

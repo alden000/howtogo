@@ -18,6 +18,8 @@ export const LIMITS = {
   setupCreate: { max: 5, windowMs: 3_600_000 },
   setupRead: { max: 30, windowMs: 3_600_000 },
   shareView: { max: 1, windowMs: 5_000 },
+  /** M5 AC 38: the client sends ≤ 1 report per 5 min and ≤ 20 per day; 12/h leaves room for several tabs. */
+  telemetry: { max: 12, windowMs: 3_600_000 },
 } as const;
 export type LimitName = keyof typeof LIMITS;
 /** Upper bound on tracked clients per isolate, so memory stays small under abuse. */

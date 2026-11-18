@@ -1,6 +1,6 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { vi } from "vitest";
-import worker from "../src/index";
+import worker from "../src/index.embed";
 
 export const BASE = "https://api.test";
 export const ORIGIN = "https://app.example.sg";

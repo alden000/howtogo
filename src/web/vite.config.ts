@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import preact from '@preact/preset-vite';
 import { VIEWER_INPUT, isViewerFile, viewerEntry } from './vite.viewer.ts';
@@ -24,6 +25,8 @@ function serviceWorker(): Plugin {
         .filter((f) => !/(^|\/)mock-/i.test(f))
         // M4: the family viewer (/t/:id) is a separate entry, never part of the app shell.
         .filter((f) => !isViewerFile(f))
+        // M5 AC 33: deploy metadata, always fetched fresh (smoke:deploy), never precached.
+        .filter((f) => f !== 'version.json')
         .map((f) => '/' + f);
       const precache = ['/', '/manifest.webmanifest', ...files.filter((f) => f !== '/index.html')];
       let h = 0;
@@ -36,8 +39,24 @@ function serviceWorker(): Plugin {
   };
 }
 
+/**
+ * M5 AC 33/43: `/version.json` = { version, built } (built = UTC date only). The post-deploy smoke checks it
+ * against the expected version; the Worker serves it `no-cache`.
+ */
+function versionJson(): Plugin {
+  return {
+    name: 'howtogo-version-json',
+    apply: 'build',
+    generateBundle() {
+      const version = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version;
+      const built = new Date().toISOString().slice(0, 10);
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version, built }) + '\n' });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [preact({ prerender: { enabled: false } }), serviceWorker(), viewerEntry()],
+  plugins: [preact({ prerender: { enabled: false } }), versionJson(), serviceWorker(), viewerEntry()],
   build: {
     target: 'es2022',
     sourcemap: false,
