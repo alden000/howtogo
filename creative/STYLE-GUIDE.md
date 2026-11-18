@@ -1,4 +1,4 @@
-# 怎么去? — Style guide v1.4
+# 怎么去? — Style guide v1.4.1
 
 Source of truth for the build. **Build strictly to these tokens and frames:** no raw values outside the token sheet, and no improvised UI. New tokens need Director approval. The prototype `creative/prototype/index.html` implements every token below in its `:root` block. Brand rationale lives in `docs/02-creative-direction.md`.
 
@@ -73,7 +73,7 @@ Map tokens (`m-*`): land `#F1E9DC`/`#1C1815`, block `#E3D6C2`/`#2B241E`, park `#
 - **Wording:** in zh, "transfer" is always **换车** (最少换车, 不用换车, 换 [CC] …), never 转车.
 
 Numerals use Atkinson and `tabular-nums`.
-`html { font-size: calc(20px * var(--ts)) }`, where `--ts` ∈ {1, 1.25, 1.5, 2}. All type is in rem.
+`html { font-size: calc(20px * var(--ts)) }`, where `--ts` ∈ {0.85, 1, 1.25, 1.5, 2} (0.85 = 较小 / Smaller, v1.4.1, see 6f.11; the default stays 1). All type is in rem.
 
 | Role | Size (rem / px @100%) | Weight | Line height | Use |
 |---|---|---|---|---|
@@ -88,7 +88,7 @@ Numerals use Atkinson and `tabular-nums`.
 | `button` | 1.15 / 23 | 700 | 1.2 | Primary buttons |
 | `body` | 1.0 / 20 | 400 | 1.45 | Body |
 | `label` | 0.9 / 18 | 700 | 1.3 | Chips, meta |
-| `caption` | 0.85 / 17 (min) | 400 | 1.3 | Sub-lines (never smaller than 17px at 100%) |
+| `caption` | 0.85 / 17 (min) | 400 | 1.3 | Sub-lines (never smaller than 17px at 100%; 14.5px at the opt-in 85%, the absolute floor) |
 
 The only exception is map attribution at 11px (legal text, not content).
 
@@ -296,7 +296,7 @@ Shared rules for every frame:
 - **Back goes to:** H1 (the trip stack is replaced). Baselines: `H12-shared`, `H12-notshared`, `H12-rm` (reduce motion).
 
 ### H13 Settings (sheet)
-- 语言 Language: 中文 / English · 字体大小: 100 / 125 / 150 / 200% · 颜色: 跟手机 / 白天 / 夜间 · 语音提示: 开 / 关 · 震动提示: 开 / 关 · 减少动画: 跟手机 / 开 / 关.
+- 语言 Language: 中文 / English · 字体大小: 85 / 100 / 125 / 150 / 200% (6f.11) · 颜色: 跟手机 / 白天 / 夜间 · 语音提示: 开 / 关 · 震动提示: 开 / 关 · 减少动画: 跟手机 / 开 / 关.
 - *The prototype-only "原型演示控制" block is not in the build.*
 - **Back goes to:** H1. Baselines: `H13-*`.
 
@@ -318,8 +318,8 @@ Shared rules (as §6, plus):
 - **Page 1: language and text size.**
   - Title (always bilingual on this page, both lines `title`): 你好！/ Hello!
   - 语言 / Language: two big radio cards (`r-l`, 72px), each written in its own language with a matching `lang` attribute: **中文** · **English**. Tapping re-renders the page at once.
-  - 字体大小 / Text size: 4 radio cards: 标准 100% / Standard · 大 125% / Large · 特大 150% / Extra large · 最大 200% / Largest. The whole page re-renders at the chosen size; that **is** the live preview. A preview card under it reads 早上好！今天想去哪里？/ Good morning! Where would you like to go today? (`display` role).
-  - At 200% the radio grid becomes 1 column (same `auto-fit` rule as `.tile`).
+  - 字体大小 / Text size: 5 radio cards (v1.4.1, 6f.11): 较小 85% / Smaller · 标准 100% / Standard · 大 125% / Large · 特大 150% / Extra large · 最大 200% / Largest. The whole page re-renders at the chosen size; that **is** the live preview. A preview card under it reads 早上好！今天想去哪里？/ Good morning! Where would you like to go today? (`display` role).
+  - Up to 150% the grid has 2 columns and the odd last card (最大 200%) spans the full row; at 200% the radio grid becomes 1 column (same `auto-fit` rule as `.tile`). 标准 100% stays pre-selected.
   - Primary: **下一步 / Next**.
 - **Page 2: name (optional).**
   - Title: 怎么称呼你？/ What should we call you?
@@ -1317,6 +1317,53 @@ Checked: 390 px screen (no horizontal scroll) and A4 print (2 pages, no row spli
 - **Build asks (Developer):** Delete all clears Cache Storage and stops a live share first (L1 fact 1); SW API cache prunes expired entries (fact 2); `PRIVACY_NOTICE` constant; `/privacy` precached.
 - **No new tokens.**
 
+### 6f.11 Text size 较小 85% / Smaller (owner request 2026-11-18, v1.4.1)
+Owner: the text is a little big for younger, normal-sighted users. Director: add **one** option below 100%; new installs still default to **100%** (seniors first); the option appears everywhere the text-size choice appears today.
+
+**Value and key.** `--ts: 0.85` → root 17px. Settings key `textSize: 'small'`; `:root[data-text-size="small"]{--ts:.85}` in `tokens.css`; `TEXT_SCALE.small = 0.85`, first in `TEXT_SIZES` (ascending order). `setup.ts` accepts `'small'`. No new tokens: it is one more value of the existing `--ts`.
+
+At 85% (px, rounded): `body` 17 · `label` 15.3 · `caption` 14.5 (absolute floor; nothing but map attribution is smaller) · `button` 19.6 · `headline` 20.4 · `step` 24.7 · `display` 35.7 · `alert` 40.8 · `arrival` 51. The get-off alert and arrival stay the largest things on screen.
+
+**Labels.** zh **较小** · en **Smaller**. It is relative to Standard and says nothing about age or eyesight (never "young", "normal" or "small print").
+- First-run card: `较小 85% / Smaller` (same pattern as the other cards: zh name + %, `/`, en name).
+- Settings and W setup page segments: `85%` (like the others).
+- i18n key `size_85`: `较小` / `Smaller`.
+
+**Screen-reader names** (every place, zh / en; the % alone is not enough):
+
+| Option | zh | en |
+|---|---|---|
+| 85 | 较小，85% | Smaller, 85% |
+| 100 | 标准，100% | Standard, 100% |
+| 125 | 大，125% | Large, 125% |
+| 150 | 特大，150% | Extra large, 150% |
+| 200 | 最大，200% | Largest, 200% |
+
+Settings and W segments get these as `aria-label`; first-run cards already read them from their text. Home `AA` button: `字体大小：85%` / `Text size: 85%` (existing pattern).
+
+**Position and layout (390 × 844, `s-5` gutters, content 350 px).**
+- **First run (F1 page 1)** `.radiogrid`, order 较小 85% · 标准 100% · 大 125% · 特大 150% · 最大 200%. Add `.radiogrid > :last-child:nth-child(odd){grid-column:1/-1}`.
+  - 85% and 100%: 2 columns of 169 px → rows [较小 | 标准] [大 | 特大] [最大, full width]. Cards ≥ 72 px (79 px at 85%, 88 px at 100%; zh and en wrap onto two lines).
+  - 200%: 1 column, 5 full-width cards (up to 146 px each where the label wraps). No horizontal scroll.
+  - 标准 100% is pre-selected; Skip keeps 100%.
+- **Settings (H13 / F6 看和听)**: the text-size `Seg` gets class `sizes`: `.seg.sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,5rem),1fr))}`. 85% and 100%: 3 columns of 111 px → [85% | 100% | 125%] [150% | 200%], each 56 px tall. 150% and 200%: the existing rule stacks it into one column of full-width 56 px+ rows.
+- **W family setup page** (`/setup`, 6e.5) language-and-size card: the same `.seg.sizes` with 5 options (inside the card: 2 columns, [85 | 100] [125 | 150] [200]). Its default stays **125%** (it sets up an older person's phone).
+- **Home `AA` button** cycles 100 → 125 → 150 → 200 → 100 and **never lands on 85%**: a senior tapping AA again and again must not end up below Standard. From 85% the next tap goes to 100%. 85% is chosen only on purpose (first run, Settings, W).
+
+**Preview sentence.** Unchanged: the page re-renders at the chosen size, and the preview card reads 早上好！今天想去哪里？/ Good morning! Where would you like to go today? in `display`. Only while 85% is selected, a `caption` in `c-ink-2` sits under the preview: **字会变小。看不清楚，可以在设置里改回来。** / **Text gets smaller. If it's hard to read, change it back in Settings.** It is not announced separately (the radio state already is). The same line sits under the Settings segment while 85% is selected.
+
+**What scales and what doesn't.**
+- Scales (rem): every type role; `em`-sized inline icons (`svg.i`, 1.4em), so they stay matched to the words beside them (about 24 px next to `body` at 85%).
+- Does **not** scale (px tokens, unchanged): `tap` **56 px** and `tap-hero` **72 px** (the guide minimum; seniors' safety controls never shrink), spacing `s-*`, radii `r-*`, gaps ≥ 8 px, fixed-px icons (40 px step and tile icons, 28 px note icons, 44 px wordmark, 56 px mic), progress bar, map overlays, 11 px map attribution. Rows and buttons simply get a little more air at 85%.
+- The 150%/200% layout overrides (`data-text-size="xlarge|xxlarge"`) do not apply at 85%; 85% uses the 100% layout.
+- No frame adds its own size override for 85%; Help, 995 and the get-off alert follow the table above and nothing else.
+
+**Family viewer `/t/*`: stays at 100%, gets no picker and does not follow the sender's choice.** Why: (1) it is someone else's browser and the share carries no text setting, and it should not (less data sent); (2) viewers are not only young relatives: a spouse or sibling of the same age opens it too, often in a worried moment, and the status sentence must read at a glance, so 100% (body 20 px) is the safe floor; (3) a younger viewer already has the browser's own zoom and phone text size, which the rem-based page respects. A page meant to need no controls gets no new control.
+
+**Baselines (390×844, DPR 2, light + dark, zh + en):** `F1-size-85`, `F1-size-100` (5-card grid), `F1-size-200` (5 cards, 1 column), `H13-size-85` (Settings segment 3+2 with the caption), `H1-default-85`, `H5-walk-85`, `H8-walk-85` (get-off alert at 85%), `W-size-85` (setup card). Checks: no horizontal scroll, every target ≥ 56 px at 85%, no text under 14.5 px except attribution, the AA cycle never reaches 85%.
+
+Checked: the F1 grid and the Settings segment rendered at 390 px with the build's `tokens.css` + `app.css` at 85%, 100% and 200% (Playwright): no horizontal scroll, cards 169×79 / 169×88 / 350×146, last card full width, segments 111×56 (3+2), 1 column at 200%.
+
 ## 7. Parity checklist (prototype ↔ build)
 - [ ] Tokens identical: colour, type, space, radii, motion, haptics.
 - [ ] Back stack per frame, as above, including the D8 end-trip guard.
@@ -1336,10 +1383,12 @@ Checked: 390 px screen (no horizontal scroll) and A4 print (2 pages, no row spli
 - [ ] M5: nothing from 6f (update bar, What's new, install card, in-app bar) renders during a trip; the leaf chip never changes alert timing.
 - [ ] M5: `/privacy` text matches the code facts in 6f.1 (Delete all clears caches and stops a share; TTLs; telemetry fields); no contact line until the owner supplies one; no licences link anywhere.
 - [ ] M5: offline cold start has no spinner; every network-only control says 需要网络 / Needs internet.
+- [ ] v1.4.1: 较小 85% offered on F1, Settings and W; default 100%; targets still 56 px at 85%; AA never cycles to 85%; viewer stays 100%.
 
 ## Change log
 | Version | Date | Change |
 |---|---|---|
+| v1.4.1 | 2026-11-18 | 6f.11 text size 较小 85% / Smaller (owner request): `--ts` 0.85, first of 5 options, default still 100%; 5-card grid (odd last card spans the row) and `.seg.sizes`; SR names; targets and px icons do not scale; AA cycle skips 85%; viewer stays 100%. |
 | v1.4 | 2026-11-18 | 6f M5 hardening and launch: L1 Privacy page, L2 About rework, L3 update bar + What's new (supersedes F7), L4 install helper (Android card, iOS picture guide, Open in Safari, in-app-browser bar), L5 battery saver, L6 offline cold start, L7 Settings order + error counts, L8 V/W privacy links, L9 field-test form + consent line. Icons `leaf`, `add-square`, `open-browser`; drawn iOS guide pictures in `creative/m5/`. |
 | v1.3 | 2026-11-17 | 6d M3 transit smarts, 6e M4 share and safety; m34 fix-round entries. |
 | v1.2 | 2026-11-17 | 6c M2 guided-trip frames. |
