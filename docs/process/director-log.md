@@ -221,3 +221,7 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Lesson: every dev/QA brief must kill the servers it starts, and the Director checks for orphans before any perf measurement.
 - QA-60 (S4: idle preload fetches the viewer chunk → false chunk_load count offline) and the version string 1.0.0-rc.1 go into a short round, then the preview gets rc.1.
 - M5 duration so far: ~7 h wall clock (09:20–16:50) incl. two parallel UI rounds and the integration round.
+
+## 2026-11-18 — 1.0.0-rc.1 on the preview
+- Merged dev/m5-int (341ca33: version 1.0.0-rc.1, QA-60 fixed). m5 AC 31/38/40 failed under load in the dev round and pass 3/3 alone (flakes). Deployed `howtogo-preview` version 7b6e0625; smoke:deploy 30/30. Tagged v1.0.0-rc.1.
+- v1.0.0 (production, live mode) waits for the owner: OneMap secrets on production, then `deploy:prod` + smoke:deploy + smoke:live. The field test is the owner's call (OQ8). Then M6 (APK on a device; keystore from the owner).
