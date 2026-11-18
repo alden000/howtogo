@@ -943,7 +943,6 @@ Branch `dev/m34-fix-b` (worktree `howtogo-dev-b`), on top of the Director ruling
   - Not on a trip: new `state/helpShare.ts` makes a help-only share: `destName` 我在这里 / Where I am, `status: help`, and one fix. The token is kept in `localStorage howtogo.helpshare.v1`, and expired shares are dropped. Home shows the same help note, and "我没事了" **ends** that share (DELETE, toast `sh_stopped`).
   - Either way, WhatsApp then opens to the first contact (or `wa.me/?text=`) with `我需要帮忙，我在这里：<link>`.
   - Offline, 429 or a failed create (AC 47): WhatsApp still opens, with `我需要帮忙。我在这里：<address or coords> <maps link>`, or `我需要帮忙。` when there is no fix.
-  - Limitation: a help-only share sends one position, at the tap. It does not track after that.
 - **QA-38 (AC 36):**
   - `locate()` now keeps `address` and `postal`.
   - H10 "here" tab: the street address in huge type (trailing "Singapore 123456" stripped), the postal chip, and `Near · 附近：<building>` when OneMap's building name isn't already in the address.
@@ -1030,3 +1029,89 @@ Branch `dev/m34-fix-b` (worktree `howtogo-dev-b`), on top of the Director ruling
    - `M4-V-*` with a position (maps button);
    - H10-here.
 4. **Director/PM:** should a help-only share keep sending positions? Today it sends one fix, at the tap. This would be a follow-up if wanted.
+
+## 2026-11-18 — Developer C: M3/M4 integration + Creative fixes
+
+Branch `dev/m34-fix` (worktree `howtogo-dev-c`) = `dev/m34-fix-a` + `dev/m34-fix-b` + Creative's two reviews. Not pushed.
+
+**Merge (fcf7a21, then 17e0437 for the fix-a review)**
+- Conflicts resolved, keeping both sides:
+  - dev-log: both entries, A then B;
+  - `i18n/m34.ts`: both the `// M3/M4 fix A` and `// M3/M4 fix B` blocks;
+  - `store.ts`: A's recents v2 (`loadRecents`, migration from 0.2.0) with B's `places` default (`others: []`);
+  - `Home.tsx`: A's `relDate` / `HOME_RECENTS` with B's place tiles and `HelpNote`.
+- Typecheck and unit tests were green before the merge commit.
+
+**Creative review m34-fix-b (272817f)**
+- **H1, done.** A help-only share keeps sending positions until 我没事了 or `expiresAt`. New `helpShare.track(api, platform)`, started once from `App`.
+  - It uses the trip share's cadence and constants: ≥ 3 s apart, 15 s when moved ≥ 20 m, 60 s when still, latest fix only.
+  - On errors: 429 waits for Retry-After; other failures back off 5/10/20/30 s; share gone → the share is dropped.
+  - Location is watched only while a help-only share exists.
+  - B's "Limitation" line is removed from B's entry.
+- **M1, done.** `hp_share_s` and `hp_share_s_any` use the exact review strings.
+- **M2, done.**
+  - `end()` PUTs `travelling` (best effort), then DELETEs.
+  - The viewer has a new `endedOk` state (`viewer/state.ts` `endShare`, `lastLive`, `endedOk`). It shows when the share ends while `help` shows, or within 5 min of help clearing. Jade check, no map, call button, `foot2` footer, title `{me}没事了`.
+  - Toast `hp_ok_end`. `VIEW_KINDS` is now 16.
+- **M3, done.** `priv_m4_time` uses the review's zh and en text.
+- **M4, done.**
+  - `HelpNote` shows for a live help-only share whatever the trip state.
+  - `canShare = !sharing && !helpShare.current.value`.
+  - When `expiresAt` passes with the app open, a timer and the 15 s tick drop the share.
+- **M5, done.** `.stoplist .ctl` and `.ctl .mv` use `gap: var(--s-2)`.
+- **L1, done, one deviation.** Word boundaries as given, but the `grand…` suffix is required. With `?`, the review's own "Grand Hyatt" example still matched.
+- **L2–L6, done.**
+  - L6 adds a dashed `tile-add` "设好你的家" tile, shown when there are places but no Home. It uses existing tokens only.
+- **STYLE-GUIDE.** Creative's text is pasted: §6e.3 4b with the help-only note, the §6e.2 `endedOk` and `full` rows plus the Open in Maps line, and a new §6e.7b P8.
+
+**Creative review m34-fix-a (a3172e1)**
+- **F1, done.**
+  - `.seg` uses `keep-all`. `Seg` takes a `stack` prop, and Show first stacks.
+  - Every `.seg` is one column at 150 % and 200 %.
+  - Switch rows at those sizes: `word-break: normal`, `line-break: strict`, `text-wrap: pretty`, and the value on its own line, left-aligned.
+  - My follow-up (1168851): the label in value rows gets `flex: 1 1 0`, so the chevron stays on row 1 (Creative R1). Without it, 常去的地方's chevron dropped to row 2.
+- **F2, done.** The Lift-friendly switch is out of the H3 sheet. Settings has the sub `set_liftfriendly_s`. `fixa.spec` now expects no `pref-liftfriendly` in the sheet.
+- **F3, done.** `no_change` reads 不用换车.
+- **F4, done.** About shows `交通资料日期：2026年11月17日` / `Transit data date: 17 Nov 2026`, from the new `dataDate()` in `transit/m3.ts`. `report.ts` still says `data: YYYY-MM-DD`.
+- **F5, done.** The `--font` order is fixed, and so is the `fonts.css` comment.
+- **F6, done.** `.ritem .tx span{word-break:keep-all}`.
+- **F7, done.** A pick announces `现在先给你看：{label}` in `#live` and closes the sheet after 400 ms (0 under reduce motion).
+- **STYLE-GUIDE.** Entries 1–8 are added: §1.2 stack, weights and 换车; §5.0 `.seg`; H3 Route options; F6 Travel and About; §6d.9 up to 5; §6d.7 interim.
+
+**QA specs (50bae59). QA must confirm both.**
+- `qa/tests/m4.spec.ts` AC 32: the order now follows §6e.3: call, others, driver, where, find my way, share row, 995. There is no taxi row.
+- `qa/tests/m4.spec.ts` AC 39: up to 5 contacts. A 4th is allowed and a 6th is not.
+
+**Docker-only dev-e2e failures (demo.spec:14, guide.spec:153, guide.spec:456)**
+- Cause: the environment, not the product. The container renders with software GL (SwiftShader), including the map canvas, so the main thread is slow.
+  - Measured: the demo GPS stream (`demoMs=30`) advanced about 4 fixes/s instead of about 30. So the 173-fix trip takes about 45 s there.
+  - Under 2 workers, the 5 s expect defaults also ran out in AC 50.
+  - Real fixes arrive every 1–5 s, so this is not a product bug.
+- Fix, in the harness and tests only:
+  - `qa/playwright.dev.docker.config.mjs` doubles the test timeout and sets the expect timeout to 15 s, in the container only.
+  - `demo.spec.ts:14` gets a 120 s budget, 45 s to reach boarding and 75 s to reach arrival.
+  - Result: 9/9 with `--repeat-each=3` and 2 workers.
+- Also fixed a race in `baselines-m2.spec.ts` H5-manual-walk. It denied location before Home's first fix, which left H3 spinning behind the F2 sheet. It now waits for `loc:ok` first. 3/3 after the fix.
+- A's documented command `--update-snapshots e2e/…` fails on Playwright 1.63, because the flag takes a mode. Use `--update-snapshots=all`.
+
+**Baselines**
+- All **80** dev-e2e PNGs were re-recorded in `mcr.microsoft.com/playwright:v1.63.0-noble` (73 tests).
+- CJK renders with WenQuanYi Zen Hei in the image. There is no tofu. Bold CJK renders as regular, because that face has no bold.
+- Spot-checked: Settings 200 %, Home T3, P2 trip-sharing, About, H3 200 %, H1 200 % and P3 list. No clipping and no broken glyphs.
+
+**Tests**
+- Typecheck green.
+- Unit tests: shared 139, web 208 (new tests for H1 cadence, expiry and stop; M2 PUT-then-DELETE; `endedOk`; L1; L5; F4), worker 154. All pass.
+- Docker dev-e2e full run, without update: **156/156**.
+- On the host, `qa/tests/m3.spec.ts` + `m4.spec.ts`: **80/80** (2 workers, release build plus `wrangler dev --local`).
+
+**Next steps for QA**
+1. Confirm the amended AC 32 and AC 39 assertions in `m4.spec.ts`.
+2. **`qa/tests/ac.spec.ts:375` (AC-31) now fails.** It expects `/转车|不用转车/`, but the card says 不用换车 (Creative F3, accepted by the Director). Change it to `/换车|不用换车/`. I did not touch it (out of my scope).
+3. Update any `about-data` assertion to `交通资料日期：YYYY年M月D日` (AC 44 amendment). `m3.spec` has none today.
+4. Re-check the M3 failures (QA-29…35, 47–49) and M4 failures (QA-37…46), plus the new behaviour:
+   - the help-only share updates on the viewer while the senior moves;
+   - 我没事了 gives the viewer `endedOk`;
+   - the Help share row is hidden while a help-only share is live, on a trip too;
+   - Lift-friendly is gone from the H3 sheet.
+5. The gate on Windows uses `qa/scripts/dev-e2e-docker.sh`. The baselines now match that image.
