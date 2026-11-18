@@ -31,7 +31,12 @@ export function lazyView<P extends object>(load: Loader<P>): LazyView<P> {
   const Lazy = ((props: P) => {
     const [, setReady] = useState(0);
     useEffect(() => {
-      if (!C) preload().then(() => setReady((n) => n + 1), (e: unknown) => shouldReloadFor(e) && handleChunkError());
+      if (C) return;
+      const load = () => preload().then(() => setReady((n) => n + 1), (e: unknown) => shouldReloadFor(e) && handleChunkError());
+      void load();
+      // Offline on first visit (chunk not cached yet): try again when the network comes back.
+      addEventListener('online', load);
+      return () => removeEventListener('online', load);
     }, []);
     return C ? h(C as ComponentType<P>, props) : null;
   }) as LazyView<P>;
@@ -40,7 +45,7 @@ export function lazyView<P extends object>(load: Loader<P>): LazyView<P> {
   return Lazy;
 }
 
-/** Warm all lazy chunks (call when idle after the first paint). */
+/** Warm all lazy chunks (call when idle after the first paint, or on the first interaction). */
 export function preloadViews(): Promise<unknown> {
   return Promise.allSettled(registry.map((p) => p()));
 }

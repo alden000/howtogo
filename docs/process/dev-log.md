@@ -1130,7 +1130,7 @@ Branch `dev/m5-engine` (worktree `howtogo-m5e`). No new user-visible UI. Not pus
 **A. Performance (AC 1–5)**
 - Measured first: release build, `qa/scripts/lighthouse.sh`, mobile, median of 3.
   - **Before:** `/` perf 83 (one run of 3 failed), `/about` 81, `/settings` 92. a11y 100, best practices 100/96/100. FCP 2.1–2.7 s, LCP 2.5–3.1 s, TBT 370–756 ms, CLS 0.
-  - **After:** `/` **96**, `/about` **95**, `/settings` **96**, `/t/<id>` 100. a11y 100 everywhere, best practices 100/96/100/100, SEO 91/92/91. `/`: LCP 2293 ms, TBT 0, CLS 0.
+  - **After** (final build): `/` **96**, `/about` **95**, `/settings` **96**, `/t/<id>` 100. a11y 100 everywhere, best practices 100/96/100/100, SEO 100/100/100 (`/t/*` 54, noindex). `/`: LCP 2393 ms, TBT 78 ms, CLS 0. One `/` run of 3 scored 85: host noise, and the median is 96.
 - Home eager JS went from **121.6 KB gz** (one 106 KB entry) to **98.9 KB** (budget 100).
   - Every screen and sheet that Home and the first run do not need is now a lazy chunk (`src/ui/lazy.ts` `lazyView()`).
   - `preloadViews()` warms them 3 s after boot, when the browser is idle. The SW precaches them, so they work offline.
@@ -1252,11 +1252,16 @@ Branch `dev/m5-engine` (worktree `howtogo-m5e`). No new user-visible UI. Not pus
 
 **Tests**
 - Typecheck green.
-- Unit tests, all pass: shared **159**, web **228**, worker **218**.
-  - New: battery 20, migrations 7, m5-engine 13, worker stats / pages / config.
+- Unit tests, all pass: shared **159**, web **229**, worker **220**.
+  - New: battery 20, migrations 7, m5-engine 14, worker stats / pages / config.
 - `smoke:deploy`: 29/29 against local `wrangler dev` (static assets).
 - `wrangler dev --env test`: `/t/`, `/settings`, a missing chunk (404), share create and telemetry all checked.
-- Dev e2e (Docker): see the result line below.
+- Dev e2e (Docker, full suite): **156/156**. Nothing was re-recorded, so no baseline changed. The first runs failed in three places; all three are fixed:
+  - `vite:preloadError` fires for ANY error in an import chain. In Docker, a MapLibre constructor error triggered the chunk reload mid-test.
+    - Fix: reload only for a real load failure of a non-MapLibre chunk (`shouldReloadFor`).
+    - Also: never reload while offline (`chunk:offline`). A lazy view retries on `online`.
+  - Focus on a lazy screen's heading: `app.tsx` now waits for the heading, up to 3 s, with a MutationObserver. `e2e/fixround.spec.ts` QA-6 now polls the focus instead of reading it at once.
+  - The exit-motion ghost (`ui/ghost.ts`) now starts its 280 ms clock when the new (lazy) screen has content. The stage is never empty, and the hand-over looks as it did with eager screens.
 
 **Hooks for the UI round (exact names)**
 - Update bar (Home and Settings only): `updateBar`, `applyUpdate()`, `justUpdated`, `pendingReload` (`src/web/src/pwa/register.ts`).

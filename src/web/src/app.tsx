@@ -102,10 +102,28 @@ export function App() {
   const first = useRef(true);
   useLayoutEffect(() => {
     if (first.current) return void (first.current = false);
-    const h = stage.current?.querySelector<HTMLElement>(':scope > .screen h1') ?? stage.current?.querySelector<HTMLElement>(':scope > .screen main');
-    if (!h) return;
-    if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
-    h.focus({ preventScroll: true });
+    const find = () => stage.current?.querySelector<HTMLElement>(':scope > .screen h1') ?? stage.current?.querySelector<HTMLElement>(':scope > .screen main');
+    const focus = (h: HTMLElement) => {
+      if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
+      h.focus({ preventScroll: true });
+    };
+    const h = find();
+    if (h) return focus(h);
+    // M5: a lazy screen renders a moment later (its chunk loads): focus its heading as soon as it appears (≤ 3 s).
+    const host = stage.current;
+    if (!host || typeof MutationObserver === 'undefined') return;
+    const mo = new MutationObserver(() => {
+      const el = find();
+      if (!el) return;
+      mo.disconnect();
+      if (document.activeElement === document.body || !document.activeElement) focus(el);
+    });
+    mo.observe(host, { childList: true, subtree: true });
+    const stop = setTimeout(() => mo.disconnect(), 3000);
+    return () => {
+      clearTimeout(stop);
+      mo.disconnect();
+    };
   }, [r.path]);
   let view;
   switch (r.name) {

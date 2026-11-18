@@ -36,6 +36,12 @@ export function handleChunkError(deps: ChunkReloadDeps = {}): 'reload' | 'skip' 
   const kv = deps.kv ?? session;
   const now = (deps.now ?? Date.now)();
   log('chunk:failed');
+  // Offline: a reload would only trade a missing screen for the browser's offline page. Wait instead; the lazy
+  // view retries when the network is back (ui/lazy.ts).
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    log('chunk:offline');
+    return 'skip';
+  }
   const d = chunkReloadDecision(kv, now);
   if (d === 'skip') {
     log('chunk:reload-skipped');

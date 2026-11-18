@@ -61,5 +61,33 @@ export function ghost(el: Element | null, cls: string, opts: { over?: boolean } 
   if (!layer) return;
   layer.appendChild(host);
   from.forEach((s, i) => to[i] && (to[i]!.scrollTop = s.scrollTop));
-  setTimeout(() => host.remove(), reduced() ? 120 : 280);
+  const stage = el.closest('.stage');
+  const ms = reduced() ? 120 : 280;
+  // M5: a lazy screen may render a moment later (its chunk loads). The exit motion's clock starts when the new
+  // screen has content (≤ 3 s), so the hand-over looks exactly as with an eager screen and the stage is never empty.
+  const settled = () => {
+    const screen = stage?.querySelector(':scope > .screen');
+    return !screen || screen.childElementCount > (screen.querySelector(':scope > .note') ? 1 : 0);
+  };
+  if (typeof MutationObserver === 'undefined' || !stage) {
+    setTimeout(() => host.remove(), ms);
+    return;
+  }
+  let started = false;
+  let mo: MutationObserver | null = null;
+  let cap: ReturnType<typeof setTimeout> | undefined;
+  const start = () => {
+    if (started) return;
+    started = true;
+    mo?.disconnect();
+    clearTimeout(cap);
+    setTimeout(() => host.remove(), ms);
+  };
+  // ghost() runs while App renders; the new screen is in the DOM one task later.
+  setTimeout(() => {
+    if (settled()) return start();
+    mo = new MutationObserver(() => settled() && start());
+    mo.observe(stage, { childList: true, subtree: true });
+    cap = setTimeout(start, 3000);
+  }, 0);
 }
