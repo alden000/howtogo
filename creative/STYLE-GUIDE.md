@@ -1,4 +1,4 @@
-# 怎么去? — Style guide v1.3
+# 怎么去? — Style guide v1.4
 
 Source of truth for the build. **Build strictly to these tokens and frames:** no raw values outside the token sheet, and no improvised UI. New tokens need Director approval. The prototype `creative/prototype/index.html` implements every token below in its `:root` block. Brand rationale lives in `docs/02-creative-direction.md`.
 
@@ -1093,6 +1093,230 @@ No new haptic names (6c.13 stays the canonical six).
 - **API asks (Dev / Director, not Creative calls):** `POST /api/share` gains optional `senderName` (≤ 40, "what they call you"), `callTel` (E.164) and `destLat/destLng`; `PUT` gains optional structured `step` (`{k: walk|wait|bus|train, svc, line, stops, place, towards}`) so the viewer can render either language (until then the viewer shows `stepText` as sent). New **setup relay** (`POST /api/setup`, WS, 30 min TTL, opaque ciphertext only; key in the URL fragment). OG tags for `/t/:id` must be generic (6e.2).
 - **No new tokens.** `c-danger` fill appears only on the 995 confirm button (6e.3); `c-saffron` panel for viewer `help` reuses the get-off colour pair.
 
+## 6f. M5 hardening and launch (1.0)
+
+Frames for `docs/requirements/M5-hardening-launch.md` and the Director's M5 rulings (2026-11-18: production at the owner's custom domain; error counts ON with a Settings switch; battery saver at ≤ 20 % and not charging; no 1.0 in sample mode). Reuse §1 tokens and §5–6e components. **No new colour, type, space, radius or motion tokens.** Three new icons (6f.10). Drawn assets live in `creative/m5/` (`icons.svg`, `install/*.svg`, `field-test/`); `creative/m5/preview.html` is a sketch of the new pieces in both themes (`node creative/m5/build-preview.js --shots` re-renders it and checks overflow, clipping and 56 px targets).
+
+Shared rules (as §6 / 6b, plus):
+- Frame IDs **L1–L9** ("launch"). Baselines `M5-L{n}-{state}-{light|dark}-{100|200}-{zh|en}.png` at 390×844 DPR 2. Every frame is checked at 100 % and 200 % (`xxlarge`), zh/en, light/dark, and at 320 CSS px (AC 14).
+- Targets ≥ 56 px, primary actions 72 px, ≥ 8 px (`s-2`) between targets. Text never truncates; rows wrap; bars grow taller.
+- **Never during a trip:** the update bar, What's new, the install card and the in-app-browser bar do not render on H4 after Start, H5/H6/H6b, G1 pocket view, H11 or H12, nor over any sheet opened from them. They wait for H1 or Settings.
+- No red. `c-danger` stays 995-only. Calm, honest copy: "需要网络", never "失败 / failed".
+- **Reduce motion:** every new bar/card/sheet appears with the 120 ms cross-fade; nothing slides, pulses or bounces.
+- Exact copy below is final. `{x}` = variable. zh first, en second.
+
+### 6f.1 L1 Privacy page `/privacy` (AC 22, 23, 40)
+A plain page, reachable from Settings → 隐私 → **隐私说明**, About, the family page footer (V) and `/setup` (W). It is a real route (deep-linkable, works offline from the shell cache), `lang` follows the app setting; opened from V or W it follows that page's language (`?lang=zh|en`).
+
+**Layout:** top bar (Back, title) → title `title` role → lead `body` → "一眼看懂 / At a glance" card (`c-surface`, `r-l`, three rows: 48 px `c-surface-2` icon disc + `label` text) → five sections, each an `h2` (`headline`) and a bullet list (`body`, 8 px between items, bullets are 8 px `c-ink-2` dots, list semantics kept) → contact line → notice footer (`caption`). Max content width 480. Links are `.inlink` (`c-primary-text`, underlined). No accordions: everything is visible, the page scrolls.
+
+Copy (zh ≈ 560 characters, en ≈ 390 words; both inside the AC 22 limit):
+
+| Block | zh | en |
+|---|---|---|
+| Title | 隐私说明 | Privacy |
+| Lead | 怎么去? 不用注册，没有广告，也不追踪你。下面说清楚你的资料去了哪里。 | 怎么去? has no sign-up, no ads and no tracking. Here is exactly where your information goes. |
+| Glance 1 (`lock`) | 不用账号 | No account |
+| Glance 2 (`check`) | 没有广告，不追踪 | No ads, no tracking |
+| Glance 3 (`home`) | 你的资料多数只在这部手机里 | Most of your information stays on this phone |
+| h2 1 | 留在这部手机里 | Stays on this phone |
+| • | 你的称呼、家、常去的地方、最近去过的地方、家人的名字和电话、设置，还有正在走的行程。 | Your name, Home, your places, recent places, family names and numbers, your settings and the trip you are on. |
+| • | 为了没有网络也能用，手机还会暂存看过的地图和最近的搜索结果。 | So it works without internet, the phone also keeps map pictures you have seen and recent search results. |
+| • | 我们看不到这些。 | We cannot see any of this. |
+| h2 2 | 发到我们的服务器 | Sent to our server |
+| • | **找路和搜索：**你打的字、起点和终点，用来向 OneMap 和陆路交通管理局查询。我们不记下是谁问的。同样的问题会暂存最多 1 天，让下次更快，然后自动删掉。 | **Searches and routes:** what you type, and the start and end, so we can ask OneMap and the Land Transport Authority. We don't record who asked. The same question is kept for up to 1 day to answer faster next time, then deleted by itself. |
+| • | **分享行程：**只在你分享时，发出你的位置、下一步、目的地的名字和家人怎么称呼你（还有你的电话，如果你同意）。分享最长 4 小时；到达后 30 分钟自动结束。结束时，位置和电话马上删掉，其余的最晚 4 小时内删掉。 | **Sharing a trip:** only while you share, we send your position, your next step, the name of where you're going and what family call you (and your phone number, if you allow it). A share lasts at most 4 hours and ends by itself 30 minutes after you arrive. When it ends, your position and number are deleted at once, and the rest within 4 hours. |
+| • | **家人帮你设置：**家人填好的内容，先在他们的手机上锁好（加密）。我们只保管这个打不开的包，最多 24 小时；你打开一次，就删掉。 | **Family setup:** what your family fill in is locked (encrypted) on their phone first. We only hold the locked box, for at most 24 hours, and delete it once you open it. |
+| • | **匿名错误统计（可以关）：**只有"哪一种问题、在哪个画面、几次"。没有位置、地址、搜索内容，也没有能认出你的东西。保留 90 天。可以在设置里关掉。 | **Anonymous error counts (you can turn this off):** only which kind of problem, on which screen, and how many times. No location, addresses, searches or anything that could identify you. Kept for 90 days. You can turn it off in Settings. |
+| • | 我们的服务器记录里没有你的位置、地址、搜索内容或网络地址（IP）。网络地址只用来防止有人滥用，不会保存。 | Our server logs never contain your location, addresses, searches or internet address (IP). The IP is used only for a moment to stop misuse, and is not kept. |
+| h2 3 | 还有谁会参与 | Who else is involved |
+| • | **OneMap（新加坡土地管理局）：**地图和地址。你的手机直接向 OneMap 下载地图图片。 | **OneMap (Singapore Land Authority):** maps and addresses. Your phone downloads the map pictures straight from OneMap. |
+| • | **LTA DataMall（陆路交通管理局）：**巴士和地铁资料，经过我们的服务器去问。 | **LTA DataMall (Land Transport Authority):** bus and train information, asked through our server. |
+| • | **Cloudflare：**帮我们运行网站和服务器。 | **Cloudflare:** runs our website and server. |
+| • | **WhatsApp、短信、电话、Grab、CDG Zig：**只有你按了才会打开。打开以后，由它们自己的隐私规定负责。 | **WhatsApp, SMS, phone calls, Grab, CDG Zig:** they open only when you tap them. After that, their own privacy rules apply. |
+| h2 4 | 我们不做的事 | What we never do |
+| • | 没有广告，不追踪你，没有账号，不卖你的资料，不用 cookie。 | No ads, no tracking, no accounts, no selling your data, no cookies. |
+| h2 5 | 删除所有资料 | Deleting everything |
+| • | 在设置里按 **清除所有资料**：这部手机上的资料全部删掉，包括暂存的地图和搜索。如果正在分享，会先停止分享。 | In Settings, tap **Delete all my data**: everything on this phone is removed, including saved maps and searches. If you are sharing a trip, sharing stops first. |
+| • | 再把 怎么去? 从主屏幕删掉，就全部完成了。 | Then remove 怎么去? from your home screen, and you're done. |
+| Family line (`caption`, under h2 5) | 家人打开行程链接时，不用安装，也不用账号；我们不记录是谁在看。 | When family open a trip link, they need no app and no account, and we don't record who is watching. |
+| Contact (AC 23; until the owner supplies one) | 有问题？用设置里的 **报告问题**。 | Questions? Use **Report a problem** in Settings. |
+| Footer (`caption`) | 说明版本 {n} · {date}（怎么去? {v}） | Notice version {n} · {date} (怎么去? {v}) |
+
+- `{n}`/`{date}` come from one constant (`PRIVACY_NOTICE = { n: 1, date: '2026-11-xx' }`) bumped only when the text changes; `{date}` in words (2026年11月20日 / 20 Nov 2026); `{v}` = app version.
+- **Report a problem** in the contact line is a link: in the app it opens the F6 Report sheet; from V/W (no app state) it goes to `/settings` → Report. When the owner supplies a contact, it **replaces** the contact line: 有问题？请联系 {contact}。/ Questions? Contact {contact}. (Owner-supplied alias only; the gate's secret scan allow-list.)
+- "Delete all my data" in h2 5 is a link to Settings → the existing delete sheet (P-series `DeleteAllSheet`).
+- **Facts this copy relies on (Developer must make them true before 1.0; QA checks in AC 25):**
+  1. `DeleteAllSheet` also clears **Cache Storage** (`api-v1`, `tiles-v1`, `trip-tiles-v1`, `runtime-v1`; keep the shell) and, if a share or help-only share is live, sends `DELETE /api/share/:id` first. *Today it clears only `localStorage` + `sessionStorage`, so the SW keeps search/route responses and tiles.* Also update its body copy: 家、常去的地方、家人电话、设置和暂存的地图都会从这部手机上删掉。如果正在分享，会先停止。/ Home, your places, family numbers, settings and saved maps are removed from this phone. If you are sharing a trip, sharing stops first.
+  2. The SW API cache honours its TTLs on read **and** deletes expired entries (search/revgeocode 24 h, others ≤ 10 min), so "recent search results" really are recent.
+  3. Worker edge cache TTLs: search 1 day, revgeocode 1 h, route 2 min (`src/worker/src/api.ts` `TTL`). If any rises above 1 day, this page changes.
+  4. Telemetry body is `{v, code, screen, n}` only; Stats keeps 90 days (AC 38–39).
+  If any fact changes, Creative rewrites the line and `{n}` bumps.
+- SR: one `h1`, five `h2`; the glance card is a `<ul>` with `aria-label` 一眼看懂 / At a glance; icons `aria-hidden`. Bold lead-ins are `<strong>`, read inline.
+- 200 %: single column, the glance rows wrap under their disc; no horizontal scroll at 320 px.
+- **Back goes to:** the screen that opened it (Settings, About). Opened directly or from V/W: the top-bar Back is `history.back()` when there is history, otherwise it is replaced by a quiet link **打开 怎么去? / Open 怎么去?** → `/`.
+- Baselines: `M5-L1-top`, `M5-L1-full` (full-page), `M5-L1-contact` (with an owner contact, for later), each light/dark × 100/200 × zh/en.
+
+### 6f.2 L2 About `/about` (reworked, replaces the F6 About block; AC 24)
+Order, top to bottom:
+1. Wordmark (`wordmark` live text + the seal at 72 px), then `body`: **版本 {v}（{buildDate}）/ Version {v} ({buildDate})**, date in words.
+2. **Sample-mode line** (only when `/api/health` says `fixtureMode:true`, i.e. preview or local; never on 1.0 production): a `.tripnote`-style panel, `c-saffron-soft`, `info` icon: **现在是示范路线，不是真的巴士和地铁资料。/ These are sample routes, not real bus and train information.** SR reads it as part of the page (no live region).
+3. **地图和数据 / Maps and data** (`h2`), the attribution block on `c-surface`, `r-l`, padding 18:
+   - OneMap logo (the official asset, ≥ 24 px tall, `alt="OneMap"`) + the line exactly **Map data © contributors, Singapore Land Authority** (English in both languages; AC 24 wording replaces the F6 "Map data © OneMap / Singapore Land Authority").
+   - zh only, `body`: 地图和地址来自 OneMap（新加坡土地管理局）。 / en: Maps and addresses come from OneMap (Singapore Land Authority).
+   - The LTA line, English in both languages, with the Open Data Licence linked (`.inlink`, new tab, as M3): **Contains information from LTA DataMall accessed on {dataDateEn} which is made available under the terms of the Singapore Open Data Licence version 1.0.** `{dataDateEn}` = `DATA_AS_OF` as "17 November 2026".
+   - zh only, `caption`: 交通资料日期：{dataDateZh}（2026年11月17日）. (In en the date is already in the licence line; no second caption.)
+   - Map tiles are OneMap only, so no OpenStreetMap line. If tiles ever change provider, its attribution joins this block.
+4. **你的隐私 / Your privacy** (`h2`): one line 你的资料多数只留在这部手机里。/ Most of your information stays on this phone. → row **隐私说明 / Privacy** (56 px, `lock` icon, chevron) → L1.
+5. Row **报告问题 / Report a problem** (56 px, `report` icon, chevron) → F6 Report sheet.
+- **No open-source licences list or link** (owner preference, F6). AC 24's "`licenses.txt`, linked" is a deviation for the Director: recommend the build may still emit `licenses.txt` at the site root for compliance, unlinked from the UI.
+- No privacy contact line here; L1 carries it when it exists.
+- SR: `h1` 关于 / About; the version line reads "版本 1.0.0，2026年11月20日". The OneMap logo `alt` + the line read as one sentence.
+- **Back goes to:** Settings. Baselines: `M5-L2-live`, `M5-L2-sample`.
+- Settings row label changes from 关于和隐私 / About & privacy to **关于 / About** (privacy has its own row, L7).
+
+### 6f.3 L3 Update bar and What's new (AC 17, 21; supersedes F7)
+**Update bar** (`.updbar`, the §5.7 info banner: `c-surface`, 8 px `c-jade` left rule, `r-m`, `e-2`, `refresh` icon). Shown on **H1 (under the top bar, above the greeting)** and **Settings (top of the list)** when a new SW is waiting and no trip is active.
+| State | Visible | SR / behaviour |
+|---|---|---|
+| `waiting` | **有新版本 · 点这里更新** / **New version · tap to update**; ✕ on the right (56 px) | Whole bar minus ✕ is one button, name "有新版本，按一下更新" / "New version ready. Tap to update". ✕ name 以后再说 / Later. Announced once, polite, when it appears. |
+| `updating` | refresh icon turns (1.2 s linear loop; reduce motion: static) + **正在更新…** / **Updating…**; ✕ hidden | `aria-busy="true"`, button `aria-disabled`. Page reloads once when the new SW takes control. |
+| `slow` (no control after 10 s) | **这次没更新好，下次打开时会自动更新。** / **It didn't update this time. It will update next time you open the app.** ✕ visible | Polite announce. No retry loop. |
+- ✕ hides the bar until the next launch; the update still applies on the next cold start (as F7).
+- During a trip: the waiting state is remembered; the bar appears on H1 after the trip ends, never mid-trip, never reloading.
+- After the reload: toast `updated` (F5), **except** the first launch on 1.0.0, which shows What's new instead (no toast on top of a sheet).
+- 200 %: text wraps to 2–3 lines beside the icon; ✕ stays top-right; bar min-height 56.
+- Baselines: `M5-L3-bar-home`, `M5-L3-bar-settings`, `M5-L3-updating`, `M5-L3-slow`.
+
+**What's new sheet** (`role=dialog`, §5 sheet, once per device after updating to 1.0.0; never during a trip; flag `whatsnew.v1`):
+- Title: **怎么去? 1.0 来了** / **怎么去? 1.0 is here**
+- Three rows (`body`, 48 px `c-surface-2` icon disc each, `<ul>`):
+  1. `bus` — 现在用的是真的巴士和地铁资料。/ Bus and train times are now real.
+  2. `leaf` — 电量低时会自动省电，下车提醒照样准时。/ When your battery is low, it saves power by itself. Get-off alerts still come on time.
+  3. `wifi-off` — 没有网络也能打开，你的家和家人电话都还在。/ It opens without internet. Your Home and family numbers are still there.
+- One button: **知道了 / Got it** (primary 72). No second action (one action per moment); privacy is announced through Settings, not here.
+- Focus moves to the title on open, back to H1's search button on close. Back = Got it.
+- **Back goes to:** H1 (or Settings if it opened there). Baseline: `M5-L3-whatsnew`.
+
+### 6f.4 L4 "Add to Home Screen" helper (AC 26–29)
+One **install card** on H1, after the second completed search or route view, never on first run, never during a trip, never when standalone / `navigator.standalone` / `capabilities.native`, never in battery saver during a trip. Placement: **under the place tiles, above Recent** (it never pushes the search button off the first screen). Card = §5 card (`c-surface`, `r-l`, `e-1`, padding 18): 60 px `c-primary-soft` tile with `install` → title (`headline`) → body → buttons.
+
+Title and body are the F6 install-sheet copy (one voice everywhere; AC 26's "放到桌面" is replaced by the established 主屏幕, which is also the word iOS and Android show):
+- Title **把 怎么去? 放到主屏幕** / **Put 怎么去? on your home screen**
+- Body **以后一按图标就能打开，像普通应用一样。** / **Then one tap on the icon opens it, like any other app.**
+
+**L4a Android** (Chrome, Edge, Samsung Internet with a captured `beforeinstallprompt`):
+- **放到主屏幕 / Add to home screen** (primary 72, `install`) → native prompt. Accepted → card gone, toast `installed`. Prompt dismissed → counts as a dismissal.
+- **以后再说 / Not now** (quiet 56). Hidden 14 days. On the second showing, a `caption` under the buttons: 以后也可以在设置里安装。/ You can also do this later in Settings. Second dismissal → never again (Settings keeps its Install row).
+- Android without a captured prompt (e.g. Firefox): the button reads **看看怎么做 / Show me how** → F6 install sheet (Android steps).
+
+**L4b iOS Safari** (and iOS Chrome / Edge ≥ 16.4):
+- Button **看看怎么做 / Show me how** (primary 72) → **picture guide sheet**:
+  - Title **放到主屏幕，三步就好** / **Three steps to your home screen**
+  - `<ol>`, each step = 32 px `c-primary-soft` number disc + `body` text + one drawn picture (inline SVG from `creative/m5/install/`, max-width 280, `r-m`, on `c-surface-2`; `aria-hidden`, the text carries the meaning):
+    1. 按分享按钮（一个方框，上面有箭头）。/ Tap the Share button (a square with an arrow pointing up). — `ios-step1-safari.svg` (Chrome: `ios-step1-chrome.svg`). Under it, `caption`: 看不到？先按右下角的"⋯"。/ Can't see it? First tap "⋯" at the bottom right. (Chrome: 分享按钮在网址栏的右边。/ The Share button is at the right of the address bar.) (Edge: 先按下面中间的"⋯"，再按"分享"。/ First tap "⋯" at the bottom middle, then "Share". ⚠ verify on a device.)
+    2. 往下滑，按"添加到主屏幕"。/ Scroll down and tap "Add to Home Screen". — `ios-step2-{zh|en}.svg`
+    3. 按右上角的"添加"。/ Tap "Add" at the top right. — `ios-step3-{zh|en}.svg`
+  - **好了，我知道了 / OK, got it** (primary 72) closes the sheet and counts as "shown", not as a dismissal. `appinstalled` never fires on iOS: the card hides for good once the app is opened standalone.
+  - The pictures use classes `ig-*` and read `--c-*` tokens with light fallbacks, so they **must be inlined** (not `<img>`) to follow dark mode. The saffron ring marks "tap here"; the seal in step 3 keeps its brand colours in both themes (§0).
+- Card's quiet **以后再说 / Not now** behaves as L4a.
+
+**L4c Other iOS browsers and iOS < 16.4** ("Open in Safari"):
+- Body replaced by **在 iPhone 上，要用 Safari 才能放到主屏幕。** / **On iPhone, only Safari can put it on your home screen.**
+- **复制链接 / Copy link** (primary 72, `copy`) → copies the site root (never the current URL with its query) → toast: **已经复制了。打开 Safari，在网址栏按住，选"粘贴并前往"。** / **Copied. Open Safari, press and hold the address bar, then choose "Paste and Go".**
+- Steps (`<ol>`, `body`): 1. 按"复制链接"。/ Tap "Copy link". 2. 打开 Safari（蓝色指南针图标）。/ Open Safari (the blue compass icon). 3. 在网址栏按住，选"粘贴并前往"。/ Press and hold the address bar and choose "Paste and Go".
+- Quiet **以后再说 / Not now**.
+
+**L4d In-app browser bar** (WhatsApp, Facebook, Instagram, Telegram, WeChat, Line by UA token; never on `/t/:id` or `/setup`; never during a trip):
+- A slim **non-sticky** band at the very top of H1 (`c-surface-2`, full bleed, min-height 64, `s-5` gutters, `open-browser` icon + `label` text + one button). `role=region`, name 打开方式 / How to open.
+- Text **在浏览器里打开会更好用** / **Works best in your browser**.
+- **Android:** button **用 Chrome 打开 / Open in Chrome** (secondary 56) → `intent://{host}/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url={encoded root};end`. If the page is still visible after 1.5 s, the button changes to **复制链接 / Copy link** with toast `copied`-style text: 已经复制了。打开 Chrome，贴到网址栏。/ Copied. Open Chrome and paste it into the address bar.
+- **iOS:** button **怎么打开？/ How?** (secondary 56) → small sheet: title 用 Safari 打开 / Open in Safari · line 1 按右上角或右下角的"⋯"，选"在浏览器中打开"。/ Tap "⋯" at the top or bottom right and choose "Open in browser". · line 2 没有这个选项？/ No such option? → the L4c copy-link steps and button.
+- ✕ (56, 以后再说 / Later) hides it for the session.
+- 200 %: text on its own line, button below it, left-aligned; ✕ top-right.
+- Hook lines `install:shown|accepted|dismissed` only (no UA).
+- **Back goes to:** sheets close to H1. Baselines: `M5-L4a-card`, `M5-L4a-card-second`, `M5-L4b-card`, `M5-L4b-guide`, `M5-L4b-guide-chrome`, `M5-L4c-safari`, `M5-L4d-android`, `M5-L4d-ios`, `M5-L4d-ios-sheet`.
+
+### 6f.5 L5 Battery saver (AC 8–9)
+**Settings row** in group 出行 / Travel (after 少走楼梯，用电梯): icon `leaf`, label **省电模式 / Battery saver**, value in `c-ink-2`: 自动 / Auto · 自动（现在开着）/ Auto (on now) · 开 / On · 关 / Off. Tap → sheet.
+
+**Sheet** (`role=dialog`), title **省电模式 / Battery saver**, a stacked `.seg` radiogroup (§5.0 sheet rule), each option 56 px+ with a sub-line:
+| Option | zh | en |
+|---|---|---|
+| 自动 Auto (default) | **自动** · 电量剩 20% 或更少、又没在充电时，自动打开。 | **Auto** · Turns on when the battery is at 20% or less and isn't charging. |
+| 开 On | **开** · 一直省电。 | **On** · Always save battery. |
+| 关 Off | **关** · 不省电。 | **Off** · Don't save battery. |
+- Note under the options (`caption`, `leaf` icon): **省电时，地图动得少一些，家人看到你位置的次数也少一些。下车提醒、帮忙和到达消息不会受影响。** / **While saving battery, the map moves less and family see your position less often. Get-off alerts, Help and arrival messages are never affected.**
+- **Not supported** (no Battery Status API: iOS, Firefox): the Auto sub-line becomes **这部手机不能告诉我电量，所以"自动"不会打开省电。需要时请选"开"。** / **This phone can't tell me its battery level, so Auto won't turn it on. Choose On if you need it.** The Settings row value reads 自动（这部手机不支持）/ Auto (not on this phone). Auto stays selectable (it behaves as Off), so a later browser update just works.
+- Changes apply at once, also mid-trip.
+
+**H5 leaf chip:** when battery saver is active during a trip, the step card's meta row gets a chip at its right end: `c-surface-2`, `r-s`, `leaf` 18 px + **省电模式 / Battery saver** (`label`). Not a button (no chevron, not focusable); it sits in the card, never on the map (6c.0). At 200 % it wraps onto its own line under the step counter. Pocket view (G1): one `caption` line under the main line, `c-ink-2` on black (`#CFC3B5`, 10.9:1): 省电模式 / Battery saver.
+- When Auto turns it on mid-trip: chip fades in (280 ms; reduce motion: appears), and one polite announcement: **电量低了，已经打开省电模式。下车提醒照样会响。** / **Battery is low, so battery saver is on. Get-off alerts will still sound.** No voice line, no toast, no haptic (never compete with trip guidance). Turning off (charging) removes the chip silently.
+- SR: the chip is plain text inside the meta row ("第 3 步，共 5 步，省电模式").
+- **Back goes to:** sheet → Settings. Baselines: `M5-L5-row`, `M5-L5-sheet`, `M5-L5-sheet-unsupported`, `M5-L5-h5-chip`, `M5-L5-g1`.
+
+### 6f.6 L6 Offline cold start (AC 20)
+App opened with no network (shell from the SW). H1 renders as usual with the existing offline note (F5 `offline` persistent note on H1). Then:
+- **Nothing spins.** Any control that needs the network keeps its label and adds a second line `caption` in `c-ink-2` with `wifi-off` 16 px: **需要网络 / Needs internet**. Controls: the search button (去哪里？), place tiles (sub-line replaced), the 回家 / Take me home dock, Recent rows, H3 options.
+- Those controls stay enabled and focusable (no greyed-out text below AAA). Tap → no navigation, haptic `tick`, polite announcement **需要网络。连上网络以后再按。** / **Needs internet. Tap again once you're online.** The search button is the exception: it opens H2, where F4 `offline` shows and the Recent list stays readable.
+- On `online`: the second lines disappear, toast `online` (F5). No auto-navigation.
+- Still fully working: My places and family contacts (view/edit), Settings, Privacy (L1 is precached), About, Help: **call family** (`tel:`), **Show the driver** (Home tab; 我在哪里 tab shows the last known address with `caption` 这是 {time} 的位置。/ This was where you were at {time}., or, if none, 现在找不到地址。可以给司机看你家的地址。/ No address right now. You can show the driver your home address.), **995**. 帮我重新找路 is hidden (no trip). 我在哪里？ row sub: 需要网络 / Needs internet when there is no last known address.
+- SR: the second line is part of the control's name ("回家，需要网络" / "Take me home, needs internet").
+- 200 %: the second line wraps under the label; tiles grow taller; no clipping.
+- An in-flight request that loses the network resolves to the F3/F4 `offline` panel, never an endless spinner.
+- **Back goes to:** unchanged. Baselines: `M5-L6-home-offline`, `M5-L6-help-offline`, `M5-L6-driver-offline`.
+
+### 6f.7 L7 Settings in M5: privacy group, error counts (AC 40) and row order
+Settings groups (F6 + 6e.7, final order for 1.0):
+1. Update bar (L3) if waiting.
+2. **我 / Me** — 称呼 · 家 · 常去的地方 · 家人.
+3. **看和听 / Display** — 语言 · 字体大小 · 颜色 · 减少动画 · 语音提示 · 震动提示.
+4. **出行 / Travel** — 先给我看 · 轮椅 · 乐龄卡 · 少走楼梯，用电梯 · **省电模式 / Battery saver** (L5).
+5. **隐私 / Privacy** — 我的电话号码 · 分享时让家人打给我 · **发送匿名错误统计** (below) · **隐私说明 / Privacy** (→ L1) · 清除所有资料 / Delete all my data · 记录：清除最近去过的地方.
+6. **这个应用 / This app** — 安装到主屏幕 (hidden when standalone) · 让家人帮我设置 · 报告问题 · **关于 / About** (L2). Under the groups: `caption` 版本 {v} / Version {v}.
+
+**Error-counts row** (switch row, as 6c switch rows: label left, switch right, sub-line under, whole row is the switch, 56 px+):
+- Label **发送匿名错误统计 / Send anonymous error counts** · default **On** (Director ruling).
+- Sub-line (on and off alike): **只发"哪种问题、几次"，帮我们修好它。不含位置、地址或搜索内容。** / **Only sends which kind of problem and how often, so we can fix it. No location, addresses or searches.** + inline link **详细 / Details** (→ L1, h2 2). The link is a separate 56 px target below the sub-line at 200 %.
+- SR: `role=switch`, name = label, `aria-describedby` = sub-line; state "开 / on", "关 / off".
+- Off = nothing is sent from that moment (queued counts are dropped). No confirmation sheet either way (it is not destructive).
+- Baselines: `M5-L7-settings` (full page), `M5-L7-errors-off`.
+
+### 6f.8 L8 Family viewer and setup page links (entry-point parity)
+- **V (`/t/:id`) footer:** after the existing 30 min / 4 h line, a `.inlink` **隐私说明 / Privacy** → `/privacy?lang={viewer lang}` (same tab). V sends no error counts and shows no install card, update bar or in-app bar.
+- **W (`/setup`)**: under the lock line, **隐私说明 / Privacy** link, same rule.
+- Baselines: `M4-V-active-…` re-recorded with the link; `M5-L8-setup-link`.
+
+### 6f.9 L9 Field-test kit: feedback form and consent line (AC 41)
+**Feedback form:** `creative/m5/field-test/feedback-form.html` (source) and `feedback-form.pdf` (A4, printed both sides of **one sheet**: page 1 = 7 smiley questions, page 2 = 3 open questions). Black ink only, so a mono printer works; question text 16.5 pt zh / 12.5 pt en; 3-face scale (not 5: easier to choose, and the labels say what each face means); a P-number, never a name. PM copies it into `docs/field-test/` (PM-owned) and keeps the plain-text list below beside it.
+
+Plain-text list (same questions):
+1. 字够大、看得清楚吗？/ Was the writing big and clear enough? — 不好 · 还可以 · 很好 / Not good · OK · Good
+2. 找到要去的地方，容易吗？/ Was it easy to find the place you wanted? — 不容易 · 还可以 · 很容易
+3. 一步一步的提示，清楚吗？/ Were the step-by-step directions clear? — 不清楚 · 还可以 · 很清楚
+4. 下车提醒，来得及吗？/ Did the get-off reminder come in time? — 来不及 · 差一点 · 来得及; and tick: 听到声音 / Heard it · 感到震动 / Felt it · 看到画面 / Saw it · 没注意到 / Didn't notice
+5. 语音说得清楚吗？/ Was the voice clear?
+6. 用的时候，你觉得安心吗？/ Did you feel at ease using it?
+7. 你还会再用它吗？/ Would you use it again? — 不会 · 可能 · 会
+8. 哪里最好用？/ What worked best? (open)
+9. 哪里让你不明白，或者不放心？/ What was confusing or worrying? (open)
+10. 你最希望它还能帮你做什么？/ What one thing would you most like it to help with? (open)
+
+**Consent line** (the owner reads it aloud before anything else, then ticks 已同意（口头）/ Agreed (spoken) on the form):
+> 我在试一个帮老人家坐巴士和地铁的手机应用，叫"怎么去?"。今天想请你用一用，然后告诉我哪里好、哪里不好。如果有什么不好用，那是应用的问题，不是你的问题。我不会录音、录像，也不会拍你的脸，也不写你的名字。试的时候，你的位置只会分享到我这部手机，试完就停。你随时可以停下来，不用说原因。可以开始吗？
+
+> I'm testing a phone app called 怎么去? that helps older people get around by bus and train. I'd like you to try it today and then tell me what works and what doesn't. If something is hard to use, that's the app's fault, not yours. I won't record sound or video, take photos of your face, or write down your name. During the test your location is shared only with my phone, and that stops when we finish. You can stop at any time without giving a reason. Is it okay to start?
+
+Checked: 390 px screen (no horizontal scroll) and A4 print (2 pages, no row split, no text/face overlap) by `creative/m5/build-preview.js --shots` → `creative/m5/shots/feedback-form-390.png`, `feedback-form-a4-print.png`.
+
+### 6f.10 New items needing Director approval (M5)
+- **Icons** (`creative/m5/icons.svg`, same grid and stroke as §1.4): `leaf` (battery saver), `add-square` (only to mirror iOS "Add to Home Screen" in instructions, like `ios-share`), `open-browser` (in-app-browser bar).
+- **Drawn pictures:** `creative/m5/install/ios-step1-safari.svg`, `ios-step1-chrome.svg`, `ios-step2-{zh,en}.svg`, `ios-step3-{zh,en}.svg` (inline only; classes `ig-*`).
+- **Components:** `.updbar` states (L3), install card (L4), in-app-browser band (L4d), leaf chip (L5). All built from existing tokens.
+- **Copy deviations from the PM's ACs:** AC 24 licences link dropped (owner preference; `licenses.txt` may exist unlinked); AC 24 OneMap line uses the AC wording, which replaces F6's; AC 26 放到桌面 → 放到主屏幕 (consistency with F6 and the OS wording).
+- **Build asks (Developer):** Delete all clears Cache Storage and stops a live share first (L1 fact 1); SW API cache prunes expired entries (fact 2); `PRIVACY_NOTICE` constant; `/privacy` precached.
+- **No new tokens.**
+
 ## 7. Parity checklist (prototype ↔ build)
 - [ ] Tokens identical: colour, type, space, radii, motion, haptics.
 - [ ] Back stack per frame, as above, including the D8 end-trip guard.
@@ -1109,3 +1333,15 @@ No new haptic names (6c.13 stays the canonical six).
 - [ ] M3: every live-data state readable with colour removed (arrival chip, load tags, disruption banner); no guessed exit, fare or station name (6d).
 - [ ] M4: share copy never claims the family has seen it; viewer OG tags carry no name or place; `c-danger` fill only on the 995 confirm (6e).
 - [ ] Viewer `/t/:id`: all 15 states at 390 and 1440, light/dark, zh/en; 200% at 390 without horizontal scroll.
+- [ ] M5: nothing from 6f (update bar, What's new, install card, in-app bar) renders during a trip; the leaf chip never changes alert timing.
+- [ ] M5: `/privacy` text matches the code facts in 6f.1 (Delete all clears caches and stops a share; TTLs; telemetry fields); no contact line until the owner supplies one; no licences link anywhere.
+- [ ] M5: offline cold start has no spinner; every network-only control says 需要网络 / Needs internet.
+
+## Change log
+| Version | Date | Change |
+|---|---|---|
+| v1.4 | 2026-11-18 | 6f M5 hardening and launch: L1 Privacy page, L2 About rework, L3 update bar + What's new (supersedes F7), L4 install helper (Android card, iOS picture guide, Open in Safari, in-app-browser bar), L5 battery saver, L6 offline cold start, L7 Settings order + error counts, L8 V/W privacy links, L9 field-test form + consent line. Icons `leaf`, `add-square`, `open-browser`; drawn iOS guide pictures in `creative/m5/`. |
+| v1.3 | 2026-11-17 | 6d M3 transit smarts, 6e M4 share and safety; m34 fix-round entries. |
+| v1.2 | 2026-11-17 | 6c M2 guided-trip frames. |
+| v1.1 | 2026-11-17 | Logo B master, 6b M1 states. |
+| v1.0 | 2026-11-17 | Tokens, components, frames H1–H13. |

@@ -1,0 +1,187 @@
+<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>M5 frames sketch</title><style>
+:root{--c-canvas:#FBF5EC;--c-surface:#FFFFFF;--c-surface-2:#F3EADC;--c-line:#D9CBB6;--c-ink:#1D1915;--c-ink-2:#4A4038;--c-primary:#9A3412;--c-on-primary:#FFFFFF;--c-primary-soft:#FBE3D3;--c-on-primary-soft:#6E2409;--c-jade:#0E5B49;--c-saffron-soft:#FFF1C2;--ts:1}
+:root[data-theme=dark]{--c-canvas:#14110E;--c-surface:#1F1A16;--c-surface-2:#2A231D;--c-line:#43392F;--c-ink:#F6EEE4;--c-ink-2:#CFC3B5;--c-primary:#FF9466;--c-on-primary:#1D1915;--c-primary-soft:#4A2414;--c-on-primary-soft:#FFD9C6;--c-jade:#5FD3B0;--c-saffron-soft:#3D3212}
+html{font-size:calc(20px*var(--ts))}
+body{margin:0;background:var(--c-canvas);color:var(--c-ink);font-family:"Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;line-height:1.45}
+.phone{max-width:390px;margin:0 auto;padding:0 20px 40px;display:flex;flex-direction:column;gap:16px;word-break:keep-all;overflow-wrap:anywhere}
+.ic{width:1.4em;height:1.4em;flex:none}
+.btn{min-height:56px;border-radius:28px;font-weight:700;font-size:1.15rem;line-height:1.2;padding:12px 20px;border:2px solid var(--c-line);background:var(--c-surface);color:var(--c-ink);width:100%}
+.btn.primary{min-height:72px;background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-primary)}
+.btn.quiet{border-color:transparent;background:none;color:var(--c-ink-2)}
+.btn.sm{width:auto;font-size:.9rem;min-height:56px}
+.iab{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--c-surface-2);margin:0 -20px;padding:4px 20px;min-height:64px;font-weight:700;font-size:.9rem;line-height:1.3}
+.iab span{flex:1 1 8em}
+.upd{display:flex;align-items:center;gap:12px;min-height:56px;width:100%;text-align:left;background:var(--c-surface);color:var(--c-ink);border:0;border-left:8px solid var(--c-jade);border-radius:20px;padding:12px 16px;font-weight:700;font-size:1rem;line-height:1.3;box-shadow:0 2px 6px rgba(80,50,20,.12)}
+.card,.sheet,.stepcard{background:var(--c-surface);border-radius:28px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 2px 6px rgba(80,50,20,.12)}
+.sheet{border-radius:36px 36px 0 0}
+.card h3,.sheet h2{margin:0;font-size:1.2rem;line-height:1.3}
+.card p{margin:0}
+.tilei{width:60px;height:60px;border-radius:20px;background:var(--c-primary-soft);color:var(--c-on-primary-soft);display:grid;place-items:center}
+.tilei .ic{width:34px;height:34px}
+ol.guide{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:20px}
+ol.guide li{display:grid;grid-template-columns:auto 1fr;gap:12px}
+ol.guide p{margin:0 0 8px}
+.num{width:32px;height:32px;border-radius:50%;background:var(--c-primary-soft);color:var(--c-on-primary-soft);display:grid;place-items:center;font-weight:700}
+.sheet svg[viewBox="0 0 280 180"]{display:block;width:100%;max-width:280px;height:auto;border-radius:20px;background:var(--c-surface-2)}
+.cap{font-size:.85rem;color:var(--c-ink-2);margin:0}
+.metarow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:.9rem;line-height:1.3;color:var(--c-ink-2)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--c-surface-2);color:var(--c-ink);border-radius:12px;padding:4px 10px}
+.chip .ic{width:1.1em;height:1.1em}
+.step{margin:0;font-weight:700;font-size:1.45rem;line-height:1.2}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:56px;padding:8px 16px;border:2px solid var(--c-line);border-radius:20px}
+.opt.sel{border:3px solid var(--c-primary)}
+.opt div{display:flex;flex-direction:column}.opt span{font-size:.85rem;color:var(--c-ink-2)}
+.note{display:flex;gap:8px;margin:0;font-size:.85rem;color:var(--c-ink-2)}
+.icons{display:flex;gap:24px}.icons span{display:flex;flex-direction:column;align-items:center;gap:4px}.icons .ic{width:48px;height:48px}.icons small{font-size:.7rem}
+</style></head><body><svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!-- M5 icons (STYLE-GUIDE 6f.10). Same rules as §1.4: 24 grid, 2.2 stroke, round caps/joins, currentColor, no fill. -->
+  <!-- leaf: battery saver (H5 chip, Settings row). A plain leaf with one vein, tip to the upper right. -->
+  <symbol id="i-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 4.5C10.5 4.5 5 9 5 15.2c0 1.5.3 2.8.9 3.9 1.1.6 2.4.9 3.9.9C16 20 19.5 14.5 19.5 4.5z"/><path d="M4 20l8.5-8.5"/></symbol>
+  <!-- add-square: mirrors iOS "Add to Home Screen" in the 3-step guide only (like ios-share in 6b). -->
+  <symbol id="i-add-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
+  <!-- open-browser: in-app-browser bar ("open in your browser"). A window with an arrow leaving it. -->
+  <symbol id="i-open-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-5"/><path d="M14 4.5h5.5V10M19.5 4.5L11 13"/></symbol>
+</svg>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/></symbol>
+<symbol id="i-install" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10M8 10l4 4 4-4M5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+</svg><section class="phone" lang="zh-Hans">
+  <div class="iab" role="region" aria-label="在浏览器里打开会更好用"><svg class="ic" aria-hidden="true"><use href="#i-open-browser"/></svg><span>在浏览器里打开会更好用</span><button class="btn sm">用 Chrome 打开</button></div>
+  <button class="upd"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg><span>有新版本 · 点这里更新</span></button>
+  <article class="card">
+    <div class="tilei"><svg class="ic" aria-hidden="true"><use href="#i-install"/></svg></div>
+    <h3>把 怎么去? 放到主屏幕</h3><p>以后一按图标就能打开，像普通应用一样。</p>
+    <button class="btn primary">放到主屏幕</button><button class="btn quiet">以后再说</button>
+  </article>
+  <div class="sheet" role="dialog" aria-label="放到主屏幕，三步就好">
+    <h2>放到主屏幕，三步就好</h2>
+    <ol class="guide">
+      <li><span class="num">1</span><div><p>按分享按钮（一个方框，上面有箭头）。</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-frame" x="40" y="-30" width="200" height="198" rx="30"/>
+<rect class="ig-bar" x="62" y="14" width="120" height="8" rx="4"/><rect class="ig-bar" x="62" y="30" width="150" height="8" rx="4"/><rect class="ig-bar" x="62" y="46" width="96" height="8" rx="4"/>
+<rect class="ig-quiet" x="58" y="84" width="164" height="28" rx="14"/><rect class="ig-bar" x="104" y="94" width="72" height="8" rx="4"/>
+<path class="ig-glyph" d="M76 130l-8 8 8 8M102 130l8 8-8 8"/>
+<circle class="ig-hi" cx="140" cy="138" r="21"/>
+<path class="ig-hi-glyph" d="M136 138h-4v14h16v-14h-4M140 128v14M135 133l5-5 5 5"/>
+<path class="ig-glyph" d="M173 131c3-1.5 6-1.5 9 0 3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0-3-1.5-6-1.5-9 0zM182 131v14"/>
+<rect class="ig-glyph" x="207" y="133" width="12" height="12" rx="2"/><path class="ig-glyph" d="M211 129h10a2 2 0 0 1 2 2v10"/>
+</svg>
+<p class="cap">看不到？先按右下角的“⋯”。</p></div></li>
+      <li><span class="num">2</span><div><p>往下滑，按“添加到主屏幕”。</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-surf" x="26" y="8" width="228" height="190" rx="20"/>
+<rect class="ig-quiet" x="44" y="24" width="36" height="36" rx="10"/><rect class="ig-quiet" x="92" y="24" width="36" height="36" rx="10"/><rect class="ig-quiet" x="140" y="24" width="36" height="36" rx="10"/><rect class="ig-quiet" x="188" y="24" width="36" height="36" rx="10"/>
+<rect class="ig-quiet" x="40" y="74" width="200" height="30" rx="9"/><rect class="ig-bar" x="52" y="85" width="70" height="8" rx="4"/><rect class="ig-bar" x="216" y="82" width="14" height="14" rx="3"/>
+<rect class="ig-hi" x="38" y="112" width="204" height="36" rx="10"/>
+<text class="ig-text" x="52" y="136">添加到主屏幕</text>
+<rect class="ig-hi-glyph" x="211" y="121" width="18" height="18" rx="4"/><path class="ig-hi-glyph" d="M220 125.5v9M215.5 130h9"/>
+<rect class="ig-quiet" x="40" y="156" width="200" height="30" rx="9"/><rect class="ig-bar" x="52" y="167" width="92" height="8" rx="4"/><rect class="ig-bar" x="216" y="164" width="14" height="14" rx="3"/>
+</svg>
+</div></li>
+      <li><span class="num">3</span><div><p>按右上角的“添加”。</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-surf" x="26" y="8" width="228" height="190" rx="20"/>
+<rect class="ig-bar" x="42" y="28" width="40" height="8" rx="4"/><rect class="ig-bar" x="112" y="28" width="56" height="8" rx="4"/>
+<rect class="ig-hi" x="186" y="14" width="56" height="36" rx="18"/>
+<text class="ig-text" x="199" y="38">添加</text>
+<path d="M26 60h228" stroke="var(--c-line,#D9CBB6)" stroke-width="2"/>
+<rect x="44" y="76" width="56" height="56" rx="13" fill="#9A3412"/>
+<text x="72" y="114" text-anchor="middle" fill="#FBF5EC" style="font:700 30px 'PingFang SC','Noto Sans CJK SC','Noto Sans SC','Microsoft YaHei',sans-serif">去</text>
+<circle cx="90" cy="121" r="5" fill="#FFD23F"/>
+<text class="ig-text" x="116" y="100">怎么去?</text>
+<path d="M116 110h120" stroke="var(--c-line,#D9CBB6)" stroke-width="2"/>
+<rect class="ig-bar" x="116" y="120" width="90" height="8" rx="4"/>
+</svg>
+</div></li>
+    </ol>
+    <button class="btn primary">好了，我知道了</button>
+    <p class="cap">iOS Chrome, step 1:</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-frame" x="40" y="12" width="200" height="198" rx="30"/>
+<rect class="ig-quiet" x="56" y="34" width="132" height="30" rx="15"/><rect class="ig-bar" x="72" y="45" width="80" height="8" rx="4"/>
+<circle class="ig-hi" cx="212" cy="49" r="21"/>
+<path class="ig-hi-glyph" d="M208 49h-4v14h16v-14h-4M212 39v14M207 44l5-5 5 5"/>
+<rect class="ig-bar" x="62" y="92" width="120" height="8" rx="4"/><rect class="ig-bar" x="62" y="108" width="150" height="8" rx="4"/><rect class="ig-bar" x="62" y="124" width="96" height="8" rx="4"/><rect class="ig-bar" x="62" y="140" width="136" height="8" rx="4"/>
+</svg>
+
+  </div>
+  <div class="stepcard"><div class="metarow"><span>第 3 步，共 5 步</span><span class="chip"><svg class="ic" aria-hidden="true"><use href="#i-leaf"/></svg>省电模式</span></div><p class="step">坐着就好，还有 4 站</p></div>
+  <div class="sheet"><h2>省电模式</h2>
+    <div class="opt sel"><div><b>自动</b><span>电量剩 20% 或更少、又没在充电时，自动打开。</span></div><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div>
+    <div class="opt"><div><b>开</b><span>一直省电。</span></div></div>
+    <div class="opt"><div><b>关</b><span>不省电。</span></div></div>
+    <p class="note"><svg class="ic" aria-hidden="true"><use href="#i-leaf"/></svg><span>省电时，地图动得少一些，家人看到你位置的次数也少一些。下车提醒、帮忙和到达消息不会受影响。</span></p>
+  </div>
+  <div class="icons"><span><svg class="ic" aria-hidden="true"><use href="#i-leaf"/></svg><small>leaf</small></span><span><svg class="ic" aria-hidden="true"><use href="#i-add-square"/></svg><small>add-square</small></span><span><svg class="ic" aria-hidden="true"><use href="#i-open-browser"/></svg><small>open-browser</small></span></div>
+</section><section class="phone" lang="en">
+  <div class="iab" role="region" aria-label="Works best in your browser"><svg class="ic" aria-hidden="true"><use href="#i-open-browser"/></svg><span>Works best in your browser</span><button class="btn sm">Open in Chrome</button></div>
+  <button class="upd"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg><span>New version · tap to update</span></button>
+  <article class="card">
+    <div class="tilei"><svg class="ic" aria-hidden="true"><use href="#i-install"/></svg></div>
+    <h3>Put 怎么去? on your home screen</h3><p>Then one tap on the icon opens it, like any other app.</p>
+    <button class="btn primary">Add to home screen</button><button class="btn quiet">Not now</button>
+  </article>
+  <div class="sheet" role="dialog" aria-label="Three steps to your home screen">
+    <h2>Three steps to your home screen</h2>
+    <ol class="guide">
+      <li><span class="num">1</span><div><p>Tap the Share button (a square with an arrow pointing up).</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-frame" x="40" y="-30" width="200" height="198" rx="30"/>
+<rect class="ig-bar" x="62" y="14" width="120" height="8" rx="4"/><rect class="ig-bar" x="62" y="30" width="150" height="8" rx="4"/><rect class="ig-bar" x="62" y="46" width="96" height="8" rx="4"/>
+<rect class="ig-quiet" x="58" y="84" width="164" height="28" rx="14"/><rect class="ig-bar" x="104" y="94" width="72" height="8" rx="4"/>
+<path class="ig-glyph" d="M76 130l-8 8 8 8M102 130l8 8-8 8"/>
+<circle class="ig-hi" cx="140" cy="138" r="21"/>
+<path class="ig-hi-glyph" d="M136 138h-4v14h16v-14h-4M140 128v14M135 133l5-5 5 5"/>
+<path class="ig-glyph" d="M173 131c3-1.5 6-1.5 9 0 3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0-3-1.5-6-1.5-9 0zM182 131v14"/>
+<rect class="ig-glyph" x="207" y="133" width="12" height="12" rx="2"/><path class="ig-glyph" d="M211 129h10a2 2 0 0 1 2 2v10"/>
+</svg>
+<p class="cap">Can't see it? First tap “⋯” at the bottom right.</p></div></li>
+      <li><span class="num">2</span><div><p>Scroll down and tap “Add to Home Screen”.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-surf" x="26" y="8" width="228" height="190" rx="20"/>
+<rect class="ig-quiet" x="44" y="24" width="36" height="36" rx="10"/><rect class="ig-quiet" x="92" y="24" width="36" height="36" rx="10"/><rect class="ig-quiet" x="140" y="24" width="36" height="36" rx="10"/><rect class="ig-quiet" x="188" y="24" width="36" height="36" rx="10"/>
+<rect class="ig-quiet" x="40" y="74" width="200" height="30" rx="9"/><rect class="ig-bar" x="52" y="85" width="70" height="8" rx="4"/><rect class="ig-bar" x="216" y="82" width="14" height="14" rx="3"/>
+<rect class="ig-hi" x="38" y="112" width="204" height="36" rx="10"/>
+<text class="ig-text" x="52" y="136">Add to Home Screen</text>
+<rect class="ig-hi-glyph" x="211" y="121" width="18" height="18" rx="4"/><path class="ig-hi-glyph" d="M220 125.5v9M215.5 130h9"/>
+<rect class="ig-quiet" x="40" y="156" width="200" height="30" rx="9"/><rect class="ig-bar" x="52" y="167" width="92" height="8" rx="4"/><rect class="ig-bar" x="216" y="164" width="14" height="14" rx="3"/>
+</svg>
+</div></li>
+      <li><span class="num">3</span><div><p>Tap “Add” at the top right.</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-surf" x="26" y="8" width="228" height="190" rx="20"/>
+<rect class="ig-bar" x="42" y="28" width="40" height="8" rx="4"/><rect class="ig-bar" x="112" y="28" width="56" height="8" rx="4"/>
+<rect class="ig-hi" x="190" y="14" width="52" height="36" rx="18"/>
+<text class="ig-text" x="201" y="38">Add</text>
+<path d="M26 60h228" stroke="var(--c-line,#D9CBB6)" stroke-width="2"/>
+<rect x="44" y="76" width="56" height="56" rx="13" fill="#9A3412"/>
+<text x="72" y="114" text-anchor="middle" fill="#FBF5EC" style="font:700 30px 'PingFang SC','Noto Sans CJK SC','Noto Sans SC','Microsoft YaHei',sans-serif">去</text>
+<circle cx="90" cy="121" r="5" fill="#FFD23F"/>
+<text class="ig-text" x="116" y="100">怎么去?</text>
+<path d="M116 110h120" stroke="var(--c-line,#D9CBB6)" stroke-width="2"/>
+<rect class="ig-bar" x="116" y="120" width="90" height="8" rx="4"/>
+</svg>
+</div></li>
+    </ol>
+    <button class="btn primary">OK, got it</button>
+    <p class="cap">iOS Chrome, step 1:</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" width="280" height="180" aria-hidden="true" focusable="false">
+<style>.ig-frame{fill:var(--c-canvas,#FBF5EC);stroke:var(--c-ink-2,#4A4038);stroke-width:2.5}.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-hi-glyph{fill:none;stroke:var(--c-ink,#1D1915);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}</style>
+<rect class="ig-frame" x="40" y="12" width="200" height="198" rx="30"/>
+<rect class="ig-quiet" x="56" y="34" width="132" height="30" rx="15"/><rect class="ig-bar" x="72" y="45" width="80" height="8" rx="4"/>
+<circle class="ig-hi" cx="212" cy="49" r="21"/>
+<path class="ig-hi-glyph" d="M208 49h-4v14h16v-14h-4M212 39v14M207 44l5-5 5 5"/>
+<rect class="ig-bar" x="62" y="92" width="120" height="8" rx="4"/><rect class="ig-bar" x="62" y="108" width="150" height="8" rx="4"/><rect class="ig-bar" x="62" y="124" width="96" height="8" rx="4"/><rect class="ig-bar" x="62" y="140" width="136" height="8" rx="4"/>
+</svg>
+
+  </div>
+  <div class="stepcard"><div class="metarow"><span>Step 3 of 5</span><span class="chip"><svg class="ic" aria-hidden="true"><use href="#i-leaf"/></svg>Battery saver</span></div><p class="step">Sit back. 4 stops to go</p></div>
+  <div class="sheet"><h2>Battery saver</h2>
+    <div class="opt sel"><div><b>Auto</b><span>Turns on when the battery is at 20% or less and isn't charging.</span></div><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></div>
+    <div class="opt"><div><b>On</b><span>Always save battery.</span></div></div>
+    <div class="opt"><div><b>Off</b><span>Don't save battery.</span></div></div>
+    <p class="note"><svg class="ic" aria-hidden="true"><use href="#i-leaf"/></svg><span>While saving battery, the map moves less and family see your position less often. Get-off alerts, Help and arrival messages are never affected.</span></p>
+  </div>
+  <div class="icons"><span><svg class="ic" aria-hidden="true"><use href="#i-leaf"/></svg><small>leaf</small></span><span><svg class="ic" aria-hidden="true"><use href="#i-add-square"/></svg><small>add-square</small></span><span><svg class="ic" aria-hidden="true"><use href="#i-open-browser"/></svg><small>open-browser</small></span></div>
+</section></body></html>

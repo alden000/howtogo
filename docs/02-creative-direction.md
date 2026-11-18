@@ -1,7 +1,7 @@
 # 怎么去? — Creative direction
 
-**Version:** v1.3 (2026-11-17) · **Owner:** Creative · **Status:** signed off by the owner (D-8); v1.1 applies the owner's choices; v1.2 adds the M2 guided-trip frames (D19–D21); v1.3 adds the M3/M4 frames (D22–D26, pending Director review)
-Companion files: `creative/STYLE-GUIDE.md` (tokens, components, frames H1–H13, 6b M1 states, 6c M2 guided-trip frames, 6d M3 transit smarts, 6e M4 share and safety), `creative/prototype/viewer.html` (family viewer page), `creative/logo/`, `creative/prototype/index.html`.
+**Version:** v1.4 (2026-11-18) · **Owner:** Creative · **Status:** signed off by the owner (D-8); v1.1 applies the owner's choices; v1.2 adds the M2 guided-trip frames (D19–D21); v1.3 adds the M3/M4 frames (D22–D26); v1.4 adds the M5 launch frames (D27–D30, pending Director review)
+Companion files: `creative/STYLE-GUIDE.md` (tokens, components, frames H1–H13, 6b M1 states, 6c M2 guided-trip frames, 6d M3 transit smarts, 6e M4 share and safety, 6f M5 launch), `creative/m5/` (M5 icons, iOS install pictures, field-test form), `creative/prototype/viewer.html` (family viewer page), `creative/logo/`, `creative/prototype/index.html`.
 
 ---
 
@@ -95,14 +95,19 @@ Visual personality: **warm paper, persimmon and saffron.** The palette comes fro
 | D24 | **Station names as on the sign (M3):** zh name + line-code tag + English sign text in zh UI; voice says the zh name only. Circle Line direction is "往 {next interchange} 方向", never clockwise/anticlockwise. | Seniors match the screen against the platform sign, which shows English, Chinese and a code. |
 | D25 | **Honest sharing (M4):** we say the link is ready/sent, never "she can see you now" or "she knows you arrived" (we can't know). The family viewer is a calm, standalone page; "help" is a saffron panel with a call button, not an alarm; link previews carry no name or place. | Families must be able to rely on every sentence. Calm copy prevents both panic and complacency. |
 | D26 | **Family can help, the senior decides (M4):** caregiver setup is a one-time, end-to-end encrypted hand-off (QR on the senior's phone, key in the link fragment) that changes nothing until the senior taps one big "好，用这些". Contacts stay on the phone. | Seniors rarely set up apps themselves, but it is their phone. Security copy is one plain sentence next to the action. |
+| D27 | **Privacy in plain facts (M5):** `/privacy` says what stays on the phone, what reaches our server and for how long, and who else is involved, using only facts the code makes true (TTLs, telemetry fields, Delete all). No legal claims, no contact line until the owner gives one. | Trust comes from sentences a daughter can check. A promise the code doesn't keep (e.g. "delete all" leaving cached searches) is worse than no promise, so the page lists the build facts it depends on. |
+| D28 | **Launch helpers never interrupt a trip (M5):** the update bar, What's new, install card and in-app-browser bar appear only on Home or Settings; battery saver shows as a quiet leaf chip, announced once, never by voice. | Guidance is the product. Anything else waits for a calm moment. |
+| D29 | **Draw the iOS steps, don't screenshot them (M5):** three simple token-coloured pictures with a saffron "tap here" ring, inlined so they follow dark mode; text carries the meaning. | Screenshots age with every iOS release and break in dark mode; saffron already means "this one, now". |
+| D30 | **Field test without names (M5):** one sheet, 3-face scales, the owner writes for the senior; consent read aloud says "if it's hard, that's the app's fault". | Seniors blame themselves. The form and the consent line make it safe to say "this was hard". |
 
 ## 5. Open questions for the owner
 Answered at sign-off (D-8): logo → **B, 去 seal** (D17); palette and type approved; name asked once at first run, optional; WhatsApp + SMS + link sharing as recommended.
-Still open: the contact line for the About & privacy screen (PDPA contact point), STYLE-GUIDE 6b F6.
+Still open: the contact line for the Privacy page (PDPA contact point), STYLE-GUIDE 6f.1; until then it points to Report a problem.
 
 ## Change log
 | Version | Date | Change |
 |---|---|---|
+| v1.4 | 2026-11-18 | M5 launch frames (STYLE-GUIDE 6f, L1–L9): Privacy page, About rework, update bar + What's new, install helper with drawn iOS guide, in-app-browser bar, battery saver + leaf chip, offline cold start, Settings order + error counts, field-test form and consent line (D27–D30). |
 | v1.3 | 2026-11-17 | M3/M4 frames (STYLE-GUIDE 6d, 6e): bus-arrival chip states (live, arriving, by timetable, no data, last bus gone, not running), load/wheelchair/deck tags, MRT disruption banner + find another way, exit hint, transfer card, Circle Line copy, station-name rule, fare + concession note, recent trips (D22–D24); share flow end-to-end, sharing pill states, family viewer page `/t/:id` with 15 states and a desktop layout, full Help with 995 confirm, family contacts, caregiver setup, taxi hand-off (D25–D26). Prototype v1.3 + `viewer.html`. |
 | v1.2 | 2026-11-17 | M2 guided-trip frames (STYLE-GUIDE 6c): H6b get off now (D19), pocket view, multi-stop builder, H4 journey and waypoint arrival, resume and voice unlock, manual controls, re-route failed/offline, no-voice help, weak GPS and MRT estimate, canonical haptic map (D21); H5 layout rule (D20). Prototype v1.2 adds H6b, pocket view, manual mode and re-route failed. |
 | v1.1 | 2026-11-17 | Owner sign-off applied: logo B master (D17), arrival moment rebuilt around the seal (D13), stairs/lift facts hidden (D16), M1 state frames (D18, STYLE-GUIDE 6b). |
