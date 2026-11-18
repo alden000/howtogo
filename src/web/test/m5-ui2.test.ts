@@ -155,6 +155,9 @@ describe("L3 What's new (AC 21)", () => {
     expect(whatsNewDue('1.0.0', 'seen', true)).toBe(false);
     expect(whatsNewDue('0.4.0', null, true)).toBe(false);
     expect(whatsNewDue('1.0.0', null, false)).toBe(false);
+    // 1.0.0-rc.1 is a 1.0 build: the sheet (and its 1.0 copy) shows for release candidates too.
+    expect(whatsNewDue('1.0.0-rc.1', null, true)).toBe(true);
+    expect(whatsNewDue('0.9.0-rc.1', null, true)).toBe(false);
   });
   it('a fresh 1.0 install stamps the flag on its first run, so it never shows later', () => {
     const kv = memoryKV();

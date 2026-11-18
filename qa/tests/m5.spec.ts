@@ -444,8 +444,11 @@ test('AC 21 (Should): What’s new sheet — once, never during a trip', async (
   await boot(page, {}, HOME, { path: '/?demo=1&demoMs=100000&whatsnew=1' });
   await expect(page.getByTestId('sheet-whatsnew')).toBeVisible();
   await page.getByTestId('whatsnew-ok').click();
-  await page.reload();
+  // Once: the next launch (no ?whatsnew=1 force; a real 1.0.0-rc.1 build with the flag now 'seen') shows nothing.
+  await page.goto('/?demo=1&demoMs=100000');
   await page.waitForFunction(() => '__howtogo' in window);
+  await expect(page.getByTestId('sheet-whatsnew')).toHaveCount(0);
+  await page.waitForTimeout(800);
   await expect(page.getByTestId('sheet-whatsnew')).toHaveCount(0);
   // During a trip: never.
   await page.evaluate(() => localStorage.removeItem('howtogo.whatsnew.v1'));
@@ -561,6 +564,7 @@ test('AC 25: privacy review (local Worker) — storage keys documented, no cooki
   await stubs(page);
   await page.addInitScript(([p, c]) => {
     localStorage.getItem('howtogo.settings') || localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, motion: 'on' }));
+    localStorage.getItem('howtogo.whatsnew.v1') || localStorage.setItem('howtogo.whatsnew.v1', 'seen'); // an existing 1.0 user: What's new already seen
     localStorage.getItem('howtogo.places') || localStorage.setItem('howtogo.places', JSON.stringify(p));
     localStorage.getItem('howtogo.family.v1') || localStorage.setItem('howtogo.family.v1', JSON.stringify([c]));
   }, [HOME, MEI] as const);
@@ -883,6 +887,7 @@ test('Delete all my data: live share stopped first (family sees it end), then lo
   await page.evaluate(
     ([s, c, p]) => {
       localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, motion: 'on', name: '陈' }));
+      localStorage.setItem('howtogo.whatsnew.v1', 'seen');
       localStorage.setItem('howtogo.family.v1', JSON.stringify([c]));
       localStorage.setItem('howtogo.places', JSON.stringify(p));
       localStorage.setItem('howtogo.recents.v2', JSON.stringify([{ to: { name: 'Bishan MRT', lat: 1.3511, lng: 103.8485 }, date: '2026-11-17', done: true }]));
@@ -920,7 +925,7 @@ test('Delete all my data: live share stopped first (family sees it end), then lo
   const dump = await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))));
   test.info().annotations.push({ type: 'localStorage-after', description: dump.slice(0, 400) });
   expect(dump, 'no personal data left').not.toMatch(/美玲|Toa Payoh|Bishan|\+65|ownerToken|onboarded":true|"陈"/);
-  expect(left.local.filter((k) => !/^howtogo\.(schema|settings|recents\.v2|family\.v1|places|prefs\.m34)$/.test(k)), 'unexpected keys after delete-all').toEqual([]);
+  expect(left.local.filter((k) => !/^howtogo\.(schema|settings|recents\.v2|family\.v1|places|prefs\.m34|whatsnew\.v1)$/.test(k)), 'unexpected keys after delete-all').toEqual([]);
   expect(left.session).not.toContain('qa.seeded');
   expect(left.caches).toEqual([]);
   expect(left.idb).toEqual([]);

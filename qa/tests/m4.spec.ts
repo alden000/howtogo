@@ -67,6 +67,7 @@ async function liveSenior(b: Browser, contacts: unknown[] = [MEI], prefs?: Recor
   await page.addInitScript(
     ([c, p]) => {
       if (!localStorage.getItem('howtogo.settings')) localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, motion: 'on' }));
+      localStorage.getItem('howtogo.whatsnew.v1') || localStorage.setItem('howtogo.whatsnew.v1', 'seen'); // an existing 1.0 user: What's new already seen
       if (!localStorage.getItem('howtogo.family.v1')) localStorage.setItem('howtogo.family.v1', JSON.stringify(c));
       if (p) localStorage.setItem('howtogo.prefs.m34', JSON.stringify(p));
     },

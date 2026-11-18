@@ -24,7 +24,8 @@ const Routes = lazyView(() => import('./views/Routes').then((m) => m.Routes));
 const TripDetail = lazyView(() => import('./views/TripDetail').then((m) => m.TripDetail));
 const Guide = lazyView(() => import('./views/Guide').then((m) => m.Guide));
 const ShareStart = lazyView(() => import('./views/ShareStart').then((m) => m.ShareStart));
-const Viewer = lazyView(() => import('./views/Viewer').then((m) => m.Viewer));
+// QA-60: not precached (vite.viewer.ts isViewerFile), so not in the idle preload either.
+const Viewer = lazyView(() => import('./views/Viewer').then((m) => m.Viewer), { idle: false });
 const Help = lazyView(() => import('./views/Help').then((m) => m.Help));
 const settings = () => import('./views/Settings');
 const About = lazyView(() => settings().then((m) => m.About));

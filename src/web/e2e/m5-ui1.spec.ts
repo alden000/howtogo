@@ -70,7 +70,7 @@ test.describe('L1 privacy page', () => {
     await expect(page.locator('.screen h1')).toHaveText('隐私说明');
     await expect(page.locator('.pv h2')).toHaveCount(5);
     await expect(page.getByRole('list', { name: '一眼看懂' })).toBeVisible();
-    await expect(page.getByTestId('pv-footer')).toHaveText(/^说明版本 1 · 2026年11月18日（怎么去\? \d+\.\d+\.\d+）$/);
+    await expect(page.getByTestId('pv-footer')).toHaveText(/^说明版本 1 · 2026年11月18日（怎么去\? \d+\.\d+\.\d+(?:-[0-9a-z.]+)?）$/);
     await expect(page.getByTestId('pv-contact')).toHaveText('有问题？用设置里的 报告问题。');
     // Creative M5 review fixes 1+2: the contact line is plain text (no M4 contact card), and the inline link sits in
     // its sentence (one line here) while keeping a 56 px hit area.
@@ -131,7 +131,7 @@ test.describe('L1 privacy page', () => {
 test.describe('L2 About', () => {
   test('version (build date), attribution, LTA line with the data date, privacy row → L1, report row', async ({ page }) => {
     await open(page, LZ, '/about?demo=1');
-    await expect(page.getByTestId('about-version')).toHaveText(/^版本 \d+\.\d+\.\d+（\d{4}年\d{1,2}月\d{1,2}日）$/);
+    await expect(page.getByTestId('about-version')).toHaveText(/^版本 \d+\.\d+\.\d+(?:-[0-9a-z.]+)?（\d{4}年\d{1,2}月\d{1,2}日）$/);
     await expect(page.getByTestId('about-attrib')).toContainText('Map data © contributors, Singapore Land Authority');
     await expect(page.getByTestId('about-lta')).toContainText(/accessed on \d{1,2} [A-Z][a-z]+ \d{4} which/);
     const logo = page.locator('[data-testid=about-attrib] img');

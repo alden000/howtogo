@@ -20,10 +20,10 @@ const railIt = (): Itinerary => {
 };
 
 describe('QA-47 version', () => {
-  it('APP_VERSION matches src/web/package.json and is 0.3.0', () => {
+  it('APP_VERSION matches src/web/package.json and is 1.0.0-rc.1', () => {
     const pkg = JSON.parse(pkgRaw) as { version: string };
     expect(APP_VERSION).toBe(pkg.version);
-    expect(APP_VERSION).toBe('0.3.0');
+    expect(APP_VERSION).toBe('1.0.0-rc.1');
   });
 });
 

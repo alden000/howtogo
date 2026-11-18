@@ -20,6 +20,7 @@ export async function setup(page: Page, settings: Record<string, unknown> = {}, 
     ([x, p]) => {
       try {
         if (!localStorage.getItem('howtogo.settings')) localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, ...(x as object) }));
+        localStorage.getItem('howtogo.whatsnew.v1') || localStorage.setItem('howtogo.whatsnew.v1', 'seen'); // an existing 1.0 user: What's new already seen
         if (p && !localStorage.getItem('howtogo.places')) localStorage.setItem('howtogo.places', JSON.stringify(p));
       } catch {
         /* ignore */

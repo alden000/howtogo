@@ -1616,3 +1616,25 @@ Branch `dev/m5-int`, on top of QA's gate commit `d4f996f`. One batched round for
 2. QA-57: offline 我在哪里 with a position but no remembered address shows the no-address line, then the coordinates (L6). Please confirm the copy.
 3. The first screen on launch appears without the slide-in. In-app navigation is unchanged.
 4. First-run step dots are back in a row (QA-53).
+
+## 2026-11-18 — 1.0.0-rc.1 version + QA-60 (Developer, branch dev/m5-int)
+
+**Done**
+- Version `1.0.0-rc.1` in `src/web/package.json` and `src/web/src/version.ts`. Everything else reads one of these: About, Privacy footer, Report, `/version.json`, the Worker's `/api/health` and stats rows, `deploy.mjs` and `smoke:deploy`. Telemetry `VERSION_RE` already accepts `-rc.1`.
+- What's new: `major()` reads `1` from `1.0.0-rc.1`, so the sheet and its "1.0 来了 / 1.0 is here" copy show on rc builds too. A unit test now covers this.
+- QA-60:
+  - `lazyView(…, { idle: false })` keeps the family Viewer (not precached) out of the 3 s idle `preloadViews()`.
+  - `preloadViews()` runs inside `quietChunkErrors()`. While it is running, the global `vite:preloadError` handler steps aside, so a failed preload rejects to its own `allSettled`: no `chunk:failed`, no `chunk_load` count, no reload.
+  - A screen the user opens still reports a real failure: the lazy view's own catch calls `handleChunkError` (AC 18 unchanged).
+  - New `src/web/test/qa60-preload.test.ts` (3 tests).
+- Tests: now that the build really is 1.0, What's new shows to any seeded "onboarded" user. The test seeders (`qa/tests/helpers.ts`, `m2helpers.ts`, `m3`/`m4`/`m5` seeds, `src/web/e2e/util.ts`) also seed `howtogo.whatsnew.v1 = seen`. Changes to individual tests:
+  - m5 AC 21 checks "once" with a real relaunch, without the `?whatsnew=1` force.
+  - The m5 delete-all test allows the fresh-install `whatsnew.v1` stamp.
+  - The dev e2e version regexes allow a prerelease suffix.
+
+**Tests**
+- typecheck: clean. Unit tests: worker 159, web 283, shared 220, all pass.
+- qa m5: 49/51. AC 31 and AC 38/40 fail the same way on an untouched `ead2de8` build and tests on this PC. The page is live with the SW not blocked: search gets a 200 that is not JSON, then shows the error state. QA, please re-check on the gate host.
+- qa m3 Upgrade and m4 AC 36: pass.
+- dev e2e (Docker): 240/240 after the regex fix. The m34 Help timeout passed on rerun.
+- Baselines: none changed. About and Privacy mask the version.

@@ -6,7 +6,7 @@
  */
 import { h, type ComponentType, type FunctionComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { handleChunkError, shouldReloadFor } from '../pwa/chunkReload';
+import { handleChunkError, quietChunkErrors, shouldReloadFor } from '../pwa/chunkReload';
 
 type Loader<P> = () => Promise<ComponentType<P>>;
 const registry: (() => Promise<unknown>)[] = [];
@@ -15,7 +15,11 @@ export interface LazyView<P> extends FunctionComponent<P> {
   preload(): Promise<unknown>;
 }
 
-export function lazyView<P extends object>(load: Loader<P>): LazyView<P> {
+/**
+ * `idle: false` keeps a view out of the idle `preloadViews()` warm-up (QA-60: the family Viewer chunk is
+ * deliberately not precached, so warming it costs a fetch nobody needs and fails offline).
+ */
+export function lazyView<P extends object>(load: Loader<P>, opts: { idle?: boolean } = {}): LazyView<P> {
   let C: ComponentType<P> | null = null;
   let pending: Promise<unknown> | null = null;
   const preload = () =>
@@ -41,13 +45,17 @@ export function lazyView<P extends object>(load: Loader<P>): LazyView<P> {
     return C ? h(C as ComponentType<P>, props) : null;
   }) as LazyView<P>;
   Lazy.preload = preload;
-  registry.push(preload);
+  if (opts.idle !== false) registry.push(preload);
   return Lazy;
 }
 
-/** Warm all lazy chunks (call when idle after the first paint, or on the first interaction). */
+/**
+ * Warm the lazy chunks (call when idle after the first paint, or on the first interaction). Best effort: a
+ * failure here is never a `chunk:failed` / `chunk_load` error and never reloads (QA-60). A screen the user then
+ * opens loads its chunk again and reports a real failure itself.
+ */
 export function preloadViews(): Promise<unknown> {
-  return Promise.allSettled(registry.map((p) => p()));
+  return quietChunkErrors(() => Promise.allSettled(registry.map((p) => p())));
 }
 
 /** Runs `fn` when the main thread is idle (or after `fallbackMs`). */
