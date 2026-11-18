@@ -183,3 +183,10 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Approved: icons `leaf`, `add-square`, `open-browser`, and six drawn iOS step pictures (creative/m5/). No new tokens.
 - Rulings: AC 24 licences link dropped (owner preference; an unlinked licenses.txt may exist). AC 26 wording 主屏幕. Feedback form = one double-sided A4 (PM copies it to docs/field-test/). iOS Edge share-menu position → owner real-phone check.
 - Build gaps for the UI round (Privacy copy depends on them, S2 if missed): "Delete all my data" must stop a live share first, then clear localStorage, sessionStorage, Cache Storage (searches, routes, map tiles) and IndexedDB if used. The offline cache must evict expired search/route results.
+
+## 2026-11-18 — 0.3.0 LIVE at https://howtogo.wwweeeiii.com (owner's account)
+- The owner logged in to wrangler (09:4x). It sees two accounts: bda70e28… (workers.dev `genixm`, zones incl. wwweeeiii.com, has howtogo-TOKEN_KV and whereisthebus-lta-proxy) and an empty second one. Deployed to bda70e28…, not raus-ums.
+- `wrangler deploy -c wrangler.toml --env=""` with **static assets worked** (26 files). Version 5236b3db. Bindings: TRIP_SHARE, SETUP_BOX, TOKEN_KV, LTA_PROXY, ASSETS. FIXTURE_MODE=1 (sample routes) until the owner's OneMap key is in. /api/health → `lta: proxy`.
+- Custom domain howtogo.wwweeeiii.com attached via the Workers Domains API. Smoke: /, /settings, /about, manifest, sw.js, /api/health all 200; HSTS, CSP, nosniff present. Pixel 7 (Playwright, zh): no horizontal scroll, SW registers, renders correctly. The only console errors: the zone's Cloudflare Web Analytics beacon, blocked by our CSP (kept blocked; the owner may turn auto-injection off).
+- Engine round told: drop the raus-ums origin for genixm, make the embedded-assets import opt-in, pin the account id.
+- Old raus-ums Worker `howtogo` + KV: this login can't see that account. Deleting them needs the owner (dashboard) or a login to that account — ask.
