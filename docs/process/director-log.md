@@ -190,3 +190,6 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Custom domain howtogo.wwweeeiii.com attached via the Workers Domains API. Smoke: /, /settings, /about, manifest, sw.js, /api/health all 200; HSTS, CSP, nosniff present. Pixel 7 (Playwright, zh): no horizontal scroll, SW registers, renders correctly. The only console errors: the zone's Cloudflare Web Analytics beacon, blocked by our CSP (kept blocked; the owner may turn auto-injection off).
 - Engine round told: drop the raus-ums origin for genixm, make the embedded-assets import opt-in, pin the account id.
 - Old raus-ums Worker `howtogo` + KV: this login can't see that account. Deleting them needs the owner (dashboard) or a login to that account — ask.
+
+## 2026-11-18 — Owner request: smaller text size
+- Owner: the text is a bit big for younger users; wants a "normal" size option. Ruling: add ONE option below 100 %; new installs still default to 100 %; it's offered wherever text size is chosen (first-run, Settings, /setup). Touch targets keep the guide minimum. Creative specs it (STYLE-GUIDE v1.4.1); built in the M5 UI round (small, specified, so it goes into the round).
