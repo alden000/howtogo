@@ -166,3 +166,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
   - AC 44: About shows the date in words ("交通资料日期：2026年11月17日"); the Report keeps `data: 2026-11-17`.
   - AC 32/39 amended per the earlier rulings (Creative §6e.3 rows; 5 family members).
 - Developer C: merge A+B, all Creative fixes, re-record baselines once in Docker; then a QA re-check of the failures only.
+
+## 2026-11-18 — M3/M4 0.3.0: QA PASS WITH FIXES → merged, awaiting deploy
+- QA re-check (qa/reports/0.3.0-m34.md "Re-check 0.3.0 RC"): QA-29…49 all FIXED (21/21, each test-proven). Gate: dev-e2e 156/156 (Docker), Lighthouse perf 86–93 / a11y 100. New S4s QA-50 (About licence link testid/target) and QA-51 (stale worker assets.ts) fixed in 3c2eb0d; matrix 12/12, worker 171/171, web 208/208. Host-load flakes (m2 AC 40/49, m4 AC 12/16) pass 3/3 alone.
+- Merged dev/m34-fix into the session branch. **Deploy blocked:** wrangler not logged in to the owner's wwweeeiii.com account.
+- Duration: the M3/M4 gate + fix round took ~4.5 h wall clock (04:40–09:20), incl. one invalid gate run (Windows tooling).
+- Note: the Docker baseline image has no bold CJK font, so bold Chinese renders regular in the baselines only (real phones are fine). Consider adding fonts-noto-cjk to the image in M5.
