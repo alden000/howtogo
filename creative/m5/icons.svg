@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!-- M5 icons (STYLE-GUIDE 6f.10). Same rules as §1.4: 24 grid, 2.2 stroke, round caps/joins, currentColor, no fill. -->
+  <!-- leaf: battery saver (H5 chip, Settings row). A plain leaf with one vein, tip to the upper right. -->
+  <symbol id="i-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 4.5C10.5 4.5 5 9 5 15.2c0 1.5.3 2.8.9 3.9 1.1.6 2.4.9 3.9.9C16 20 19.5 14.5 19.5 4.5z"/><path d="M4 20l8.5-8.5"/></symbol>
+  <!-- add-square: mirrors iOS "Add to Home Screen" in the 3-step guide only (like ios-share in 6b). -->
+  <symbol id="i-add-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
+  <!-- open-browser: in-app-browser bar ("open in your browser"). A window with an arrow leaving it. -->
+  <symbol id="i-open-browser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-5"/><path d="M14 4.5h5.5V10M19.5 4.5L11 13"/></symbol>
+</svg>

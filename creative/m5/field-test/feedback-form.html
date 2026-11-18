@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>怎么去? 试用感想 · Feedback form</title>
+<!-- Field-test feedback form (M5 AC 41, STYLE-GUIDE 6f.9). Print on A4, both sides of one sheet.
+     Black ink only, so it survives a mono printer. No names: write P1 / P2. -->
+<style>
+  @page { size: A4; margin: 13mm 14mm; }
+  :root { --ink: #1D1915; --ink2: #4A4038; --line: #B9A88F; --seal: #9A3412; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; background: #fff; color: var(--ink);
+    font-family: "Atkinson Hyperlegible", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 15pt; line-height: 1.35; }
+  .page { width: 182mm; margin: 0 auto; padding: 8mm 0; }
+  @media print { .page { padding: 0; } .page + .page { break-before: page; } }
+  @media screen and (max-width: 720px) { .page { width: auto; padding: 16px; } ol.q > li { grid-template-columns: 10mm 1fr; } .faces { grid-column: 2; margin-top: 2mm; } .also { grid-column: 2; } .meta .fill { min-width: 18mm !important; } }
+  header { display: flex; align-items: center; gap: 4mm; border-bottom: 1.2mm solid var(--seal); padding-bottom: 3mm; }
+  .seal { flex: none; width: 15mm; height: 15mm; border-radius: 3.5mm; background: var(--seal); color: #FBF5EC; display: grid; place-items: center; font-size: 22pt; font-weight: 700; position: relative; }
+  .seal::after { content: ""; position: absolute; right: 2.2mm; bottom: 2.2mm; width: 2.6mm; height: 2.6mm; border-radius: 50%; background: #FFD23F; }
+  h1 { margin: 0; font-size: 22pt; line-height: 1.15; }
+  h1 span { display: block; font-size: 14pt; font-weight: 400; color: var(--ink2); }
+  .meta { display: flex; flex-wrap: wrap; gap: 2mm 6mm; margin: 2.5mm 0 1mm; font-size: 12.5pt; }
+  .meta b { font-weight: 700; }
+  .fill { display: inline-block; min-width: 24mm; border-bottom: 0.4mm solid var(--ink2); }
+  .box { display: inline-block; width: 5mm; height: 5mm; border: 0.5mm solid var(--ink); border-radius: 1mm; vertical-align: -0.6mm; margin-right: 1.5mm; }
+  .how { margin: 2mm 0 1mm; font-size: 14pt; font-weight: 700; }
+  .how span { font-weight: 400; color: var(--ink2); }
+  ol.q { list-style: none; margin: 0; padding: 0; counter-reset: q; }
+  ol.q > li { counter-increment: q; display: grid; grid-template-columns: 10mm 1fr auto; gap: 0 3mm; align-items: center; padding: 1.6mm 0; border-bottom: 0.3mm solid var(--line); break-inside: avoid; }
+  ol.q > li::before { content: counter(q); width: 9mm; height: 9mm; border-radius: 50%; border: 0.5mm solid var(--ink); display: grid; place-items: center; font-weight: 700; font-size: 13pt; align-self: start; margin-top: 0.5mm; }
+  .zh { font-size: 16.5pt; font-weight: 700; line-height: 1.25; }
+  .en { font-size: 12.5pt; color: var(--ink2); line-height: 1.25; }
+  .faces { display: flex; gap: 3mm; }
+  .face { width: 20mm; text-align: center; font-size: 10.5pt; line-height: 1.15; color: var(--ink); }
+  .face svg { display: block; width: 13mm; height: 13mm; margin: 0 auto 0.8mm; }
+  .face b { display: block; font-size: 12pt; }
+  .also { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 1mm 6mm; margin-top: 1mm; font-size: 12.5pt; }
+  .open { list-style: none; margin: 4mm 0 0; padding: 0; counter-reset: q 7; }
+  .open > li { counter-increment: q; display: grid; grid-template-columns: 10mm 1fr; gap: 0 3mm; margin-bottom: 6mm; break-inside: avoid; }
+  .open > li::before { content: counter(q); width: 9mm; height: 9mm; border-radius: 50%; border: 0.5mm solid var(--ink); display: grid; place-items: center; font-weight: 700; font-size: 13pt; }
+  .lines { grid-column: 2; height: 46mm; margin-top: 2mm; background: repeating-linear-gradient(to bottom, transparent 0 10.5mm, var(--line) 10.5mm 10.8mm); }
+  .thanks { margin-top: 4mm; padding: 4mm 5mm; border: 0.5mm solid var(--ink); border-radius: 4mm; display: flex; justify-content: space-between; align-items: center; gap: 4mm; flex-wrap: wrap; }
+  .thanks .zh { font-size: 18pt; }
+  .foot { margin-top: 3mm; font-size: 10.5pt; color: var(--ink2); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="f-face" viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="16.5" cy="19.5" r="2.6" fill="currentColor"/><circle cx="31.5" cy="19.5" r="2.6" fill="currentColor"/></symbol>
+</svg>
+
+<section class="page" aria-label="第 1 页 / Page 1">
+  <header>
+    <div class="seal" aria-hidden="true">去</div>
+    <h1>怎么去? 试用感想 <span lang="en">怎么去? — what did you think?</span></h1>
+  </header>
+  <div class="meta">
+    <span><b>编号 No.</b> P<span class="fill" style="min-width:12mm"></span></span>
+    <span><b>日期 Date</b> <span class="fill"></span></span>
+    <span><b>手机 Phone</b> <span class="fill" style="min-width:34mm"></span></span>
+    <span><span class="box"></span><b>已同意（口头）</b> Agreed (spoken)</span>
+  </div>
+  <p class="how">每题圈一个脸。没有对错。<span lang="en">Circle one face for each question. There are no wrong answers.</span></p>
+
+  <ol class="q">
+    <li><div><div class="zh">字够大、看得清楚吗？</div><div class="en" lang="en">Was the writing big and clear enough?</div></div>
+      <div class="faces" role="group" aria-label="不好 / 还可以 / 很好"><div class="face"><svg><use href="#f-face"/><path d="M15 35c5-5.5 13-5.5 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>不好</b>Not good</div><div class="face"><svg><use href="#f-face"/><path d="M15.5 32h17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>还可以</b>OK</div><div class="face"><svg><use href="#f-face"/><path d="M14.5 29c5 6 14 6 19 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>很好</b>Good</div></div></li>
+    <li><div><div class="zh">找到要去的地方，容易吗？</div><div class="en" lang="en">Was it easy to find the place you wanted?</div></div>
+      <div class="faces"><div class="face"><svg><use href="#f-face"/><path d="M15 35c5-5.5 13-5.5 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>不容易</b>Not easy</div><div class="face"><svg><use href="#f-face"/><path d="M15.5 32h17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>还可以</b>OK</div><div class="face"><svg><use href="#f-face"/><path d="M14.5 29c5 6 14 6 19 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>很容易</b>Easy</div></div></li>
+    <li><div><div class="zh">一步一步的提示，清楚吗？</div><div class="en" lang="en">Were the step-by-step directions clear?</div></div>
+      <div class="faces"><div class="face"><svg><use href="#f-face"/><path d="M15 35c5-5.5 13-5.5 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>不清楚</b>Not clear</div><div class="face"><svg><use href="#f-face"/><path d="M15.5 32h17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>还可以</b>OK</div><div class="face"><svg><use href="#f-face"/><path d="M14.5 29c5 6 14 6 19 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>很清楚</b>Clear</div></div></li>
+    <li><div><div class="zh">下车提醒，来得及吗？</div><div class="en" lang="en">Did the get-off reminder come in time?</div></div>
+      <div class="faces"><div class="face"><svg><use href="#f-face"/><path d="M15 35c5-5.5 13-5.5 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>来不及</b>Too late</div><div class="face"><svg><use href="#f-face"/><path d="M15.5 32h17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>差一点</b>Just</div><div class="face"><svg><use href="#f-face"/><path d="M14.5 29c5 6 14 6 19 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>来得及</b>In time</div></div>
+      <div class="also"><span><span class="box"></span>听到声音 <span lang="en">Heard it</span></span><span><span class="box"></span>感到震动 <span lang="en">Felt it</span></span><span><span class="box"></span>看到画面 <span lang="en">Saw it</span></span><span><span class="box"></span>没注意到 <span lang="en">Didn't notice</span></span></div></li>
+    <li><div><div class="zh">语音说得清楚吗？</div><div class="en" lang="en">Was the voice clear?</div></div>
+      <div class="faces"><div class="face"><svg><use href="#f-face"/><path d="M15 35c5-5.5 13-5.5 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>不清楚</b>Not clear</div><div class="face"><svg><use href="#f-face"/><path d="M15.5 32h17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>还可以</b>OK</div><div class="face"><svg><use href="#f-face"/><path d="M14.5 29c5 6 14 6 19 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>很清楚</b>Clear</div></div></li>
+    <li><div><div class="zh">用的时候，你觉得安心吗？</div><div class="en" lang="en">Did you feel at ease using it?</div></div>
+      <div class="faces"><div class="face"><svg><use href="#f-face"/><path d="M15 35c5-5.5 13-5.5 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>不安心</b>Not at ease</div><div class="face"><svg><use href="#f-face"/><path d="M15.5 32h17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>还可以</b>OK</div><div class="face"><svg><use href="#f-face"/><path d="M14.5 29c5 6 14 6 19 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>很安心</b>At ease</div></div></li>
+    <li><div><div class="zh">你还会再用它吗？</div><div class="en" lang="en">Would you use it again?</div></div>
+      <div class="faces"><div class="face"><svg><use href="#f-face"/><path d="M15 35c5-5.5 13-5.5 18 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>不会</b>No</div><div class="face"><svg><use href="#f-face"/><path d="M15.5 32h17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>可能</b>Maybe</div><div class="face"><svg><use href="#f-face"/><path d="M14.5 29c5 6 14 6 19 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg><b>会</b>Yes</div></div></li>
+  </ol>
+  <p class="foot">请翻到背面 → <span lang="en">Please turn over →</span></p>
+</section>
+
+<section class="page" aria-label="第 2 页 / Page 2">
+  <header>
+    <div class="seal" aria-hidden="true">去</div>
+    <h1>说说看 <span lang="en">In your own words</span></h1>
+  </header>
+  <p class="how">可以说给我听，我帮你写。<span lang="en">You can tell me, and I'll write it down.</span></p>
+  <ol class="open">
+    <li><div><div class="zh">哪里最好用？</div><div class="en" lang="en">What worked best?</div></div><div class="lines"></div></li>
+    <li><div><div class="zh">哪里让你不明白，或者不放心？</div><div class="en" lang="en">What was confusing or worrying?</div></div><div class="lines"></div></li>
+    <li><div><div class="zh">你最希望它还能帮你做什么？</div><div class="en" lang="en">What one thing would you most like it to help with?</div></div><div class="lines"></div></li>
+  </ol>
+  <div class="thanks"><div><div class="zh">谢谢你！你帮了很大的忙。</div><div class="en" lang="en">Thank you! You've been a great help.</div></div><div class="en" style="max-width:62mm">不写名字，不拍照，不录音。<br><span lang="en">No names, no photos, no recordings.</span></div></div>
+  <p class="foot">怎么去? 1.0 试用 · Field test · 表格版本 1 / Form v1</p>
+</section>
+</body>
+</html>
