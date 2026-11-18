@@ -481,7 +481,9 @@ test('expired API cache entries are never served offline and are deleted; fresh 
   await context.setOffline(false);
   expect(got).toEqual({ old: 'net-error', fresh: 200, route: 'net-error' });
   const left = await page.evaluate(async () => (await (await caches.open('api-v1')).keys()).map((r) => new URL(r.url).pathname + new URL(r.url).search));
-  expect(left).toEqual(['/api/search?q=fresh']);
+  // Re-check 1.0.0-rc1: Home caches its own fresh alerts/lifts/revgeocode answers after controlled()'s reload (legit,
+  // within TTL), so judge only the seeded entries rather than the whole cache.
+  expect(left.filter((k) => /[?&](q|a)=(old|fresh)$/.test(k)).sort()).toEqual(['/api/search?q=fresh']);
 });
 
 test('update bar never during a trip (?upd=1 hook): Home yes, guidance no', async ({ page }) => {
@@ -747,6 +749,50 @@ test('AC 36: smoke:live on a fixture-mode Worker exits 2 (BLOCKED), prints no to
   expect(r.stdout + r.stderr).not.toMatch(/eyJ[\w-]{10,}|Bearer\s+\w{8,}/);
 });
 
+/**
+ * QA-55 (Director ruling): `lta: proxy` counts as live; bus arrival must PASS through it; alerts/lifts answering 503
+ * not_configured are WARN/SKIP, not FAIL; `lta: none` stays BLOCKED. A loopback stub Worker (127.0.0.1 only, nothing
+ * leaves the PC) answers the live shapes; smoke:live runs async so the stub can answer.
+ */
+for (const [lta, want] of [['proxy', 0], ['none', 2]] as const) {
+  test(`QA-55: smoke:live against a live-shaped stub with lta: ${lta} exits ${want}`, async () => {
+    test.setTimeout(60_000);
+    const { createServer } = await import('node:http');
+    const { spawn } = await import('node:child_process');
+    const it = { duration: 1800, fare: '1.19', legs: [{ mode: 'BUS' }] };
+    const srv = createServer((req, res) => {
+      const u = new URL(req.url ?? '/', 'http://x');
+      const p = u.pathname;
+      const j = (s: number, b: unknown) => (res.writeHead(s, { 'content-type': 'application/json' }), res.end(JSON.stringify(b)));
+      if (p === '/api/health') return j(200, { ok: true, fixtureMode: false, onemap: 'ok', lta, version: '1.0.0' });
+      if (p === '/api/search') return j(200, { results: [{ name: 'X', address: 'X Singapore 123456', postal: '123456', lat: 1.3, lng: 103.8 }] });
+      if (p === '/api/route') return j(200, { plan: { itineraries: [it] } });
+      if (p === '/api/revgeocode') return j(200, { name: 'X', address: 'X', postal: '123456' });
+      if (p === '/api/bus-arrival') return j(200, { stop: u.searchParams.get('stop'), services: [{ no: '88', next: [{ etaMin: 3, monitored: true }] }] });
+      if (p === '/api/alerts' || p === '/api/lifts') return j(503, { error: { code: 'not_configured' } });
+      return j(404, {});
+    });
+    await new Promise<void>((r) => srv.listen(0, '127.0.0.1', () => r()));
+    const port = (srv.address() as { port: number }).port;
+    const out = await new Promise<{ code: number | null; text: string }>((resolve) => {
+      const c = spawn(process.execPath, [join(ROOT, 'scripts/smoke-live.mjs'), `http://127.0.0.1:${port}`]);
+      let text = '';
+      c.stdout.on('data', (d) => (text += d));
+      c.stderr.on('data', (d) => (text += d));
+      c.on('close', (code) => resolve({ code, text }));
+    });
+    srv.close();
+    test.info().annotations.push({ type: 'smoke-live', description: out.text.split('\n').filter((l) => /^(WARN|FAIL|smoke:live)/.test(l)).join(' | ') });
+    expect(out.code, out.text).toBe(want);
+    if (lta === 'proxy') {
+      expect(out.text).toMatch(/PASS\s+bus arrival 53009/);
+      expect(out.text).toMatch(/WARN\s+alerts .*SKIP not_configured/);
+      expect(out.text).toMatch(/WARN\s+lifts .*SKIP not_configured/);
+      expect(out.text).toMatch(/smoke:live PASS/);
+    } else expect(out.text).toContain('smoke:live BLOCKED');
+  });
+}
+
 // ================================================================ I. monitoring-lite
 async function telemetryRun(page: Page, settings: Record<string, unknown>) {
   const posts: { body: string; headers: Record<string, string> }[] = [];
@@ -890,4 +936,47 @@ test('AC 41: field-test kit present — script, consent, questions (≤ 10), pri
   expect(numbered.length).toBeGreaterThan(0);
   expect(new Set(numbered.map((l) => l.trim().match(/^\d+/)![0])).size).toBeLessThanOrEqual(10);
   void gzipSync;
+});
+
+// Re-check 1.0.0-rc1, QA-59 (S2, Director ruling): fixture-mode reverse geocoding never names the position.
+// The shared QA Worker runs without FIXTURE_MODE (live shapes, 503 not_configured), so this test starts its own local
+// workerd (`wrangler dev --local`, nothing sent to Cloudflare) with FIXTURE_MODE=1 on 18798 and stops it after.
+test('QA-59: fixture-mode /api/revgeocode returns no name/address (sample:true); 我在哪里 shows My location · 我的位置 + sample note + coordinates', async ({ browser }) => {
+  test.setTimeout(150_000);
+  const FX = 18798;
+  const base = `http://127.0.0.1:${FX}`;
+  const { spawn, execSync } = await import('node:child_process');
+  const w = spawn(
+    `npx wrangler dev --env test --local --port ${FX} --ip 127.0.0.1 --assets "${join(ROOT, 'qa/.out/dist')}" --persist-to "${join(ROOT, 'qa/.out/wrangler-state-fx')}" --var FIXTURE_MODE:1 --var ALLOWED_ORIGINS:${base}`,
+    { cwd: join(ROOT, 'src/worker'), shell: true, env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }, stdio: 'ignore' },
+  );
+  try {
+    await expect.poll(async () => fetch(base + '/api/health').then((r) => r.status, () => 0), { timeout: 90_000, intervals: [1000] }).toBe(200);
+    const ctx = await browser.newContext({ baseURL: base, locale: 'zh-CN', timezoneId: 'Asia/Singapore', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block', geolocation: { latitude: 1.33465, longitude: 103.8491 }, permissions: ['geolocation'] });
+    expect((await (await ctx.request.get('/api/health')).json()).fixtureMode).toBe(true);
+    const r = await ctx.request.get('/api/revgeocode?lat=1.334650&lng=103.849100');
+    expect(r.status()).toBe(200);
+    expect(r.headers()['x-fixture']).toBe('1');
+    expect(await r.json()).toEqual({ name: '', address: '', postal: '', sample: true });
+    for (const [lat, lng] of [['1.2644', '103.8222'], ['1.3510', '103.8485'], ['1.4400', '103.7900']]) {
+      const b = await (await ctx.request.get(`/api/revgeocode?lat=${lat}&lng=${lng}`)).json();
+      expect(b.name + b.address, `${lat},${lng}`).toBe('');
+    }
+    expect((await ctx.request.get('/api/revgeocode?lat=abc&lng=103.8')).status()).toBe(400);
+    const page = await ctx.newPage();
+    await setup(page, {}, null, { clock: false });
+    await page.goto('/');
+    await page.getByTestId('nav-help').click();
+    await page.getByTestId('help-where').click();
+    await expect(page.getByTestId('driver-card')).toContainText('My location · 我的位置');
+    await expect(page.getByTestId('here-sample')).toBeVisible();
+    await expect(page.getByTestId('here-coords')).toContainText(/1\.\d{3,}, 103\.\d{3,}/);
+    await expect(page.locator('body')).not.toContainText(/Ang Mo Kio|宏茂桥/);
+    await ctx.close();
+  } finally {
+    try {
+      if (process.platform === 'win32') execSync(`taskkill /T /F /PID ${w.pid}`, { stdio: 'ignore' });
+      else w.kill();
+    } catch {}
+  }
 });

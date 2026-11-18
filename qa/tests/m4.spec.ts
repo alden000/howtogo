@@ -552,22 +552,42 @@ test('AC 35: "让家人看到我在哪里" — sets help on a live share, or cre
   await expect(page.getByText(/让家人看到我在哪里|Let family see where I am/)).toBeVisible({ timeout: 3000 });
 });
 
-test('AC 36: 我在哪里 — reverse-geocoded address huge + postal; offline → coordinates + "给别人看这个号码"', async ({ page, context }) => {
-  await senior(page, { contacts: [MEI] });
-  await page.getByTestId('nav-help').click();
-  await page.getByTestId('help-where').click();
-  await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
-  await expect(page.getByTestId('driver-card')).toContainText('310177');
-  await expect(page.getByTestId('driver-card')).toContainText(/I am here/);
-  const p2 = await context.newPage();
-  await capture(p2);
-  await boot(p2);
-  await context.setOffline(true);
-  await p2.getByTestId('nav-help').click();
-  await p2.getByTestId('help-where').click();
-  await expect(p2.getByTestId('here-coords')).toContainText(/1\.\d{3,}, 103\.\d{3,}/);
-  await expect(p2.getByTestId('here-coords')).toContainText('给别人看这个号码');
-  await context.setOffline(false);
+// Re-check 1.0.0-rc1: this file blocks service workers, and `vite preview` serves chunks with Cache-Control: no-cache,
+// so offline the lazy driver-sheet chunk (tripSheets) could only come from a lucky earlier load in tab 2. The real
+// offline path is the SW precache, so AC 36 runs with the SW allowed.
+test.describe('AC 36 with the service worker', () => {
+  test.use({ serviceWorkers: 'allow' });
+  test('AC 36: 我在哪里 — reverse-geocoded address huge + postal; offline → coordinates + "给别人看这个号码"', async ({ page, context }) => {
+    await senior(page, { contacts: [MEI] });
+    await page.getByTestId('nav-help').click();
+    await page.getByTestId('help-where').click();
+    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
+    await expect(page.getByTestId('driver-card')).toContainText('310177');
+    await expect(page.getByTestId('driver-card')).toContainText(/I am here/);
+    // Re-check 1.0.0-rc1 (QA-57): the old version booted tab 2 online and went offline at once, racing Home's reverse
+    // geocode. When the geocode won, 6f.6 L6 rightly shows the remembered address + its time (here-at), not coordinates.
+    // Now deterministic: (a) tab 2 cold-started offline from the SW has a fix but no remembered address → the
+    // no-address line AND the coordinates + 给别人看这个号码; (b) tab 1 offline → the remembered address + time.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+    await expect(page.getByTestId('from-field')).toContainText('Toa Payoh'); // Home's reverse geocode done → remembered
+    await page.waitForTimeout(1500); // let the SW finish precaching (as m5 AC 20)
+    await context.setOffline(true);
+    const p2 = await context.newPage();
+    await capture(p2);
+    await boot(p2);
+    await p2.getByTestId('nav-help').click();
+    await p2.getByTestId('help-where').click();
+    await expect(p2.getByTestId('here-none')).toBeVisible();
+    await expect(p2.getByTestId('here-coords')).toContainText(/1\.\d{3,}, 103\.\d{3,}/);
+    await expect(p2.getByTestId('here-coords')).toContainText('给别人看这个号码');
+    await p2.close();
+    await page.bringToFront();
+    await expect(page.getByTestId('here-at')).toBeVisible();
+    await expect(page.getByTestId('driver-card')).toContainText('Toa Payoh Central');
+    await context.setOffline(false);
+  });
 });
 
 test('AC 37: 给司机看地址 — tabs Where I\'m going · My home · Where I am; "Please take me to / 请送我去", name + address + postal; wake lock', async ({ page }) => {
