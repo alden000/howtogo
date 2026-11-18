@@ -203,7 +203,8 @@ test.describe('states', () => {
     }
     await expect(page.getByTestId('row-clear')).toHaveAttribute('aria-disabled', 'true');
     await page.getByTestId('row-about').click();
-    await expect(page.getByTestId('privacy')).toContainText('没有广告，不追踪你。');
+    // M5 L2: About carries one privacy line and the 隐私说明 row (→ L1); the full text moved to /privacy.
+    await expect(page.getByTestId('privacy')).toContainText('你的资料多数只留在这部手机里。');
     await page.getByTestId('back').click();
     await expect(page).toHaveURL(/\/settings$/);
     await page.getByTestId('back').click();

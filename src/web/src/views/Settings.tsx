@@ -364,7 +364,7 @@ export function InstallSheet() {
   return (
     <Sheet id="install" title={t('inst_t')}>
       <p class="lead">{t('inst_b')}</p>
-      <Wordmark name={t('app_name')} />
+      <Wordmark name={t('app_name')} tag="p" />
       {canInstall.value ? (
         <button type="button" class="btn btn-primary" style={{ marginTop: 'var(--s-4)' }} data-testid="install" onClick={() => void promptInstall()}>
           <Icon name="install" />
@@ -442,7 +442,7 @@ export function About() {
         <h1 class="t-title" style={{ margin: '0 0 var(--s-3)' }}>
           {t('about_row')}
         </h1>
-        <Wordmark name={t('app_name')} />
+        <Wordmark name={t('app_name')} tag="p" />
         <p data-testid="about-version">{t5('ab_version', { v: APP_VERSION, d: dataDate(BUILD_DATE, lang) })}</p>
         {sampleMode.value && (
           <p class="tripnote sample" data-testid="about-sample">
@@ -451,7 +451,7 @@ export function About() {
           </p>
         )}
         <h2 class="grp">{t('ab_maps_h')}</h2>
-        <div class="attrib" data-testid="about-attrib">
+        <div class="abattrib" data-testid="about-attrib">
           <p class="omline">
             <img src={OM_LOGO} srcSet={`${OM_LOGO} 1x, ${OM_LOGO_2X} 2x`} alt="OneMap" width={28} height={28} decoding="async" />
             <span lang="en">{t('ab_mapdata')}</span>

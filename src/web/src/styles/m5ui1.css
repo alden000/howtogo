@@ -19,11 +19,12 @@
 
 /* L2 About: sample-mode panel, attribution block on c-surface. */
 .tripnote.sample{background:var(--c-saffron-soft);color:var(--c-ink);margin:var(--s-3) 0 0}
-.attrib{background:var(--c-surface);border-radius:var(--r-l);padding:18px}
-.attrib p{margin:0 0 var(--s-2)}
-.attrib p:last-child{margin-bottom:0}
+.abattrib{background:var(--c-surface);border-radius:var(--r-l);padding:18px}
+.abattrib p{margin:0 0 var(--s-2)}
+.abattrib p:last-child{margin-bottom:0}
 .omline{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-weight:700}
 .omline img{flex:none;width:28px;height:28px}
+.omline span{flex:1 1 10rem;min-width:0}
 
 /* L7 error-counts row: switch row, sub-line, then "Details" as its own target. */
 .swrow{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s-1)}
@@ -45,3 +46,9 @@
 .pocket .saver{font-size:.85rem;margin:6px 0 0;color:#CFC3B5}
 @media (prefers-reduced-motion:no-preference){:root:not(.rm) .leafchip.fadein{animation:leafin 280ms ease-out}}
 @keyframes leafin{from{opacity:0}to{opacity:1}}
+/* 6f.11: at 85 % nothing but map attribution goes under the 14.5 px caption floor (the switch sub-lines). */
+:root[data-text-size="small"] .row .tx small{font-size:.85rem}
+/* L7: the longer "记录：清除最近去过的地方" label wraps; its value "没有记录" stays in one piece. */
+.row[data-testid=row-clear] .tx{flex:1 1 0;max-width:none}
+.row[data-testid=row-clear] .val{flex:none;white-space:nowrap}
+.swrow .inlink{min-width:var(--tap)}

@@ -472,6 +472,8 @@ test('AC-43 hooks: window.__hooks has screen:, route:, api: lines, change-only',
 test('AC-47 About: OneMap attribution, LTA line, privacy in zh and en', async ({ page }) => {
   await setup(page);
   await page.goto('/about?demo=1');
+  // M5: About is a lazy screen; read it once it has rendered.
+  await expect(page.getByTestId('about-attrib')).toBeVisible();
   const zh = await page.locator('.stage').innerText();
   expect(zh).toMatch(/OneMap/);
   expect(zh).toMatch(/LTA DataMall/);
@@ -479,6 +481,7 @@ test('AC-47 About: OneMap attribution, LTA line, privacy in zh and en', async ({
   await page.goto('/settings?demo=1');
   await page.getByTestId('setting-lang-en').click();
   await page.goto('/about?demo=1');
+  await expect(page.getByTestId('about-attrib')).toBeVisible();
   const en = await page.locator('.stage').innerText();
   expect(en).toMatch(/OneMap/);
   expect(en).toMatch(/Contains information from LTA DataMall|LTA DataMall/);

@@ -734,8 +734,9 @@ test('AC 50: Settings "清除所有资料" (with confirm) removes contacts, plac
   await page.getByTestId('row-delete-all').click();
   await page.getByTestId('delete-all-go').click();
   await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter((k) => /family|prefs|places|recents|share/.test(k) && localStorage.getItem(k) !== '[]' && localStorage.getItem(k) !== 'null'))).toEqual([]);
-  await page.goto('/about');
-  await expect(page.getByTestId('privacy')).toContainText(/分享|链接/);
+  // M5 L1: the privacy text lives on /privacy (About links it).
+  await page.goto('/privacy');
+  await expect(page.getByTestId('privacy-page')).toContainText(/分享|链接/);
 });
 
 test('AC 52 (Should): H7 lock line — anyone with the link can see it; stops by itself', async ({ page }) => {

@@ -1300,3 +1300,126 @@ Branch `dev/m5-engine` (worktree `howtogo-m5e`). No new user-visible UI. Not pus
   - the two-build SW-update test with an active trip and share (AC 17);
   - the delete-a-chunk test (AC 18);
   - a Playwright check of the telemetry payload (`?telemetry=1`).
+
+## 2026-11-18 — Developer UI-2: M5 UI round
+
+Branch `dev/m5-ui2` (worktree `howtogo-m5u2`). Not pushed, nothing deployed, no wrangler run against Cloudflare. Settings, Privacy, About, text size and delete-all were left alone (UI-1).
+
+**L3 Update bar + What's new (6f.3, AC 17/21; replaces F7)**
+- `views/launch.tsx` `UpdateBar`, with the state in `pwa/launch.ts` (`updPhase`, `updHidden`, `showUpdBar`, `startUpdate()`):
+  - **waiting**: 有新版本 · 点这里更新 / New version · tap to update, plus ✕ 以后再说;
+  - **updating**: the refresh icon turns (static with reduce motion), `aria-busy`, ✕ hidden;
+  - **slow**: after 10 s with no new controller, 这次没更新好… with ✕ back. No retry loop.
+- Announced once, politely. ✕ hides the bar until the next launch.
+- It uses only the engine's `updateBar` / `applyUpdate()`, so it never shows during a trip or share. On H1 it sits under the top bar.
+- **TODO for UI-1's merge:** put `{showUpdBar.value && <UpdateBar />}` at the top of the Settings list.
+  - Import `UpdateBar` with `lazyView(() => import('./launch').then((m) => m.UpdateBar))` and `showUpdBar` from `../pwa/launch`.
+  - Then record `M5-L3-bar-settings`.
+- What's new sheet (`whatsnew`): the 1.0 copy, `bus` / `leaf` / `wifi-off` rows and one button, 知道了 / Got it.
+  - Focus goes to the title, then back to H1's search button.
+  - It shows once per device. Flag `whatsnew.v1` is in `pwa/whatsnew.ts` (eager, tiny).
+  - It is due only when the build is ≥ 1.0.0 AND the device was onboarded before this launch. A fresh 1.0 install stamps `fresh` on its first run.
+  - H1 opens it only when no trip or share is running and no sheet is open.
+  - The "updated" toast is skipped while What's new is due.
+  - QA hooks, mock/demo only: `?whatsnew=1` forces the sheet, `?upd=1` shows the bar.
+- The lazy chunk's copy is in `i18n/m5launch.ts`, not `ui.ts`, to stay inside the Home budget. The old `upd_*` keys in `ui.ts` are now unused.
+
+**L4 Install helper (6f.4, AC 26–29)**
+- Pure functions in `pwa/launch.ts`:
+  - `detectInAppBrowser(ua)`: WhatsApp, Facebook, Instagram, Telegram, WeChat, Line;
+  - `uaOs`, `iosVersion`, `iosBrowser`, `installVariant`, `installCardDue`, `afterDismiss`, `afterRouteView`, `chromeIntentUrl`.
+- The card sits under the place tiles, above Recent. It appears after the **2nd completed route view**: H3 with options, counted once per fetch, in `Routes.tsx`.
+  - It never shows when standalone or `navigator.standalone`, in the Android app, during a trip or share, or once installed.
+  - Dismiss hides it for 14 days. The second showing adds the Settings caption. A second dismissal means never again. State is in `install.v1`.
+- Card variants:
+  - **L4a** with a captured prompt: 放到主屏幕 opens the native prompt. Accepted → the card goes and the `installed` toast shows. Dismissed → counts as a dismissal.
+  - **L4a** without a prompt (Firefox): 看看怎么做 opens the F6 install sheet (Android steps).
+  - **L4b** iOS Safari, and iOS Chrome / Edge ≥ 16.4: a 3-step picture-guide sheet.
+    - The 6 drawn SVGs are inlined from `src/web/src/assets/install/` (copied from `creative/m5/install/`), so they follow dark mode.
+    - Step 1 uses the Chrome picture and hint for Chrome, and the Edge hint for Edge.
+    - 好了，我知道了 is not counted as a dismissal.
+  - **L4c** other iOS browsers and iOS < 16.4: Open in Safari. Copy link copies the **site root** and shows the toast with the 3 steps.
+- **L4d** in-app band at the very top of H1, `role=region` 打开方式, not sticky:
+  - Android: 用 Chrome 打开 (`intent://…`). If the page is still visible after 1.5 s, the button becomes 复制链接.
+  - iOS: 怎么打开？ opens the "Open in Safari" sheet.
+  - ✕ hides it for the session (`iab.off`). It is never shown during a trip or in the app.
+  - In-app browsers get the band instead of the card.
+- Log lines: `install:shown`, `install:accepted`, `install:dismissed`. No UA string is logged.
+- Icons `leaf` and `open-browser` are drawn inline in the lazy chunk, not added to the eager sprite. UI-1 or the merge may move them into `kit.tsx`.
+
+**L6 Offline cold start (6f.6, AC 20)**
+- While `online` is false, these controls keep their label and gain the `NeedsNet` caption (`ui/kit.tsx`, `wifi-off` 16 px, 需要网络 / Needs internet):
+  - H1's search button;
+  - place tiles (the caption replaces the sub-line);
+  - Recent rows;
+  - 带我回家;
+  - H3 route cards.
+- The caption is also part of each control's accessible name.
+- Tiles, Recent, Take me home and the H3 cards then do not navigate: haptic `tick` and a polite 需要网络。连上网络以后再按。
+- The search button still opens H2, which shows F4 offline.
+- Everything returns to normal when the app is back `online`.
+- **Not done:** the Help-sheet offline details (Show the driver last-known-address caption, 我在哪里 sub-line, baselines `M5-L6-help-offline` and `M5-L6-driver-offline`).
+
+**L9 Field-test kit (AC 41)**
+- `docs/field-test/`:
+  - `feedback-form.html` and `.pdf`, copied from Creative;
+  - `consent.md` with the zh/en consent line;
+  - `questions.md`, the plain-text question list;
+  - `script.md`: the owner-run ≈ 60-min script with the zh/en phrases to say, the no-recording / no-names rules, and the notes template.
+
+**Budget**
+- Home entry is **99.8 / 100 KB**; it was 98.9.
+- All L3/L4 UI is one lazy chunk (`launch`). Home mounts `LaunchTop` and `LaunchCard`, and each decides for itself.
+- The eager additions are only `NeedsNet`, two i18n keys, the offline branches in Home and `pwa/whatsnew.ts`.
+- **UI-1's merge will very likely push Home over 100 KB.** The Director should rule on raising the budget, or on what moves out.
+
+**Tests**
+- Typecheck green. Web unit tests **261** (was 229). New: `test/m5-ui2.test.ts`, 32 tests:
+  - in-app detection, 11 UAs plus 9 real-browser negatives;
+  - card variants;
+  - card timing;
+  - What's new;
+  - update phases.
+- Dev e2e: `e2e/m5-ui2.spec.ts`, 17 tests, covering:
+  - bar phases, and no bar during a trip;
+  - What's new zh/en;
+  - the card after the 2nd route view, its placement, prompt accepted and dismissed, the second dismissal, the no-prompt sheet;
+  - the iOS guide and the Chrome guide;
+  - L4c copying the root;
+  - the Android band falling back to Copy link, ✕ for the session;
+  - the iOS band sheet;
+  - L6 Home at 100/200 (no horizontal scroll) and H3 cards offline.
+- Docker, full dev suite: **168 passed, 5 failed** on the first run.
+  - Three passed on a rerun: `fixround:114`, `guide:153`, `ui:119`.
+  - `guide:456` (AC 50 demo get-off) is a pre-existing Docker timing flake. I timed it: base bf22bd9 took 7.8 s and 15.0 s, this branch 13.4 s and 7.3 s, against a 15 s expect. Same distribution.
+  - All 90 screenshot specs pass without update: `baselines*.spec.ts` + `m5-ui2.spec.ts`.
+- qa/tests `pwa.spec.ts`: 5/6.
+  - The failing test is "AC-2 SW precaches the shell… /settings offline in a new tab" (`row-about` not found).
+  - **It fails on base bf22bd9 too** (checked by building it), probably from the lazy Settings chunk and the SW precache. → QA / engine.
+  - AC-4 (two builds: banner → Update → "已更新" toast) passes with the new bar.
+
+**Baselines changed:** new only, 16 files in `src/web/e2e/baselines/`:
+- `M5-L3-bar-home-{light-100-zh,dark-200-en}`, `M5-L3-updating`, `M5-L3-slow`, `M5-L3-whatsnew-{zh,en}`;
+- `M5-L4a-card`, `M5-L4a-card-second`, `M5-L4b-card`, `M5-L4b-guide`, `M5-L4b-guide-chrome`, `M5-L4c-safari`;
+- `M5-L4d-android`, `M5-L4d-ios`, `M5-L4d-ios-sheet`;
+- `M5-L6-home-offline`.
+
+They were recorded in Docker at DPR 1, like the other dev baselines. No existing baseline was re-recorded.
+
+**Visible changes (Creative pre-flight)**
+1. H1 update bar: new copy, updating and slow states.
+2. What's new sheet.
+3. Install card in its 4 variants on H1, under the tiles.
+4. iOS picture-guide sheet; Open-in-Safari card and sheet.
+5. In-app band at the top of H1. At 100 % the zh text wraps to 3 lines beside the button; at 200 % it moves to the grid layout.
+6. 需要网络 captions on H1 (search, tiles, Recent, dock) and on the H3 cards while offline.
+
+**Next steps**
+- UI-1 merge:
+  - Settings update bar (TODO above) and `M5-L3-bar-settings`;
+  - the Home budget;
+  - `leaf` icon dedupe;
+  - `STORAGE_KEYS` conflicts (added `install.v1`, `whatsnew.v1`, session `iab.off`).
+- L6 Help / driver offline states and their baselines.
+- Real-device checks: the Android intent hand-off from the WhatsApp/Facebook/Line browsers, the iOS Edge share position (⚠ in 6f.4), and clipboard access in in-app browsers.
+- QA: the pre-existing pwa AC-2 `/settings` offline failure.

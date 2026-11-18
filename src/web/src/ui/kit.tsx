@@ -143,12 +143,14 @@ export function NumSteps({ items }: { items: string[] }) {
   );
 }
 
-export function Wordmark({ name }: { name: string }) {
+/** The wordmark is Home's h1; on pages with their own h1 (About, /setup, sheets) it is plain text (`tag="p"`, AC 13). */
+export function Wordmark({ name, tag = 'h1' }: { name: string; tag?: 'h1' | 'p' }) {
+  const T = tag;
   return (
-    <h1 class="wordmark">
+    <T class="wordmark">
       <SealSvg />
       <span>{name}</span>
-    </h1>
+    </T>
   );
 }
 
@@ -187,10 +189,17 @@ export function Sheet(props: { id: string; title: string; close?: boolean; top?:
   const t = useT();
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
+    // M5 AC 12: focus moves into the sheet and back to its trigger when it closes (same screen only).
+    const trigger = document.activeElement as HTMLElement | null;
+    const path = router.route.value.path;
     ref.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && router.closeSheet();
     addEventListener('keydown', onKey);
-    return () => removeEventListener('keydown', onKey);
+    return () => {
+      removeEventListener('keydown', onKey);
+      if (trigger && trigger !== document.body && router.route.value.path === path)
+        setTimeout(() => trigger.isConnected && !document.querySelector('.sheet') && trigger.focus({ preventScroll: true }));
+    };
   }, []);
   const titleId = `${props.id}-title`;
   return (

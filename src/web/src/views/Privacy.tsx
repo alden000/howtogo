@@ -64,7 +64,8 @@ export function Privacy() {
         <Bar />
       ) : (
         <header class="bar">
-          {history.length > 1 ? (
+          {/* From V/W (`?lang=`, same tab) Back returns there; opened on its own: a quiet link to the app. */}
+          {external && history.length > 1 ? (
             <button type="button" class="backbtn" data-testid="back" aria-label={back} onClick={() => history.back()}>
               <Icon name="back" />
               <span>{back}</span>

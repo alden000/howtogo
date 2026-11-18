@@ -541,7 +541,7 @@ function WHeader() {
   return (
     <>
       <header class="whead">
-        <Wordmark name={t('app_name')} />
+        <Wordmark name={t('app_name')} tag="p" />
         <button
           type="button"
           class="iconbtn"

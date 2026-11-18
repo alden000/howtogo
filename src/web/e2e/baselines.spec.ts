@@ -43,7 +43,7 @@ const settled = (page: Page) =>
   page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity));
 const shot = async (page: Page, name: string) => {
   await settled(page);
-  await expect(page).toHaveScreenshot(`${name}.png`, { mask: [page.locator('[data-testid=map], img')] });
+  await expect(page).toHaveScreenshot(`${name}.png`, { mask: [page.locator('[data-testid=map], img, [data-testid=about-version]')] });
 };
 /** Open a sheet over Home through the app's router (the same call the screens make). */
 const openSheet = async (p: Page, name: string) => {
