@@ -6,7 +6,7 @@
  */
 import { h, type ComponentType, type FunctionComponent } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { handleChunkError, isChunkLoadError } from '../pwa/chunkReload';
+import { handleChunkError, shouldReloadFor } from '../pwa/chunkReload';
 
 type Loader<P> = () => Promise<ComponentType<P>>;
 const registry: (() => Promise<unknown>)[] = [];
@@ -31,7 +31,7 @@ export function lazyView<P extends object>(load: Loader<P>): LazyView<P> {
   const Lazy = ((props: P) => {
     const [, setReady] = useState(0);
     useEffect(() => {
-      if (!C) preload().then(() => setReady((n) => n + 1), (e: unknown) => isChunkLoadError(e) && handleChunkError());
+      if (!C) preload().then(() => setReady((n) => n + 1), (e: unknown) => shouldReloadFor(e) && handleChunkError());
     }, []);
     return C ? h(C as ComponentType<P>, props) : null;
   }) as LazyView<P>;

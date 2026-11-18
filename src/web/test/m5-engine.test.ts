@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseTelemetry, TELEMETRY } from '@howtogo/shared/telemetry';
 import { codeForLine, createTelemetry, TELEMETRY_KEY } from '../src/telemetry/client';
-import { CHUNK_RELOAD_WINDOW_MS, chunkReloadDecision, handleChunkError, isChunkLoadError } from '../src/pwa/chunkReload';
+import { CHUNK_RELOAD_WINDOW_MS, chunkReloadDecision, handleChunkError, isChunkLoadError, shouldReloadFor } from '../src/pwa/chunkReload';
 import { applyUpdate, onControllerChange, pendingReload, setUpdateGuard, updateBar, updateBusy, updateReady } from '../src/pwa/register';
 import { batteryReading, createSaverState, watchBattery } from '../src/state/battery';
 import { log, resetLog, logLines } from '../src/log';
@@ -119,6 +119,13 @@ describe('chunk-load failure → one clean reload (AC 18)', () => {
     expect(isChunkLoadError(new TypeError('Importing a module script failed.'))).toBe(true);
     expect(isChunkLoadError(new Error('error loading dynamically imported module'))).toBe(true);
     expect(isChunkLoadError(new Error('Something else'))).toBe(false);
+  });
+
+  it('never reloads for MapLibre (optional, not precached) or for non-load errors in an import chain', () => {
+    expect(shouldReloadFor(new TypeError('Failed to fetch dynamically imported module: https://x/assets/Guide-1.js'))).toBe(true);
+    expect(shouldReloadFor(new TypeError('Failed to fetch dynamically imported module: https://x/assets/maplibre-gl-1.js'))).toBe(false);
+    expect(shouldReloadFor(new Error('Unable to preload CSS for /assets/maplibre-gl-1.css'))).toBe(false);
+    expect(shouldReloadFor(new Error("Invalid type: 'container' must be a String or HTMLElement."))).toBe(false);
   });
 
   it('reloads once, flushes the trip first, then never loops within the window', () => {

@@ -51,16 +51,32 @@ export function handleChunkError(deps: ChunkReloadDeps = {}): 'reload' | 'skip' 
   return d;
 }
 
-/** Installs the listeners: Vite's `vite:preloadError` and unhandled dynamic-import rejections. */
+/**
+ * MapLibre (JS + CSS) is optional: it is not precached, so it fails offline by design, and the map code shows
+ * its own fallback. Its failures must never reload the page (a reload mid-trip, offline, helps nobody).
+ */
+export function isOptionalChunk(reason: unknown): boolean {
+  const msg = reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : '';
+  return /maplibre/i.test(msg);
+}
+
+/** Only a real load failure of an app chunk reloads. */
+export const shouldReloadFor = (reason: unknown): boolean => isChunkLoadError(reason) && !isOptionalChunk(reason);
+
+/**
+ * Installs the listeners: Vite's `vite:preloadError` and unhandled dynamic-import rejections. Vite fires
+ * `vite:preloadError` for ANY error in a dynamic-import chain (e.g. a MapLibre constructor error), so the reason
+ * is checked: anything that is not a chunk/CSS load failure is left alone.
+ */
 export function installChunkReload(deps: ChunkReloadDeps = {}): void {
   addEventListener('vite:preloadError', (e) => {
+    if (!shouldReloadFor((e as Event & { payload?: unknown }).payload)) return; // the caller's own catch handles it
     e.preventDefault(); // we handle it; don't also throw
     handleChunkError(deps);
   });
   addEventListener('unhandledrejection', (e) => {
-    if (isChunkLoadError((e as PromiseRejectionEvent).reason)) {
-      e.preventDefault();
-      handleChunkError(deps);
-    }
+    if (!shouldReloadFor((e as PromiseRejectionEvent).reason)) return;
+    e.preventDefault();
+    handleChunkError(deps);
   });
 }
