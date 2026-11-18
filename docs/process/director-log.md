@@ -205,3 +205,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - UI-2 (dev/m5-ui2 c2d86e8): L3 update bar + What's new, L4 install helper + in-app-browser bars (pure UA detection), L6 offline (Home/route), L9 field-test docs.
 - Rulings: Home JS budget stays 100 KB gz → lazy-load the non-first-paint UI. Privacy page ≤ 400 words, with Creative's cuts (396) and a unit test. The Docker image has no bold CJK, so bold Chinese is checked on a real phone.
 - Creative M5 UI review (2ca2dcf): APPROVED WITH FIXES (2 High, 4 Medium, 5 Low). All of them go into the integration round (dev/m5-int) with the remaining L6 Help/driver offline states, h1 on route detail/guidance, the Settings update bar and the flaky-test hardening.
+
+## 2026-11-18 — Owner report: location always "Ang Mo Kio"
+- Cause: FIXTURE_MODE reverse geocoding snaps the real GPS fix to the nearest of the few FIXTURE_PLACES, so most of Singapore reads "Ang Mo Kio". That's a realistic-looking wrong address, which breaks the never-mislead rule. Bug QA-D1 (S2: wrong "Where am I" info, safety-adjacent).
+- Ruling: in fixture mode, reverse geocoding returns no name or address. The app labels the point "你的位置 / Your location" with a sample-mode note (Creative to word it). The route origin keeps using the real coordinates. Goes into the M5 fix round.
+- Preview deployed: https://howtogo-preview.genixm.workers.dev (dev/m5-int 43fc5a1). smoke:deploy 29/30: MapLibre referenced from index.html (sent to QA). Also seen: first-run step dots stacked vertically (sent to QA).
