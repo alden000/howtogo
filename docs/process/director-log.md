@@ -193,3 +193,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
 
 ## 2026-11-18 — Owner request: smaller text size
 - Owner: the text is a bit big for younger users; wants a "normal" size option. Ruling: add ONE option below 100 %; new installs still default to 100 %; it's offered wherever text size is chosen (first-run, Settings, /setup). Touch targets keep the guide minimum. Creative specs it (STYLE-GUIDE v1.4.1); built in the M5 UI round (small, specified, so it goes into the round).
+
+## 2026-11-18 — M5 engine round merged (dev/m5-engine 74ec2ea)
+- Lighthouse median of 3: / 96, /about 95, /settings 96, /t 100 (were 83/81/92); a11y 100; Home JS 99.2 KB (budget 100). Battery logic + the "never degraded" replay test; SW update deferral, migrations, chunk reload; two Worker environments (`howtogo-preview` on workers.dev, `[env.production]` `howtogo` on howtogo.wwweeeiii.com, account pinned, static assets default, embed opt-in); smoke:deploy 29/29 locally; monitoring Worker side + client. Unit tests 159/229/220, Docker dev-e2e 156/156.
+- Rulings: (1) production stays on the 0.3.0 sample deploy until the owner's OneMap/LTA secrets are in; the first `deploy:prod` waits for them (OQ9). New builds go to `howtogo-preview`. (2) `/api/health` keeps `lta: key|proxy|none`. (3) `/t/*` excluded from the SEO threshold (noindex by design). (4) AC 30 amended: static assets are the default deploy; embedding stays opt-in.
+- The Director creates the preview KV namespace when first deploying the preview (owner authorised hosting work on their account).
+- Next: M5 UI round (Creative §6f L1–L9 + 6f.11 smaller text size, Settings switch for error counts, OneMap logo resolution, "Delete all my data" completeness, expired-cache eviction).
