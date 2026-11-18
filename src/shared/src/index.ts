@@ -11,5 +11,6 @@ export * from './speech';
 export * from './share';
 export * from './trip';
 export * from './simulate';
+export * from './battery';
 export { STRINGS, SPEECH_LANG_TAG, t, normalizeLang, hasKey } from './i18n/steps';
 export type { StringTable } from './i18n/steps';

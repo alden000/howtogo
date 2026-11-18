@@ -1,7 +1,7 @@
 /// <reference types="vitest/config" />
-import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import preact from '@preact/preset-vite';
+import { APP_VERSION } from './src/version.ts';
 import { VIEWER_INPUT, isViewerFile, viewerEntry } from './vite.viewer.ts';
 
 /**
@@ -48,7 +48,7 @@ function versionJson(): Plugin {
     name: 'howtogo-version-json',
     apply: 'build',
     generateBundle() {
-      const version = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version;
+      const version = APP_VERSION;
       const built = new Date().toISOString().slice(0, 10);
       this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version, built }) + '\n' });
     },

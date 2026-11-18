@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { haversine, type Place } from '@howtogo/shared';
 import { useServices, useT } from '../context';
-import { applyUpdate, updateReady } from '../pwa/register';
+import { applyUpdate, updateBar } from '../pwa/register';
 import { here, locate } from '../state/location';
 import { TEXT_SCALE, TEXT_SIZES } from '../state/store';
 import { HomeConfirm } from './HomeConfirm';
@@ -123,7 +123,7 @@ export function Home() {
       <main class="scroll">
         <SetupUndo />
         <DisruptionBanner where="home" />
-        {updateReady.value && !bannerOff && (
+        {updateBar.value && !bannerOff && (
           <div class="banner" data-testid="update-banner">
             <button type="button" data-testid="sw-update" aria-label={t('upd_sr')} onClick={applyUpdate}>
               <Icon name="refresh" />

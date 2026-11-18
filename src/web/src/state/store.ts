@@ -5,7 +5,7 @@
  *  - sessionStorage: the in-progress plan (from/to/options) so a reload on /routes works.
  */
 import { batch, effect, signal } from '@preact/signals';
-import type { AlertState, GuidanceState, Itinerary, Journey, Lang, Place, RankedItinerary, RoutePreference, SegmentPlan } from '@howtogo/shared';
+import type { AlertState, BatterySaverPref, GuidanceState, Itinerary, Journey, Lang, Place, RankedItinerary, RoutePreference, SegmentPlan } from '@howtogo/shared';
 import { local, readJSON, session, writeJSON, type KV } from './storage';
 
 export type UiLang = 'zh' | 'en';
@@ -31,6 +31,10 @@ export interface Settings {
   onboarded: boolean;
   /** 震动提示: off silences all six haptics (6c.13). */
   haptics: boolean;
+  /** M5 AC 8 省电模式 / Battery saver: Auto (≤ 20 % and not charging) / On / Off. Settings row: UI round. */
+  batterySaver: BatterySaverPref;
+  /** M5 AC 40 发送匿名错误统计 / Send anonymous error counts (OQ3: on). Settings switch: UI round. */
+  errorCounts: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -43,6 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
   name: '',
   onboarded: false,
   haptics: true,
+  batterySaver: 'auto',
+  errorCounts: true,
 };
 
 export interface SavedPlaces {
