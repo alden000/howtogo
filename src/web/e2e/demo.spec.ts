@@ -12,6 +12,8 @@ test.describe('demo mode', () => {
   test.use({ serviceWorkers: 'block' });
 
   test('search → route → guide: cues in order, Back steps one page, reload resumes', async ({ page }) => {
+    // 173 simulated fixes: ~6 s on a GPU host, ~45 s in the Docker image (software GL re-renders the map per fix).
+    test.setTimeout(120_000);
     await page.goto('/?demo=1&demoMs=30&ff=guide');
     await expect(page.getByTestId('to-field')).toBeVisible();
 
@@ -28,7 +30,7 @@ test.describe('demo mode', () => {
     await expect(page).toHaveURL(/\/guide$/);
 
     // Let the simulated trip run into the bus ride, then reload mid-trip.
-    await expect.poll(async () => (await logOf(page)).includes('cue:boarded') || (await cues(page)).length > 4, { timeout: 15_000 }).toBe(true);
+    await expect.poll(async () => (await logOf(page)).includes('cue:boarded') || (await cues(page)).length > 4, { timeout: 45_000 }).toBe(true);
     const stepBefore = Number(await page.getByTestId('guide-progress').getAttribute('data-step'));
     await page.reload();
     await expect(page).toHaveURL(/\/guide$/);
@@ -38,7 +40,7 @@ test.describe('demo mode', () => {
     expect(stepAfter).toBeGreaterThan(0);
 
     // The rest of the trip runs to arrival; get-off cues come in order.
-    await expect(page.getByTestId('arrived')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId('arrived')).toBeVisible({ timeout: 75_000 });
     const all = await cues(page);
     const nextStop = all.indexOf('get_off_next_stop');
     const now = all.indexOf('get_off_now');

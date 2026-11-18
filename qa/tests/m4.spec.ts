@@ -501,16 +501,18 @@ test('AC 29: no live share → H12 "告诉美玲我到了" opens WhatsApp to the
 });
 
 // ================================================================ F. Help
-test('AC 32: Help order — call first contact → others → show the driver → where am I → find my way → let family see me → taxi → 995 last', async ({ page }) => {
+// Amended by Developer C 2026-11-18 per Director ruling (QA-37): AC 32 follows Creative §6e.3 — the share row
+// sits before 995 and there is no taxi row in Help (taxi lives in H10, §6e.6). QA to confirm.
+test('AC 32: Help order (§6e.3) — call first contact → others → show the driver → where am I → find my way → let family see me → 995 last', async ({ page }) => {
   await senior(page, { contacts: [MEI, JUN] });
   await startTo(page, 'tan tock');
   await page.getByTestId('guide-help').click();
   const ids = await page.locator('[data-testid=sheet-help] [data-testid]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')).filter((x) => /^help-|^taxi$/.test(x!)));
-  const want = ['help-call', 'help-call-other', 'help-driver', 'help-where', 'help-reroute', 'help-share-loc', 'taxi', 'help-995'];
+  const want = ['help-call', 'help-call-other', 'help-driver', 'help-where', 'help-reroute', 'help-share-loc', 'help-995'];
   const got = ids.filter((x) => want.includes(x!) || /^help-/.test(x!));
   expect(got[0]).toBe('help-call');
   expect(got[got.length - 1]).toBe('help-995');
-  expect(got, 'AC 32 full order incl. "让家人看到我在哪里" and taxi rows').toEqual(want);
+  expect(got, 'AC 32 full order (§6e.3) incl. "让家人看到我在哪里" before 995, no taxi row').toEqual(want);
 });
 
 test('AC 33: call family is one tap tel:+65…; with no contacts "还没有家人电话 · 添加" → editor', async ({ page }) => {
@@ -600,7 +602,8 @@ test('AC 38: offline Help — call family, 995, show the driver work; network ro
 });
 
 // ================================================================ G. contacts / places
-test('AC 39: Family contacts — validation (SG 8 digits → +65), max 3, first = Help/share default; My places editor exists', async ({ page }) => {
+// Amended by Developer C 2026-11-18 per Director ruling (QA-40): up to 5 family members, not 3. QA to confirm.
+test('AC 39: Family contacts — validation (SG 8 digits → +65), max 5, first = Help/share default; My places editor exists', async ({ page }) => {
   await senior(page);
   await page.goto('/settings');
   await page.getByTestId('row-family').click();
@@ -620,7 +623,10 @@ test('AC 39: Family contacts — validation (SG 8 digits → +65), max 3, first 
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('howtogo.family.v1')!)[0].phone)).toBe('+6591234567');
   await add('志明', '98765432');
   await add('阿华', '81234567');
-  expect.soft(await page.getByTestId('contact-add').count(), 'no 4th contact (max 3)').toBe(0);
+  expect.soft(await page.getByTestId('contact-add').count(), 'a 4th contact is allowed (max 5)').toBe(1);
+  await add('小英', '82345678');
+  await add('阿明', '83456789');
+  expect.soft(await page.getByTestId('contact-add').count(), 'no 6th contact (max 5)').toBe(0);
   await page.goto('/settings');
   expect.soft(await page.getByText(/常去的地方/).count(), 'Settings → My places (≤ 6, add/rename/remove/↑↓)').toBeGreaterThan(0);
 });
