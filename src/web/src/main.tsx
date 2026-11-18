@@ -11,6 +11,7 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/guide.css';
 import './styles/m34.css';
+import './styles/m5.css';
 import { render } from 'preact';
 import { effect, untracked } from '@preact/signals';
 import { simulateFixes } from '@howtogo/shared';
@@ -33,7 +34,8 @@ import { runMigrations } from './state/migrations';
 import { createSaverState, watchBattery } from './state/battery';
 import { helpShare } from './state/helpShare';
 import { installChunkReload } from './pwa/chunkReload';
-import { setUpdateGuard } from './pwa/register';
+import { setUpdateGuard, updateReady } from './pwa/register';
+import { initWhatsNew } from './pwa/whatsnew';
 import { createTelemetry, httpTransport, type Screen } from './telemetry/client';
 import { APP_VERSION } from './version';
 import { preloadViews, whenIdle } from './ui/lazy';
@@ -119,6 +121,10 @@ async function boot() {
   if (mig.ran.length) log(`storage:migrated ${mig.from}->${mig.to}`);
   else if (mig.newer) log('storage:newer');
   const store = createStore();
+  // M5 L3: What's new once after updating to 1.0.0 (a fresh 1.0 install never sees it). Mock/demo QA hooks:
+  // `?whatsnew=1` forces the sheet, `?upd=1` shows the update bar (no service worker in tests).
+  initWhatsNew({ version: APP_VERSION, onboarded: !!store.settings.peek().onboarded, force: mock && q.get('whatsnew') === '1' });
+  if (mock && q.get('upd') === '1') updateReady.value = true;
   // M5 AC 18: a failed lazy chunk → one clean reload (trip flushed first), never a loop.
   installChunkReload({ beforeReload: () => store.flushTrip() });
   // M5 AC 8: low-battery mode (Settings row + H5 chip come in the UI round).

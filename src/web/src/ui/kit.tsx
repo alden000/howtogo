@@ -128,6 +128,17 @@ export function StatePanel(props: { id: string; icon: IconName; title: string; b
   );
 }
 
+/** M5 UI-2 L6 (6f.6): the "需要网络 / Needs internet" caption second line on controls that need the network. */
+export function NeedsNet() {
+  const t = useT();
+  return (
+    <span class="neednet" data-testid="needs-net">
+      <Icon name="wifi-off" />
+      {t('need_net')}
+    </span>
+  );
+}
+
 /** Numbered how-to steps (F2/F6): body size, number in a 32px primary-soft disc. */
 export function NumSteps({ items }: { items: string[] }) {
   return (

@@ -57,6 +57,11 @@ const FamilyList = lazyView(() => familyViews().then((m) => m.FamilyList));
 const SetupFamily = lazyView(() => familyViews().then((m) => m.SetupFamily));
 const SetupImport = lazyView(() => familyViews().then((m) => m.SetupImport));
 const SetupStart = lazyView(() => familyViews().then((m) => m.SetupStart));
+// M5 UI-2: L3 What's new, L4b picture guide, L4d iOS in-app-browser help (6f.3, 6f.4).
+const launchViews = () => import('./views/launch');
+const WhatsNewSheet = lazyView(() => launchViews().then((m) => m.WhatsNewSheet));
+const InstallGuideSheet = lazyView(() => launchViews().then((m) => m.InstallGuideSheet));
+const IabHelpSheet = lazyView(() => launchViews().then((m) => m.IabHelpSheet));
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
 const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
@@ -238,6 +243,9 @@ export function App() {
       {sheet === 'install' && <InstallSheet />}
       {sheet === 'report' && <ReportSheet />}
       {sheet === 'route-prefs' && <RoutePrefsSheet />}
+      {sheet === 'whatsnew' && <WhatsNewSheet />}
+      {sheet === 'install-guide' && <InstallGuideSheet />}
+      {sheet === 'iab-help' && <IabHelpSheet />}
       <Toast />
       <LiveRegion />
       <div class="ghosts over" />
