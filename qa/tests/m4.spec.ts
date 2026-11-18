@@ -123,7 +123,8 @@ test('AC 1: parity — Help on H1/H2/H3/H4/H5, Share on H4 and H5, pill while sh
   await expect(page.getByTestId('route-option-0')).toBeVisible();
   expect.soft(await help().isVisible(), 'H3: Help button').toBe(true);
   await page.getByTestId('route-option-0').click();
-  expect.soft(await help().isVisible(), 'H4: Help button').toBe(true);
+  // M5: H4 is a lazy chunk; wait for it instead of sampling visibility once.
+  await expect.soft(help(), 'H4: Help button').toBeVisible();
   await expect(page.getByTestId('share-before'), 'H4 share').toBeVisible();
   await page.getByTestId('start-guide').click();
   await expect(page.getByTestId('guide-help'), 'H5').toBeVisible();
@@ -628,7 +629,8 @@ test('AC 39: Family contacts — validation (SG 8 digits → +65), max 5, first 
   await add('阿明', '83456789');
   expect.soft(await page.getByTestId('contact-add').count(), 'no 6th contact (max 5)').toBe(0);
   await page.goto('/settings');
-  expect.soft(await page.getByText(/常去的地方/).count(), 'Settings → My places (≤ 6, add/rename/remove/↑↓)').toBeGreaterThan(0);
+  // M5: Settings is a lazy chunk, so wait for the row instead of counting at once.
+  await expect.soft(page.getByTestId('row-places'), 'Settings → My places (≤ 6, add/rename/remove/↑↓)').toContainText('常去的地方');
 });
 
 // ================================================================ H. caregiver setup (real Worker)

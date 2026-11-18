@@ -92,6 +92,9 @@ export async function layoutProblems(page: Page, opts: { spacing?: boolean } = {
     );
     for (const el of ctrls) {
       const r = el.getBoundingClientRect();
+      // Inline link in a sentence (Creative M5 review fix 2): display:inline + an invisible ≥ 56 px ::after hit area.
+      // WCAG 2.5.8 exempts inline targets; still flagged if the ::after hit area is missing.
+      if (getComputedStyle(el).display === 'inline' && parseFloat(getComputedStyle(el, '::after').height) >= 55.5) continue;
       if (r.height < 55.5 || r.width < 55.5) out.push(`small ${name(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
     }
     for (let i = 0; i < ctrls.length; i++)
