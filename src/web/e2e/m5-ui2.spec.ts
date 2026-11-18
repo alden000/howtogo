@@ -357,6 +357,29 @@ test.describe('L6 offline cold start', () => {
     await shot(page, name('M5-L6-driver-offline', LZ));
   });
 
+  test('QA-59 sample mode: 我在哪里 names no place for the real position — My location + sample note + coordinates', async ({ page }) => {
+    await page.addInitScript((c) => localStorage.setItem('howtogo.family.v1', JSON.stringify(c)), [MEI]);
+    // Live mode against a fixture-mode Worker (answered here): revgeocode returns the QA-59 sample shape.
+    await page.route('**/api/**', (r) => {
+      const u = new URL(r.request().url());
+      if (u.pathname === '/api/health') return r.fulfill({ json: { ok: true, fixtureMode: true, onemap: 'fixture', lta: 'none', version: '0' } });
+      if (u.pathname === '/api/revgeocode') return r.fulfill({ json: { name: '', address: '', postal: '', sample: true } });
+      return r.fulfill({ status: 503, json: { error: { code: 'not_configured', message: 'x' } } });
+    });
+    await hermetic(page);
+    await page.clock.setFixedTime(FIXED);
+    await onboarded(page, { lang: 'zh', theme: 'light', textSize: 'standard', motion: 'on' });
+    await page.goto('/');
+    await page.waitForFunction(() => '__howtogo' in window);
+    await page.getByTestId('nav-help').click();
+    await page.getByTestId('help-where').click();
+    const card = page.getByTestId('driver-card');
+    await expect(card).toContainText('My location · 我的位置');
+    await expect(card).not.toContainText(/Ang Mo Kio|Toa Payoh|Bishan|正在/);
+    await expect(page.getByTestId('here-sample')).toHaveText('示范模式，暂时不显示地址。');
+    await expect(page.getByTestId('here-coords')).toContainText('1.3346, 103.8491');
+  });
+
   test('Show the driver offline after a fix: 我在哪里 keeps the last known address, with its time', async ({ page, context }) => {
     await open(page, LZ);
     // Home located the demo position online (address found), then the network goes.

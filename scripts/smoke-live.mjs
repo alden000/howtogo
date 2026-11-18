@@ -2,8 +2,12 @@
 // M5 AC 35–36 (M3 AC 45) — live-credential smoke against a DEPLOYED Worker's public API. No secrets on this
 // side: the Worker holds the owner's OneMap/LTA credentials (`wrangler secret put`).
 //   npm run smoke:live -- <base-url> [--json]        (or SMOKE_LIVE_URL=<base-url>)
-// Exit codes: 0 PASS · 1 FAIL (a live call failed or a shape mismatched) · 2 BLOCKED (no URL configured,
-// /api/health says fixtureMode:true, or credentials are missing — BLOCKED is not FAIL) · 64 usage.
+// Exit codes: 0 PASS (WARN lines allowed) · 1 FAIL (a live call failed or a shape mismatched) · 2 BLOCKED (no URL
+// configured, /api/health says fixtureMode:true, or credentials are missing — BLOCKED is not FAIL) · 64 usage.
+// LTA (Director ruling, QA-55): `lta: key` or `lta: proxy` both count as live for bus arrival. With `proxy`,
+// alerts and lifts may answer 503 not_configured (the proxy serves bus arrival only): that is SKIP (WARN), not FAIL.
+// `lta: none` is BLOCKED. Exits set process.exitCode and let the event loop drain (no process.exit right after
+// fetch: on Windows that trips a libuv assertion, QA-54).
 // At most 20 requests per run, ≥ 300 ms apart. Prints no tokens, no response bodies and no coordinates
 // beyond the fixed public test points below. `--json` writes qa/.out/smoke-live.json.
 // `--direct` (calling OneMap/LTA directly with a local .dev.vars, AC 37 Should) is not implemented: it needs
@@ -15,17 +19,21 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);
 if (args.includes("--direct")) {
   console.log("smoke:live --direct is not available: it would need OneMap/LTA credentials on this machine (owner-only secrets).");
-  process.exit(2);
+  process.exitCode = 2;
+} else {
+  process.exitCode = await main();
 }
+
+async function main() {
 const base = (args.find((a) => !a.startsWith("--")) ?? process.env.SMOKE_LIVE_URL ?? "").replace(/\/+$/, "");
 if (!base) {
   console.log("smoke:live BLOCKED — no Worker URL configured. Run `npm run smoke:live -- <base-url>` (or set SMOKE_LIVE_URL)");
-  console.log("after the owner has set ONEMAP_EMAIL, ONEMAP_PASSWORD and LTA_ACCOUNT_KEY with `wrangler secret put` (docs/process/DEPLOY.md).");
-  process.exit(2);
+  console.log("after the owner has set ONEMAP_EMAIL, ONEMAP_PASSWORD (and LTA_ACCOUNT_KEY or the LTA proxy binding) with `wrangler secret put` (docs/process/DEPLOY.md).");
+  return 2;
 }
 if (!/^https?:\/\/[^/]+$/.test(base)) {
   console.error("usage: npm run smoke:live -- <base-url> [--json]");
-  process.exit(64);
+  return 64;
 }
 
 const MAX_REQUESTS = 20;
@@ -35,10 +43,15 @@ let last = 0;
 const UA = "howtogo-smoke-live/1";
 const results = [];
 const openItems = {};
+const warnings = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const check = (name, ok, note = "") => {
   results.push({ name, ok: !!ok, note });
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${note ? ` — ${note}` : ""}`);
+};
+const skip = (name, note) => {
+  warnings.push({ name, note });
+  console.log(`WARN  ${name} — SKIP ${note}`);
 };
 const item = (name, found, note = "") => {
   openItems[name] = found ? "FOUND" : "MISSING";
@@ -88,18 +101,18 @@ const hb = h.body ?? {};
 console.log(`info  health status=${h.status} fixtureMode=${hb.fixtureMode} onemap=${hb.onemap} lta=${hb.lta} version=${hb.version}`);
 if (h.status !== 200) {
   check("/api/health reachable", false, `status ${h.status}${h.error ? " " + h.error : ""}`);
-  process.exit(1);
+  return 1;
 }
 const blocked = [];
 if (hb.fixtureMode !== false) blocked.push("fixtureMode is not false (sample routes)");
 if (hb.onemap !== "ok") blocked.push(`OneMap credentials: ${hb.onemap ?? "unknown"}`);
-if (hb.lta !== "key") blocked.push(`LTA key: ${hb.lta ?? "unknown"} (alerts and lifts need the LTA_ACCOUNT_KEY secret)`);
+if (hb.lta !== "key" && hb.lta !== "proxy") blocked.push(`LTA: ${hb.lta ?? "unknown"} (bus arrival needs the LTA_ACCOUNT_KEY secret or the LTA proxy binding)`);
 // D-7 ⚠: Bearer prefix and token expiry are handled server-side; health must not leak either.
 item("token expiry hidden from /api/health", !/expir|token/i.test(JSON.stringify(hb)));
 if (blocked.length) {
   console.log(`smoke:live BLOCKED — ${blocked.join("; ")}. The owner sets the secrets with \`wrangler secret put\` (docs/process/DEPLOY.md).`);
   write("BLOCKED");
-  process.exit(2);
+  return 2;
 }
 
 // 1. search ×3
@@ -138,31 +151,43 @@ for (const stop of STOPS) {
 }
 item("bus arrival `Monitored` = 1 seen (live GPS)", monitoredSeen, monitoredSeen ? "" : "may be MISSING late at night");
 
-// 5. alerts
+// 5. alerts (with `lta: proxy`, 503 not_configured = SKIP/WARN)
+const ltaSkip = (r) => hb.lta === "proxy" && r.status === 503 && r.body?.error?.code === "not_configured";
 {
   const r = await api("/api/alerts");
+  if (ltaSkip(r)) {
+    skip("alerts (TrainServiceAlerts)", "not_configured (lta: proxy serves bus arrival only)");
+    item("TrainServiceAlerts shape", false, "skipped");
+  } else {
   const b = r.body ?? {};
   const ok = r.status === 200 && (b.status === "normal" || b.status === "disrupted") && typeof b.minor === "boolean" && Array.isArray(b.lines) && Array.isArray(b.messages);
   check("alerts (TrainServiceAlerts)", ok, `status ${r.status}, ${b.status ?? "-"}`);
   item("TrainServiceAlerts shape", ok);
+  }
 }
 
 // 6. lifts
 {
   const r = await api("/api/lifts");
+  if (ltaSkip(r)) {
+    skip("lifts (FacilitiesMaintenance)", "not_configured (lta: proxy serves bus arrival only)");
+    item("FacilitiesMaintenance shape", false, "skipped");
+  } else {
   const b = r.body ?? {};
   const ok = r.status === 200 && isStr(b.fetchedAt) && Array.isArray(b.lifts) && b.lifts.every((l) => isStr(l.station) && isStr(l.desc));
   check("lifts (FacilitiesMaintenance)", ok, `status ${r.status}, ${Array.isArray(b.lifts) ? b.lifts.length : 0} lifts`);
   item("FacilitiesMaintenance shape", ok);
+  }
 }
 
 function write(verdict) {
   if (!args.includes("--json")) return;
   mkdirSync(`${ROOT}qa/.out`, { recursive: true });
-  writeFileSync(`${ROOT}qa/.out/smoke-live.json`, JSON.stringify({ base, verdict, at: new Date().toISOString().slice(0, 10), requests, results, openItems }, null, 1));
+  writeFileSync(`${ROOT}qa/.out/smoke-live.json`, JSON.stringify({ base, verdict, lta: hb.lta, at: new Date().toISOString().slice(0, 10), requests, results, warnings, openItems }, null, 1));
 }
 const failed = results.filter((r) => !r.ok);
 const verdict = failed.length ? "FAIL" : "PASS";
 write(verdict);
-console.log(`smoke:live ${verdict} — ${results.length - failed.length}/${results.length} checks, ${requests} requests`);
-process.exit(failed.length ? 1 : 0);
+console.log(`smoke:live ${verdict} — ${results.length - failed.length}/${results.length} checks, ${warnings.length} WARN (skipped), ${requests} requests`);
+return failed.length ? 1 : 0;
+}

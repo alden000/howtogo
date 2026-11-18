@@ -23,7 +23,9 @@ test('QA-48: fonts are self-hosted — no third-party font request; the Atkinson
     if (/font|woff/i.test(r.url()) && !r.url().startsWith(new URL(page.url() || 'http://localhost').origin)) foreign.push(r.url());
   });
   await boot(page);
-  await expect(page.locator('link[rel=preload][as=font]')).toHaveAttribute('href', /^\/assets\/atkinson-hyperlegible-latin-700-normal-.*\.woff2$/);
+  await expect(page.locator('link[rel=preload][as=font]').first()).toHaveAttribute('href', /^\/assets\/atkinson-hyperlegible-latin-700-normal-.*\.woff2$/);
+  // QA-58: the 400 face is preloaded too (body text and the first-run preview).
+  await expect(page.locator('link[rel=preload][as=font]').nth(1)).toHaveAttribute('href', /^\/assets\/atkinson-hyperlegible-latin-400-normal-.*\.woff2$/);
   await page.evaluate(() => document.fonts.ready);
   expect(await page.evaluate(() => document.fonts.check('700 20px "Atkinson Hyperlegible"', '23'))).toBe(true);
   expect(foreign.filter((u) => !u.startsWith('http://localhost'))).toEqual([]);

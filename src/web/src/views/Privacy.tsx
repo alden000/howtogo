@@ -56,7 +56,7 @@ export function Privacy() {
     router.openSheet(sheet);
   };
   const list = (keys: PvKey[], last?: { key: PvKey; sheet: string; testid: string }) => (
-    <ul class="dots" role="list">
+    <ul class="pv-bullets" role="list">
       {keys.map((k) => (
         <li>{last && k === last.key ? rich(t(k), viaSettings(last.sheet), last.testid) : rich(t(k))}</li>
       ))}

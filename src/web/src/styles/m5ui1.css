@@ -9,9 +9,9 @@
 .glance .disc{flex:none;width:48px;height:48px;border-radius:50%;background:var(--c-surface-2);display:grid;place-items:center}
 .glance .disc svg.i{width:28px;height:28px}
 .glance li>span:last-child{flex:1 1 10rem;min-width:0}
-.dots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s-2)}
-.dots li{position:relative;padding-left:20px}
-.dots li::before{content:"";position:absolute;left:2px;top:.6em;width:8px;height:8px;border-radius:50%;background:var(--c-ink-2)}
+.pv-bullets{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s-2)}
+.pv-bullets li{position:relative;padding-left:20px}
+.pv-bullets li::before{content:"";position:absolute;left:2px;top:.6em;width:8px;height:8px;border-radius:50%;background:var(--c-ink-2)}
 .pv .famline{margin:var(--s-3) 0 0}
 .pv .pvcontact{margin:var(--s-6) 0 var(--s-2)}
 .pv .pvfoot{margin:var(--s-4) 0 0}

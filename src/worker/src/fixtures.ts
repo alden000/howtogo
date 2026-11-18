@@ -79,9 +79,13 @@ export function fixtureSearch(q: string): Response {
   return json({ results }, 200, HEADERS);
 }
 
-export function fixtureRevGeocode(lat: number, lng: number): Response {
-  const p = FIXTURE_PLACES.map((x) => ({ x, d: dist({ lat, lng }, x) })).sort((a, b) => a.d - b.d)[0]!.x;
-  return json({ name: p.name, address: p.address, postal: p.postal }, 200, HEADERS);
+/**
+ * QA-59 (Director ruling): fixture mode never names a real position. Snapping the user's GPS to the nearest
+ * sample place showed e.g. "Ang Mo Kio" anywhere in Singapore. Same 200 shape as live, with empty strings and
+ * `sample: true`; the app then says "my location" plus a short sample-mode note. Coordinates are not used.
+ */
+export function fixtureRevGeocode(_lat: number, _lng: number): Response {
+  return json({ name: "", address: "", postal: "", sample: true }, 200, HEADERS);
 }
 
 const TIME_KEYS = new Set(["startTime", "endTime", "arrival", "departure", "date"]);

@@ -14,8 +14,10 @@
     <meta name="theme-color" content="#FBF5EC" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#14110E" media="(prefers-color-scheme: dark)" />
     <!-- Fonts (§1.2, QA-48): self-hosted Atkinson Hyperlegible (src/styles/fonts.css), no third-party font host.
-         Preload the 700 face: titles, buttons, tiles and the tabular numerals use it. -->
+         Preload both faces: 700 for titles, buttons, tiles and the tabular numerals; 400 for body text. -->
     <link rel="preload" href="/src/fonts/atkinson-hyperlegible-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- QA-58: the 400 face too (body text, first-run preview); found only after layout it was the last request before LCP. -->
+    <link rel="preload" href="/src/fonts/atkinson-hyperlegible-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="app"></div>

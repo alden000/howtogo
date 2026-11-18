@@ -34,6 +34,8 @@ export const L5_ZH = {
   // 6f.6 L6: Show the driver, 我在哪里 tab offline
   drv_here_at: '这是 {time} 的位置。',
   drv_here_none: '现在找不到地址。可以给司机看你家的地址。',
+  // QA-59: sample (fixture) mode never names the position; proposed copy, Creative to confirm
+  drv_here_sample: '示范模式，暂时不显示地址。',
 };
 
 export type M5Key = keyof typeof L5_ZH;
@@ -62,6 +64,7 @@ export const L5_EN: Record<M5Key, string> = {
   set_delete_all_busy: 'Deleting…',
   drv_here_at: 'This was where you were at {time}.',
   drv_here_none: 'No address right now. You can show the driver your home address.',
+  drv_here_sample: 'Sample mode: address not shown yet.',
 };
 
 const fill = (s: string, p: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (m, k: string) => (k in p ? String(p[k]) : m));

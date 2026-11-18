@@ -18,7 +18,6 @@ import { lazyView } from './ui/lazy';
 // network is there) and never again, so it is lazy. H2 Search is lazy too but fetched right after the first paint
 // (main.tsx), not at idle. The Help sheet stays in the entry: it must open offline even before the service
 // worker has precached the lazy chunks.
-const Welcome = lazyView(() => import('./views/Welcome').then((m) => m.Welcome));
 export const Search = lazyView(() => import('./views/Search').then((m) => m.Search));
 const EndTripSheet = lazyView(() => import('./views/sheets').then((m) => m.EndTripSheet));
 const Routes = lazyView(() => import('./views/Routes').then((m) => m.Routes));
@@ -75,6 +74,9 @@ const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { ghost } from './ui/ghost';
 import { connectivityToasts } from './ui/toasts';
+// QA-58 (AC 2): F1 is in the entry again — as a lazy chunk it added a request wave before the first-run LCP.
+// Room in the 100 KB Home budget came from the trip-tile helpers (now lazy, main.tsx).
+import { Welcome } from './views/Welcome';
 
 export function App() {
   const { router, store, runtime, api, platform } = useServices();
@@ -98,7 +100,9 @@ export function App() {
   const depth = router.depth.value;
   useEffect(() => connectivityToasts(t), [t]);
   // Screen push/pop (§2): direction from the in-app history depth; the key remounts the screen so it animates in.
-  const prev = useRef({ path: r.path, depth, dir: 'push' as 'push' | 'pop' });
+  // QA-58: the first screen on launch does not slide in (no navigation happened); an opacity-0 entrance held back
+  // the first-run LCP. Only in-app navigation animates.
+  const prev = useRef({ path: r.path, depth, dir: 'none' as 'push' | 'pop' | 'none' });
   const stage = useRef<HTMLDivElement>(null);
   const lastSheet = useRef(sheet);
   if (prev.current.path !== r.path) {
@@ -210,7 +214,7 @@ export function App() {
     <div class="stage" ref={stage}>
       <div class="ghosts" />
       <IconSprite />
-      <div class={`screen enter-${prev.current.dir}`} key={r.path} data-screen={r.name}>
+      <div class={prev.current.dir === 'none' ? 'screen' : `screen enter-${prev.current.dir}`} key={r.path} data-screen={r.name}>
         {!online.value && r.name === 'home' && (
           <p class="note" role="status" data-testid="offline-notice">
             {t('offline_notice')}

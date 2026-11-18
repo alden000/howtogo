@@ -23,6 +23,8 @@ export interface RevGeocodeResult {
   name: string;
   address: string;
   postal: string;
+  /** QA-59: fixture (sample) mode — the Worker never names the position; name/address/postal are "". */
+  sample?: boolean;
 }
 
 export interface BusArrivalNext {

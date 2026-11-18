@@ -71,9 +71,15 @@ describe("AC 21 fixture mode (FIXTURE_MODE=1)", () => {
     expect(r3.results).toEqual([]);
   });
 
-  it("revgeocode answers the nearest fixture place", async () => {
-    const res = await get("/api/revgeocode?lat=1.2942&lng=103.7830");
-    expect(await res.json()).toEqual({ name: "National University Hospital", address: expect.any(String), postal: "119074" });
+  it("revgeocode never names the position (QA-59): empty fields + sample:true, anywhere", async () => {
+    for (const q of ["lat=1.2942&lng=103.7830", "lat=1.3700&lng=103.8495", "lat=1.4400&lng=103.8000"]) {
+      const res = await get(`/api/revgeocode?${q}`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("X-Fixture")).toBe("1");
+      expect(await res.json()).toEqual({ name: "", address: "", postal: "", sample: true });
+    }
+    // Input validation still applies.
+    expect((await get("/api/revgeocode?lat=1.6&lng=103.8")).status).toBe(400);
   });
 
   it("bus-arrival and alerts answer from fixtures with live-looking times", async () => {

@@ -1565,3 +1565,54 @@ Branch `dev/m5-int` (worktree `howtogo-m5i`) = `dev/m5-ui` (UI-1 + Creative revi
 
 **For QA**
 - Real-device checks are still open: the Android intent hand-off, the iOS Edge share position, clipboard in in-app browsers, and CJK bold (review 12).
+
+## 2026-11-18 — Developer: M5 fix round
+Branch `dev/m5-int`, on top of QA's gate commit `d4f996f`. One batched round for QA-52 to QA-59. Nothing deployed, and no wrangler run against Cloudflare.
+
+**Fixes**
+- **QA-52** `smoke:deploy`: the MapLibre check now flags only a `src`/`href` URL that contains `maplibre` (chunk, modulepreload or script). Before, it also matched the inlined `.maplibregl-*` CSS selectors.
+- **QA-53** First-run step dots: the privacy list class is renamed from `.dots` to `.pv-bullets` (m5ui1.css, Privacy.tsx). Welcome's `.dots` is a row again at every size.
+  - New guard in `M5-F1-size-{85,100,200}` (dev-e2e): every dot has the same top and the row has `flex-direction: row`. Re-recorded baselines can no longer hide this.
+- **QA-54** `smoke:live` / `smoke:deploy`: they set `process.exitCode` and let the event loop drain, instead of calling `process.exit()` right after `fetch` (the Windows libuv assertion). BLOCKED exits 2: checked against a local stub Worker on this PC (fixture → 2, proxy → 0) and by m5 AC 36 on the real local Worker.
+- **QA-55** (ruling): `lta: proxy` counts as live, and bus arrival must PASS through it. Alerts and lifts that answer 503 `not_configured` print `WARN … SKIP not_configured` and are not FAILs. `lta: none` is BLOCKED. `--json` adds `lta` and `warnings`. Updated in DEPLOY.md §4 and RELEASE-GATE.md (`smoke:live` row).
+- **QA-56** (AC 6): `src/map/prefetch.ts` adds one `<link rel="prefetch" crossorigin>` for the MapLibre chunk after the screen has been idle 3 s. This happens on Home, Search and Route options only, never on the first paint or other screens, and not with Save-Data or battery saver on.
+  - The hashed URL comes from `virtual:maplibre-url`, a bundler file reference in vite.config.ts, so the entry's hash follows MapLibre's. MapLibre is still one lazy chunk and is still absent from index.html.
+- **QA-57** (M4 AC 36, §6f L6): offline 我在哪里 with a position but no remembered address shows the coordinates and 给别人看这个号码 under the no-address line. When an address is remembered, the address and its time show as before (tripSheets.tsx).
+- **QA-58** (AC 2, first-run LCP):
+  - Welcome is in the entry again. To make room, the trip-tile helpers (`map/onemap`) are now lazy. Home JS is 99.1 KB of 100 KB.
+  - The first screen on launch no longer slides in. Its opacity-0 entrance held back LCP. Only in-app navigation animates.
+  - On a first visit, Search waits for the 3 s idle preload, and `/api/health` waits for idle (the first run shows no banner).
+  - Demo mode fetches its mock and fake chunks in parallel.
+  - The 400 face is preloaded next to the 700 face.
+  - Tried and dropped: a hidden CJK font warm-up in index.html. On Windows, the first Chinese layout costs about 150 ms (trace: `Layout` 154 ms in the render task). The warm-up moved that cost earlier, but dev-e2e became slow and flaky in Docker (H2-empty failed 1 of 6), so it is not in this round.
+- **QA-59** (ruling): in fixture mode, `/api/revgeocode` returns `200 {"name":"","address":"","postal":"","sample":true}` for any valid point, still with `X-Fixture: 1`, and validation still applies. It never snaps to a sample place now. API.md is updated.
+  - The app keeps the real coordinates (the route origin is unchanged). The point shows as 我的位置 / My location, as AC 26 already does.
+  - On 我在哪里 the driver card reads "My location · 我的位置", with a sample note and the coordinates.
+
+**Lighthouse** (`qa/scripts/lighthouse.sh`, median of 3, owner's PC with other projects' dev servers running)
+- `/?demo=1` cold first run, final release build: **LCP 2495 ms** median (runs 2454 / 2495 / 2649), perf 95, TBT 0, CLS 0. Earlier runs of near-identical builds read 2523–2674 ms, so the margin is within host noise. QA please re-measure on a quiet host.
+- An A/B in the same session, built from `d4f996f` without these fixes: 2612–2616 ms. This host reads about 100 ms slower than at QA's gate (QA: 2504 ms).
+- Live-mode `/`: about 2.7 s here. But `vite preview` answers `/api/health` with the 14 KB SPA fallback; production answers a few bytes of JSON.
+- Also tried and dropped:
+  - Merging the 24 small eager chunks with rolldown `codeSplitting` groups. The viewer pulled in the shell (157 KB) and Home went to 100.1 KB.
+  - Removing the font preloads (worse).
+
+**Tests**
+- Typecheck green.
+- Unit: shared 159, web 280 (+4: QA-56 prefetch ×3, QA-59 `locate()`), worker 220 (QA-59 fixture test rewritten).
+- Docker dev-e2e, final full run with no update: **240/240 passed** (13.8 min).
+  - Two earlier full runs each had 1–3 `search-input` timeouts. All passed when re-run alone. I traced them to the font warm-up, which is now dropped.
+- QA specs (local, release build + local Worker):
+  - `m5.spec.ts`: 47/48. The failure is "expired API cache entries…", which fails the same way on a `d4f996f` build on this PC (Home's alerts/lifts/revgeocode get cached after `controlled()`'s reload). This round did not cause it.
+  - AC 6, AC 33 (`smoke:deploy`), AC 36 (exit 2) and the 85 % dots test PASS.
+  - `m4.spec.ts` AC 36: fails the same way on the `d4f996f` build here. In the second tab the service worker does not register (`sw:failed`), so the lazy Show the driver chunk can't load offline (`chunk:failed`) before QA-57's code runs. QA please re-check on the gate host.
+
+**Baselines** (Docker, re-recorded with `-g`)
+- `M1-F1-lang-light-100-zh` and `M5-F1-size-{85,100,200}-light-100-zh`: the step dots are a row.
+- No others changed: the full run without updates is green.
+
+**Visible changes (Creative)**
+1. QA-59 sample mode, 我在哪里: "My location · 我的位置" on the driver card, then the caption 示范模式，暂时不显示地址。 / Sample mode: address not shown yet. (proposed copy), then the coordinates with 给别人看这个号码. The Director suggested 你的位置 / Your location. I kept the app's existing term 我的位置 / My location (AC 26, Home "从我的位置出发"), so the same point is not named two ways. Creative, please pick one.
+2. QA-57: offline 我在哪里 with a position but no remembered address shows the no-address line, then the coordinates (L6). Please confirm the copy.
+3. The first screen on launch appears without the slide-in. In-app navigation is unchanged.
+4. First-run step dots are back in a row (QA-53).

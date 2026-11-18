@@ -45,7 +45,7 @@ The gate is **read-only for `src/`**:
 | Touch targets | ≥ 56 px with 8 px gap, also at 85 % and 200 % text and at 320 px | step 9 (matrix, m5) |
 | axe | 0 WCAG 2.1 AA violations | step 9 |
 | `smoke:deploy` | every check PASS (local Worker in step 9; preview/production after each deploy) | step 9 AC 33 |
-| `smoke:live` | PASS required for the `v1.0.0` tag; BLOCKED (exit 2) holds the tag (OQ9). Deferred until the owner's secrets | manual (AC 35/36) |
+| `smoke:live` | PASS required for the `v1.0.0` tag; BLOCKED (exit 2) holds the tag (OQ9). PASS = live OneMap + bus arrival; with `lta: proxy`, alerts/lifts `SKIP not_configured` are WARN, not FAIL (QA-55 ruling). Deferred until the owner's secrets | manual (AC 35/36) |
 
 ### Substitutions (documented)
 - **Lighthouse "PWA installable".** Lighthouse ≥ 12 removed the PWA category, so `pwa.spec.ts` replaces it with:

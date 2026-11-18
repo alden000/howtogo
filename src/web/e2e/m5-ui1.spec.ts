@@ -351,6 +351,12 @@ test.describe('6f.11 smaller text size', () => {
       await page.addInitScript((z) => localStorage.getItem('howtogo.settings') || localStorage.setItem('howtogo.settings', JSON.stringify({ motion: 'on', textSize: z })), SIZE[s]);
       await page.goto('/?demo=1');
       await expect(page.getByTestId('fr-preview')).toBeVisible();
+      // QA-53: the step dots sit in one row (a global `.dots` from the privacy list once stacked them, and the
+      // baselines were recorded that way). Geometric, so a re-recorded screenshot can't hide it again.
+      const tops = await page.locator('.dots i').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+      expect(tops.length).toBeGreaterThan(1);
+      expect(new Set(tops).size).toBe(1);
+      expect(await page.locator('.dots').evaluate((e) => getComputedStyle(e).flexDirection)).toBe('row');
       await page.getByTestId(`fr-size-${SIZE[s]}`).scrollIntoViewIfNeeded();
       await shot(page, `M5-F1-size-${s}-light-100-zh`);
     });

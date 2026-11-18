@@ -151,7 +151,9 @@ export function DriverSheet() {
     p = h ? { name: h.label ?? '', lat: h.lat, lng: h.lng, ...(h.address ? { address: h.address } : {}), ...(h.postal ? { postal: h.postal } : {}) } : null;
   }
   const noAddr = tab === 'here' && offline && !last;
-  const hereLines = tab === 'here' && p ? whereAmILines(p) : null;
+  // QA-59: sample mode has no address for the real position → "My location · 我的位置" on the bilingual driver card + a sample note.
+  const sampleHere = tab === 'here' && !last && !!here.value?.sample && !here.value.label;
+  const hereLines = sampleHere ? { lines: ['My location · 我的位置'], near: null } : tab === 'here' && p ? whereAmILines(p) : null;
   const lines = hereLines ? hereLines.lines : p ? [p.name, p.address && p.address !== p.name ? p.address.replace(/\s*Singapore\s*\d{6}$/i, '') : ''].filter(Boolean) : [];
   const postal = p?.postal ?? /\b(\d{6})\b/.exec(p?.address ?? '')?.[1];
   const head = tab === 'here' ? ['I am here', '我现在在这里'] : ['Please take me to', '请送我去'];
@@ -196,12 +198,19 @@ export function DriverSheet() {
             )}
           </div>
         )}
+        {sampleHere && !noAddr && (
+          <p class="t-caption" style={{ color: 'var(--c-ink-2)', margin: 'var(--s-2) 0 0' }} data-testid="here-sample">
+            {t5('drv_here_sample')}
+          </p>
+        )}
         {tab === 'here' && last && (
           <p class="t-caption" style={{ color: 'var(--c-ink-2)', margin: 'var(--s-2) 0 0' }} data-testid="here-at">
             {t5('drv_here_at', { time: clock(last.at, store.settings.value.lang) })}
           </p>
         )}
-        {tab === 'here' && !last && here.value && !here.value.label && <HereFallback lat={here.value.lat} lng={here.value.lng} />}
+        {/* QA-57 (M4 AC 36 + 6f.6 L6): offline with a position but no remembered address → the coordinates to show,
+            under the no-address line. Online, only when the fix has no label. */}
+        {tab === 'here' && !last && here.value && (noAddr || !here.value.label) && <HereFallback lat={here.value.lat} lng={here.value.lng} />}
         {tab === 'here' && p && !noAddr && <SendMyLocation place={p} />}
         <TaxiButtons />
       </div>

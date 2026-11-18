@@ -78,7 +78,9 @@ check("/version.json no-cache", noCache(ver), cc(ver));
 // 3. hashed assets referenced by index.html
 const assets = [...new Set([...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]))];
 check("index.html references hashed assets", assets.length > 0, `${assets.length} files`);
-check("index.html does not reference MapLibre (lazy)", !/maplibre/i.test(html));
+// The chunk/modulepreload/script URL only: the inlined app CSS legitimately carries `.maplibregl-*` selectors (QA-52).
+const mapRefs = [...html.matchAll(/(?:src|href)\s*=\s*["']?[^"'\s>]*maplibre[^"'\s>]*/gi)].map((m) => m[0]);
+check("index.html does not reference MapLibre (lazy)", mapRefs.length === 0, mapRefs.length ? mapRefs.join(", ") : "");
 let immutableOk = assets.length > 0;
 for (const a of assets) {
   const r = await get(a, { method: "HEAD" });
@@ -152,4 +154,4 @@ if (flag("--json")) {
   writeFileSync(`${ROOT}qa/.out/smoke-deploy.json`, JSON.stringify({ base, expected, at: new Date().toISOString().slice(0, 10), results }, null, 1));
 }
 console.log(`smoke:deploy ${failed.length ? "FAIL" : "PASS"} — ${results.length - failed.length}/${results.length} checks${failed.length ? `; failing: ${failed.map((f) => f.name).join("; ")}` : ""}`);
-process.exit(failed.length ? 1 : 0);
+process.exitCode = failed.length ? 1 : 0; // no process.exit after fetch: libuv assertion on Windows (QA-54)
