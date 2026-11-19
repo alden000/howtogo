@@ -260,3 +260,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Notes: a search cached before the deploy still shows the old casing until its cache entry expires. New S4 QA-69: KEEP_UPPER holds VivoCity/JCube/NParks upper-cased, so they would render "VIVOCITY" — use a proper-case map for brands. QA-68 "ICA Hq". Both go to the next round.
 
 - Model eval built (qa/ai-eval 32d3f34): 63 cases, deterministic OneMap grader using step=1 direct hits (no live AI/cap use), 4 arms, ~$0.95, $1.50 guard. Waiting on a valid Anthropic key: the owner's key returns 401 both in production (ai_rewrite api_error_401 seen in wrangler tail) and locally; production degrades silently to plain results. New S4 QA-70: alias "poly" → polyclinic even when a polytechnic is meant.
+
+## 2026-11-20 — Search-rewrite model eval (qa/evals/search-rewrite/report.txt)
+- 63 cases × 4 arms, total spend $0.18. Accuracy: Opus 5.5 low 93.7% (3 wrong-place), Sonnet 5.5 between_tools 92.1% (5), Sonnet 5.5 low 90.5% (5), Haiku 5.5 81.0% (5 wrong, 11% none). Opus vs Haiku significant (McNemar p=0.008); Opus vs Sonnet not (p≈0.6–1.0), but Sonnet makes 2 more wrong-place errors.
+- Measured cost per call is far below the estimate: Opus $0.0015 (~$2.3/month at 50/day), Sonnet $0.0007, Haiku $0.00006. p50 latency 1.5–2.1 s for all.
+- Ruling: keep claude-opus-5-5 (decision rule: cheapest arm within significance AND wrong-place ≤ best+1; none qualify). Revisit with a larger case set if volume grows. Some grader strictness may count near-misses as wrong (e.g. "National Library, Singapore"); it affects Haiku most.
