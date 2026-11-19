@@ -89,7 +89,7 @@ export async function layoutProblems(page: Page, opts: { spacing?: boolean } = {
       if (el.scrollWidth > el.clientWidth + 1) out.push(`clipped ${name(el)} ${el.scrollWidth}>${el.clientWidth}`);
     }
     const ctrls = [...stage.querySelectorAll('button,input,a,select,textarea,[role=radio],[role=button]')].filter(
-      (el) => vis(el) && !el.closest('.maplibregl-ctrl-attrib,.maplibregl-ctrl'),
+      (el) => vis(el) && !el.closest('.credit,.maplibregl-ctrl'),
     );
     for (const el of ctrls) {
       const r = el.getBoundingClientRect();

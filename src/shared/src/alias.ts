@@ -59,6 +59,23 @@ const railLabel = (lines: readonly string[]) => (lines.every((l) => /^(BP|SE|SW|
 interface Indexed {
   terms: string[];
   source: 'curated' | 'station';
+  /** 1.1 UI (6g.2 a): display names when the entry names exactly one place. */
+  display?: AliasDisplay;
+}
+
+/** Display names of a one-place alias ({zh} falls back to {en} in the UI when missing). */
+export interface AliasDisplay {
+  zh?: string;
+  en: string;
+}
+
+const HAN_ONLY = /^\p{Script=Han}+$/u;
+/** zh display name: the entry's `zh`, else its longest all-Chinese key (the full name in our curated keys). */
+function zhName(e: AliasEntry): string | undefined {
+  if (e.zh) return e.zh;
+  let best: string | undefined;
+  for (const k of e.keys) if (HAN_ONLY.test(k) && (!best || k.length > best.length)) best = k;
+  return best;
 }
 
 let index: Map<string, Indexed> | null = null;
@@ -66,13 +83,18 @@ let index: Map<string, Indexed> | null = null;
 function buildIndex(): Map<string, Indexed> {
   const m = new Map<string, Indexed>();
   for (const e of ALIASES) {
-    for (const k of e.keys) m.set(compact(normaliseAliasKey(k)), { terms: e.terms.slice(0, MAX_ALIAS_TERMS), source: 'curated' });
+    const terms = e.terms.slice(0, MAX_ALIAS_TERMS);
+    const zh = zhName(e);
+    const display = terms.length === 1 && !e.many ? { en: terms[0]!, ...(zh ? { zh } : {}) } : undefined;
+    for (const k of e.keys) m.set(compact(normaliseAliasKey(k)), { terms, source: 'curated', ...(display ? { display } : {}) });
   }
   // Official Chinese station names (open stations only); curated entries win.
   for (const st of STATIONS) {
     if (st.opens || !st.zh) continue;
     const k = compact(normaliseAliasKey(st.zh));
-    if (!m.has(k)) m.set(k, { terms: [`${st.en} ${railLabel(st.lines)} Station`], source: 'station' });
+    const label = railLabel(st.lines);
+    const en = `${st.en} ${label} Station`;
+    if (!m.has(k)) m.set(k, { terms: [en], source: 'station', display: { en, zh: `${st.zh}${label === 'LRT' ? '轻轨站' : '地铁站'}` } });
   }
   return m;
 }
@@ -87,6 +109,8 @@ export interface AliasExpansion {
   terms: string[];
   /** Which rule fired. */
   match: 'exact' | 'filler' | 'abbreviation' | 'none';
+  /** 1.1 UI: set when a whole-query alias names exactly one place (for the "“KKH” means …" line). */
+  display?: AliasDisplay;
 }
 
 /**
@@ -100,12 +124,12 @@ export function expandAliases(query: string): AliasExpansion {
   const clean = (terms: string[]) => terms.filter((t) => t.toLowerCase() !== qLower).slice(0, MAX_ALIAS_TERMS);
 
   const exact = lookup(key);
-  if (exact) return { terms: clean(exact.terms), match: 'exact' };
+  if (exact) return { terms: clean(exact.terms), match: 'exact', ...(exact.display ? { display: exact.display } : {}) };
 
   const stripped = key.replace(ZH_PREFIX, '').replace(ZH_SUFFIX, '').trim();
   if (stripped && stripped !== key) {
     const hit = lookup(stripped);
-    if (hit) return { terms: clean(hit.terms), match: 'filler' };
+    if (hit) return { terms: clean(hit.terms), match: 'filler', ...(hit.display ? { display: hit.display } : {}) };
   }
 
   const words = key.split(' ');

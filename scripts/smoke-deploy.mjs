@@ -125,7 +125,7 @@ try {
   health = hr.ok ? await hr.json() : {};
 } catch {}
 const keys = Object.keys(health).sort().join(",");
-check("/api/health shape {fixtureMode, lta, ok, onemap, version}", hr.status === 200 && keys === "fixtureMode,lta,ok,onemap,version", `status ${hr.status}, keys ${keys || "-"}`);
+check("/api/health shape {ai, fixtureMode, lta, ok, onemap, version}", hr.status === 200 && keys === "ai,fixtureMode,lta,ok,onemap,version" && (health.ai === "on" || health.ai === "off"), `status ${hr.status}, keys ${keys || "-"}`); // 1.1: + ai on|off
 check(`/api/health version = ${expected}`, health.version === expected, `got ${health.version ?? "-"}`);
 check("/api/health no-store", /no-store/.test(cc(hr)), cc(hr));
 check("/api/health exposes no token expiry", !/expir|token/i.test(JSON.stringify(health)));

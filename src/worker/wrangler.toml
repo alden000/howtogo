@@ -45,7 +45,7 @@ SHARE_TTL_HOURS = "4"
 FIXTURE_MODE = "1"
 # 1.1 smart search: max Claude query rewrites per Singapore day (cost guard; "0" = AI off). Needs the
 # ANTHROPIC_API_KEY secret; fixture mode never calls Claude.
-AI_DAILY_CAP = "2000"
+AI_DAILY_CAP = "300"
 
 [[kv_namespaces]]
 binding = "TOKEN_KV"
@@ -106,7 +106,7 @@ ALLOWED_ORIGINS = "https://howtogo.wwweeeiii.com,https://localhost"
 CANONICAL_ORIGIN = "https://howtogo.wwweeeiii.com"
 SHARE_TTL_HOURS = "4"
 FIXTURE_MODE = "0"
-AI_DAILY_CAP = "2000"
+AI_DAILY_CAP = "300"
 
 [[env.production.kv_namespaces]]
 binding = "TOKEN_KV"

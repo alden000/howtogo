@@ -10,6 +10,7 @@ import {
   type Platform,
   type PlatformError,
   type Heard,
+  type ListenOptions,
   type RecognitionApi,
   type SpeechAlternative,
   type SpeakOptions,
@@ -232,7 +233,7 @@ type SR = {
   lang: string;
   interimResults: boolean;
   maxAlternatives: number;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string; confidence?: number }>> }) => void) | null;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string; confidence?: number }> & { isFinal?: boolean }> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
   start(): void;
@@ -261,21 +262,32 @@ function createRecognition(): RecognitionApi | undefined {
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return undefined;
   let cur: SR | null = null;
-  const listenAll = (lang: 'zh-CN' | 'en-SG'): Promise<Heard> => {
+  const listenAll = (lang: 'zh-CN' | 'en-SG', opts?: ListenOptions): Promise<Heard> => {
     cur?.stop();
     return new Promise((resolve, reject) => {
       const r = new Ctor();
       cur = r;
       r.lang = lang;
-      r.interimResults = false;
+      // 1.1 H2-listening-partial: interim words only when the screen asks for them.
+      r.interimResults = !!opts?.onPartial;
       // 1.1 voice search: up to 3 candidates; the Worker tries the others when the best finds too little.
       r.maxAlternatives = MAX_SPEECH_ALTERNATIVES;
       let heard: Heard = { text: '', alternatives: [] };
-      r.onresult = (e) => (heard = readAlternatives(e.results[0]));
+      let partial = '';
+      r.onresult = (e) => {
+        const res = e.results[e.results.length - 1] ?? e.results[0];
+        if (opts?.onPartial && res && res.isFinal === false) {
+          partial = (res[0]?.transcript ?? '').trim();
+          if (partial) opts.onPartial(partial);
+          return;
+        }
+        heard = readAlternatives(res);
+      };
       r.onerror = (e) => (e.error === 'no-speech' || e.error === 'aborted' ? undefined : reject(new Error(e.error)));
       r.onend = () => {
         if (cur === r) cur = null;
-        resolve(heard);
+        // Stopped mid-sentence: keep the words already heard (6g.4).
+        resolve(heard.text || !partial ? heard : { text: partial, alternatives: [{ transcript: partial, confidence: 0 }] });
       };
       r.start();
     });

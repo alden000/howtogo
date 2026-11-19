@@ -18,8 +18,8 @@ import {
 import { ltaBusArrival, ltaGet, ltaSource } from "./lta";
 import { normaliseBusArrival, normaliseLifts, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
 import { oneMapGet } from "./onemap";
-import { aiRewrite } from "./ai";
-import { expandAliases } from "@howtogo/shared/alias";
+import { aiEnabled, aiRewrite } from "./ai";
+import { expandAliases, type AliasDisplay } from "@howtogo/shared/alias";
 import type { Place } from "./normalise";
 
 type Ctx = Pick<ExecutionContext, "waitUntil">;
@@ -95,10 +95,27 @@ function merge(into: Hit[], seen: Set<string>, places: Place[], via: Via): numbe
 }
 
 /** Alias + direct OneMap results for one query text (no AI). */
-async function aliasAndDirect(env: Env, q: string, ctx?: Ctx): Promise<{ alias: Place[][]; direct: { results: Place[]; hit: boolean } }> {
-  const terms = expandAliases(q).terms;
-  const [direct, alias] = await Promise.all([oneMapSearch(env, q, ctx), searchTerms(env, terms, ctx)]);
-  return { alias, direct };
+async function aliasAndDirect(
+  env: Env,
+  q: string,
+  ctx?: Ctx,
+): Promise<{ alias: Place[][]; direct: { results: Place[]; hit: boolean }; display?: AliasDisplay }> {
+  const x = expandAliases(q);
+  const [direct, alias] = await Promise.all([oneMapSearch(env, q, ctx), searchTerms(env, x.terms, ctx)]);
+  return { alias, direct, ...(x.display ? { display: x.display } : {}) };
+}
+
+/** `/api/search` body (src/worker/API.md). */
+interface SearchBody {
+  results: Hit[];
+  didYouMean: boolean;
+  usedAlternative?: string;
+  /** 1.1 UI: the typed text is an alias of ONE place, found by it (the "“KKH” means …" line). */
+  alias?: AliasDisplay;
+  /** 1.1 UI: the extra help found places for exactly one search term (the "Showing places for …" line). */
+  guess?: string;
+  /** 1.1 `step=1`: Layer 1 only; true when the extra help (Layer 2) is worth a second, full request. */
+  assist?: boolean;
 }
 
 /**
@@ -118,7 +135,8 @@ export async function handleSearch(url: URL, env: Env, ctx?: Ctx, ip: string | n
   const results: Hit[] = [];
   const seen = new Set<string>();
   const first = await aliasAndDirect(env, q, ctx);
-  for (const r of first.alias) merge(results, seen, r, "alias");
+  let aliasHits = 0;
+  for (const r of first.alias) aliasHits += merge(results, seen, r, "alias");
   merge(results, seen, first.direct.results, "direct");
 
   let usedAlternative: string | undefined;
@@ -135,20 +153,32 @@ export async function handleSearch(url: URL, env: Env, ctx?: Ctx, ip: string | n
     }
   }
 
+  // 1.1 UI two-step (STYLE-GUIDE 6g.2 build ask): `step=1` answers with Layer 1 only and says whether the
+  // extra help is worth a second request, so the client shows "Trying other names…" only while it really runs.
+  const layer1Only = url.searchParams.get("step") === "1";
   let didYouMean = false;
-  if (results.length < FEW) {
+  let guess: string | undefined;
+  let assist = false;
+  if (results.length < FEW && layer1Only) assist = aiEnabled(env);
+  else if (results.length < FEW) {
     const ai = await aiRewrite(env, q, ip, ctx);
     if (ai.ok) {
       const terms = ai.terms.filter((t) => t.toLowerCase() !== q.toLowerCase());
       const lists = await searchTerms(env, terms, ctx);
-      let termsWithHits = 0;
-      for (const l of lists) if (merge(results, seen, l, "ai")) termsWithHits++;
-      didYouMean = termsWithHits >= 2;
+      const withHits: string[] = [];
+      lists.forEach((l, i) => {
+        if (merge(results, seen, l, "ai")) withHits.push(terms[i]!);
+      });
+      didYouMean = withHits.length >= 2;
+      if (withHits.length === 1) guess = withHits[0];
     }
   }
 
-  const body: { results: Hit[]; didYouMean: boolean; usedAlternative?: string } = { results: results.slice(0, MAX_RESULTS), didYouMean };
+  const body: SearchBody = { results: results.slice(0, MAX_RESULTS), didYouMean };
   if (usedAlternative) body.usedAlternative = usedAlternative;
+  if (first.display && aliasHits > 0) body.alias = first.display;
+  if (guess) body.guess = guess;
+  if (layer1Only) body.assist = assist;
   return json(body, 200, cacheHeaders(TTL.search, first.direct.hit));
 }
 

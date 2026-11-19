@@ -711,7 +711,7 @@ test('AC 30: wrangler.toml — placeholders only; SHARE_TEST_TTL_SECONDS only un
 test('AC 31: /api/health shape {ok, fixtureMode, onemap, lta (key|proxy|none), version}, no secrets; a 503 shows "can’t find the way", never sample routes', async ({ request, page }) => {
   const h = await request.get(`${WORKER}/api/health`);
   const j = await h.json();
-  expect(Object.keys(j).sort()).toEqual(['fixtureMode', 'lta', 'ok', 'onemap', 'version']);
+  expect(Object.keys(j).sort()).toEqual(['ai', 'fixtureMode', 'lta', 'ok', 'onemap', 'version']); // 1.1: + ai (on|off, API.md)
   expect(['key', 'proxy', 'none']).toContain(j.lta);
   expect(JSON.stringify(j)).not.toMatch(/expir|token|password|secret/i);
   await setup(page);

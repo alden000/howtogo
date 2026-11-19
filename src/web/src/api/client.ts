@@ -9,10 +9,14 @@ import { ApiError } from './errors';
 import type { Api, LiveConnection, LiveEvent, RouteParams, SearchResult, SearchResults, ShareState } from './types';
 
 /** 1.1: the results array with the response-level flags attached (only when present). */
-export function searchResults(r: { results?: SearchResult[]; didYouMean?: boolean; usedAlternative?: string }): SearchResults {
+type SearchBody = { results?: SearchResult[]; didYouMean?: boolean; usedAlternative?: string; alias?: { zh?: string; en: string }; guess?: string; assist?: boolean };
+export function searchResults(r: SearchBody): SearchResults {
   const out: SearchResults = [...(r.results ?? [])];
   if (r.didYouMean) out.didYouMean = true;
   if (r.usedAlternative) out.usedAlternative = r.usedAlternative;
+  if (r.alias && typeof r.alias.en === 'string') out.alias = r.alias.zh ? { zh: r.alias.zh, en: r.alias.en } : { en: r.alias.en };
+  if (typeof r.guess === 'string' && r.guess) out.guess = r.guess;
+  if (r.assist) out.assist = true;
   return out;
 }
 
@@ -109,7 +113,8 @@ export function createHttpApi(opts: HttpApiOptions): Api {
       let path = `/api/search?q=${encodeURIComponent(q)}`;
       const alts = (opts?.alternatives ?? []).map((a) => a.trim().slice(0, 100)).filter((a) => a && a !== q.trim());
       for (const a of alts.slice(0, 2)) path += `&alt=${encodeURIComponent(a)}`;
-      const r = await request<{ results?: SearchResult[]; didYouMean?: boolean; usedAlternative?: string }>('search', path, { signal: signal ?? null });
+      if (opts?.step === 1) path += '&step=1';
+      const r = await request<SearchBody>('search', path, { signal: signal ?? null });
       return searchResults(r);
     },
     route(p: RouteParams, signal) {

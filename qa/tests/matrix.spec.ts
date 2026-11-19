@@ -17,7 +17,7 @@ const visits: Visit[] = [
   ['search-results', async (p) => { await p.getByTestId('search-input').fill('tan tock'); await expect(p.getByTestId('search-results')).toBeVisible(); }],
   ['search-none', async (p) => { await p.getByTestId('search-input').fill('zzzz'); await expect(p.getByTestId('search-empty')).toBeVisible(); }],
   ['routes', async (p) => { await p.getByTestId('search-input').fill('tan tock'); await p.getByTestId('search-result-0').click(); await expect(p.getByTestId('route-option-0')).toBeVisible(); }],
-  ['trip', async (p) => { await p.getByTestId('route-option-0').click(); await expect(p.getByTestId('step-list')).toBeVisible(); await expect(p.locator('.maplibregl-ctrl-attrib')).toBeVisible({ timeout: 15_000 }); }],
+  ['trip', async (p) => { await p.getByTestId('route-option-0').click(); await expect(p.getByTestId('step-list')).toBeVisible(); await expect(p.getByTestId('map-credit')).toBeVisible({ timeout: 15_000 }); }],
   ['settings', async (p) => { await p.goto('/settings?demo=1'); await expect(p.getByTestId('row-about')).toBeVisible(); }],
   ['sheet-name', async (p) => { await p.getByTestId('row-name').click(); await expect(p.getByTestId('sheet-name')).toBeVisible(); await p.waitForTimeout(400); }],
   ['sheet-home', async (p) => { await p.goBack(); await p.getByTestId('row-home').click(); await expect(p.getByTestId('sheet-home')).toBeVisible(); await p.waitForTimeout(400); }],
@@ -51,7 +51,7 @@ for (const c of configs) {
         };
         if (name === 'trip') {
           r.attribution = await page.evaluate(() => {
-            const a = document.querySelector('.maplibregl-ctrl-attrib');
+            const a = document.querySelector('[data-testid=map-credit]');
             if (!a) return ['missing'];
             const b = a.getBoundingClientRect();
             const out: string[] = [];

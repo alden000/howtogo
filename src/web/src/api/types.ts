@@ -20,11 +20,19 @@ export type SearchResults = SearchResult[] & {
   didYouMean?: boolean;
   /** Voice: the speech alternative that produced results when the best transcript did not. */
   usedAlternative?: string;
+  /** 1.1 UI: the query is an alias of ONE place (6g.2 a). `zh` may be missing (then the zh line uses `en`). */
+  alias?: { zh?: string; en: string };
+  /** 1.1 UI: the extra help found places for exactly one term (6g.2 c′). */
+  guess?: string;
+  /** 1.1 UI (`step: 1` only): the extra help is worth a second, full request (6g.2 b). */
+  assist?: boolean;
 };
 
 /** 1.1 voice search: the other speech alternatives (best first, excluding `q`); the Worker uses ≤ 2. */
 export interface SearchOptions {
   alternatives?: string[];
+  /** 1.1 two-step search: 1 = Layer 1 only (fast; the answer says whether `assist` is worth it). */
+  step?: 1;
 }
 
 export interface RouteParams {

@@ -5,7 +5,7 @@
  * North-up; follows the puck until the viewer pans, then a locate button brings it back.
  */
 import type { GeoJSONSource, Map as MlMap } from 'maplibre-gl';
-import { ONEMAP_ATTRIBUTION, ONEMAP_BOUNDS, ONEMAP_MAXZOOM, ONEMAP_MINZOOM, ONEMAP_TILE_URL, styleForTheme } from '../map/onemap';
+import { createOneMapCredit, ONEMAP_BOUNDS, ONEMAP_MAXZOOM, ONEMAP_MINZOOM, ONEMAP_TILE_URL, styleForTheme } from '../map/onemap';
 
 export interface Puck {
   lat: number;
@@ -79,7 +79,7 @@ export async function createViewerMap(container: HTMLElement, attributionHost: H
     touchPitch: false,
   });
   map.touchZoomRotate.disableRotation();
-  attributionHost.appendChild(new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION }).onAdd(map));
+  attributionHost.replaceChildren(createOneMapCredit(container.ownerDocument)); // 1.1 C1-A
   map.getCanvas().setAttribute('tabindex', '-1');
 
   await new Promise<void>((r) => (map.loaded() ? r() : map.once('load', () => r())));

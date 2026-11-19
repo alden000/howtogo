@@ -294,3 +294,47 @@ describe("/api/health ai", () => {
     expect(text).not.toContain(KEY);
   });
 });
+
+describe("1.1 UI fields: two-step (step=1), alias display, one guess", () => {
+  type UiBody = Body & { alias?: { zh?: string; en: string }; guess?: string; assist?: boolean };
+  const read = async (path: string, e: E) => (await (await get(path, e)).json()) as UiBody;
+
+  it("step=1 answers Layer 1 only: assist true when < 2 hits and the extra help is on; never calls Claude", async () => {
+    const { ai } = await upstream({ "step one nothing": [] }, () => claude({ terms: ["X"], confidence: "low" }));
+    const on = await read("/api/search?step=1&q=step%20one%20nothing", aiEnv());
+    expect(on.assist).toBe(true);
+    expect(on.results).toEqual([]);
+    expect(ai).toHaveLength(0);
+    expect((await read("/api/search?step=1&q=step%20one%20nothing", env)).assist).toBe(false); // no key
+    expect((await read("/api/search?step=1&q=step%20one%20nothing", aiEnv({ AI_DAILY_CAP: "0" }))).assist).toBe(false);
+    expect(ai).toHaveLength(0);
+  });
+
+  it("step=1 with 2+ hits: assist false; the full request (no step) carries no assist field", async () => {
+    await upstream({ "two plain": ["TWO PLAIN 1", "TWO PLAIN 2"] });
+    expect((await read("/api/search?step=1&q=two%20plain", aiEnv())).assist).toBe(false);
+    expect(await read("/api/search?q=two%20plain", aiEnv())).not.toHaveProperty("assist");
+  });
+
+  it("alias of one place found by it → alias {zh, en}; a two-place alias (AMK) → none", async () => {
+    await upstream({ "KK Women's and Children's Hospital": ["KK WOMEN'S AND CHILDREN'S HOSPITAL"] }, undefined, ["KKH"]);
+    const kkh = await read("/api/search?q=KKH", env);
+    expect(kkh.alias).toEqual({ zh: "竹脚妇幼医院", en: "KK Women's and Children's Hospital" });
+    await upstream({ "Ang Mo Kio MRT Station": ["ANG MO KIO MRT STATION"] }, undefined, ["amk", "Ang Mo Kio Bus Interchange"]);
+    expect(await read("/api/search?q=amk", env)).not.toHaveProperty("alias");
+  });
+
+  it("alias that finds nothing on OneMap → no alias line", async () => {
+    await upstream({}, undefined, ["KKH", "KK Women's and Children's Hospital"]);
+    expect(await read("/api/search?q=KKH", env)).not.toHaveProperty("alias");
+  });
+
+  it("the extra help with hits for exactly one term → guess = that term, didYouMean false", async () => {
+    const q = "zzz one guess query";
+    await upstream({ "Tan Tock Seng Hospital": ["TAN TOCK SENG HOSPITAL"] }, () => claude({ terms: ["Tan Tock Seng Hospital", "Nowhere Real"], confidence: "medium" }), [q, "Nowhere Real"]);
+    const body = await read("/api/search?q=" + encodeURIComponent(q), aiEnv());
+    expect(body.didYouMean).toBe(false);
+    expect(body.guess).toBe("Tan Tock Seng Hospital");
+    expect(body.results.map((r) => r.via)).toEqual(["ai"]);
+  });
+});

@@ -113,3 +113,14 @@ describe('expandAliases', () => {
     }
   });
 });
+
+describe('1.1 display names (6g.2 a)', () => {
+  it('one-place aliases carry {zh, en}; two-place and generic ones do not', () => {
+    expect(expandAliases('KKH').display).toEqual({ zh: '竹脚妇幼医院', en: "KK Women's and Children's Hospital" });
+    expect(expandAliases('amk').display).toBeUndefined(); // MRT station + bus interchange
+    expect(expandAliases('polyclinic').display).toBeUndefined(); // a kind of place
+    expect(expandAliases('fairprice').display).toBeUndefined(); // a chain
+    expect(expandAliases('amk ave 3').display).toBeUndefined(); // abbreviation expansion, not a place
+    expect(expandAliases('丹戎巴葛').display).toEqual({ en: 'Tanjong Pagar MRT Station', zh: '丹戎巴葛地铁站' });
+  });
+});

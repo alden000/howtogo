@@ -53,6 +53,6 @@ export interface Env {
    * Unset → the Claude rewrite layer is off (aliases still work); `/api/health` reports `ai: "off"`.
    */
   ANTHROPIC_API_KEY?: string;
-  /** 1.1: global cap on Claude rewrite calls per Singapore day (default 2000). "0" turns the AI layer off. */
+  /** 1.1: global cap on Claude rewrite calls per Singapore day (default 300). "0" turns the AI layer off. */
   AI_DAILY_CAP?: string;
 }

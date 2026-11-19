@@ -70,7 +70,7 @@ test.describe('L1 privacy page', () => {
     await expect(page.locator('.screen h1')).toHaveText('隐私说明');
     await expect(page.locator('.pv h2')).toHaveCount(5);
     await expect(page.getByRole('list', { name: '一眼看懂' })).toBeVisible();
-    await expect(page.getByTestId('pv-footer')).toHaveText(/^说明版本 1 · 2026年11月18日（怎么去\? \d+\.\d+\.\d+(?:-[0-9a-z.]+)?）$/);
+    await expect(page.getByTestId('pv-footer')).toHaveText(/^说明版本 2 · 2026年11月19日（怎么去\? \d+\.\d+\.\d+(?:-[0-9a-z.]+)?）$/);
     await expect(page.getByTestId('pv-contact')).toHaveText('有问题？用设置里的 报告问题。');
     // Creative M5 review fixes 1+2: the contact line is plain text (no M4 contact card), and the inline link sits in
     // its sentence (one line here) while keeping a 56 px hit area.

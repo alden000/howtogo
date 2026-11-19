@@ -7,7 +7,7 @@
  * Logs never contain the query: one redacted word per failure (`ai_rewrite <reason>`).
  * The SDK call itself lives in claude.ts (loaded lazily).
  * Cost/abuse: callers go through `aiRewrite()` which applies the KV cache (30 days, hashed key),
- * the per-client limit (LIMITS.aiRewrite) and the global daily cap (AI_DAILY_CAP, default 2000).
+ * the per-client limit (LIMITS.aiRewrite) and the global daily cap (AI_DAILY_CAP, default 300).
  */
 import { normaliseAliasKey } from "@howtogo/shared/alias";
 import { sgDay } from "@howtogo/shared/telemetry";
@@ -18,7 +18,7 @@ export const AI_MODEL = "claude-opus-5-5";
 /** Mutable for tests (the timeout test would otherwise wait 4 s). */
 export const AI_CONFIG = { timeoutMs: 4000 };
 export const AI_CACHE_TTL_SEC = 30 * 86_400;
-export const AI_DEFAULT_DAILY_CAP = 2000;
+export const AI_DEFAULT_DAILY_CAP = 300;
 export const AI_MAX_QUERY = 100;
 export const AI_MAX_TERMS = 5;
 

@@ -56,10 +56,11 @@ svg.i{width:1.4em;height:1.4em;flex:none;fill:none;stroke:currentColor;stroke-wi
 
 .map{position:relative;height:300px;border-radius:var(--r-l);overflow:hidden;background:var(--m-land);box-shadow:var(--e-1)}
 .mapcanvas{position:absolute;inset:0}
-.attrib{position:absolute;left:8px;bottom:6px;z-index:2;max-width:calc(100% - 16px)}
-.attrib .maplibregl-ctrl-attrib{margin:0;padding:2px 6px;border-radius:6px;background:var(--m-halo)!important;color:var(--m-label);font-size:11px!important;line-height:1.3}
-.attrib .maplibregl-ctrl-attrib a{color:var(--m-label)}
-.attrib .maplibregl-ctrl-attrib-button{display:none}
+.attrib{position:absolute;left:12px;bottom:12px;z-index:2;max-width:calc(100% - 24px);pointer-events:none}
+/* 1.1 C1-A (6g.1), same component as the app: logo + two plain lines, no links. */
+.credit{display:inline-grid;grid-template-columns:20px auto;column-gap:4px;align-items:center;margin:0;padding:3px 6px;border-radius:6px;background:color-mix(in srgb,var(--m-land) 85%,transparent);color:var(--m-label);font-size:11px;line-height:1.3;font-weight:400;text-align:left;white-space:nowrap}
+.credit img{width:20px;height:20px;display:block}
+.credit>span>span:not(.sr){display:block}
 .locbtn{position:absolute;right:12px;top:12px;z-index:2;width:var(--tap);height:var(--tap);border-radius:50%;display:grid;place-items:center;background:var(--c-surface);box-shadow:var(--e-2)}
 
 .upd{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--c-ink-2)}

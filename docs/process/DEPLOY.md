@@ -54,10 +54,11 @@ Without this secret the AI layer is simply off (`/api/health` → `"ai":"off"`);
 
 Cost guards in the Worker: Claude is asked only when OneMap + aliases find fewer than 2 places; answers are
 cached 30 days per query; 20 rewrites per client per hour; `AI_DAILY_CAP` (wrangler.toml `[vars]`, default
-`"2000"`, `"0"` = off) caps calls per Singapore day. Rough cost: about US$0.01 per uncached rewrite
-(`claude-opus-5-5`, effort low), so the cap bounds the worst day at about US$20.
-KV note: each uncached rewrite writes 2 KV keys (cache + day counter). The Workers Free plan allows 1,000 KV
-writes/day in total, so on Free keep `AI_DAILY_CAP` at 400 or less (the OneMap token uses a few writes too).
+`"300"` in both environments since 1.1 (Director ruling 2026-11-19), `"0"` = off) caps calls per Singapore day.
+Rough cost: about US$0.01 per uncached rewrite (`claude-opus-5-5`, effort low), so the cap bounds the worst
+day at about US$3. KV note: each uncached rewrite writes 2 KV keys (cache + day counter). The Workers Free
+plan allows 1,000 KV writes/day in total; the default 300 stays inside it (keep it at 400 or less on Free; the
+OneMap token uses a few writes too). Raise it only on a paid plan.
 To turn the AI off quickly: `npx.cmd wrangler secret delete ANTHROPIC_API_KEY --env production`, or set
 `AI_DAILY_CAP = "0"` and redeploy.
 

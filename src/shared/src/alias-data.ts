@@ -15,6 +15,10 @@ export interface AliasEntry {
   kind: AliasKind;
   keys: string[];
   terms: string[];
+  /** 1.1: zh display name for the "“KKH” means …" line when the longest all-Chinese key is not the full name. */
+  zh?: string;
+  /** 1.1: a kind of place or a chain (many branches), not one place: no "means" line. */
+  many?: true;
 }
 
 const mrtBus = (en: string): string[] => [`${en} MRT Station`, `${en} Bus Interchange`];
@@ -67,7 +71,7 @@ export const ALIASES: readonly AliasEntry[] = [
   { kind: 'clinic', keys: ['bukit batok poly', '武吉巴督综合诊疗所'], terms: ['Bukit Batok Polyclinic'] },
   { kind: 'clinic', keys: ['pasir ris poly', '白沙综合诊疗所'], terms: ['Pasir Ris Polyclinic'] },
   { kind: 'clinic', keys: ['marine parade poly', '马林百列综合诊疗所'], terms: ['Marine Parade Polyclinic'] },
-  { kind: 'clinic', keys: ['综合诊疗所', 'polyclinic', 'poly'], terms: ['Polyclinic'] },
+  { kind: 'clinic', keys: ['综合诊疗所', 'polyclinic', 'poly'], terms: ['Polyclinic'], many: true },
 
   // ---------------- Towns: MRT + bus interchange (zh, pinyin, short forms) ----------------
   { kind: 'transport', keys: ['amk', '宏茂桥', 'hong mao qiao', 'amk int', 'amk interchange'], terms: mrtBus('Ang Mo Kio') },
@@ -161,7 +165,7 @@ export const ALIASES: readonly AliasEntry[] = [
   { kind: 'service', keys: ['ica', '移民局', '移民与关卡局', 'yi min ju'], terms: ['ICA Building'] },
   { kind: 'service', keys: ['mom', '人力部', 'ren li bu'], terms: ['Ministry of Manpower'] },
   { kind: 'service', keys: ['ntuc', '职总', 'zhi zong'], terms: ['NTUC Centre', 'FairPrice'] },
-  { kind: 'service', keys: ['fairprice', '平价超市', 'ping jia chao shi'], terms: ['FairPrice'] },
+  { kind: 'service', keys: ['fairprice', '平价超市', 'ping jia chao shi'], terms: ['FairPrice'], many: true },
   { kind: 'service', keys: ['邮政总局', 'singpost', 'singpost centre'], terms: ['SingPost Centre'] },
   { kind: 'service', keys: ['国家法院', 'state courts'], terms: ['State Courts'] },
   { kind: 'service', keys: ['最高法院', 'supreme court'], terms: ['Supreme Court'] },

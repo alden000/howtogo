@@ -8,12 +8,39 @@ export const ONEMAP_MINZOOM = 11;
 export const ONEMAP_MAXZOOM = 19;
 export const SG_CENTER: [number, number] = [103.8198, 1.3521];
 
+/** The official OneMap logo (checked live: 200 image/png). The linked credit lives on About (L2). */
+export const ONEMAP_LOGO_URL = 'https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png';
+/** C1-A credit text (English in both languages: it is the legal line). */
+export const ONEMAP_CREDIT_LINES = ['OneMap © contributors', 'Singapore Land Authority'] as const;
+
 /**
- * Required attribution (OneMap Terms of Use: "MUST include the OneMap logo and attribution").
- * The logo URL was checked live (200 image/png). The docs page also lists om_logo_256.png.
+ * 1.1 C1-A (STYLE-GUIDE 6g.1): the compact, always-visible OneMap credit on every map card. OneMap's terms
+ * require the logo and the attribution and forbid obscuring the copyright notice, so it is never collapsed.
+ * Plain text, no links (a tiny link is an accidental tap while panning); not focusable; outside the
+ * aria-hidden map node, read once as "OneMap © contributors, Singapore Land Authority".
  */
-export const ONEMAP_ATTRIBUTION =
-  '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:20px;width:20px;" alt=""/>&nbsp;<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener noreferrer">OneMap</a>&nbsp;&copy;&nbsp;contributors&nbsp;&#124;&nbsp;<a href="https://www.sla.gov.sg/" target="_blank" rel="noopener noreferrer">Singapore Land Authority</a>';
+export function createOneMapCredit(doc: Document = document): HTMLParagraphElement {
+  const p = doc.createElement('p');
+  p.className = 'credit';
+  p.lang = 'en';
+  p.setAttribute('data-testid', 'map-credit');
+  const img = doc.createElement('img');
+  img.src = ONEMAP_LOGO_URL;
+  img.alt = '';
+  img.width = 20;
+  img.height = 20;
+  const txt = doc.createElement('span');
+  const l1 = doc.createElement('span');
+  l1.textContent = ONEMAP_CREDIT_LINES[0];
+  const sep = doc.createElement('span');
+  sep.className = 'sr';
+  sep.textContent = ', ';
+  const l2 = doc.createElement('span');
+  l2.textContent = ONEMAP_CREDIT_LINES[1];
+  txt.append(l1, sep, l2);
+  p.append(img, txt);
+  return p;
+}
 
 export const styleForTheme = (dark: boolean): OneMapStyle => (dark ? 'Night' : 'Default');
 
