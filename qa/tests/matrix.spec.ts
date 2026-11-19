@@ -50,9 +50,14 @@ for (const c of configs) {
           axe: await axe(page),
         };
         if (name === 'trip') {
+          // 1.1 C1-A: the credit host is pointer-events:none (never a target) and sits bottom-left on the card,
+          // which at 200 % can start below the Start dock in the scroller: scroll it in, hit-test with events on.
+          await page.locator('[data-testid=map-credit]').scrollIntoViewIfNeeded().catch(() => {});
           r.attribution = await page.evaluate(() => {
             const a = document.querySelector('[data-testid=map-credit]');
             if (!a) return ['missing'];
+            const hosts = [a as HTMLElement, ...(a.closest('.attribhost') ? [a.closest('.attribhost') as HTMLElement] : [])];
+            hosts.forEach((h) => (h.style.pointerEvents = 'auto'));
             const b = a.getBoundingClientRect();
             const out: string[] = [];
             for (const [x, y] of [[b.left + 4, b.top + 4], [b.right - 4, b.bottom - 4], [(b.left + b.right) / 2, (b.top + b.bottom) / 2]]) {
@@ -60,6 +65,7 @@ for (const c of configs) {
               if (!hit || !a.contains(hit)) out.push(`covered at ${Math.round(x!)},${Math.round(y!)} by ${hit?.tagName}.${hit?.className}`);
             }
             if (b.bottom > innerHeight || b.right > innerWidth) out.push('off-screen');
+            hosts.forEach((h) => (h.style.pointerEvents = ''));
             return out;
           });
         }
