@@ -7,8 +7,9 @@ import { signal } from '@preact/signals';
 import { destination, type LatLng, type Step } from '@howtogo/shared';
 import type { Map as MlMap, GeoJSONSource, StyleSpecification } from 'maplibre-gl';
 import { log } from '../log';
-import { boundsOf, followCamera, followReducer, type FollowEvent, type FollowMode } from './follow';
+import { followCamera, followReducer, type FollowEvent, type FollowMode } from './follow';
 import { ONEMAP_ATTRIBUTION, ONEMAP_BOUNDS, ONEMAP_MAXZOOM, ONEMAP_MINZOOM, ONEMAP_TILE_URL, SG_CENTER, styleForTheme } from './onemap';
+import { MAP_MIN_ZOOM, OVERVIEW_MAX_ZOOM, overlayInsets, overviewFit, overviewPoints } from './overview';
 
 type MapLibre = typeof import('maplibre-gl');
 let loading: Promise<MapLibre> | null = null;
@@ -39,6 +40,8 @@ export interface MapOptions {
   attributionHost?: HTMLElement;
   /** H5: a user drag/pinch/rotate (the runtime owns the follow mode, AC 15). */
   onGesture?: () => void;
+  /** Hotfix 1.0.1: elements drawn over the map (attribution, buttons) that the route overview keeps clear of. */
+  overlays?: () => (Element | null | undefined)[];
 }
 
 export interface PuckInput {
@@ -139,7 +142,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     style: baseStyle(opts.dark),
     center: SG_CENTER,
     zoom: 12,
-    minZoom: ONEMAP_MINZOOM,
+    minZoom: MAP_MIN_ZOOM, // hotfix 1.0.1: OneMap z11 tiles already show at map zoom 9.5 (overview.ts)
     maxZoom: ONEMAP_MAXZOOM,
     maxBounds: [
       [ONEMAP_BOUNDS[0], ONEMAP_BOUNDS[1]],
@@ -159,6 +162,8 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     tag();
   }
   else map.addControl(attribution, 'bottom-left');
+  // e2e hook (hotfix 1.0.1): the overview test projects every route point with the live map. No coordinates are logged.
+  (container as unknown as { __howtogoMap?: unknown }).__howtogoMap = { map, points: () => overviewPoints(routeSteps).map((p) => [p.lng, p.lat]) };
   container.setAttribute('aria-hidden', 'true'); // the step list is the accessible source of truth (M1 AC 40)
   map.getCanvas().setAttribute('tabindex', '-1'); // QA-7: nothing focusable inside the aria-hidden map
 
@@ -168,6 +173,8 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
   let dark = opts.dark;
   let followZoom: number | undefined;
   const dur = () => (opts.reducedMotion || opts.animations?.() === false ? 0 : 600);
+  /** Overview wanted: refit on every size change until the user moves the map or follow-me takes over. */
+  let autoFit = false;
 
   const ready = new Promise<void>((r) => (map.loaded() ? r() : map.once('load', () => r())));
 
@@ -201,6 +208,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
   for (const ev of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'] as const) {
     map.on(ev, (e: { originalEvent?: unknown }) => {
       if (e.originalEvent) {
+        autoFit = false;
         dispatchFollow({ type: 'user_gesture' });
         opts.onGesture?.();
       }
@@ -226,8 +234,40 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     src.setData({ type: 'FeatureCollection', features: feats });
   }
 
+  /**
+   * Hotfix 1.0.1: fit the whole itinerary (every leg + origin + destination) clear of the overlays, using the
+   * container's size now. A container without size yet (lazy mount, hidden) is fitted by the ResizeObserver.
+   */
+  function fitOverview(animate: boolean, margin?: number) {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    const c = container.getBoundingClientRect();
+    const over = overlayInsets(c, (opts.overlays?.() ?? []).filter((e): e is Element => !!e).map((e) => e.getBoundingClientRect()));
+    const fit = overviewFit({ points: overviewPoints(routeSteps), width: w, height: h, overlays: over, ...(margin !== undefined ? { margin } : {}) });
+    if (!fit) return;
+    map.resize();
+    map.fitBounds(fit.bounds, { padding: fit.padding, maxZoom: OVERVIEW_MAX_ZOOM, duration: animate ? dur() : 0, bearing: 0, pitch: 0 });
+    log(`map:fit ${fit.fits ? 'all' : 'clamped'}`);
+  }
+
+  // Refit when the card gets its final size (lazy mount, Bigger map, text size) or an overlay changes size.
+  let lastSize = '';
+  const ro = typeof ResizeObserver === 'function'
+    ? new ResizeObserver(() => {
+        const size = `${container.clientWidth}x${container.clientHeight}`;
+        if (size !== lastSize) {
+          lastSize = size;
+          map.resize();
+        }
+        if (autoFit) fitOverview(false);
+      })
+    : null;
+  ro?.observe(container);
+  for (const el of opts.overlays?.() ?? []) if (el) ro?.observe(el);
+
   function applyFollow() {
     if (follow.value !== 'follow' || !lastPuck) return;
+    autoFit = false;
     const cam = followCamera(lastPuck.pos, lastPuck.heading, followZoom);
     map.easeTo({ ...cam, duration: dur() });
   }
@@ -254,6 +294,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     /** Overview recentre button: centre on the dot (AC 39). */
     centerOnMe() {
       if (!lastPuck) return;
+      autoFit = false;
       map.easeTo({ center: [lastPuck.pos.lng, lastPuck.pos.lat], zoom: Math.max(map.getZoom(), 16), duration: dur() });
       log('map:centre-me');
     },
@@ -291,11 +332,16 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
       dispatchFollow({ type: 'step_changed' });
       applyFollow();
     },
-    fitRoute(padding = 48) {
-      const b = boundsOf(routeSteps.flatMap((s) => s.geometry));
-      if (!b) return;
+    /** Show the whole trip (H4 card, Bigger map, H5 See whole trip). `animate: false` on load: no camera move to watch. */
+    fitRoute(o: { animate?: boolean; margin?: number } = {}) {
+      if (routeSteps.length === 0) return;
       dispatchFollow({ type: 'overview' });
-      map.fitBounds(b, { padding, duration: dur(), bearing: 0, pitch: 0 });
+      autoFit = true;
+      fitOverview(o.animate ?? true, o.margin);
+    },
+    /** An overlay appeared or went (e.g. the locate button once a fix arrives): keep the overview clear of it. */
+    overlaysChanged() {
+      if (autoFit) fitOverview(false);
     },
     setTheme(isDark: boolean) {
       if (isDark === dark) return;
@@ -305,6 +351,7 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
       ctl.setRoute(routeSteps); // re-read colour tokens for the theme
     },
     destroy() {
+      ro?.disconnect();
       map.remove();
     },
   };

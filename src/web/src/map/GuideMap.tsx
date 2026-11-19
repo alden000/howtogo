@@ -71,7 +71,7 @@ export function GuideMap(p: GuideMapProps) {
     else ctl.setFollow('free');
   }, [ctl, p.mode, p.stepIndex, p.paused]);
   useEffect(() => {
-    if (ctl && p.overview > 0) ctl.fitRoute(48);
+    if (ctl && p.overview > 0) ctl.fitRoute({ margin: 48 });
   }, [ctl, p.overview]);
 
   return (

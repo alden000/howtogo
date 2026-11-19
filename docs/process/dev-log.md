@@ -1638,3 +1638,28 @@ Branch `dev/m5-int`, on top of QA's gate commit `d4f996f`. One batched round for
 - qa m3 Upgrade and m4 AC 36: pass.
 - dev e2e (Docker): 240/240 after the regex fix. The m34 Help timeout passed on rerun.
 - Baselines: none changed. About and Privacy mask the version.
+
+## 2026-11-19 — Hotfix 1.0.1: route map shows the whole trip (Developer, branch dev/hotfix-1.0.1)
+
+**Owner bug:** on H4 (phone, dark, en, ~412 px) the map card did not show the whole journey: the line ran off the top and bottom, centred mid-route at a fixed zoom. The OneMap attribution spanned the top of the card over the map, and the locate button overlapped it.
+
+**Root cause:** the map's `minZoom` was OneMap's tile minzoom (11). MapLibre zoom is in 512 px tiles, and OneMap's tiles are 256 px, so map zoom Z draws OneMap level round(Z + 1). OneMap's z11 is already reached at map zoom 9.5. A long N-S trip (Seletar → Novena, ~11 km) needs about zoom 10.3 in a ~285 px card. `fitBounds` was clamped at 11, which centred the route at a fixed zoom with both ends cut off. The fit also used a flat 48 px padding that ignored the overlays, ran only once, and covered leg geometry but not origin and destination.
+
+**Done**
+- `src/web/src/map/overview.ts` (pure): `overviewFit()` returns bounds of every leg's geometry plus origin and destination, per-side padding (20 px margin + overlay bands, overlays capped at 60 % of a side), the resulting zoom and centre, and whether it fits. `overlayInsets()` measures the overlays, and `MAP_MIN_ZOOM` is 9.5. The overview zoom is capped at 16.5 so short walks stay at street level.
+- `map.ts`: `fitRoute({ animate, margin })` measures the overlays and fits with `fitBounds` (per-side padding, `maxZoom` cap, duration 0 with reduced motion or battery saver). A `ResizeObserver` on the card and the overlays refits while the overview is wanted: lazy mount, Bigger map, text size, the locate button appearing. Any user gesture, centre-on-me or follow-me stops the refits. H4 fits on load and on every itinerary change with no animation. The H5 "See whole trip" uses the same fit (margin 48).
+- The e2e hook `[data-testid=map].__howtogoMap` exposes the map and its route points, so tests can call `map.project`. Nothing is logged except `map:fit all|clamped`, which has no coordinates.
+- Version 1.0.1 (`package.json`, `version.ts`, `fixa.test.ts`).
+
+**Visible changes (for Creative)**
+- H4 and H4 journey map card (and Bigger map): on load the map shows the whole trip, from start to destination, clear of the card's corners.
+- OneMap attribution moved from top-left to **bottom-left** of the card. It is one compact line (11 px, unchanged style and text, logo kept) and its width stops before the locate button.
+- The 56 px locate button moved from top-right to **bottom-right**. It never overlaps the attribution.
+- H5 guide map unchanged (attribution stays top-left). "See whole trip" now also includes origin and destination and stops zooming in past street level.
+
+**Tests**
+- Unit: `test/overview.test.ts` covers Seletar → Novena at 412 and 390/200 %, a 60 m walk capped at street level, overlay insets, the padding cap and `overviewPoints`. Web 290/290 pass. typecheck clean.
+- Dev e2e: `e2e/hotfix-101.spec.ts` uses a live-mode stubbed Worker with a long fixture itinerary at 390 and 412 px, each at 100 % and 200 % text. Every route vertex `map.project`s inside the container and not under the attribution or the locate button. The two overlays don't overlap, locate is ≥ 56 px, and Bigger map refits. With the 1.0.0 `minZoom` the test fails (10/34 vertices outside).
+- Docker dev e2e (no update): 244/244. In the first full run, the m34 200 % share-sheet audit flaked once (a guide sheet, not the map) and passed on the next run.
+- Baselines: no existing baseline changed. The H4 frames are captured before the map loads, so the attribution and button are not in them; a re-record wrote identical files. One new baseline was added: `H4-mapcard-dark-100-en` (the card with the canvas hidden: attribution bottom-left, locate bottom-right).
+- Not changed: the family viewer map (`viewer/viewerMap.ts`) still uses `minZoom: ONEMAP_MINZOOM`. It has the same zoom-floor cause if puck and destination are more than ~10 km apart. Follow-up candidate.
