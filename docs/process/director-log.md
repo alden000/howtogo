@@ -275,3 +275,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - APK D:\howtogo-builds.1.0\howtogo-1.1.0.apk, 1 863 011 B, SHA-256 7cc62f33bdd1d9109caca59b9f70f0089fb6f7a408bff8cdf1dc830ad3f0f3e8.
 - AC 28 notes (re-confirmed from the 2026-11-17 rulings): no WAKE_LOCK (FGS keeps the CPU awake); the non-exported GoogleApiActivity is accepted. The script keeps them as notes. Lint is pending for the M6 gate.
 - Next: the first device session with the owner (docs/process/android-sideload.md), Creative M6 frames, then the M6 UI round.
+
+## 2026-11-20 — M6 Creative frames approved (12cbfb0, STYLE-GUIDE v1.6 §6h, direction v1.5 D31–D34)
+- Approved: icons battery, bell-off, smartphone; launcher/splash/notification icon geometry; 27 drawn battery-guide pictures (zh/en). No new tokens.
+- OQ defaults accepted: off-route notification on the `info` channel; no destination or contact names in notifications (lock-screen privacy); the QA build keeps the same icon (label "怎么去 QA" tells them apart); Play Protect wording checked on the owner's phone.
+- Next: M6 UI round (native explainers, battery guide, notifications, no-voice, WebView-too-old, update notice, Get-the-app card, /android page, icons into res/).
