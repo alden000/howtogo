@@ -230,3 +230,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - The owner set ONEMAP_EMAIL, ONEMAP_PASSWORD and LTA_ACCOUNT_KEY on production (names verified, values never seen). The OneMap registration "access code" is a one-time email verification, not needed by the app.
 - rc.1 deploy:prod (72ed2d81) passed smoke:deploy 31/31 (fixtureMode false, onemap ok, lta key) and smoke:live 11/11. The Director then bumped the version to 1.0.0 (package.json, version.ts, fixa test), ran unit tests, deployed (0fa796a0): smoke:deploy 31/31, smoke:live 11/11. Pixel 7 check: no sample banner, search 200, no console errors, no horizontal scroll. Tagged v1.0.0.
 - Still open (owner): field test (OQ8), privacy contact, old raus-ums Worker. Next: M6 (APK on a device; keystore from the owner). QA-60 fixed; known flakes listed in qa/reports/1.0.0-rc1-m5.md.
+
+## 2026-11-19 — Hotfix 1.0.1 live (owner bug: route map didn't show the whole trip)
+- Root cause: map minZoom = OneMap tile minzoom 11, but MapLibre zoom is in 512 px units and OneMap tiles are 256 px, so the fit for long trips (Seletar→Novena ≈ z10.3) was clamped and cut both ends. Fix (4855b7f): pure overview fit (all legs + ends, overlay-aware padding, z 9.5–16.5, refit on change/resize); attribution bottom-left, locate bottom-right. New e2e projects every vertex inside the card at 390/412 px × 100/200 % (fails on the old build). Unit 290/290; Docker dev-e2e 244/244.
+- Deployed preview (smoke 30/30) and production f383717e (smoke:deploy 31/31, smoke:live 11/11). Tagged v1.0.1.
+- Follow-up (M6 or 1.0.2): the family viewer map has the same zoom floor; check its fit for long trips.
