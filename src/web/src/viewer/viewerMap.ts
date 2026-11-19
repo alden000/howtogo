@@ -5,7 +5,7 @@
  * North-up; follows the puck until the viewer pans, then a locate button brings it back.
  */
 import type { GeoJSONSource, Map as MlMap } from 'maplibre-gl';
-import { ONEMAP_ATTRIBUTION, ONEMAP_BOUNDS, ONEMAP_MAXZOOM, ONEMAP_MINZOOM, ONEMAP_TILE_URL, styleForTheme } from '../map/onemap';
+import { createOneMapCredit, ONEMAP_BOUNDS, ONEMAP_MAXZOOM, ONEMAP_MINZOOM, ONEMAP_TILE_URL, styleForTheme } from '../map/onemap';
 
 export interface Puck {
   lat: number;
@@ -51,6 +51,8 @@ export interface ViewerMap {
   onFollowChange(cb: (following: boolean) => void): void;
   recentre(): void;
   resize(): void;
+  /** The puck layer is on the map and has a position (e2e hook `data-puck`). */
+  hasPuck(): boolean;
 }
 
 export async function createViewerMap(container: HTMLElement, attributionHost: HTMLElement, opts: { dark: boolean; reducedMotion: boolean }): Promise<ViewerMap> {
@@ -70,7 +72,7 @@ export async function createViewerMap(container: HTMLElement, attributionHost: H
     },
     center: [103.8198, 1.3521],
     zoom: 15,
-    minZoom: ONEMAP_MINZOOM,
+    minZoom: ONEMAP_MINZOOM - 1.5, // as the app (1.0.1, MAP_MIN_ZOOM): map zoom is in 512 px units, OneMap tiles 256 px
     maxZoom: ONEMAP_MAXZOOM,
     maxBounds: [[ONEMAP_BOUNDS[0], ONEMAP_BOUNDS[1]], [ONEMAP_BOUNDS[2], ONEMAP_BOUNDS[3]]],
     attributionControl: false,
@@ -79,10 +81,17 @@ export async function createViewerMap(container: HTMLElement, attributionHost: H
     touchPitch: false,
   });
   map.touchZoomRotate.disableRotation();
-  attributionHost.appendChild(new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION }).onAdd(map));
+  attributionHost.replaceChildren(createOneMapCredit(container.ownerDocument)); // 1.1 C1-A
   map.getCanvas().setAttribute('tabindex', '-1');
 
-  await new Promise<void>((r) => (map.loaded() ? r() : map.once('load', () => r())));
+  // Owner bug (1.0.1): keep the GL canvas the size of its panel (sticky desktop column, rotation, text size).
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => map.resize()).observe(container);
+  // The puck needs only the style, not every tile: a slow tile must not hold the puck back.
+  await new Promise<void>((r) => {
+    if (map.isStyleLoaded()) return r();
+    map.once('style.load', () => r());
+    map.once('load', () => r());
+  });
   map.addSource('puck', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   const puckColor = tok(container, 'puck');
   const greyColor = tok(container, 'c-ink-2');
@@ -130,6 +139,9 @@ export async function createViewerMap(container: HTMLElement, attributionHost: H
     },
     resize() {
       map.resize();
+    },
+    hasPuck() {
+      return !!last && !!map.getLayer('dot') && !!map.getSource('puck');
     },
   };
 }

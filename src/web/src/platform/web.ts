@@ -9,6 +9,8 @@ import {
   type NotifyPermission,
   type Platform,
   type PlatformError,
+  type Heard,
+  type ListenOptions,
   type RecognitionApi,
   type SpeakOptions,
   type SpeechApi,
@@ -226,44 +228,36 @@ function createBattery(): BatteryApi | undefined {
   };
 }
 
-type SR = {
-  lang: string;
-  interimResults: boolean;
-  maxAlternatives: number;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-};
+type SRCtor = new () => import('./speechRec').SR;
 
-/** Web Speech recognition (Chrome/Android: webkitSpeechRecognition). Undefined when unsupported. */
+/**
+ * Web Speech recognition (Chrome/Android: webkitSpeechRecognition). Undefined when unsupported.
+ * QA-63: the engine wrapper (1.1 alternatives / partial words) is a lazy chunk; H2 Search imports it too, so
+ * it is already loaded by the time the mic is tapped. Only the feature check stays in the Home entry.
+ */
 function createRecognition(): RecognitionApi | undefined {
-  const w = g as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
+  const w = g as unknown as { SpeechRecognition?: SRCtor; webkitSpeechRecognition?: SRCtor };
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return undefined;
-  let cur: SR | null = null;
+  let impl: RecognitionApi | undefined;
+  let gen = 0;
+  const get = () => (impl ? Promise.resolve(impl) : import('./speechRec').then((m) => (impl ??= m.makeRecognition(Ctor))));
+  const listenAll = (lang: 'zh-CN' | 'en-SG', opts?: ListenOptions): Promise<Heard> => {
+    const at = ++gen;
+    // Already loaded (H2 imports it): start in this turn, still inside the tap.
+    if (impl) return impl.listenAll!(lang, opts);
+    // stop() before the chunk arrived: nothing was heard.
+    return get().then((i) => (at === gen ? i.listenAll!(lang, opts) : { text: '', alternatives: [] }));
+  };
   return {
-    listen(lang) {
-      cur?.stop();
-      return new Promise((resolve, reject) => {
-        const r = new Ctor();
-        cur = r;
-        r.lang = lang;
-        r.interimResults = false;
-        r.maxAlternatives = 1;
-        let text = '';
-        r.onresult = (e) => (text = e.results[0]?.[0]?.transcript ?? '');
-        r.onerror = (e) => (e.error === 'no-speech' || e.error === 'aborted' ? undefined : reject(new Error(e.error)));
-        r.onend = () => {
-          if (cur === r) cur = null;
-          resolve(text.trim());
-        };
-        r.start();
-      });
+    listen: (lang) => listenAll(lang).then((h) => h.text),
+    listenAll,
+    prepare() {
+      void get().catch(() => undefined);
     },
     stop() {
-      cur?.stop();
+      gen++;
+      impl?.stop();
     },
   };
 }

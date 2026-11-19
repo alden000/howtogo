@@ -4,7 +4,7 @@
  * back on a timer or stepped manually. Everything else records what it was asked.
  */
 import type { BatteryReading, CuePriority, Lang } from '@howtogo/shared';
-import type { LocationFix, NotifyCue, NotifyPermission, PermissionState, Platform, PlatformCapabilities, PlatformError, ShareOutcome, Unsubscribe, VibratePattern, VoiceSupport } from './types';
+import type { LocationFix, NotifyCue, NotifyPermission, PermissionState, Platform, PlatformCapabilities, PlatformError, RecognitionApi, Heard, ShareOutcome, Unsubscribe, VibratePattern, VoiceSupport } from './types';
 
 export interface FakeControls {
   /** Load a fix script; playback resumes from `startIndex`. */
@@ -69,6 +69,8 @@ export interface FakePlatformOptions {
   wakeLockOk?: boolean;
   permission?: PermissionState;
   notifyPermission?: NotifyPermission;
+  /** 1.1 voice search: what the fake mic "hears" (absent → no recognition, the mic is hidden). */
+  heard?: Heard;
 }
 
 export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform {
@@ -283,6 +285,17 @@ export function createFakePlatform(opts: FakePlatformOptions = {}): FakePlatform
         return () => batteryWatchers.delete(cb);
       },
     },
+    ...(opts.heard ? { recognition: fakeRecognition(opts.heard) } : {}),
+  };
+}
+
+/** 1.1: a recognition stand-in that always "hears" `heard` (listen() → its best transcript). */
+export function fakeRecognition(heard: Heard): RecognitionApi {
+  const copy = (): Heard => ({ text: heard.text, alternatives: heard.alternatives.map((a) => ({ ...a })) });
+  return {
+    listen: async () => heard.text,
+    listenAll: async () => copy(),
+    stop: () => {},
   };
 }
 

@@ -46,7 +46,7 @@ test('AC 39/41 + QA-7: my-location dot, recentre, Bigger map; nothing focusable 
   expect(await page.getByTestId('map-box').evaluate((e) => e.getBoundingClientRect().height)).toBeGreaterThan(h0 * 1.4);
   const focusable = await page.getByTestId('map').evaluate((m) => [...m.querySelectorAll('a[href],button,[tabindex]')].filter((e) => e.getAttribute('tabindex') !== '-1').length);
   expect(focusable).toBe(0);
-  await expect(page.locator('.attribhost .maplibregl-ctrl-attrib')).toContainText('OneMap');
+  await expect(page.locator('.attribhost .credit')).toContainText('OneMap');
 });
 
 test('F8 Swap on Route options: start and destination change places', async ({ page }) => {

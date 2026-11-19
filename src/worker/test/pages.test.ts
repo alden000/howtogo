@@ -102,11 +102,11 @@ describe("production: workers.dev HTML → custom domain (AC 34)", () => {
 });
 
 describe("/api/health shape (AC 31)", () => {
-  it("{ ok, fixtureMode, onemap, lta, version } with no token expiry or secrets", async () => {
+  it("{ ok, fixtureMode, onemap, lta, ai, version } with no token expiry or secrets", async () => {
     const res = await get("https://api.test/api/health", { ASSETS: undefined });
     const body = (await res.json()) as Record<string, unknown>;
-    expect(Object.keys(body).sort()).toEqual(["fixtureMode", "lta", "ok", "onemap", "version"]);
-    expect(body).toMatchObject({ ok: true, fixtureMode: false, onemap: "ok", lta: "key" });
+    expect(Object.keys(body).sort()).toEqual(["ai", "fixtureMode", "lta", "ok", "onemap", "version"]);
+    expect(body).toMatchObject({ ok: true, fixtureMode: false, onemap: "ok", lta: "key", ai: "off" });
     expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(JSON.stringify(body)).not.toMatch(/expir|token|s3cret|lta-test-key|example\.com/i);
   });

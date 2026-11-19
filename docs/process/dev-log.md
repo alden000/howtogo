@@ -1663,3 +1663,128 @@ Branch `dev/m5-int`, on top of QA's gate commit `d4f996f`. One batched round for
 - Docker dev e2e (no update): 244/244. In the first full run, the m34 200 % share-sheet audit flaked once (a guide sheet, not the map) and passed on the next run.
 - Baselines: no existing baseline changed. The H4 frames are captured before the map loads, so the attribution and button are not in them; a re-record wrote identical files. One new baseline was added: `H4-mapcard-dark-100-en` (the card with the canvas hidden: attribution bottom-left, locate bottom-right).
 - Not changed: the family viewer map (`viewer/viewerMap.ts`) still uses `minZoom: ONEMAP_MINZOOM`. It has the same zoom-floor cause if puck and destination are more than ~10 km apart. Follow-up candidate.
+
+## 2026-11-19 — Developer: 1.1 smart search engine
+Branch `dev/1.1-smart-search` (engine round; UI comes in the UI round from Creative's frames).
+
+**Built**
+- **Alias layer** (`src/shared/src/alias.ts` + `alias-data.ts`, export `@howtogo/shared/alias`, pure): 135 curated entries (hospitals and national centres, polyclinics, town MRT + bus interchanges with zh/pinyin/short forms, airport, landmarks, malls, temples incl. 观音堂/guan yin → Kwan Im Thong Hood Cho Temple + Leong San See Temple, CPF/HDB/ICA/NTUC, universities) + every open station's official Chinese name from `data/stations.ts` (LTA names) → "<Name> MRT/LRT Station". Normalisation: NFKC (full-width), case, punctuation, basic traditional → simplified, spelled-out letters joined ("K K", "k.k.", "S G H" → kk/sgh), spaces ignored for lookup ("KK 医院" = "KK医院", "niu che shui" = "niucheshui"), zh fillers stripped ("我要去…", "…站/地铁站"), short forms expanded inside longer queries (amk/cck/tpy/je/jw/hbf/poly/hosp/int; never OneMap's BT/JLN/AVE). Only confident names; uncertain ones were removed (no 开开医院-style homophones; KK医院 and 中央医院 are in).
+- **Worker flow** (`src/worker/src/api.ts` handleSearch): q → aliases → OneMap (cached per term, M1 key) → voice `alt` (≤ 2, aliases + OneMap only) → if < 2 hits, live mode and key set: ONE Claude rewrite of `q` (`src/worker/src/ai.ts` gating + `claude.ts` SDK call, lazily imported) → OneMap per term (≤ 5, parallel, cached) → merged, de-duped on name+postal, max 10.
+- **Claude call**: `@anthropic-ai/sdk` 1.10.0 + `zod` 4.6.6 (worker deps), `client.beta.messages.parse`, `claude-opus-5-5`, `max_tokens` 1024, `output_config: { effort: "low", format: betaZodOutputFormat({terms 1–5 × ≤ 60, confidence}) }`, `betas: ["server-side-fallback-2026-07-01"]`, `fallbacks: "default"`, system prompt first with `cache_control` (≈ 1,000 chars, below the cacheable minimum, harmless), no `thinking`, no `temperature`, `timeout` 4000 ms, `maxRetries` 0. `stop_reason` checked before `parsed_output`; refusal / null output → no rewrite. Only the trimmed query (≤ 100 chars) is sent. SDK 1.x sends the key as `Authorization: Bearer`.
+- **Cost/abuse**: KV cache `ai:v1:<sha-256 of normalised query>` 30 days (refusals cached as "no rewrite"; timeouts/errors not cached); per-client limit `LIMITS.aiRewrite` 20/h (existing limiter); `AI_DAILY_CAP` (default 2000, `"0"` = off) counted in KV `ai:cap:<SG day>` before each call (approximate under concurrency; KV failure → fail closed). Logs: `ai_rewrite <reason>` only.
+- `/api/health` gains `ai: "on"|"off"`. Bundle: the SDK adds ≈ 2 MB unminified / ≈ 340 KB gzip (dry-run `--outdir`, no upload); it is evaluated only on the first rewrite.
+- **Voice (Director scope add)**: `RecognitionApi.listenAll?(lang) → { text, alternatives: {transcript, confidence}[] }` (web: `maxAlternatives = 3`; `listen()` unchanged and returns the best text; native inherits the web recognition; fake platform takes `heard`). `api.search(q, signal, { alternatives })` sends them as `&alt=`; Search.tsx passes the mic's alternatives for the text the mic typed (no visible UI change).
+- Docs: API.md (search, health, limits), DEPLOY.md §2a (owner key steps, cost, KV write note), wrangler.toml/.embed.toml `AI_DAILY_CAP = "2000"`, secret scan learns `sk-ant-api03-…`/`ANTHROPIC_API_KEY`.
+
+**Tests** (Anthropic never called for real: fetch stub answers api.anthropic.com): shared `alias.test.ts` (161: table well-formed per entry, no duplicate keys, station names, normalisation, speech forms, fillers, abbreviations); worker `smart-search.test.ts` (18: alias first + via, speech form, de-dup, rewrite + request shape + no IP/headers sent, KV cache hit, timeout, refusal, 429/500/401, connection error, malformed output, per-client limit, daily cap, fixture mode never calls AI/OneMap, voice alternatives, one AI call per voice query, health); web `smart-search.test.ts` (5). Health shape test updated. All suites green (shared 320, web 295+5, worker 238).
+
+**Cost estimate per uncached rewrite** (from prompt size, not a live call): input ≈ 400 tokens (system ≈ 230 + structured-output overhead + query) ≈ $0.0016; output ≈ 150–400 thinking/answer tokens at effort low ≈ $0.003–0.008 → ≈ $0.005–0.01. Cap 2000/day → worst day ≈ $20. QA should log real `usage` once the owner's key is in.
+
+**For the UI round — exact fields**
+- `SearchResult.via?: 'direct' | 'alias' | 'ai'` (absent in fixture/mock mode).
+- `api.search()` returns `SearchResults` = `SearchResult[] & { didYouMean?: boolean; usedAlternative?: string }` (flags only present when true / set).
+- `didYouMean: true` → show the "Did you mean…" list (the AI hits are distinct candidate places).
+- `usedAlternative` → the "你说的是：… / You said: …" line (results came from that speech alternative).
+- `platform.recognition.listenAll(lang)` → `Heard { text, alternatives: { transcript, confidence }[] }` (≤ 3, best first, best included).
+- `/api/health` `ai: "on"|"off"` → e.g. Settings line "Smart search (Claude): on/off".
+- Privacy text (Creative): AI receives only the search text; voice audio stays with the browser/OS speech service; alternatives are text.
+
+**Next steps / open**
+- Owner: `npx.cmd wrangler secret put ANTHROPIC_API_KEY --env production` (DEPLOY.md §2a). On the Workers Free plan keep `AI_DAILY_CAP` ≤ 400 (KV writes).
+- QA: live smoke with the key (KKH, 牛车水, guan yin, a misspelling that needs AI) and check `usage` tokens; dev-e2e unchanged (fixture mode never calls AI).
+- Alias terms were chosen from knowledge, not checked against OneMap live; a term that OneMap does not know just adds no hits. QA can run the alias terms through OneMap once and report misses.
+
+## 2026-11-18 — Developer: M5 fix round
+Branch `dev/m5-int`, on top of QA's gate commit `d4f996f`. One batched round for QA-52 to QA-59. Nothing deployed, and no wrangler run against Cloudflare.
+
+**Fixes**
+- **QA-52** `smoke:deploy`: the MapLibre check now flags only a `src`/`href` URL that contains `maplibre` (chunk, modulepreload or script). Before, it also matched the inlined `.maplibregl-*` CSS selectors.
+- **QA-53** First-run step dots: the privacy list class is renamed from `.dots` to `.pv-bullets` (m5ui1.css, Privacy.tsx). Welcome's `.dots` is a row again at every size.
+  - New guard in `M5-F1-size-{85,100,200}` (dev-e2e): every dot has the same top and the row has `flex-direction: row`. Re-recorded baselines can no longer hide this.
+- **QA-54** `smoke:live` / `smoke:deploy`: they set `process.exitCode` and let the event loop drain, instead of calling `process.exit()` right after `fetch` (the Windows libuv assertion). BLOCKED exits 2: checked against a local stub Worker on this PC (fixture → 2, proxy → 0) and by m5 AC 36 on the real local Worker.
+- **QA-55** (ruling): `lta: proxy` counts as live, and bus arrival must PASS through it. Alerts and lifts that answer 503 `not_configured` print `WARN … SKIP not_configured` and are not FAILs. `lta: none` is BLOCKED. `--json` adds `lta` and `warnings`. Updated in DEPLOY.md §4 and RELEASE-GATE.md (`smoke:live` row).
+- **QA-56** (AC 6): `src/map/prefetch.ts` adds one `<link rel="prefetch" crossorigin>` for the MapLibre chunk after the screen has been idle 3 s. This happens on Home, Search and Route options only, never on the first paint or other screens, and not with Save-Data or battery saver on.
+  - The hashed URL comes from `virtual:maplibre-url`, a bundler file reference in vite.config.ts, so the entry's hash follows MapLibre's. MapLibre is still one lazy chunk and is still absent from index.html.
+- **QA-57** (M4 AC 36, §6f L6): offline 我在哪里 with a position but no remembered address shows the coordinates and 给别人看这个号码 under the no-address line. When an address is remembered, the address and its time show as before (tripSheets.tsx).
+- **QA-58** (AC 2, first-run LCP):
+  - Welcome is in the entry again. To make room, the trip-tile helpers (`map/onemap`) are now lazy. Home JS is 99.1 KB of 100 KB.
+  - The first screen on launch no longer slides in. Its opacity-0 entrance held back LCP. Only in-app navigation animates.
+  - On a first visit, Search waits for the 3 s idle preload, and `/api/health` waits for idle (the first run shows no banner).
+  - Demo mode fetches its mock and fake chunks in parallel.
+  - The 400 face is preloaded next to the 700 face.
+  - index.html now has an invisible, aria-hidden CJK font warm-up, removed after the first render. On Windows, shaping the first Chinese text costs about 150 ms of layout (trace: `Layout` 154 ms in the render task). The warm-up moves that cost into the first paint, while the scripts still download.
+- **QA-59** (ruling): in fixture mode, `/api/revgeocode` returns `200 {"name":"","address":"","postal":"","sample":true}` for any valid point, still with `X-Fixture: 1`, and validation still applies. It never snaps to a sample place now. API.md is updated.
+  - The app keeps the real coordinates (the route origin is unchanged). The point shows as 我的位置 / My location, as AC 26 already does.
+  - On 我在哪里 the driver card reads "My location · 我的位置", with a sample note and the coordinates.
+
+**Lighthouse** (`qa/scripts/lighthouse.sh`, median of 3, owner's PC with other projects' dev servers running)
+- `/?demo=1` cold first run: LCP_RESULTS
+- An A/B in the same session, built from `d4f996f` without these fixes: 2612–2616 ms. This host reads about 100 ms slower than at QA's gate (QA: 2504 ms).
+- Live-mode `/`: about 2.7 s here. But `vite preview` answers `/api/health` with the 14 KB SPA fallback; production answers a few bytes of JSON.
+- Tried and dropped:
+  - Merging the 24 small eager chunks with rolldown `codeSplitting` groups. The viewer pulled in the shell (157 KB) and Home went to 100.1 KB.
+  - Removing the font preloads (worse).
+
+**Tests**
+- Typecheck green.
+- Unit: shared 159, web UNIT_WEB (+4: QA-56 prefetch ×3, QA-59 `locate()`), worker 220 (QA-59 fixture test rewritten).
+- Docker dev-e2e: FULL_E2E.
+- QA specs (local, release build + local Worker):
+  - `m5.spec.ts`: 47/48. The failure is "expired API cache entries…", which fails the same way on a `d4f996f` build on this PC (Home's alerts/lifts/revgeocode get cached after `controlled()`'s reload). This round did not cause it.
+  - AC 6, AC 33 (`smoke:deploy`), AC 36 (exit 2) and the 85 % dots test PASS.
+  - `m4.spec.ts` AC 36: fails the same way on the `d4f996f` build here. In the second tab the service worker does not register (`sw:failed`), so the lazy Show the driver chunk can't load offline (`chunk:failed`) before QA-57's code runs. QA please re-check on the gate host.
+
+**Baselines** (Docker, re-recorded with `-g`)
+- `M1-F1-lang-light-100-zh` and `M5-F1-size-{85,100,200}-light-100-zh`: the step dots are a row.
+- No others changed: the full run without updates is green.
+
+**Visible changes (Creative)**
+1. QA-59 sample mode, 我在哪里: "My location · 我的位置" on the driver card, then the caption 示范模式，暂时不显示地址。 / Sample mode: address not shown yet. (proposed copy), then the coordinates with 给别人看这个号码. The Director suggested 你的位置 / Your location. I kept the app's existing term 我的位置 / My location (AC 26, Home "从我的位置出发"), so the same point is not named two ways. Creative, please pick one.
+2. QA-57: offline 我在哪里 with a position but no remembered address shows the no-address line, then the coordinates (L6). Please confirm the copy.
+3. The first screen on launch appears without the slide-in. In-app navigation is unchanged.
+4. First-run step dots are back in a row (QA-53).
+
+## 2026-11-19 — Developer: 1.1 UI round
+Branch `dev/1.1-smart-search` (UI round on top of the engine, STYLE-GUIDE v1.5 §6g; Director rulings: credit C1-A, `AI_DAILY_CAP` 300).
+
+**Built**
+- **Two-step search (6g.2 build ask).** Worker `GET /api/search?step=1` answers with aliases + OneMap (+ voice alternatives) only, never Claude, plus `assist: true` when there are < 2 results and the rewrite is on. The PWA renders that at once; only with `assist` does it send the same query without `step` (OneMap terms are cached, so only the rewrite costs). So "换个说法再找找… / Trying other names for it…" shows only while Layer 2 really runs, after a 400 ms grace (no flash), and never because the network is slow. The client stops waiting after 4 s; timeout, 429, offline or any failure → the line goes silently and Layer 1 results (or the empty panel) stay. New response fields: `alias {zh?, en}` (query is an alias of ONE place and found it), `guess` (the one rewrite term with hits). API.md updated.
+- **Alias display names.** `expandAliases()` returns `display` for one-place entries: en = the OneMap term; zh = an optional `zh` field, else the longest all-Chinese key (KKH → 竹脚妇幼医院), stations → 「中文名」地铁站/轻轨站. Two-place aliases (AMK), `many: true` entries (Polyclinic, FairPrice) and abbreviation expansions get none. One entry (`och`) has no zh, so the zh line uses the English name, as specified.
+- **H2 (`views/Search.tsx`).** Alias line (a) only when the full name differs from what was typed. Guess line (c′). "你是不是要找： / Did you mean:" (c): Layer 1 rows stay under 找到这些地方 and the extra-help rows follow, ≤ 8. Postal-code hint in `none_s` (d). Silent fallback (e). One polite announcement per outcome via the live region, with exact SR strings (singular forms for 1). The empty panel's title is no longer a second live region (`StatePanel quiet`).
+- **Voice.** "你说的是：“…” / You said: “…”" row (56 px button, `c-surface-2`, 改一改 / Change wraps under the text at 200 %). Tap focuses the field with the caret at the end; the row goes on edit, clear or a new voice search. Listening panel: 72 px disc with ripple rings (reduce motion: two static rings), partial words (the web adapter sets `interimResults` only when asked; words heard before Stop are kept), and Stop (focused). Calm states nohear / nomatch (Try again, focused) / nomic / offline (focus to the field). The in-app Back while listening stops listening and stays on H2.
+- **C1-A credit.** `createOneMapCredit()` (`map/onemap.ts`) replaces `ONEMAP_ATTRIBUTION` in the app map, H5 GuideMap and the family viewer. It is a `<p lang="en" class="credit">` with the 20 px logo (`alt=""`) and the two plain lines "OneMap © contributors / Singapore Land Authority", no links, nothing focusable, read as one line. About keeps the linked credit. Map cards: bottom-left at `s-3`; H5: top-left; viewer: bottom-left at 12 px. The 1.0.1 overview fit measures the credit host, so its reserved box follows the new size (the hotfix-101 projection e2e is green; it also checks ≤ 200×40 px and no links).
+- **Privacy v2.** `pv_3e` (Anthropic's Claude) and `pv_3f` (phone speech service) added, plus the eight cuts, all verbatim. `PRIVACY_NOTICE = { n: 2, date: '2026-11-19' }`; the ≤ 400 words / ≤ 600 Han tests stay green.
+- **`AI_DAILY_CAP` default 300** in `wrangler.toml` and `wrangler.embed.toml` (both envs), `ai.ts`, `env.ts`, API.md and DEPLOY.md §2a (worst day ≈ US$3, inside the Free plan's KV writes).
+- **Version 1.1.0** (`package.json`, `version.ts`, `fixa.test.ts`). What's new: §6g has no 1.1 copy, so the sheet logic is unchanged (it stays a once-per-device 1.0 sheet; 1.1 shows the normal "updated" toast).
+
+**Visible changes (for Creative)**
+- H2: the quiet alias / guess line under 找到这些地方; the "Trying other names…" line with a static 24 px search icon; the Did you mean section; the empty body now mentions postal codes.
+- H2 voice: the You said row under the field; the listening panel (disc, headline, partial words, sub-line, Stop) replaces the old one-line hint; four calm voice panels.
+- Every map card: the credit is now a two-line pill (logo + plain text, ~160×35 px), not the one-line linked text.
+- Privacy: two new bullets in Who else is involved; shorter wording in seven places; footer "Notice version 2 · 19 November 2026".
+- Not built: a Settings "smart search on/off" line. It would name the helper, which the §6g copy rule forbids.
+
+**Tests**
+- Unit: web 306 (new `test/smart-search-ui.test.ts`: two-step client fields, section and line logic, SR sentences, exact 6g copy, no "AI/智能/Claude/Anthropic" in any UI string, voice error mapping, partial words), shared 321 (alias display names), worker 243 (step=1 assist on/off/cap 0, no Claude on step 1, alias field, no alias for two-place or not-found, guess). Typecheck clean (web, worker). Anthropic is never called (fetch stub).
+- Dev e2e (Docker): new `e2e/smart-search.spec.ts` uses a stubbed live Worker and a scripted `SpeechRecognition`, so the real web adapter runs. It covers every 6g.2 state including the 4 s timeout and a 500, the no-flash grace, the voice row, the listening states, Back while listening, and 200 % at 320 px. `hotfix-101.spec.ts` adds C1-A size checks and baselines. The privacy footer assertion is updated to v2. Full Docker run without update: 272/272 green (after re-recording the changed baselines listed below; the first run without update failed only on the 6 privacy-page checks, all expected).
+- QA selectors: `qa/tests/{ac,matrix}.spec.ts` and `helpers.ts` used `.maplibregl-ctrl-attrib`, which no longer exists; they now use `[data-testid=map-credit]` / `.credit`. QA specs m3 + m5: 90 passed, 1 skipped. Two failures came from the engine round's `ai` field in `/api/health`: `scripts/smoke-deploy.mjs` (this would have FAILED `smoke:deploy` on the 1.1 deploy) and the m5 AC 31 key list. Both now expect `ai` (on|off) and pass. m5 AC 38/40 (telemetry) failed once in the full run and passed on rerun; no telemetry code changed.
+- Baselines re-recorded (content changed): `H2-empty-light-100-zh` (postal hint), `H4-mapcard-dark-100-en` (credit), `M5-L1-top-{light,dark}-100-zh`, `M5-L1-top-light-100-en`, `M5-L1-full-light-100-{zh,en}` (privacy v2). New: `H2-alias` ×4, `H2-assist` ×4, `H2-didyoumean` ×4, `H2-heard` ×3, `H2-guess`, `H2-heard-empty`, `H2-listening`, `H2-listening-partial`, `H2-voice-{nohear,nomatch,nomic,offline}`, `C1-A-card-{light,dark}-{100,200}-en`. M2 H5 frames still pass without update: they are captured before the guide map mounts its credit.
+
+**Open**
+- `C1-A-guide` and `C1-A-viewer` baselines are not recorded separately: H5 is covered by the M2 frames, and the viewer's own `e2e:viewer` suite (it needs `wrangler dev`) was not run this round. QA should check the viewer credit at 390/1440.
+- Hardware/system Back while listening is not intercepted: it leaves H2 and stops the mic on unmount. Only the in-app Back stays on H2.
+- The zh display names come from a rule ("longest all-Chinese key"); Creative may want to review the list (`expandAliases(key).display` for each curated entry).
+
+## 2026-11-19 — Developer: 1.1 fix round (QA-61..67, Creative M1/L1/L2)
+
+- **QA-61** Back while listening: listening is now one history entry (a UI-less `listening` sheet state). System/browser Back pops it → listening stops and H2 stays; when listening ends any other way the entry is dropped (`views/Search.tsx`).
+- **QA-62** The alias / guess line shows only while the field still holds the query those results answered (`resultsQ`).
+- **QA-63** Home entry 100.3 → **98.3 KB** gz: H2's copy moved to `i18n/search.ts` (lazy with Search; `useTSearch`), the Web Speech wrapper to `platform/speechRec.ts` (web.ts keeps the feature check; H2 imports it so the mic starts in the tap), the demo GPS simulator to `@howtogo/shared/simulate` (demo only). Welcome stays eager.
+- **QA-64** Dead aliases: Bishan Polyclinic removed (not sure OneMap has it); Sultan Mosque → postal `198833` (Masjid Sultan, 3 Muscat St); ICA → `208718` (10 Kallang Rd); Sports Hub → `National Stadium` first, then `397629`. New optional `en` display name for postal-code-only entries. Not checked live (no live calls this round): QA please re-run `alias-live.ts` on these 4 entries.
+- **QA-65** `e2e:viewer`: build + preview start before wrangler; app-share seeds `whatsnew.v1 = seen`.
+- **QA-66** Product bug, not test drift: `lazyView` rendered empty forever if its chunk arrived (idle preload) between the first render and the effect, so the H5 disruption offer sheet stayed blank. Fixed in `ui/lazy.ts` (+ `test/qa66-lazy-race.test.ts`, red before the fix).
+- **QA-67** Home's Settings button warms the Settings chunk on focus / pointer down (`warmView`), so the screen and its h1 render in the navigation turn and take focus; the lazy fix also covers the blank-screen case.
+- Creative M1 privacy copy (几乎搜不到时 / finds almost nothing; QA v11 privacy regex updated to match), L1 `.heard` icon pinned to the first line, L2 curly quotes in `v_nohear_b` en. Baselines: re-recording in Docker changed nothing (all within tolerance).
+- **Owner S2 (live 1.0.1): blank family-viewer map.** Root cause: MapLibre adds `.maplibregl-map{position:relative}` to the GL container, which beat the viewer's `.mapcanvas{position:absolute;inset:0}` (same specificity, loaded later), so the container was 0 px tall and the canvas was clipped to nothing — at 390 px too, hidden by the masked baselines. Fix: higher-specificity rule (`viewer.css`), ResizeObserver → `map.resize()`, wait for the style (not every tile) before adding the puck, minZoom `ONEMAP_MINZOOM - 1.5` as the app's 1.0.1 fix. New `e2e-viewer/map.spec.ts` (1252×894 dark, 390×844): container/canvas fill the panel, tiles requested at z 11–19 and answered with a fixture PNG, puck layer present (`data-map=ready`, `data-puck=1`); red on the old viewer code (container 0 px), green now.
+- **"Kk Women's…"**: the Worker's `titleCase` lacked `KK` (and other hospital short forms); added `KK`, `SKH`, `NTFGH`, `IMH`, `NCCS`, `NHCS`, `NNI`, `SNEC`, `NDCS`, `NSC`, `NHG`, `NUHS`, `SKCH`, `YCH`, `JCH`, with tests (KK, SGH, NUH, ITE, CPF, MRT, NCCS). Names already in a live share or a phone's Recents keep the old casing until searched again (Worker search cache: 1 day).
+- Tests: typecheck 0; unit 871 (shared 321, web 307, worker 243); Docker dev-e2e 272/272; `npm run build` exit 0; e2e:viewer 47/47; qa v11 27/27, m3 all green (AC 23 3/3 alone), m5 except AC 31 and AC 38/40. Those two also fail on a 3f40b08 build here: their pages have no `serviceWorkers: 'block'`, the SW takes `/api/search` past `page.route`, and the preview server answers it with HTML. That is test setup, for QA.

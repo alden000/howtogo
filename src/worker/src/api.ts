@@ -18,6 +18,9 @@ import {
 import { ltaBusArrival, ltaGet, ltaSource } from "./lta";
 import { normaliseBusArrival, normaliseLifts, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
 import { oneMapGet } from "./onemap";
+import { aiEnabled, aiRewrite } from "./ai";
+import { expandAliases, type AliasDisplay } from "@howtogo/shared/alias";
+import type { Place } from "./normalise";
 
 type Ctx = Pick<ExecutionContext, "waitUntil">;
 
@@ -44,14 +47,21 @@ const cacheHeaders = (maxAge: number, hit: boolean) => ({
 });
 
 // ---------- /api/search ----------
-export async function handleSearch(url: URL, env: Env, ctx?: Ctx): Promise<Response> {
-  const q = (url.searchParams.get("q") ?? "").trim().replace(/\s+/g, " ");
-  if (q.length < 1) bad("missing_query", "Please type a place name or postal code.");
-  if (q.length > 100) bad("query_too_long", "The search text is too long.");
-  if (fixtureMode(env)) return fixtureSearch(q);
-  const key = `search:v1:${q.toLowerCase()}`;
+/** 1.1: where a search hit came from. */
+export type Via = "direct" | "alias" | "ai";
+type Hit = Place & { via: Via };
+const MAX_RESULTS = 10;
+/** 1.1 voice: at most 2 extra speech alternatives (`&alt=`), each searched without AI. */
+const MAX_ALTS = 2;
+/** Fewer hits than this → try alternatives, then the Claude rewrite. */
+const FEW = 2;
+
+const cleanQuery = (raw: string | null) => (raw ?? "").trim().replace(/\s+/g, " ");
+
+/** One OneMap search, cached 24 h per lower-cased query (the M1 cache key, unchanged). */
+async function oneMapSearch(env: Env, q: string, ctx?: Ctx): Promise<{ results: Place[]; hit: boolean }> {
   const { body, hit } = await cached(
-    key,
+    `search:v1:${q.toLowerCase()}`,
     TTL.search,
     async () => {
       const res = await oneMapGet(
@@ -63,7 +73,113 @@ export async function handleSearch(url: URL, env: Env, ctx?: Ctx): Promise<Respo
     },
     ctx,
   );
-  return rawJson(body, 200, cacheHeaders(TTL.search, hit));
+  return { results: (JSON.parse(body) as { results: Place[] }).results, hit };
+}
+
+/** Searches several terms in parallel; a failing extra term is skipped (only the main query may fail the request). */
+async function searchTerms(env: Env, terms: string[], ctx?: Ctx): Promise<Place[][]> {
+  const settled = await Promise.allSettled(terms.map((t) => oneMapSearch(env, t, ctx)));
+  return settled.map((s) => (s.status === "fulfilled" ? s.value.results : []));
+}
+
+function merge(into: Hit[], seen: Set<string>, places: Place[], via: Via): number {
+  let added = 0;
+  for (const p of places) {
+    const k = `${p.name.toLowerCase()}|${p.postal ?? ""}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    into.push({ ...p, via });
+    added++;
+  }
+  return added;
+}
+
+/** Alias + direct OneMap results for one query text (no AI). */
+async function aliasAndDirect(
+  env: Env,
+  q: string,
+  ctx?: Ctx,
+): Promise<{ alias: Place[][]; direct: { results: Place[]; hit: boolean }; display?: AliasDisplay }> {
+  const x = expandAliases(q);
+  const [direct, alias] = await Promise.all([oneMapSearch(env, q, ctx), searchTerms(env, x.terms, ctx)]);
+  return { alias, direct, ...(x.display ? { display: x.display } : {}) };
+}
+
+/** `/api/search` body (src/worker/API.md). */
+interface SearchBody {
+  results: Hit[];
+  didYouMean: boolean;
+  usedAlternative?: string;
+  /** 1.1 UI: the typed text is an alias of ONE place, found by it (the "“KKH” means …" line). */
+  alias?: AliasDisplay;
+  /** 1.1 UI: the extra help found places for exactly one search term (the "Showing places for …" line). */
+  guess?: string;
+  /** 1.1 `step=1`: Layer 1 only; true when the extra help (Layer 2) is worth a second, full request. */
+  assist?: boolean;
+}
+
+/**
+ * 1.1 smart search: query → aliases → OneMap (cached) → [voice: other speech alternatives, no AI] →
+ * if still < 2 hits (live mode, key set): ONE Claude rewrite of the best query → OneMap per term (≤ 5,
+ * parallel, cached) → merged and de-duplicated on name+postal, each hit tagged `via`.
+ */
+export async function handleSearch(url: URL, env: Env, ctx?: Ctx, ip: string | null = null): Promise<Response> {
+  const q = cleanQuery(url.searchParams.get("q"));
+  if (q.length < 1) bad("missing_query", "Please type a place name or postal code.");
+  if (q.length > 100) bad("query_too_long", "The search text is too long.");
+  if (fixtureMode(env)) return fixtureSearch(q);
+  const alts = [...new Set(url.searchParams.getAll("alt").map(cleanQuery))]
+    .filter((a) => a.length >= 1 && a.length <= 100 && a.toLowerCase() !== q.toLowerCase())
+    .slice(0, MAX_ALTS);
+
+  const results: Hit[] = [];
+  const seen = new Set<string>();
+  const first = await aliasAndDirect(env, q, ctx);
+  let aliasHits = 0;
+  for (const r of first.alias) aliasHits += merge(results, seen, r, "alias");
+  merge(results, seen, first.direct.results, "direct");
+
+  let usedAlternative: string | undefined;
+  for (const alt of alts) {
+    if (results.length >= FEW) break;
+    try {
+      const r = await aliasAndDirect(env, alt, ctx);
+      let added = 0;
+      for (const a of r.alias) added += merge(results, seen, a, "alias");
+      added += merge(results, seen, r.direct.results, "direct");
+      if (added && !usedAlternative) usedAlternative = alt;
+    } catch {
+      /* an alternative is best-effort */
+    }
+  }
+
+  // 1.1 UI two-step (STYLE-GUIDE 6g.2 build ask): `step=1` answers with Layer 1 only and says whether the
+  // extra help is worth a second request, so the client shows "Trying other names…" only while it really runs.
+  const layer1Only = url.searchParams.get("step") === "1";
+  let didYouMean = false;
+  let guess: string | undefined;
+  let assist = false;
+  if (results.length < FEW && layer1Only) assist = aiEnabled(env);
+  else if (results.length < FEW) {
+    const ai = await aiRewrite(env, q, ip, ctx);
+    if (ai.ok) {
+      const terms = ai.terms.filter((t) => t.toLowerCase() !== q.toLowerCase());
+      const lists = await searchTerms(env, terms, ctx);
+      const withHits: string[] = [];
+      lists.forEach((l, i) => {
+        if (merge(results, seen, l, "ai")) withHits.push(terms[i]!);
+      });
+      didYouMean = withHits.length >= 2;
+      if (withHits.length === 1) guess = withHits[0];
+    }
+  }
+
+  const body: SearchBody = { results: results.slice(0, MAX_RESULTS), didYouMean };
+  if (usedAlternative) body.usedAlternative = usedAlternative;
+  if (first.display && aliasHits > 0) body.alias = first.display;
+  if (guess) body.guess = guess;
+  if (layer1Only) body.assist = assist;
+  return json(body, 200, cacheHeaders(TTL.search, first.direct.hit));
 }
 
 // ---------- /api/route ----------

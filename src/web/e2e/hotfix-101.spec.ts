@@ -38,7 +38,7 @@ const NOVENA = { name: 'Tan Tock Seng Hospital', address: '11 Jalan Tan Tock Sen
 
 test.use({ serviceWorkers: 'block', geolocation: { latitude: ORIGIN.lat, longitude: ORIGIN.lng, accuracy: 10 } });
 
-async function toTrip(page: Page, textSize: 'standard' | 'xxlarge') {
+async function toTrip(page: Page, textSize: 'standard' | 'xxlarge', theme: 'light' | 'dark' = 'dark') {
   await page.route('**/api/**', (r) => {
     const u = new URL(r.request().url());
     if (u.pathname === '/api/health') return r.fulfill({ json: { ok: true, fixtureMode: false } });
@@ -48,7 +48,7 @@ async function toTrip(page: Page, textSize: 'standard' | 'xxlarge') {
   });
   await hermetic(page);
   await page.clock.setFixedTime(FIXED);
-  await onboarded(page, { lang: 'en', theme: 'dark', textSize, motion: 'on' });
+  await onboarded(page, { lang: 'en', theme, textSize, motion: 'on' });
   await page.goto('/');
   await page.getByTestId('to-field').click();
   await page.getByTestId('search-input').fill('tan tock');
@@ -75,7 +75,7 @@ const measure = (page: Page) =>
       w: c.width,
       h: c.height,
       pts: h.points().map((p) => h.map.project(p)),
-      attrib: rel('.mapbox .attribhost .maplibregl-ctrl-attrib'),
+      attrib: rel('.mapbox .attribhost .credit'),
       locate: rel('[data-testid=map-recentre]'),
     };
   });
@@ -100,7 +100,7 @@ for (const width of [390, 412])
       expect(m.attrib.left).toBeLessThan(m.w / 2);
       expect(m.locate.right - m.locate.left).toBeGreaterThanOrEqual(56);
       expect(m.locate.bottom - m.locate.top).toBeGreaterThanOrEqual(56);
-      await expect(page.locator('.mapbox .attribhost .maplibregl-ctrl-attrib')).toContainText('Singapore Land Authority');
+      await expect(page.locator('.mapbox .attribhost .credit')).toContainText('Singapore Land Authority');
       expect(await logOf(page)).toContain('map:fit all');
       // The owner's setup (412 px, dark, en): the card with the attribution bottom-left and locate bottom-right (canvas masked).
       if (width === 412 && textSize === 'standard') {
@@ -109,6 +109,13 @@ for (const width of [390, 412])
         await page.addStyleTag({ content: '.mapbox .maplibregl-canvas { visibility: visible !important }' });
       }
 
+      // 1.1 C1-A: the compact credit is about 160 x 35 px at every text size (px, does not follow --ts).
+      expect(m.attrib.right - m.attrib.left).toBeLessThanOrEqual(200);
+      expect(m.attrib.bottom - m.attrib.top).toBeLessThanOrEqual(40);
+      expect(m.attrib.left).toBeGreaterThanOrEqual(11);
+      expect(m.h - m.attrib.bottom).toBeGreaterThanOrEqual(11);
+      expect(await page.locator('.mapbox .attribhost a, .mapbox .attribhost button').count()).toBe(0);
+
       // Bigger map: refitted to the new size, still the whole trip.
       await page.getByTestId('toggle-map').click();
       await expect.poll(async () => {
@@ -116,4 +123,16 @@ for (const width of [390, 412])
         const out = b.pts.filter((p) => !inside(p.x, p.y, { left: 0, top: 0, right: b.w, bottom: b.h }));
         return `settled=${b.settled} tall=${b.h > m.h * 1.4} outside=${out.length}`;
       }, { timeout: 15_000 }).toBe('settled=true tall=true outside=0');
+    });
+
+// 1.1 C1-A baselines (STYLE-GUIDE 6g.1): the H4 overview card with the credit bottom-left and the locate button
+// bottom-right, light/dark x 100/200 % at 390 px (canvas hidden; the logo masked as in every baseline).
+for (const theme of ['light', 'dark'] as const)
+  for (const textSize of ['standard', 'xxlarge'] as const)
+    test(`C1-A-card-${theme}-${textSize === 'standard' ? 100 : 200}-en`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await toTrip(page, textSize, theme);
+      await expect(page.getByTestId('map-credit')).toHaveText('OneMap © contributors, Singapore Land Authority');
+      await page.addStyleTag({ content: '.mapbox .maplibregl-canvas { visibility: hidden !important }' });
+      await expect(page.getByTestId('map-box')).toHaveScreenshot(`C1-A-card-${theme}-${textSize === 'standard' ? 100 : 200}-en.png`, { mask: [page.locator('[data-testid=map-box] img')] });
     });

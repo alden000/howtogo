@@ -21,6 +21,14 @@ describe("titleCase", () => {
     expect(titleCase("THE CENTRAL OF SINGAPORE")).toBe("The Central of Singapore");
     expect(titleCase("ST. ANDREW'S CATHEDRAL")).toBe("St. Andrew's Cathedral");
     expect(titleCase("TOA PAYOH HDB HUB")).toBe("Toa Payoh HDB Hub");
+    // Owner bug (live 1.0.1 family viewer): known acronyms stay upper-case.
+    expect(titleCase("KK WOMEN'S AND CHILDREN'S HOSPITAL")).toBe("KK Women's and Children's Hospital");
+    expect(titleCase("SGH BLOCK 3")).toBe("SGH Block 3");
+    expect(titleCase("NUH MEDICAL CENTRE")).toBe("NUH Medical Centre");
+    expect(titleCase("ITE COLLEGE CENTRAL")).toBe("ITE College Central");
+    expect(titleCase("CPF BUILDING")).toBe("CPF Building");
+    expect(titleCase("BISHAN MRT STATION")).toBe("Bishan MRT Station");
+    expect(titleCase("NATIONAL CANCER CENTRE SINGAPORE (NCCS)")).toBe("National Cancer Centre Singapore (NCCS)");
   });
 });
 

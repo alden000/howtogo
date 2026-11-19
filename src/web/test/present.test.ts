@@ -3,6 +3,7 @@ import { rankItineraries } from '@howtogo/shared';
 import { FIXTURES } from '@howtogo/shared/fixtures';
 import { normalizeOneMapPlan } from '@howtogo/shared';
 import { tf, UI, type UiKey } from '../src/i18n/ui';
+import { SEARCH_UI } from '../src/i18n/search';
 import { inSingapore } from '../src/state/location';
 import { createStore, TEXT_SCALE } from '../src/state/store';
 import { greetingKey } from '../src/views/Home';
@@ -21,10 +22,14 @@ describe('i18n', () => {
   it('zh and en have the same keys and no empty strings (AC 8)', () => {
     expect(Object.keys(UI.en).sort()).toEqual(Object.keys(UI.zh).sort());
     for (const l of ['zh', 'en'] as const) for (const [k, v] of Object.entries(UI[l])) expect(v, `${l}.${k}`).not.toBe('');
+    // H2's own table (QA-63: lazy with Search): same keys, none empty, none shadowing a global key.
+    expect(Object.keys(SEARCH_UI.en).sort()).toEqual(Object.keys(SEARCH_UI.zh).sort());
+    for (const l of ['zh', 'en'] as const) for (const [k, v] of Object.entries(SEARCH_UI[l])) expect(v, `search.${l}.${k}`).not.toBe('');
+    for (const k of Object.keys(SEARCH_UI.zh)) expect(k in UI.zh, `search key ${k} also global`).toBe(false);
   });
   it('fills placeholders and leaves unknown ones', () => {
     expect(tf('zh', 'you_are_near', { p: '家' })).toBe('你在：家附近');
-    expect(tf('en', 'none_t', { q: 'abc' })).toBe('Couldn’t find “abc”');
+    expect(tf('en', 'how_to', { p: 'abc' })).toBe('How do I get to abc?');
     expect(tf('en', 'arrive_at')).toBe('Arrive {t}');
   });
 });

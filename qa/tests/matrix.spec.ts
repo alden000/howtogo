@@ -17,7 +17,7 @@ const visits: Visit[] = [
   ['search-results', async (p) => { await p.getByTestId('search-input').fill('tan tock'); await expect(p.getByTestId('search-results')).toBeVisible(); }],
   ['search-none', async (p) => { await p.getByTestId('search-input').fill('zzzz'); await expect(p.getByTestId('search-empty')).toBeVisible(); }],
   ['routes', async (p) => { await p.getByTestId('search-input').fill('tan tock'); await p.getByTestId('search-result-0').click(); await expect(p.getByTestId('route-option-0')).toBeVisible(); }],
-  ['trip', async (p) => { await p.getByTestId('route-option-0').click(); await expect(p.getByTestId('step-list')).toBeVisible(); await expect(p.locator('.maplibregl-ctrl-attrib')).toBeVisible({ timeout: 15_000 }); }],
+  ['trip', async (p) => { await p.getByTestId('route-option-0').click(); await expect(p.getByTestId('step-list')).toBeVisible(); await expect(p.getByTestId('map-credit')).toBeVisible({ timeout: 15_000 }); }],
   ['settings', async (p) => { await p.goto('/settings?demo=1'); await expect(p.getByTestId('row-about')).toBeVisible(); }],
   ['sheet-name', async (p) => { await p.getByTestId('row-name').click(); await expect(p.getByTestId('sheet-name')).toBeVisible(); await p.waitForTimeout(400); }],
   ['sheet-home', async (p) => { await p.goBack(); await p.getByTestId('row-home').click(); await expect(p.getByTestId('sheet-home')).toBeVisible(); await p.waitForTimeout(400); }],
@@ -50,9 +50,14 @@ for (const c of configs) {
           axe: await axe(page),
         };
         if (name === 'trip') {
+          // 1.1 C1-A: the credit host is pointer-events:none (never a target) and sits bottom-left on the card,
+          // which at 200 % can start below the Start dock in the scroller: scroll it in, hit-test with events on.
+          await page.locator('[data-testid=map-credit]').scrollIntoViewIfNeeded().catch(() => {});
           r.attribution = await page.evaluate(() => {
-            const a = document.querySelector('.maplibregl-ctrl-attrib');
+            const a = document.querySelector('[data-testid=map-credit]');
             if (!a) return ['missing'];
+            const hosts = [a as HTMLElement, ...(a.closest('.attribhost') ? [a.closest('.attribhost') as HTMLElement] : [])];
+            hosts.forEach((h) => (h.style.pointerEvents = 'auto'));
             const b = a.getBoundingClientRect();
             const out: string[] = [];
             for (const [x, y] of [[b.left + 4, b.top + 4], [b.right - 4, b.bottom - 4], [(b.left + b.right) / 2, (b.top + b.bottom) / 2]]) {
@@ -60,6 +65,7 @@ for (const c of configs) {
               if (!hit || !a.contains(hit)) out.push(`covered at ${Math.round(x!)},${Math.round(y!)} by ${hit?.tagName}.${hit?.className}`);
             }
             if (b.bottom > innerHeight || b.right > innerWidth) out.push('off-screen');
+            hosts.forEach((h) => (h.style.pointerEvents = ''));
             return out;
           });
         }

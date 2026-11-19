@@ -8,7 +8,7 @@ import { destination, type LatLng, type Step } from '@howtogo/shared';
 import type { Map as MlMap, GeoJSONSource, StyleSpecification } from 'maplibre-gl';
 import { log } from '../log';
 import { followCamera, followReducer, type FollowEvent, type FollowMode } from './follow';
-import { ONEMAP_ATTRIBUTION, ONEMAP_BOUNDS, ONEMAP_MAXZOOM, ONEMAP_MINZOOM, ONEMAP_TILE_URL, SG_CENTER, styleForTheme } from './onemap';
+import { createOneMapCredit, ONEMAP_BOUNDS, ONEMAP_MAXZOOM, ONEMAP_MINZOOM, ONEMAP_TILE_URL, SG_CENTER, styleForTheme } from './onemap';
 import { MAP_MIN_ZOOM, OVERVIEW_MAX_ZOOM, overlayInsets, overviewFit, overviewPoints } from './overview';
 
 type MapLibre = typeof import('maplibre-gl');
@@ -35,7 +35,7 @@ export interface MapOptions {
   interactive?: boolean;
   /**
    * Where the OneMap attribution goes. It is kept outside the aria-hidden map node (QA-7: no focusable
-   * content inside aria-hidden) and pinned at the top so it stays on screen on short viewports (QA-12).
+   * content inside aria-hidden) and 1.1 C1-A: map cards bottom-left, H5 top-left (QA-12).
    */
   attributionHost?: HTMLElement;
   /** H5: a user drag/pinch/rotate (the runtime owns the follow mode, AC 15). */
@@ -152,16 +152,8 @@ export async function createMapController(container: HTMLElement, opts: MapOptio
     interactive: opts.interactive ?? true,
     pitchWithRotate: false,
   });
-  const attribution = new ml.AttributionControl({ compact: false, customAttribution: ONEMAP_ATTRIBUTION });
-  const host = opts.attributionHost;
-  if (host) {
-    host.appendChild(attribution.onAdd(map));
-    // AC 44: every visible control has a test id. MapLibre sanitises the attribution HTML, so tag its links here.
-    const tag = () => host.querySelectorAll('a').forEach((a, i) => a.getAttribute('data-testid') || a.setAttribute('data-testid', `attrib-link-${i}`));
-    new MutationObserver(tag).observe(host, { subtree: true, childList: true });
-    tag();
-  }
-  else map.addControl(attribution, 'bottom-left');
+  // 1.1 C1-A: plain-text compact credit (logo + two lines, no links), outside the aria-hidden map node.
+  opts.attributionHost?.replaceChildren(createOneMapCredit(container.ownerDocument));
   // e2e hook (hotfix 1.0.1): the overview test projects every route point with the live map. No coordinates are logged.
   (container as unknown as { __howtogoMap?: unknown }).__howtogoMap = { map, points: () => overviewPoints(routeSteps).map((p) => [p.lng, p.lat]) };
   container.setAttribute('aria-hidden', 'true'); // the step list is the accessible source of truth (M1 AC 40)

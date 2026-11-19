@@ -116,14 +116,15 @@ export function Seal({ pulse = false }: { pulse?: boolean }) {
 }
 
 /** §6b state panel: icon tile → headline (polite live region) → body → buttons. */
-export function StatePanel(props: { id: string; icon: IconName; title: string; body?: string; children?: ComponentChildren }) {
+export function StatePanel(props: { id: string; icon: IconName; title: string; body?: string; children?: ComponentChildren; quiet?: boolean }) {
   useStateHook(props.id);
   return (
     <div class="state" data-testid={`state-${props.id}`}>
       <span class="stile" aria-hidden="true">
         <Icon name={props.icon} />
       </span>
-      <p class="t-headline" role="status" aria-live="polite">
+      {/* quiet: the screen announces the outcome itself (1.1 H2), so the title is not a second live region. */}
+      <p class="t-headline" role={props.quiet ? undefined : 'status'} aria-live={props.quiet ? undefined : 'polite'}>
         {props.title}
       </p>
       {props.body && <p class="sbody">{props.body}</p>}
@@ -167,12 +168,12 @@ export function Wordmark({ name, tag = 'h1', size }: { name: string; tag?: 'h1' 
 }
 
 /** App bar with the labelled in-app Back button (§6: Back follows the in-app stack). */
-export function Bar({ children }: { children?: ComponentChildren }) {
+export function Bar({ children, onBack }: { children?: ComponentChildren; onBack?: () => void }) {
   const { router } = useServices();
   const t = useT();
   return (
     <header class="bar">
-      <button type="button" class="backbtn" data-testid="back" aria-label={t('back')} onClick={() => router.back()}>
+      <button type="button" class="backbtn" data-testid="back" aria-label={t('back')} onClick={() => (onBack ? onBack() : router.back())}>
         <Icon name="back" />
         <span>{t('back')}</span>
       </button>

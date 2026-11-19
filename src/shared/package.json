@@ -9,6 +9,8 @@
     "./data": "./src/data/index.ts",
     "./telemetry": "./src/telemetry.ts",
     "./battery": "./src/battery.ts",
+    "./alias": "./src/alias.ts",
+    "./simulate": "./src/simulate.ts",
     "./fixtures": "./test/fixtures/index.ts"
   },
   "scripts": {

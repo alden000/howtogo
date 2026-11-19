@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 /**
  * M1 acceptance criteria, one test (or more) per AC, titled "AC-<n> …" so the report can map them.
  * Demo/mock mode (in-page fixtures) unless a test needs network-level faults: then live mode
@@ -397,7 +398,7 @@ test('AC-36 tiles: OneMap Default in light, Night in dark', async ({ browser }) 
     await page.goto('/?demo=1');
     await toRoutes(page);
     await page.getByTestId('route-option-0').click();
-    await expect(page.locator('.maplibregl-ctrl-attrib')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('map-credit')).toBeVisible({ timeout: 15_000 });
     await expect.poll(() => tiles.length).toBeGreaterThan(0);
     expect(tiles.every((u) => u.includes(`/${style}/`)), `${scheme}: ${tiles[0]}`).toBe(true);
     await ctx.close();
@@ -409,9 +410,9 @@ test('AC-37/40 map: OneMap attribution logo + text, map aria-hidden, steps are t
   await page.goto('/?demo=1');
   await toRoutes(page);
   await page.getByTestId('route-option-0').click();
-  const attrib = page.locator('.maplibregl-ctrl-attrib');
+  const attrib = page.getByTestId('map-credit');
   await expect(attrib).toContainText('OneMap', { timeout: 15_000 });
-  await expect(page.locator('[data-testid=map-box] img[src*="om_logo"], .maplibregl-ctrl-attrib img')).toHaveCount(1);
+  await expect(page.locator('[data-testid=map-box] img[src*="om_logo"], [data-testid=map-credit] img')).toHaveCount(1);
   await expect(page.getByTestId('map')).toHaveAttribute('aria-hidden', 'true');
   await expect(page.getByTestId('step-list')).toContainText('到达');
 });
@@ -432,7 +433,7 @@ test('AC-39 route-detail map: my-location dot + 56 px labelled recentre button (
   await page.goto('/?mock=1');
   await toRoutes(page);
   await page.getByTestId('route-option-0').click();
-  await expect(page.locator('.maplibregl-ctrl-attrib')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('map-credit')).toBeVisible({ timeout: 15_000 });
   const b = page.getByTestId('map-recentre');
   await expect(b).toBeVisible({ timeout: 3000 });
   const bb = await b.boundingBox();
@@ -449,7 +450,9 @@ test('AC-42 report: version, UA, language, font size; no coordinates/addresses',
   await page.getByTestId('report').click();
   await page.getByTestId('report-see').click();
   const txt = await page.getByTestId('report-text').innerText();
-  expect(txt).toMatch(/0\.3\.0/); // M3/M4 (QA-47)
+  // QA-47; 1.1: the app's own version (was a hard-coded 0.3.0).
+  const ver = (JSON.parse(readFileSync(`${__dirname}/../../src/web/package.json`, 'utf8')) as { version: string }).version;
+  expect(txt).toContain(ver);
   expect(txt).toMatch(/Mozilla|Chrome/);
   expect(txt).toMatch(/zh/);
   expect(txt).toMatch(/125|large/);

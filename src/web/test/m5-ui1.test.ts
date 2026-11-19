@@ -104,7 +104,7 @@ describe('L1 Privacy copy and route', () => {
   it('no contact e-mail in the copy (AC 23): questions go to Report a problem', () => {
     for (const v of [...Object.values(M5UI1_ZH), ...Object.values(M5UI1_EN), ...Object.values(PV_ZH), ...Object.values(PV_EN)]) expect(v).not.toMatch(/@[a-z0-9-]+\./i);
     expect(PV_EN.pv_contact).toContain('[Report a problem]');
-    expect(PRIVACY_NOTICE.n).toBe(1);
+    expect(PRIVACY_NOTICE.n).toBe(2);
   });
   it('/privacy is a standalone route (deep-linkable from the family page and /setup)', () => {
     expect(matchRoute('/privacy?lang=en').name).toBe('privacy');

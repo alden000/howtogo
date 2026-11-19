@@ -105,7 +105,7 @@ export function Privacy() {
           </h2>
           {list(['pv_2a', 'pv_2b', 'pv_2c', 'pv_2d', 'pv_2e'])}
           <h2 class="t-headline">{t('pv_h3')}</h2>
-          {list(['pv_3a', 'pv_3b', 'pv_3c', 'pv_3d'])}
+          {list(['pv_3a', 'pv_3b', 'pv_3c', 'pv_3d', 'pv_3e', 'pv_3f'])}
           <h2 class="t-headline">{t('pv_h4')}</h2>
           {list(['pv_4a'])}
           <h2 class="t-headline">{t('pv_h5')}</h2>

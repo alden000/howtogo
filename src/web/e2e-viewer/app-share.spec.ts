@@ -16,6 +16,7 @@ test('app share → family page live: walk step from the structured step, help, 
   await senior.addInitScript(() => {
     localStorage.setItem('howtogo.settings', JSON.stringify({ onboarded: true, motion: 'on' }));
     localStorage.setItem('howtogo.family.v1', JSON.stringify([{ name: '美玲', relation: 'daughter', phone: '+6591234567', callMe: '妈妈', lang: 'zh' }]));
+    localStorage.setItem('howtogo.whatsnew.v1', 'seen'); // QA-65: an existing user, so the What's new sheet stays shut
     window.open = (() => null) as typeof window.open;
   });
   await senior.goto('/?demo=1&demoMs=100000&realshare=1');

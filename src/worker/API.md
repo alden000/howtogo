@@ -15,6 +15,7 @@ All responses are JSON (`application/json; charset=utf-8`) unless noted.
   | Endpoint | Limit |
   |---|---|
   | `/api/search`, `/api/route`, `/api/revgeocode`, `/api/bus-arrival`, `/api/alerts`, `/api/lifts` (shared bucket) | 60 / min |
+  | `/api/search` Claude rewrites (1.1; cached answers are not counted) | 20 / hour (over → plain results, no error) |
   | `POST /api/share` | 10 / hour |
   | `GET /api/share/:id` (viewer polling) | 1 per 5 s per share |
   | `POST /api/setup` | 5 / hour |
@@ -23,15 +24,27 @@ All responses are JSON (`application/json; charset=utf-8`) unless noted.
 - Other codes: `400 invalid_*` / `missing_query`, `404 not_found`, `405 method_not_allowed`, `413 payload_too_large` (bodies > 4 KB; `POST /api/setup` allows the 4096-byte ciphertext in base64url, ≈ 5.5 KB), `500 internal_error`.
 
 ## GET /api/health
-`{"ok":true,"fixtureMode":true|false,"onemap":"ok"|"missing"|"fixture","lta":"key"|"proxy"|"none","version":"x.y.z"}` (M5 AC 31: `onemap` = credentials set or not, never token expiry; `version` = the deployed web build), `Cache-Control: no-store`, not rate-limited. `lta`: `key` = own `LTA_ACCOUNT_KEY` secret (all LTA endpoints); `proxy` = no key but the `LTA_PROXY` service binding to `whereisthebus-lta-proxy` (bus arrival only; `/api/alerts` and `/api/lifts` answer 503 `not_configured`); `none` = no LTA data. `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
+`{"ok":true,"fixtureMode":true|false,"onemap":"ok"|"missing"|"fixture","lta":"key"|"proxy"|"none","ai":"on"|"off","version":"x.y.z"}` (M5 AC 31: `onemap` = credentials set or not, never token expiry; `version` = the deployed web build), `Cache-Control: no-store`, not rate-limited. `lta`: `key` = own `LTA_ACCOUNT_KEY` secret (all LTA endpoints); `proxy` = no key but the `LTA_PROXY` service binding to `whereisthebus-lta-proxy` (bus arrival only; `/api/alerts` and `/api/lifts` answer 503 `not_configured`); `none` = no LTA data. `ai` (1.1) is `on` when the `ANTHROPIC_API_KEY` secret is set, `AI_DAILY_CAP` > 0 and fixture mode is off (never the key or the day's count). `fixtureMode` is true when `FIXTURE_MODE=1`; the PWA then shows the "示范路线 / Sample routes" banner on Home, Search results and Route options.
 
-## GET /api/search?q=
-OneMap elastic search (token sent when available). `q` 1–100 chars. Cached 24 h per lower-cased, whitespace-collapsed query (`Cache-Control: private, max-age=86400`).
+## GET /api/search?q=[&alt=…&alt=…][&step=1]
+OneMap elastic search (token sent when available). `q` 1–100 chars. Each OneMap lookup is cached 24 h per lower-cased, whitespace-collapsed term (`Cache-Control: private, max-age=86400`; `X-Cache` = the lookup for `q` itself).
 ```json
-{"results":[{"name":"Bishan MRT Station","address":"17 Bishan Place Bishan MRT Station Singapore 579842","postal":"579842","lat":1.351018,"lng":103.850057}]}
+{"results":[{"name":"Bishan MRT Station","address":"17 Bishan Place Bishan MRT Station Singapore 579842","postal":"579842","lat":1.351018,"lng":103.850057,"via":"direct"}],"didYouMean":false}
 ```
 - `name`: BUILDING, else "BLK ROAD", else SEARCHVAL; title-cased, keeping MRT/LRT/HDB and codes like (NS17).
 - `postal`: 6 digits or `""`. Deduped on name+postal; max 10.
+
+**1.1 smart search** (backward compatible: new fields only):
+1. **Aliases** (`src/shared/src/alias.ts`, curated table + official Chinese station names): `q` is normalised (case, spaces, full-width, basic traditional → simplified, spelled-out letters "K K H" → "kkh", zh fillers "去…"/"…站") and expanded into ≤ 5 OneMap terms (e.g. `KKH`/`KK医院`/`竹脚医院` → "KK Women's and Children's Hospital", `牛车水`/`niu che shui` → Chinatown, `guan yin`/`观音堂` → Kwan Im Thong Hood Cho Temple, `amk ave 3` → "ang mo kio ave 3"). Alias hits come first, then the direct OneMap hits for `q`.
+2. **Voice alternatives** — `alt` (repeatable, ≤ 2 used, each ≤ 100 chars): the other speech-to-text candidates. Only when `q` found < 2 results, each alternative is searched the same way (aliases + OneMap, **never** Claude) until there are 2.
+3. **Claude rewrite** — only when there are still < 2 results, fixture mode is off and `ANTHROPIC_API_KEY` is set: ONE call per request (with `q`, never the alternatives) to `claude-opus-5-5` (structured output `{terms: 1–5 × ≤ 60 chars, confidence}`, effort low, 4 s timeout, no retries, server-side refusal fallback), then OneMap for each term (≤ 5, parallel, cached). **Sent: the query text only** — no location, ids, IP or headers. Rewrites are cached 30 days in `TOKEN_KV` under `ai:v1:<sha-256 of the normalised query>` (no search text stored); refusals are cached as "no rewrite". Skipped (plain results, still 200) when: over the per-client limit (20/h), over `AI_DAILY_CAP` per Singapore day (default 300, counter `ai:cap:<YYYY-MM-DD>` in KV), timeout, refusal, API error. Logs carry one redacted word (`ai_rewrite timeout|refusal|rate_limited|over_cap|api_error_<status>|…`), never the query.
+- `via` per result: `"alias"` (curated table), `"direct"` (OneMap on the typed/spoken text or an alternative), `"ai"` (Claude rewrite).
+- `didYouMean`: `true` when the AI hits come from 2+ different rewrite terms (several distinct places: show "Did you mean…"), else `false`.
+- `usedAlternative` (only when set): the speech alternative that produced results ("You said: …").
+- `alias` (1.1 UI, only when set): `{zh?, en}` display names when `q` is an alias of ONE place and that alias found hits (the "“KKH” means …" line). Not for two-place aliases (AMK = station + interchange), kinds of place or chains.
+- `guess` (1.1 UI, only when set): the one rewrite term that found places ("Showing places for …").
+- `step=1` (1.1 UI two-step): answers with aliases + OneMap (+ voice alternatives) only, never Claude, plus `assist`: `true` when there are < 2 results and the rewrite is on (key set, cap > 0). The PWA then sends the same query without `step` (OneMap terms are cached, so only the rewrite costs) and shows "Trying other names…" only while that second request runs (STYLE-GUIDE 6g.2).
+- Fixture mode: unchanged (`{"results":[…]}` from the synthetic places, no `via`, no AI).
 
 ## GET /api/route
 `?start=lat,lng&end=lat,lng&date=MM-DD-YYYY&time=HH:MM:SS&mode=TRANSIT|BUS|RAIL&maxWalkDistance=<0..5000>&numItineraries=<1..5>`

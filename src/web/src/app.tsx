@@ -38,7 +38,7 @@ const InstallSheet = lazyView(() => settings().then((m) => m.InstallSheet));
 const NameSheet = lazyView(() => settings().then((m) => m.NameSheet));
 const ReportSheet = lazyView(() => settings().then((m) => m.ReportSheet));
 const RoutePrefsSheet = lazyView(() => settings().then((m) => m.RoutePrefsSheet));
-const SettingsScreen = lazyView(() => settings().then((m) => m.SettingsScreen));
+const SettingsScreen = lazyView(() => settings().then((m) => m.SettingsScreen), { name: 'settings' });
 const locSheets = () => import('./views/LocationSheets');
 const LocDeniedSheet = lazyView(() => locSheets().then((m) => m.LocDeniedSheet));
 const LocExplainSheet = lazyView(() => locSheets().then((m) => m.LocExplainSheet));

@@ -5,6 +5,8 @@ const KEEP_UPPER = new Set([
   "ACS", "SAFRA", "NTUC", "CPF", "IRAS", "ICA", "MOE", "MOH", "LTA", "URA", "SLA", "JTC", "PUB", "SPF",
   "NEA", "NParks".toUpperCase(), "CBD", "UOB", "OCBC", "DBS", "POSB", "KFC", "SBS", "SMRT", "IKEA", "NEX",
   "TTSH", "SGH", "KTPH", "NUH", "CGH", "KKH", "AMK", "JCube".toUpperCase(), "VivoCity".toUpperCase(),
+  // Owner bug (1.0.1 viewer: "Kk Women's…"): hospital / national-centre short forms OneMap spells in capitals.
+  "KK", "SKH", "NTFGH", "IMH", "NCCS", "NHCS", "NNI", "SNEC", "NDCS", "NSC", "NHG", "NUHS", "SKCH", "YCH", "JCH",
   "II", "III", "IV", "PCN", "BLK", "ECP", "PIE", "AYE", "CTE", "KPE", "TPE", "SLE", "BKE", "KJE", "MCE",
 ]);
 const SMALL = new Set(["of", "and", "the", "at", "by", "for", "in", "on", "to", "de"]);

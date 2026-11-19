@@ -116,7 +116,7 @@ test('map lazy-loads MapLibre with OneMap attribution', async ({ page }) => {
   await page.getByTestId('search-input').fill('tan tock');
   await page.getByTestId('search-result-0').click();
   await page.getByTestId('route-option-0').click();
-  await expect(page.locator('.maplibregl-ctrl-attrib')).toContainText('Singapore Land Authority', { timeout: 15_000 });
+  await expect(page.getByTestId('map-credit')).toContainText('Singapore Land Authority', { timeout: 15_000 });
   await expect(page.getByTestId('map')).toHaveAttribute('aria-hidden', 'true');
   expect(errors).toEqual([]);
 });

@@ -708,10 +708,15 @@ test('AC 30: wrangler.toml — placeholders only; SHARE_TEST_TTL_SECONDS only un
   expect(toml).not.toMatch(/^(ONEMAP_PASSWORD|LTA_ACCOUNT_KEY|STATS_TOKEN)\s*=\s*"[^"]+"/m);
 });
 
+// 1.1 re-check: these pages stub /api with page.route. The app's SW claims the page and fetches /api itself;
+// Chromium does not pass SW fetches through page.route, so the stub is skipped (the preview server answers HTML).
+// Block the SW here, as the other stubbed-API contexts in this file already do.
+test.describe('stubbed /api, SW blocked', () => {
+test.use({ serviceWorkers: 'block' });
 test('AC 31: /api/health shape {ok, fixtureMode, onemap, lta (key|proxy|none), version}, no secrets; a 503 shows "can’t find the way", never sample routes', async ({ request, page }) => {
   const h = await request.get(`${WORKER}/api/health`);
   const j = await h.json();
-  expect(Object.keys(j).sort()).toEqual(['fixtureMode', 'lta', 'ok', 'onemap', 'version']);
+  expect(Object.keys(j).sort()).toEqual(['ai', 'fixtureMode', 'lta', 'ok', 'onemap', 'version']); // 1.1: + ai (on|off, API.md)
   expect(['key', 'proxy', 'none']).toContain(j.lta);
   expect(JSON.stringify(j)).not.toMatch(/expir|token|password|secret/i);
   await setup(page);
@@ -721,6 +726,7 @@ test('AC 31: /api/health shape {ok, fixtureMode, onemap, lta (key|proxy|none), v
   await expect(page.getByTestId('state-routes-error')).toBeVisible();
   await expect(page.locator('body')).not.toContainText(/示范路线|Sample routes/);
   await expect(page.getByTestId('route-option-0')).toHaveCount(0);
+});
 });
 
 test('AC 32: security headers on HTML — CSP, nosniff, Permissions-Policy geolocation=self, no-referrer on /t/* and /setup', async ({ request }) => {
@@ -818,6 +824,11 @@ async function telemetryRun(page: Page, settings: Record<string, unknown>) {
   return posts;
 }
 
+// 1.1 re-check: these pages stub /api with page.route. The app's SW claims the page and fetches /api itself;
+// Chromium does not pass SW fetches through page.route, so the stub is skipped (the preview server answers HTML).
+// Block the SW here, as the other stubbed-API contexts in this file already do.
+test.describe('stubbed /api, SW blocked', () => {
+test.use({ serviceWorkers: 'block' });
 test('AC 38/40: error counts default ON; payload is only [{v, code, screen, n}] with no identifiers', async ({ page }) => {
   const posts = await telemetryRun(page, {});
   expect(posts.length, 'one telemetry report').toBeGreaterThanOrEqual(1);
@@ -841,6 +852,7 @@ test('AC 40: switch off → nothing is sent', async ({ page }) => {
   expect(posts).toEqual([]);
   await page.goto('/settings?telemetry=1');
   await expect(page.getByTestId('set-errors')).toHaveAttribute('aria-checked', 'false');
+});
 });
 
 test('AC 39/40: Worker /api/telemetry strict schema; /api/stats 404 without the token; the family page sends nothing', async ({ browser }) => {

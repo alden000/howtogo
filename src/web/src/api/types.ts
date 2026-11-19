@@ -7,6 +7,32 @@ export interface SearchResult {
   postal: string;
   lat: number;
   lng: number;
+  /** 1.1: where the hit came from — typed text ("direct"), the alias table ("alias") or the Claude rewrite ("ai"). Absent in fixture mode / mock. */
+  via?: 'direct' | 'alias' | 'ai';
+}
+
+/**
+ * 1.1: `search()` still resolves with a plain array (backward compatible) that also carries the
+ * response-level flags of `/api/search` (src/worker/API.md).
+ */
+export type SearchResults = SearchResult[] & {
+  /** Hits come from several distinct places suggested by the AI rewrite → show "Did you mean…". */
+  didYouMean?: boolean;
+  /** Voice: the speech alternative that produced results when the best transcript did not. */
+  usedAlternative?: string;
+  /** 1.1 UI: the query is an alias of ONE place (6g.2 a). `zh` may be missing (then the zh line uses `en`). */
+  alias?: { zh?: string; en: string };
+  /** 1.1 UI: the extra help found places for exactly one term (6g.2 c′). */
+  guess?: string;
+  /** 1.1 UI (`step: 1` only): the extra help is worth a second, full request (6g.2 b). */
+  assist?: boolean;
+};
+
+/** 1.1 voice search: the other speech alternatives (best first, excluding `q`); the Worker uses ≤ 2. */
+export interface SearchOptions {
+  alternatives?: string[];
+  /** 1.1 two-step search: 1 = Layer 1 only (fast; the answer says whether `assist` is worth it). */
+  step?: 1;
 }
 
 export interface RouteParams {
@@ -138,7 +164,7 @@ export interface LiveConnection {
 
 /** The whole client surface. Implemented by the HTTP client and by the mock API. */
 export interface Api {
-  search(q: string, signal?: AbortSignal): Promise<SearchResult[]>;
+  search(q: string, signal?: AbortSignal, opts?: SearchOptions): Promise<SearchResults>;
   /** Raw OneMap body (normalise with `normalizeOneMapPlan`). */
   route(p: RouteParams, signal?: AbortSignal): Promise<unknown>;
   revgeocode(p: LatLng): Promise<RevGeocodeResult>;

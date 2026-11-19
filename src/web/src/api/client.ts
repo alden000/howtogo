@@ -6,7 +6,19 @@
 import type { LatLng } from '@howtogo/shared';
 import { log } from '../log';
 import { ApiError } from './errors';
-import type { Api, LiveConnection, LiveEvent, RouteParams, SearchResult, ShareState } from './types';
+import type { Api, LiveConnection, LiveEvent, RouteParams, SearchResult, SearchResults, ShareState } from './types';
+
+/** 1.1: the results array with the response-level flags attached (only when present). */
+type SearchBody = { results?: SearchResult[]; didYouMean?: boolean; usedAlternative?: string; alias?: { zh?: string; en: string }; guess?: string; assist?: boolean };
+export function searchResults(r: SearchBody): SearchResults {
+  const out: SearchResults = [...(r.results ?? [])];
+  if (r.didYouMean) out.didYouMean = true;
+  if (r.usedAlternative) out.usedAlternative = r.usedAlternative;
+  if (r.alias && typeof r.alias.en === 'string') out.alias = r.alias.zh ? { zh: r.alias.zh, en: r.alias.en } : { en: r.alias.en };
+  if (typeof r.guess === 'string' && r.guess) out.guess = r.guess;
+  if (r.assist) out.assist = true;
+  return out;
+}
 
 export interface HttpApiOptions {
   /** Base URL, e.g. "https://howtogo.example" or "" for same origin. From VITE_API_BASE. */
@@ -97,9 +109,13 @@ export function createHttpApi(opts: HttpApiOptions): Api {
   });
 
   const api: Api = {
-    async search(q, signal) {
-      const r = await request<{ results: SearchResult[] }>('search', `/api/search?q=${encodeURIComponent(q)}`, { signal: signal ?? null });
-      return r.results ?? [];
+    async search(q, signal, opts) {
+      let path = `/api/search?q=${encodeURIComponent(q)}`;
+      const alts = (opts?.alternatives ?? []).map((a) => a.trim().slice(0, 100)).filter((a) => a && a !== q.trim());
+      for (const a of alts.slice(0, 2)) path += `&alt=${encodeURIComponent(a)}`;
+      if (opts?.step === 1) path += '&step=1';
+      const r = await request<SearchBody>('search', path, { signal: signal ?? null });
+      return searchResults(r);
     },
     route(p: RouteParams, signal) {
       const qs = new URLSearchParams({ start: ll(p.start), end: ll(p.end) });

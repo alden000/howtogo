@@ -9,7 +9,7 @@ import { HomeConfirm } from './HomeConfirm';
 import { announce, Icon, NeedsNet, showToast, useStateHook, Wordmark } from '../ui/kit';
 
 /** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
-import { lazyView } from '../ui/lazy';
+import { lazyView, warmView } from '../ui/lazy';
 
 // M5 AC 3: shown only when there is a disruption / a just-imported setup: separate chunks, warmed when idle.
 const DisruptionBanner = lazyView(() => import('./transit').then((m) => m.DisruptionBanner));
@@ -134,7 +134,16 @@ export function Home() {
             A
           </span>
         </button>
-        <button type="button" class="iconbtn sq" data-testid="nav-settings" aria-label={t('settings')} onClick={() => router.navigate('/settings')}>
+        <button
+          type="button"
+          class="iconbtn sq"
+          data-testid="nav-settings"
+          aria-label={t('settings')}
+          // QA-67: warm the Settings chunk first, so its heading exists (and takes focus) right after the tap.
+          onFocus={() => warmView('settings')}
+          onPointerDown={() => warmView('settings')}
+          onClick={() => router.navigate('/settings')}
+        >
           <Icon name="sliders" />
         </button>
       </header>

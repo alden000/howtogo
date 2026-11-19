@@ -41,6 +41,27 @@ npx wrangler secret put STATS_TOKEN --env production
 ```
 The preview needs none of these while it is in fixture mode. The preview reads the same names without `--env production`.
 
+### 2a. Optional: Claude smart search (1.1)
+Without this secret the AI layer is simply off (`/api/health` → `"ai":"off"`); the alias table still works.
+1. Get a key: sign in at console.anthropic.com → **API keys** → **Create key** (name it e.g. `howtogo-production`).
+   Set a monthly spend limit there (Settings → Limits) as a second guard.
+2. Store it (prompts for the value; never paste it into chat, a file or a commit):
+   ```bash
+   cd src/worker
+   npx.cmd wrangler secret put ANTHROPIC_API_KEY --env production
+   ```
+3. Check: `/api/health` on production shows `"ai":"on"`.
+
+Cost guards in the Worker: Claude is asked only when OneMap + aliases find fewer than 2 places; answers are
+cached 30 days per query; 20 rewrites per client per hour; `AI_DAILY_CAP` (wrangler.toml `[vars]`, default
+`"300"` in both environments since 1.1 (Director ruling 2026-11-19), `"0"` = off) caps calls per Singapore day.
+Rough cost: about US$0.01 per uncached rewrite (`claude-opus-5-5`, effort low), so the cap bounds the worst
+day at about US$3. KV note: each uncached rewrite writes 2 KV keys (cache + day counter). The Workers Free
+plan allows 1,000 KV writes/day in total; the default 300 stays inside it (keep it at 400 or less on Free; the
+OneMap token uses a few writes too). Raise it only on a paid plan.
+To turn the AI off quickly: `npx.cmd wrangler secret delete ANTHROPIC_API_KEY --env production`, or set
+`AI_DAILY_CAP = "0"` and redeploy.
+
 > **Set the secrets BEFORE the first `npm run deploy:prod`.** The production Worker deployed on 2026-11-18 came from
 > the old single-Worker config (`FIXTURE_MODE="1"`). The new production config is live-only. If the secrets are
 > missing, every route search answers 503 until they are set. That is correct behaviour (no fake data), but it

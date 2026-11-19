@@ -15,7 +15,6 @@ import './styles/m5ui1.css'; // M5 UI-1
 import './styles/m5.css'; // M5 UI-2
 import { render } from 'preact';
 import { effect, untracked } from '@preact/signals';
-import { simulateFixes } from '@howtogo/shared';
 import { App, Search } from './app';
 import { createHttpApi } from './api/client';
 import { offlineAware, watchOnline } from './api/offline';
@@ -158,6 +157,7 @@ async function boot() {
   }
   const router = createRouter();
   const demoMs = Number(session.get('mode.demoMs')) || DEMO_DEFAULT_MS;
+  const demoSim = fake ? import('@howtogo/shared/simulate') : undefined;
   const runtime = createTripRuntime({
     store,
     platform,
@@ -165,12 +165,15 @@ async function boot() {
     saver: () => saverState.peek().active,
     onAttach: fake
       ? (trip, resumed) => {
-          const fixes = simulateFixes(trip.itinerary, { speedWalk: 3, intervalS: 2, jitterM: 2, waitCapS: 20, seed: 7 });
-          const saved = session.get('demo.idx')?.split(':');
-          const idx = resumed && saved?.[0] === trip.id ? Number(saved[1]) || 0 : 0;
-          fake!.fake.load(fixes, idx);
-          fake!.fake.onProgress = (i) => session.set('demo.idx', `${trip.id}:${i}`);
-          fake!.fake.play(demoMs);
+          // QA-63: the GPS simulator is demo-only, so it is a lazy chunk (requested at boot, above).
+          void demoSim!.then(({ simulateFixes }) => {
+            const fixes = simulateFixes(trip.itinerary, { speedWalk: 3, intervalS: 2, jitterM: 2, waitCapS: 20, seed: 7 });
+            const saved = session.get('demo.idx')?.split(':');
+            const idx = resumed && saved?.[0] === trip.id ? Number(saved[1]) || 0 : 0;
+            fake!.fake.load(fixes, idx);
+            fake!.fake.onProgress = (i) => session.set('demo.idx', `${trip.id}:${i}`);
+            fake!.fake.play(demoMs);
+          });
         }
       : undefined,
   });
