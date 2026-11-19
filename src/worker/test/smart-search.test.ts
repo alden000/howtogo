@@ -103,7 +103,7 @@ describe("alias layer", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as Body;
     expect(body.results.map((r) => [r.name, r.via])).toEqual([
-      ["Kk Women's and Children's Hospital", "alias"],
+      ["KK Women's and Children's Hospital", "alias"], // owner bug: was "Kk …"
       ["KKH Clinic Block", "direct"],
     ]);
     expect(body.didYouMean).toBe(false);

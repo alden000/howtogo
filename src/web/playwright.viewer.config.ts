@@ -27,18 +27,19 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
   webServer: [
-    {
-      command: `cd ../worker && npx wrangler dev --env test --local --port ${WORKER_PORT} --ip 127.0.0.1 --var ALLOWED_ORIGINS:http://localhost:${PORT} --var SHARE_TEST_TTL_SECONDS:${TEST_TTL_S}`,
-      url: `http://127.0.0.1:${WORKER_PORT}/api/health`,
-      reuseExistingServer: false,
-      timeout: 90_000,
-      stdout: 'ignore',
-    },
+    // QA-65: build + preview first (Playwright starts these in order): wrangler serves ../web/dist as its assets.
     {
       command: `npm run build && npx vite preview --config vite.viewer-e2e.config.ts`,
       url: `http://localhost:${PORT}/t/x`,
       reuseExistingServer: true,
       timeout: 120_000,
+      stdout: 'ignore',
+    },
+    {
+      command: `cd ../worker && npx wrangler dev --env test --local --port ${WORKER_PORT} --ip 127.0.0.1 --var ALLOWED_ORIGINS:http://localhost:${PORT} --var SHARE_TEST_TTL_SECONDS:${TEST_TTL_S}`,
+      url: `http://127.0.0.1:${WORKER_PORT}/api/health`,
+      reuseExistingServer: false,
+      timeout: 90_000,
       stdout: 'ignore',
     },
   ],

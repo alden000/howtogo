@@ -7,6 +7,8 @@
  * (src/data/stations.ts, LTA's official names) — do not repeat plain station names here unless the entry
  * adds something (a bus interchange, a nickname).
  *
+ * Prefer the building's postal code when OneMap does not know the common name (QA-64): it is exact.
+ *
  * Kinds are informational (tests, future UI grouping).
  */
 export type AliasKind = 'hospital' | 'clinic' | 'transport' | 'landmark' | 'religious' | 'service' | 'mall' | 'school';
@@ -17,6 +19,11 @@ export interface AliasEntry {
   terms: string[];
   /** 1.1: zh display name for the "“KKH” means …" line when the longest all-Chinese key is not the full name. */
   zh?: string;
+  /**
+   * QA-64: en display name when the only term is not a name OneMap knows by heart (a postal code: OneMap
+   * always finds a building by its postal code, e.g. 198833 Masjid Sultan, 208718 ICA Building).
+   */
+  en?: string;
   /** 1.1: a kind of place or a chain (many branches), not one place: no "means" line. */
   many?: true;
 }
@@ -55,7 +62,6 @@ export const ALIASES: readonly AliasEntry[] = [
   // ---------------- Polyclinics (综合诊疗所) ----------------
   { kind: 'clinic', keys: ['amk poly', '宏茂桥综合诊疗所'], terms: ['Ang Mo Kio Polyclinic'] },
   { kind: 'clinic', keys: ['tpy poly', '大巴窑综合诊疗所'], terms: ['Toa Payoh Polyclinic'] },
-  { kind: 'clinic', keys: ['bishan poly', '碧山综合诊疗所'], terms: ['Bishan Polyclinic'] },
   { kind: 'clinic', keys: ['bedok poly', '勿洛综合诊疗所'], terms: ['Bedok Polyclinic'] },
   { kind: 'clinic', keys: ['tampines poly', '淡滨尼综合诊疗所'], terms: ['Tampines Polyclinic'] },
   { kind: 'clinic', keys: ['clementi poly', '金文泰综合诊疗所'], terms: ['Clementi Polyclinic'] },
@@ -128,14 +134,14 @@ export const ALIASES: readonly AliasEntry[] = [
   { kind: 'landmark', keys: ['东海岸', '东海岸公园', 'dong hai an', 'dong hai an gong yuan', 'ecp'], terms: ['East Coast Park'] },
   { kind: 'landmark', keys: ['小印度', 'xiao yin du'], terms: ['Little India MRT Station', 'Tekka Centre'] },
   { kind: 'landmark', keys: ['竹脚中心', '竹脚巴刹', 'zhu jiao zhong xin', 'tekka'], terms: ['Tekka Centre'] },
-  { kind: 'landmark', keys: ['甘榜格南', 'gan bang ge nan', 'kampong glam', 'kampung glam'], terms: ['Sultan Mosque', 'Bugis MRT Station'] },
+  { kind: 'landmark', keys: ['甘榜格南', 'gan bang ge nan', 'kampong glam', 'kampung glam'], terms: ['198833', 'Bugis MRT Station'] },
   { kind: 'landmark', keys: ['武吉士', 'wu ji shi'], terms: ['Bugis MRT Station', 'Bugis Junction'] },
   { kind: 'landmark', keys: ['荷兰村', 'he lan cun', 'holland v', 'hv'], terms: ['Holland Village MRT Station', 'Holland Village'] },
   { kind: 'landmark', keys: ['克拉码头', 'ke la ma tou'], terms: ['Clarke Quay', 'Clarke Quay MRT Station'] },
   { kind: 'landmark', keys: ['驳船码头', 'bo chuan ma tou'], terms: ['Boat Quay'] },
   { kind: 'landmark', keys: ['老巴刹', 'lao ba sha'], terms: ['Lau Pa Sat'] },
   { kind: 'landmark', keys: ['麦士威', '麦士威熟食中心', 'mai shi wei'], terms: ['Maxwell Food Centre'] },
-  { kind: 'landmark', keys: ['国家体育场', '体育城', 'guo jia ti yu chang', 'ti yu cheng', 'sports hub'], terms: ['Singapore Sports Hub', 'National Stadium'] },
+  { kind: 'landmark', keys: ['国家体育场', '体育城', 'guo jia ti yu chang', 'ti yu cheng', 'sports hub'], terms: ['National Stadium', '397629'] },
   { kind: 'landmark', keys: ['麦里芝', '麦里芝蓄水池', 'mai li zhi'], terms: ['MacRitchie Reservoir'] },
   { kind: 'landmark', keys: ['花芭山', 'hua ba shan', 'mount faber', 'mt faber'], terms: ['Mount Faber'] },
   { kind: 'landmark', keys: ['乌敏岛', 'wu min dao'], terms: ['Changi Point Ferry Terminal'] },
@@ -156,13 +162,13 @@ export const ALIASES: readonly AliasEntry[] = [
   { kind: 'religious', keys: ['佛牙寺', '佛牙寺龙华院', 'fo ya si'], terms: ['Buddha Tooth Relic Temple'] },
   { kind: 'religious', keys: ['天福宫', 'tian fu gong'], terms: ['Thian Hock Keng'] },
   { kind: 'religious', keys: ['马里安曼兴都庙', '马里安曼'], terms: ['Sri Mariamman Temple'] },
-  { kind: 'religious', keys: ['苏丹回教堂', 'su dan hui jiao tang'], terms: ['Sultan Mosque'] },
+  { kind: 'religious', keys: ['苏丹回教堂', 'su dan hui jiao tang'], terms: ['198833'], en: 'Sultan Mosque' },
   { kind: 'religious', keys: ['圣安德烈座堂', 'st andrews cathedral', "st andrew's cathedral"], terms: ["St Andrew's Cathedral"] },
 
   // ---------------- Government and services seniors use ----------------
   { kind: 'service', keys: ['cpf', '公积金', '公积金局', 'gong ji jin', 'cpf board'], terms: ['CPF Building', 'CPF Bishan Building', 'CPF Tampines Building', 'CPF Jurong Building', 'CPF Woodlands Building'] },
   { kind: 'service', keys: ['hdb', 'hdb hub', '建屋局', '建屋发展局', 'jian wu ju'], terms: ['HDB Hub'] },
-  { kind: 'service', keys: ['ica', '移民局', '移民与关卡局', 'yi min ju'], terms: ['ICA Building'] },
+  { kind: 'service', keys: ['ica', '移民局', '移民与关卡局', 'yi min ju'], terms: ['208718'], en: 'ICA Building' },
   { kind: 'service', keys: ['mom', '人力部', 'ren li bu'], terms: ['Ministry of Manpower'] },
   { kind: 'service', keys: ['ntuc', '职总', 'zhi zong'], terms: ['NTUC Centre', 'FairPrice'] },
   { kind: 'service', keys: ['fairprice', '平价超市', 'ping jia chao shi'], terms: ['FairPrice'], many: true },

@@ -10,6 +10,8 @@ import { handleChunkError, quietChunkErrors, shouldReloadFor } from '../pwa/chun
 
 type Loader<P> = () => Promise<ComponentType<P>>;
 const registry: (() => Promise<unknown>)[] = [];
+/** QA-67: views a control can warm up before it navigates (focus / pointer down on its button). */
+const named = new Map<string, () => Promise<unknown>>();
 
 export interface LazyView<P> extends FunctionComponent<P> {
   preload(): Promise<unknown>;
@@ -19,7 +21,7 @@ export interface LazyView<P> extends FunctionComponent<P> {
  * `idle: false` keeps a view out of the idle `preloadViews()` warm-up (QA-60: the family Viewer chunk is
  * deliberately not precached, so warming it costs a fetch nobody needs and fails offline).
  */
-export function lazyView<P extends object>(load: Loader<P>, opts: { idle?: boolean } = {}): LazyView<P> {
+export function lazyView<P extends object>(load: Loader<P>, opts: { idle?: boolean; name?: string } = {}): LazyView<P> {
   let C: ComponentType<P> | null = null;
   let pending: Promise<unknown> | null = null;
   const preload = () =>
@@ -34,8 +36,11 @@ export function lazyView<P extends object>(load: Loader<P>, opts: { idle?: boole
     ));
   const Lazy = ((props: P) => {
     const [, setReady] = useState(0);
+    const hadC = !!C;
     useEffect(() => {
-      if (C) return;
+      // QA-66: the chunk may arrive (e.g. through the idle preload) between this render and its effect.
+      // Rendered empty then → render again, or the view stays blank (the H5 disruption offer sheet did).
+      if (C) return void (hadC || setReady((n) => n + 1));
       const load = () => preload().then(() => setReady((n) => n + 1), (e: unknown) => shouldReloadFor(e) && handleChunkError());
       void load();
       // Offline on first visit (chunk not cached yet): try again when the network comes back.
@@ -46,6 +51,7 @@ export function lazyView<P extends object>(load: Loader<P>, opts: { idle?: boole
   }) as LazyView<P>;
   Lazy.preload = preload;
   if (opts.idle !== false) registry.push(preload);
+  if (opts.name) named.set(opts.name, preload);
   return Lazy;
 }
 
@@ -63,4 +69,13 @@ export function whenIdle(fn: () => void, fallbackMs = 2000): void {
   const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
   if (ric) ric(fn, { timeout: fallbackMs * 2 });
   else setTimeout(fn, fallbackMs);
+}
+
+/**
+ * QA-67: start loading a named lazy view now (e.g. when its nav button gets focus), so the screen renders
+ * in the same turn as the navigation and its heading takes focus at once. Failures are left to the view.
+ */
+export function warmView(name: string): void {
+  const p = named.get(name);
+  if (p) void quietChunkErrors(() => p().catch(() => undefined));
 }

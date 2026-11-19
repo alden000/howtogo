@@ -85,7 +85,7 @@ function buildIndex(): Map<string, Indexed> {
   for (const e of ALIASES) {
     const terms = e.terms.slice(0, MAX_ALIAS_TERMS);
     const zh = zhName(e);
-    const display = terms.length === 1 && !e.many ? { en: terms[0]!, ...(zh ? { zh } : {}) } : undefined;
+    const display = terms.length === 1 && !e.many ? { en: e.en ?? terms[0]!, ...(zh ? { zh } : {}) } : undefined;
     for (const k of e.keys) m.set(compact(normaliseAliasKey(k)), { terms, source: 'curated', ...(display ? { display } : {}) });
   }
   // Official Chinese station names (open stations only); curated entries win.

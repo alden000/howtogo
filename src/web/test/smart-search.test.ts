@@ -2,7 +2,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHttpApi } from '../src/api/client';
 import { createFakePlatform, fakeRecognition } from '../src/platform/fake';
-import { MAX_SPEECH_ALTERNATIVES, createWebPlatform, readAlternatives } from '../src/platform/web';
+import { createWebPlatform } from '../src/platform/web';
+import { MAX_SPEECH_ALTERNATIVES, readAlternatives } from '../src/platform/speechRec';
 import { logLines, resetLog } from '../src/log';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });

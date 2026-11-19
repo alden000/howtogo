@@ -131,6 +131,8 @@ export interface RecognitionApi {
    * implementations stay valid; callers fall back to listen().
    */
   listenAll?(lang: 'zh-CN' | 'en-SG', opts?: ListenOptions): Promise<Heard>;
+  /** QA-63: load the engine wrapper ahead of the first tap (H2 calls it on mount), so start() stays in the tap. */
+  prepare?(): void;
   stop(): void;
 }
 

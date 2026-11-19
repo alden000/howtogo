@@ -124,3 +124,13 @@ describe('1.1 display names (6g.2 a)', () => {
     expect(expandAliases('丹戎巴葛').display).toEqual({ en: 'Tanjong Pagar MRT Station', zh: '丹戎巴葛地铁站' });
   });
 });
+
+describe('QA-64: entries OneMap did not know by name', () => {
+  it('search by postal code but still name the place', () => {
+    expect(expandAliases('ica')).toMatchObject({ terms: ['208718'], display: { en: 'ICA Building', zh: '移民与关卡局' } });
+    expect(expandAliases('苏丹回教堂')).toMatchObject({ terms: ['198833'], display: { en: 'Sultan Mosque', zh: '苏丹回教堂' } });
+    expect(expandAliases('sports hub').terms[0]).toBe('National Stadium');
+    expect(expandAliases('kampong glam').terms).toEqual(['198833', 'Bugis MRT Station']);
+    expect(ALIASES.some((e) => e.terms.includes('Bishan Polyclinic'))).toBe(false);
+  });
+});

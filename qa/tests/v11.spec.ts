@@ -496,7 +496,7 @@ test('6g.5 privacy v2: ≤ 400 en words, Anthropic + speech lines (zh/en), notic
   test.info().annotations.push({ type: 'privacy-words-en', description: String(words) });
   expect(words).toBeLessThanOrEqual(400);
   expect(en).toContain("Anthropic's Claude:");
-  expect(en).toMatch(/only when a search finds nothing, it gets just the words you searched for/);
+  expect(en).toMatch(/only when a search finds almost nothing, it gets just the words you searched for/);
   expect(en).toMatch(/up to 30 days/);
   expect(en).toMatch(/Your phone's speech service/);
   expect(en).toMatch(/we get only the text/);

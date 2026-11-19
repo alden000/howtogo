@@ -7,10 +7,12 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Place } from '@howtogo/shared';
 import type { SearchResults } from '../api/types';
-import type { UiKey } from '../i18n/ui';
+import { useTSearch, type SearchKey } from '../i18n/search';
+// QA-63: the speech engine wrapper ships with H2 (web.ts loads it lazily; importing it here preloads it).
+import '../platform/speechRec';
 import { addStop } from './viewUtil';
 import { announce } from '../ui/kit';
-import { useServices, useT } from '../context';
+import { useServices } from '../context';
 import { log } from '../log';
 import { isApiError } from '../api/errors';
 import { online } from '../api/offline';
@@ -59,11 +61,13 @@ export const voiceError = (e: unknown): Voice => {
   if (code === 'network') return 'offline';
   return 'nomatch';
 };
-const vkey = (v: Voice, part: 't' | 'b') => `v_${v === 'offline' ? 'off' : v}_${part}` as UiKey;
+/** QA-61: the history entry that stands for the listening state (no sheet UI is drawn for it). */
+const LISTEN_SHEET = 'listening';
+const vkey = (v: Voice, part: 't' | 'b') => `v_${v === 'offline' ? 'off' : v}_${part}` as SearchKey;
 
 export function Search() {
   const { store, router, api, platform } = useServices();
-  const t = useT();
+  const t = useTSearch();
   const lang = store.settings.value.lang;
   const query = router.route.value.query;
   /** to (default) · from (F8 From pill) · home (F1/F6 set-home mode) · add (G2 stop) · place (QA-40 My places). */
@@ -71,6 +75,8 @@ export function Search() {
   const mode = qm === 'home' ? 'home' : qm === 'add' ? 'add' : qm === 'place' ? 'place' : query.get('field') === 'from' ? 'from' : 'to';
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResults>([]);
+  /** QA-62: the query the shown results answered (their quiet line is only true for that text). */
+  const [resultsQ, setResultsQ] = useState('');
   const [phase, setPhase] = useState<Phase>('recent');
   const [attempt, setAttempt] = useState(0);
   /** 6g.2 (b): the extra help is running and the 400 ms grace has passed. */
@@ -112,6 +118,7 @@ export function Search() {
     };
     const show = (r: SearchResults, final: boolean) => {
       setResults(r);
+      setResultsQ(text);
       setPhase(r.length || !final ? 'results' : 'empty');
       if (final) outcome(r);
     };
@@ -165,7 +172,10 @@ export function Search() {
   useEffect(() => {
     if (phase === 'offline' && online.value) setAttempt((a) => a + 1);
   }, [online.value]);
-  useEffect(() => () => mic?.stop(), []);
+  useEffect(() => {
+    mic?.prepare?.();
+    return () => mic?.stop();
+  }, []);
 
   const pick = (p: Place) => {
     if (mode === 'add') {
@@ -209,6 +219,20 @@ export function Search() {
     userStopped.current = true;
     mic?.stop();
   };
+  // QA-61: listening is one history entry (an in-page "sheet" with no UI), so system/browser Back pops it:
+  // that ends listening and the person stays on H2. When listening ends any other way, the entry is dropped.
+  const listenEntry = useRef(false);
+  const sheetNow = router.sheet.value;
+  useEffect(() => {
+    if (!listenEntry.current) return;
+    if (voice === 'listening' && sheetNow !== LISTEN_SHEET) {
+      listenEntry.current = false;
+      stopListening();
+    } else if (voice !== 'listening') {
+      listenEntry.current = false;
+      if (sheetNow === LISTEN_SHEET) router.closeSheet();
+    }
+  }, [voice, sheetNow]);
   const focusField = () => {
     const el = inputRef.current;
     if (!el) return;
@@ -228,6 +252,10 @@ export function Search() {
     setPartial('');
     if (!online.value) return voicePanel('offline');
     userStopped.current = false;
+    if (!router.sheet.value) {
+      router.openSheet(LISTEN_SHEET);
+      listenEntry.current = true;
+    }
     setVoice('listening');
     log('state:search-listening');
     announce(t('sr_listening'));
@@ -260,7 +288,9 @@ export function Search() {
     focusField();
   };
 
-  const view = searchView(results, q.trim(), lang);
+  const shown = searchView(results, q.trim(), lang);
+  // QA-62: while the next search runs, the old line would pair the new text with the old place.
+  const view = resultsQ === q.trim() ? shown : { ...shown, line: null };
   // A place picked from any section goes to H3 and into Recent under its real name (6g.2).
   const toPlace = (r: SearchResults[number]): Place => ({ name: r.name, address: r.address, postal: r.postal, lat: r.lat, lng: r.lng });
   // 6d.9 H2: the recent trips' destinations, newest first, each place once, max 5.

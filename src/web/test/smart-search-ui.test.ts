@@ -2,7 +2,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHttpApi } from '../src/api/client';
 import type { SearchResult, SearchResults } from '../src/api/types';
-import { UI } from '../src/i18n/ui';
+import { UI as UI_GLOBAL } from '../src/i18n/ui';
+import { SEARCH_UI } from '../src/i18n/search';
+
+/** H2 copy lives in its own lazy table (QA-63); these checks read both. */
+const UI = { zh: { ...UI_GLOBAL.zh, ...SEARCH_UI.zh }, en: { ...UI_GLOBAL.en, ...SEARCH_UI.en } };
 import { PV_EN, PV_ZH } from '../src/i18n/privacy';
 import { createWebPlatform } from '../src/platform/web';
 import { searchView, sentences, voiceError } from '../src/views/Search';
@@ -123,6 +127,8 @@ describe('voice (6g.4)', () => {
     const p = createWebPlatform();
     const parts: string[] = [];
     const done = p.recognition!.listenAll!('zh-CN', { onPartial: (x) => parts.push(x) });
+    // QA-63: the engine wrapper is a lazy chunk; the first start waits for it.
+    await vi.waitFor(() => expect(made).toHaveLength(1));
     expect(made[0]!.interimResults).toBe(true);
     made[0]!.onresult!({ results: [Object.assign([{ transcript: '中央', confidence: 0 }], { isFinal: false })] });
     p.recognition!.stop();

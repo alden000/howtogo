@@ -12,7 +12,6 @@ import {
   type Heard,
   type ListenOptions,
   type RecognitionApi,
-  type SpeechAlternative,
   type SpeakOptions,
   type SpeechApi,
   type PlatformCapabilities,
@@ -229,74 +228,36 @@ function createBattery(): BatteryApi | undefined {
   };
 }
 
-type SR = {
-  lang: string;
-  interimResults: boolean;
-  maxAlternatives: number;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string; confidence?: number }> & { isFinal?: boolean }> }) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-};
+type SRCtor = new () => import('./speechRec').SR;
 
-export const MAX_SPEECH_ALTERNATIVES = 3;
-
-/** Alternatives of one recognition result: trimmed, non-empty, distinct, best first (engine order), ≤ 3. */
-export function readAlternatives(result: ArrayLike<{ transcript: string; confidence?: number }> | undefined): Heard {
-  const alternatives: SpeechAlternative[] = [];
-  for (let i = 0; result && i < result.length; i++) {
-    const a = result[i];
-    const transcript = (a?.transcript ?? '').trim();
-    if (!transcript || alternatives.some((x) => x.transcript === transcript)) continue;
-    const c = Number(a?.confidence);
-    alternatives.push({ transcript, confidence: Number.isFinite(c) && c >= 0 && c <= 1 ? c : 0 });
-    if (alternatives.length >= MAX_SPEECH_ALTERNATIVES) break;
-  }
-  return { text: alternatives[0]?.transcript ?? '', alternatives };
-}
-
-/** Web Speech recognition (Chrome/Android: webkitSpeechRecognition). Undefined when unsupported. */
+/**
+ * Web Speech recognition (Chrome/Android: webkitSpeechRecognition). Undefined when unsupported.
+ * QA-63: the engine wrapper (1.1 alternatives / partial words) is a lazy chunk; H2 Search imports it too, so
+ * it is already loaded by the time the mic is tapped. Only the feature check stays in the Home entry.
+ */
 function createRecognition(): RecognitionApi | undefined {
-  const w = g as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
+  const w = g as unknown as { SpeechRecognition?: SRCtor; webkitSpeechRecognition?: SRCtor };
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return undefined;
-  let cur: SR | null = null;
+  let impl: RecognitionApi | undefined;
+  let gen = 0;
+  const get = () => (impl ? Promise.resolve(impl) : import('./speechRec').then((m) => (impl ??= m.makeRecognition(Ctor))));
   const listenAll = (lang: 'zh-CN' | 'en-SG', opts?: ListenOptions): Promise<Heard> => {
-    cur?.stop();
-    return new Promise((resolve, reject) => {
-      const r = new Ctor();
-      cur = r;
-      r.lang = lang;
-      // 1.1 H2-listening-partial: interim words only when the screen asks for them.
-      r.interimResults = !!opts?.onPartial;
-      // 1.1 voice search: up to 3 candidates; the Worker tries the others when the best finds too little.
-      r.maxAlternatives = MAX_SPEECH_ALTERNATIVES;
-      let heard: Heard = { text: '', alternatives: [] };
-      let partial = '';
-      r.onresult = (e) => {
-        const res = e.results[e.results.length - 1] ?? e.results[0];
-        if (opts?.onPartial && res && res.isFinal === false) {
-          partial = (res[0]?.transcript ?? '').trim();
-          if (partial) opts.onPartial(partial);
-          return;
-        }
-        heard = readAlternatives(res);
-      };
-      r.onerror = (e) => (e.error === 'no-speech' || e.error === 'aborted' ? undefined : reject(new Error(e.error)));
-      r.onend = () => {
-        if (cur === r) cur = null;
-        // Stopped mid-sentence: keep the words already heard (6g.4).
-        resolve(heard.text || !partial ? heard : { text: partial, alternatives: [{ transcript: partial, confidence: 0 }] });
-      };
-      r.start();
-    });
+    const at = ++gen;
+    // Already loaded (H2 imports it): start in this turn, still inside the tap.
+    if (impl) return impl.listenAll!(lang, opts);
+    // stop() before the chunk arrived: nothing was heard.
+    return get().then((i) => (at === gen ? i.listenAll!(lang, opts) : { text: '', alternatives: [] }));
   };
   return {
     listen: (lang) => listenAll(lang).then((h) => h.text),
     listenAll,
+    prepare() {
+      void get().catch(() => undefined);
+    },
     stop() {
-      cur?.stop();
+      gen++;
+      impl?.stop();
     },
   };
 }

@@ -58,6 +58,7 @@ function ensureMap() {
         .then((m) => m.createViewerMap($('mapcanvas'), $('attrib'), { dark, reducedMotion }))
         .then((m) => {
           map = m;
+          app.dataset.map = 'ready';
           m.onFollowChange((f) => ($('locate').hidden = f));
           $('locate').onclick = () => m.recentre();
           render();
@@ -114,6 +115,7 @@ function render() {
     ensureMap();
     map?.resize();
     map?.setPuck({ ...v.pos, grey: v.greyPuck });
+    if (map) app.dataset.puck = map.hasPuck() ? '1' : '0';
   }
   document.title = `${P.title} · 怎么去?`;
 
