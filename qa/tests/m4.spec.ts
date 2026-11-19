@@ -756,7 +756,13 @@ test('AC 50: Settings "清除所有资料" (with confirm) removes contacts, plac
   await page.goto('/settings');
   await page.getByTestId('row-delete-all').click();
   await page.getByTestId('delete-all-go').click();
-  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter((k) => /family|prefs|places|recents|share/.test(k) && localStorage.getItem(k) !== '[]' && localStorage.getItem(k) !== 'null'))).toEqual([]);
+  // Delete-all ends with location.replace('/'), and the fresh boot writes empty defaults ({"others":[]}, myPhone "").
+  // Wait for the reload, then check the seeded data is gone (1.1 re-check: the old poll raced the navigation).
+  await page.waitForURL((u) => u.pathname === '/');
+  await expect.poll(() => page.evaluate(() => {
+    const all = Object.keys(localStorage).filter((k) => /family|prefs|places|recents|share/.test(k)).map((k) => localStorage.getItem(k) ?? '').join(' ');
+    return /Toa Payoh|98765432|91234567|1\.3328|美玲/.test(all) || JSON.parse(localStorage.getItem('howtogo.family.v1') ?? '[]').length > 0;
+  }).catch(() => true)).toBe(false);
   // M5 L1: the privacy text lives on /privacy (About links it).
   await page.goto('/privacy');
   await expect(page.getByTestId('privacy-page')).toContainText(/分享|链接/);
