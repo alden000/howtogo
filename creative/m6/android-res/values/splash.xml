@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- c-canvas light: warm paper (STYLE-GUIDE 6h.1 splash) -->
+    <color name="splash_background">#FBF5EC</color>
+    <!-- notification accent: c-primary light (small icon tint in the shade header) -->
+    <color name="notification_accent">#9A3412</color>
+</resources>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 262" width="280" height="262" aria-hidden="true" focusable="false">
+<style>.ig-surf{fill:var(--c-surface,#FFFFFF);stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-quiet{fill:var(--c-surface-2,#F3EADC)}.ig-bar{fill:var(--c-line,#D9CBB6)}.ig-rule{stroke:var(--c-line,#D9CBB6);stroke-width:2}.ig-glyph{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ig-hi{fill:var(--c-saffron-soft,#FFF1C2);stroke:#FFD23F;stroke-width:4}.ig-text{fill:var(--c-ink,#1D1915);font:700 15px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}.ig-sub{fill:var(--c-ink-2,#4A4038);font:400 13px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}.ig-title{fill:var(--c-ink,#1D1915);font:700 16px "Atkinson Hyperlegible","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}.ig-on{fill:var(--c-jade,#0E5B49)}.ig-off{fill:var(--c-line,#D9CBB6)}.ig-knob{fill:var(--c-surface,#FFFFFF)}.ig-ring{fill:none;stroke:var(--c-ink-2,#4A4038);stroke-width:2.4}.ig-pick{fill:var(--c-ink,#1D1915)}.ig-dim{fill:var(--c-ink,#1D1915);opacity:.14}.ig-btn{fill:var(--c-surface-2,#F3EADC)}</style>
+<rect class="ig-surf" x="20" y="4" width="240" height="252" rx="18"/>
+<rect class="ig-quiet" x="34" y="18" width="212" height="28" rx="14"/><rect class="ig-bar" x="48" y="29" width="120" height="6" rx="3"/>
+<rect class="ig-bar" x="40" y="62" width="160" height="8" rx="4"/><rect class="ig-bar" x="40" y="80" width="190" height="8" rx="4"/><rect class="ig-bar" x="40" y="98" width="120" height="8" rx="4"/>
+<rect class="ig-surf" x="28" y="112" width="224" height="126" rx="14"/>
+<path class="ig-glyph" d="M46 124v12M41 131l5 5 5-5M40 141h12"/>
+<text class="ig-text" x="62" y="136">howtogo-1.0.1.apk</text><text class="ig-sub" x="62" y="154">This type of file can</text><text class="ig-sub" x="62" y="170">harm your device.</text><text class="ig-sub" x="62" y="186">Download anyway?</text>
+<rect class="ig-hi" x="89.39999999999998" y="198" width="148.60000000000002" height="32" rx="16"/>
+<text class="ig-text" x="163.7" y="219" text-anchor="middle">Download anyway</text>
+</svg>
