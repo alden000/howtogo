@@ -105,10 +105,27 @@ export interface BatteryApi {
   watch?(cb: (r: BatteryReading) => void): Promise<Unsubscribe>;
 }
 
+/** 1.1 voice search: one speech-to-text candidate. `confidence` 0..1 (0 when the engine gives none). */
+export interface SpeechAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+/** 1.1: what was heard — the best transcript plus every alternative (best first, ≤ 3, includes the best). */
+export interface Heard {
+  text: string;
+  alternatives: SpeechAlternative[];
+}
+
 /** Speech-to-text for the search mic (H2). Absent when the platform cannot do it (the mic is hidden). */
 export interface RecognitionApi {
   /** Resolves with the best transcript ('' when nothing was heard); rejects on denial/error. */
   listen(lang: 'zh-CN' | 'en-SG'): Promise<string>;
+  /**
+   * 1.1: same as listen() but with up to 3 alternatives (maxAlternatives = 3). Optional so older
+   * implementations stay valid; callers fall back to listen().
+   */
+  listenAll?(lang: 'zh-CN' | 'en-SG'): Promise<Heard>;
   stop(): void;
 }
 

@@ -35,6 +35,8 @@ export function Search() {
   const [listening, setListening] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const mic = platform.recognition;
+  // 1.1 voice: the other speech alternatives for the text the mic put in the box (cleared once the user edits it).
+  const heardAlts = useRef<{ text: string; alternatives: string[] } | null>(null);
 
   useEffect(() => inputRef.current?.focus(), []);
   useEffect(() => {
@@ -43,8 +45,9 @@ export function Search() {
     const ctrl = new AbortController();
     const timer = setTimeout(() => {
       setPhase('loading');
+      const alts = heardAlts.current?.text === text ? heardAlts.current.alternatives : [];
       api
-        .search(text.slice(0, 100), ctrl.signal)
+        .search(text.slice(0, 100), ctrl.signal, alts.length ? { alternatives: alts } : undefined)
         .then((r) => {
           if (ctrl.signal.aborted) return;
           setResults(r.slice(0, MAX_RESULTS));
@@ -110,7 +113,10 @@ export function Search() {
     setListening(true);
     log('state:search-listening');
     try {
-      const text = await mic.listen(lang === 'en' ? 'en-SG' : 'zh-CN');
+      const speechLang = lang === 'en' ? 'en-SG' : 'zh-CN';
+      const heard = mic.listenAll ? await mic.listenAll(speechLang) : { text: await mic.listen(speechLang), alternatives: [] };
+      const text = heard.text;
+      heardAlts.current = text ? { text, alternatives: heard.alternatives.map((a) => a.transcript).filter((t) => t !== text) } : null;
       if (text) setQ(text);
     } catch {
       /* denied or failed: typing still works */

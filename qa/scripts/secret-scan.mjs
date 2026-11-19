@@ -16,8 +16,10 @@ const rules = [
   ['aws-key', /\bAKIA[0-9A-Z]{16}\b/g],
   ['google-key', /\bAIza[0-9A-Za-z_-]{35}\b/g],
   ['bearer-literal', /Bearer\s+[A-Za-z0-9._-]{24,}/g],
+  // 1.1: Anthropic API keys (sk-ant-api03-..., sk-ant-admin01-...). Tests use an obviously fake 'sk-ant-test-...' value.
+  ['anthropic-key', /\bsk-ant-(?:api|admin)\d{2}-[A-Za-z0-9_-]{20,}/g],
 ];
-const ASSIGN = /\b(ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY|password|passwd|api[_-]?key|account[_-]?key|secret|access[_-]?token)\b["']?\s*[:=]\s*["']([^"'\s]{6,})["']/gi;
+const ASSIGN = /\b(ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY|ANTHROPIC_API_KEY|password|passwd|api[_-]?key|account[_-]?key|secret|access[_-]?token)\b["']?\s*[:=]\s*["']([^"'\s]{6,})["']/gi;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 // Reviewed test-only dummy values (Worker vitest bindings). Adding to this list needs QA review.
 const KNOWN_TEST_VALUES = new Set(['s3cret-pass', 'lta-test-key']);
@@ -49,7 +51,7 @@ walk(join(root, 'src'), false);
 if (existsSync(dist)) walk(dist, true); else findings.push(`dist missing: ${dist}`);
 // wrangler.toml: [vars] must not hold credentials, ids must be placeholders.
 const wt = readFileSync(join(root, 'src/worker/wrangler.toml'), 'utf8');
-if (/^\s*(ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY)\s*=/m.test(wt)) findings.push('wrangler.toml: credential in [vars]');
+if (/^\s*(ONEMAP_EMAIL|ONEMAP_PASSWORD|LTA_ACCOUNT_KEY|ANTHROPIC_API_KEY)\s*=/m.test(wt)) findings.push('wrangler.toml: credential in [vars]');
 // KV namespace ids are not secrets (Director ruling, M2 gate): the reviewed TOKEN_KV id is allow-listed.
 // Any other real-looking id still needs QA review before it is added here.
 // 1e51…: TOKEN_KV recreated on the owner's account (3e27b40), reviewed by QA at the M3/M4 gate.

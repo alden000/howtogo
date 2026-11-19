@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { handleAlerts, handleBusArrival, handleLifts, handleRevGeocode, handleRoute, handleSearch } from "./api";
 import { fixtureMode } from "./fixtures";
+import { aiEnabled } from "./ai";
 import { HttpError, UpstreamError, errorResponse, finalize, json, originAllowed, preflight } from "./http";
 import { checkRateLimit } from "./ratelimit";
 import { ltaSource } from "./lta";
@@ -27,7 +28,15 @@ export const NO_EMBED: Embedded = { assets: {}, rules: [] };
  */
 export function health(env: Env) {
   const fx = fixtureMode(env);
-  return { ok: true, fixtureMode: fx, onemap: fx ? "fixture" : hasOneMapCredentials(env) ? "ok" : "missing", lta: ltaSource(env), version: APP_VERSION };
+  return {
+    ok: true,
+    fixtureMode: fx,
+    onemap: fx ? "fixture" : hasOneMapCredentials(env) ? "ok" : "missing",
+    lta: ltaSource(env),
+    // 1.1: Claude rewrite layer (key set, cap > 0, not fixture mode). Never the key itself.
+    ai: !fx && aiEnabled(env) ? "on" : "off",
+    version: APP_VERSION,
+  };
 }
 
 /** Which upstream an API path talks to (server-side stats only). */
@@ -51,7 +60,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (setup) return handleSetupByCode(request, env, setup[1]!);
 
   const getRoutes: Record<string, () => Promise<Response>> = {
-    "/api/search": () => handleSearch(url, env, ctx),
+    "/api/search": () => handleSearch(url, env, ctx, request.headers.get("CF-Connecting-IP")),
     "/api/route": () => handleRoute(url, env, ctx),
     "/api/revgeocode": () => handleRevGeocode(url, env, ctx),
     "/api/bus-arrival": () => handleBusArrival(url, env, ctx),

@@ -11,7 +11,7 @@
 # where wrangler's assets upload fails. Docs: docs/process/DEPLOY.md.
 # Placeholders only — no secrets in this file. Secrets (owner, `wrangler secret put <NAME> [--env production]`):
 #   ONEMAP_EMAIL, ONEMAP_PASSWORD, LTA_ACCOUNT_KEY (none needed while FIXTURE_MODE = "1"), STATS_TOKEN (optional,
-#   unlocks GET /api/stats).
+#   unlocks GET /api/stats), ANTHROPIC_API_KEY (optional, 1.1 smart search: Claude rewrites; unset = AI off).
 # Build first: `npm run build:release` (root) builds src/web/dist, which is served below.
 name = "howtogo-preview"
 main = "src/index.ts"
@@ -43,6 +43,9 @@ SHARE_TTL_HOURS = "4"
 # fixtures (AC 21) and /api/health reports fixtureMode:true, so the PWA shows the
 # "示范路线 / Sample routes" banner. PREVIEW ONLY (D-10); production sets "0" below.
 FIXTURE_MODE = "1"
+# 1.1 smart search: max Claude query rewrites per Singapore day (cost guard; "0" = AI off). Needs the
+# ANTHROPIC_API_KEY secret; fixture mode never calls Claude.
+AI_DAILY_CAP = "2000"
 
 [[kv_namespaces]]
 binding = "TOKEN_KV"
@@ -103,6 +106,7 @@ ALLOWED_ORIGINS = "https://howtogo.wwweeeiii.com,https://localhost"
 CANONICAL_ORIGIN = "https://howtogo.wwweeeiii.com"
 SHARE_TTL_HOURS = "4"
 FIXTURE_MODE = "0"
+AI_DAILY_CAP = "2000"
 
 [[env.production.kv_namespaces]]
 binding = "TOKEN_KV"

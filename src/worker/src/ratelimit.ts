@@ -20,6 +20,8 @@ export const LIMITS = {
   shareView: { max: 1, windowMs: 5_000 },
   /** M5 AC 38: the client sends ≤ 1 report per 5 min and ≤ 20 per day; 12/h leaves room for several tabs. */
   telemetry: { max: 12, windowMs: 3_600_000 },
+  /** 1.1: Claude query rewrites per client (cache hits are free and not counted). */
+  aiRewrite: { max: 20, windowMs: 3_600_000 },
 } as const;
 export type LimitName = keyof typeof LIMITS;
 /** Upper bound on tracked clients per isolate, so memory stays small under abuse. */

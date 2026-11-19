@@ -48,4 +48,11 @@ export interface Env {
    * HSTS is sent on that origin. Unset on the preview Worker and in tests.
    */
   CANONICAL_ORIGIN?: string;
+  /**
+   * 1.1 smart search: Anthropic API key (Worker secret, owner: `wrangler secret put ANTHROPIC_API_KEY`).
+   * Unset → the Claude rewrite layer is off (aliases still work); `/api/health` reports `ai: "off"`.
+   */
+  ANTHROPIC_API_KEY?: string;
+  /** 1.1: global cap on Claude rewrite calls per Singapore day (default 2000). "0" turns the AI layer off. */
+  AI_DAILY_CAP?: string;
 }

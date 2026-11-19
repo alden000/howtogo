@@ -9,7 +9,9 @@ import {
   type NotifyPermission,
   type Platform,
   type PlatformError,
+  type Heard,
   type RecognitionApi,
+  type SpeechAlternative,
   type SpeakOptions,
   type SpeechApi,
   type PlatformCapabilities,
@@ -230,12 +232,28 @@ type SR = {
   lang: string;
   interimResults: boolean;
   maxAlternatives: number;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string; confidence?: number }>> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
   start(): void;
   stop(): void;
 };
+
+export const MAX_SPEECH_ALTERNATIVES = 3;
+
+/** Alternatives of one recognition result: trimmed, non-empty, distinct, best first (engine order), ≤ 3. */
+export function readAlternatives(result: ArrayLike<{ transcript: string; confidence?: number }> | undefined): Heard {
+  const alternatives: SpeechAlternative[] = [];
+  for (let i = 0; result && i < result.length; i++) {
+    const a = result[i];
+    const transcript = (a?.transcript ?? '').trim();
+    if (!transcript || alternatives.some((x) => x.transcript === transcript)) continue;
+    const c = Number(a?.confidence);
+    alternatives.push({ transcript, confidence: Number.isFinite(c) && c >= 0 && c <= 1 ? c : 0 });
+    if (alternatives.length >= MAX_SPEECH_ALTERNATIVES) break;
+  }
+  return { text: alternatives[0]?.transcript ?? '', alternatives };
+}
 
 /** Web Speech recognition (Chrome/Android: webkitSpeechRecognition). Undefined when unsupported. */
 function createRecognition(): RecognitionApi | undefined {
@@ -243,25 +261,28 @@ function createRecognition(): RecognitionApi | undefined {
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!Ctor) return undefined;
   let cur: SR | null = null;
+  const listenAll = (lang: 'zh-CN' | 'en-SG'): Promise<Heard> => {
+    cur?.stop();
+    return new Promise((resolve, reject) => {
+      const r = new Ctor();
+      cur = r;
+      r.lang = lang;
+      r.interimResults = false;
+      // 1.1 voice search: up to 3 candidates; the Worker tries the others when the best finds too little.
+      r.maxAlternatives = MAX_SPEECH_ALTERNATIVES;
+      let heard: Heard = { text: '', alternatives: [] };
+      r.onresult = (e) => (heard = readAlternatives(e.results[0]));
+      r.onerror = (e) => (e.error === 'no-speech' || e.error === 'aborted' ? undefined : reject(new Error(e.error)));
+      r.onend = () => {
+        if (cur === r) cur = null;
+        resolve(heard);
+      };
+      r.start();
+    });
+  };
   return {
-    listen(lang) {
-      cur?.stop();
-      return new Promise((resolve, reject) => {
-        const r = new Ctor();
-        cur = r;
-        r.lang = lang;
-        r.interimResults = false;
-        r.maxAlternatives = 1;
-        let text = '';
-        r.onresult = (e) => (text = e.results[0]?.[0]?.transcript ?? '');
-        r.onerror = (e) => (e.error === 'no-speech' || e.error === 'aborted' ? undefined : reject(new Error(e.error)));
-        r.onend = () => {
-          if (cur === r) cur = null;
-          resolve(text.trim());
-        };
-        r.start();
-      });
-    },
+    listen: (lang) => listenAll(lang).then((h) => h.text),
+    listenAll,
     stop() {
       cur?.stop();
     },

@@ -1663,3 +1663,33 @@ Branch `dev/m5-int`, on top of QA's gate commit `d4f996f`. One batched round for
 - Docker dev e2e (no update): 244/244. In the first full run, the m34 200 % share-sheet audit flaked once (a guide sheet, not the map) and passed on the next run.
 - Baselines: no existing baseline changed. The H4 frames are captured before the map loads, so the attribution and button are not in them; a re-record wrote identical files. One new baseline was added: `H4-mapcard-dark-100-en` (the card with the canvas hidden: attribution bottom-left, locate bottom-right).
 - Not changed: the family viewer map (`viewer/viewerMap.ts`) still uses `minZoom: ONEMAP_MINZOOM`. It has the same zoom-floor cause if puck and destination are more than ~10 km apart. Follow-up candidate.
+
+## 2026-11-19 — Developer: 1.1 smart search engine
+Branch `dev/1.1-smart-search` (engine round; UI comes in the UI round from Creative's frames).
+
+**Built**
+- **Alias layer** (`src/shared/src/alias.ts` + `alias-data.ts`, export `@howtogo/shared/alias`, pure): 135 curated entries (hospitals and national centres, polyclinics, town MRT + bus interchanges with zh/pinyin/short forms, airport, landmarks, malls, temples incl. 观音堂/guan yin → Kwan Im Thong Hood Cho Temple + Leong San See Temple, CPF/HDB/ICA/NTUC, universities) + every open station's official Chinese name from `data/stations.ts` (LTA names) → "<Name> MRT/LRT Station". Normalisation: NFKC (full-width), case, punctuation, basic traditional → simplified, spelled-out letters joined ("K K", "k.k.", "S G H" → kk/sgh), spaces ignored for lookup ("KK 医院" = "KK医院", "niu che shui" = "niucheshui"), zh fillers stripped ("我要去…", "…站/地铁站"), short forms expanded inside longer queries (amk/cck/tpy/je/jw/hbf/poly/hosp/int; never OneMap's BT/JLN/AVE). Only confident names; uncertain ones were removed (no 开开医院-style homophones; KK医院 and 中央医院 are in).
+- **Worker flow** (`src/worker/src/api.ts` handleSearch): q → aliases → OneMap (cached per term, M1 key) → voice `alt` (≤ 2, aliases + OneMap only) → if < 2 hits, live mode and key set: ONE Claude rewrite of `q` (`src/worker/src/ai.ts` gating + `claude.ts` SDK call, lazily imported) → OneMap per term (≤ 5, parallel, cached) → merged, de-duped on name+postal, max 10.
+- **Claude call**: `@anthropic-ai/sdk` 1.10.0 + `zod` 4.6.6 (worker deps), `client.beta.messages.parse`, `claude-opus-5-5`, `max_tokens` 1024, `output_config: { effort: "low", format: betaZodOutputFormat({terms 1–5 × ≤ 60, confidence}) }`, `betas: ["server-side-fallback-2026-07-01"]`, `fallbacks: "default"`, system prompt first with `cache_control` (≈ 1,000 chars, below the cacheable minimum, harmless), no `thinking`, no `temperature`, `timeout` 4000 ms, `maxRetries` 0. `stop_reason` checked before `parsed_output`; refusal / null output → no rewrite. Only the trimmed query (≤ 100 chars) is sent. SDK 1.x sends the key as `Authorization: Bearer`.
+- **Cost/abuse**: KV cache `ai:v1:<sha-256 of normalised query>` 30 days (refusals cached as "no rewrite"; timeouts/errors not cached); per-client limit `LIMITS.aiRewrite` 20/h (existing limiter); `AI_DAILY_CAP` (default 2000, `"0"` = off) counted in KV `ai:cap:<SG day>` before each call (approximate under concurrency; KV failure → fail closed). Logs: `ai_rewrite <reason>` only.
+- `/api/health` gains `ai: "on"|"off"`. Bundle: the SDK adds ≈ 2 MB unminified / ≈ 340 KB gzip (dry-run `--outdir`, no upload); it is evaluated only on the first rewrite.
+- **Voice (Director scope add)**: `RecognitionApi.listenAll?(lang) → { text, alternatives: {transcript, confidence}[] }` (web: `maxAlternatives = 3`; `listen()` unchanged and returns the best text; native inherits the web recognition; fake platform takes `heard`). `api.search(q, signal, { alternatives })` sends them as `&alt=`; Search.tsx passes the mic's alternatives for the text the mic typed (no visible UI change).
+- Docs: API.md (search, health, limits), DEPLOY.md §2a (owner key steps, cost, KV write note), wrangler.toml/.embed.toml `AI_DAILY_CAP = "2000"`, secret scan learns `sk-ant-api03-…`/`ANTHROPIC_API_KEY`.
+
+**Tests** (Anthropic never called for real: fetch stub answers api.anthropic.com): shared `alias.test.ts` (161: table well-formed per entry, no duplicate keys, station names, normalisation, speech forms, fillers, abbreviations); worker `smart-search.test.ts` (18: alias first + via, speech form, de-dup, rewrite + request shape + no IP/headers sent, KV cache hit, timeout, refusal, 429/500/401, connection error, malformed output, per-client limit, daily cap, fixture mode never calls AI/OneMap, voice alternatives, one AI call per voice query, health); web `smart-search.test.ts` (5). Health shape test updated. All suites green (shared 320, web 295+5, worker 238).
+
+**Cost estimate per uncached rewrite** (from prompt size, not a live call): input ≈ 400 tokens (system ≈ 230 + structured-output overhead + query) ≈ $0.0016; output ≈ 150–400 thinking/answer tokens at effort low ≈ $0.003–0.008 → ≈ $0.005–0.01. Cap 2000/day → worst day ≈ $20. QA should log real `usage` once the owner's key is in.
+
+**For the UI round — exact fields**
+- `SearchResult.via?: 'direct' | 'alias' | 'ai'` (absent in fixture/mock mode).
+- `api.search()` returns `SearchResults` = `SearchResult[] & { didYouMean?: boolean; usedAlternative?: string }` (flags only present when true / set).
+- `didYouMean: true` → show the "Did you mean…" list (the AI hits are distinct candidate places).
+- `usedAlternative` → the "你说的是：… / You said: …" line (results came from that speech alternative).
+- `platform.recognition.listenAll(lang)` → `Heard { text, alternatives: { transcript, confidence }[] }` (≤ 3, best first, best included).
+- `/api/health` `ai: "on"|"off"` → e.g. Settings line "Smart search (Claude): on/off".
+- Privacy text (Creative): AI receives only the search text; voice audio stays with the browser/OS speech service; alternatives are text.
+
+**Next steps / open**
+- Owner: `npx.cmd wrangler secret put ANTHROPIC_API_KEY --env production` (DEPLOY.md §2a). On the Workers Free plan keep `AI_DAILY_CAP` ≤ 400 (KV writes).
+- QA: live smoke with the key (KKH, 牛车水, guan yin, a misspelling that needs AI) and check `usage` tokens; dev-e2e unchanged (fixture mode never calls AI).
+- Alias terms were chosen from knowledge, not checked against OneMap live; a term that OneMap does not know just adds no hits. QA can run the alias terms through OneMap once and report misses.

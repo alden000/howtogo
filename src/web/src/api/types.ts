@@ -7,6 +7,24 @@ export interface SearchResult {
   postal: string;
   lat: number;
   lng: number;
+  /** 1.1: where the hit came from — typed text ("direct"), the alias table ("alias") or the Claude rewrite ("ai"). Absent in fixture mode / mock. */
+  via?: 'direct' | 'alias' | 'ai';
+}
+
+/**
+ * 1.1: `search()` still resolves with a plain array (backward compatible) that also carries the
+ * response-level flags of `/api/search` (src/worker/API.md).
+ */
+export type SearchResults = SearchResult[] & {
+  /** Hits come from several distinct places suggested by the AI rewrite → show "Did you mean…". */
+  didYouMean?: boolean;
+  /** Voice: the speech alternative that produced results when the best transcript did not. */
+  usedAlternative?: string;
+};
+
+/** 1.1 voice search: the other speech alternatives (best first, excluding `q`); the Worker uses ≤ 2. */
+export interface SearchOptions {
+  alternatives?: string[];
 }
 
 export interface RouteParams {
@@ -138,7 +156,7 @@ export interface LiveConnection {
 
 /** The whole client surface. Implemented by the HTTP client and by the mock API. */
 export interface Api {
-  search(q: string, signal?: AbortSignal): Promise<SearchResult[]>;
+  search(q: string, signal?: AbortSignal, opts?: SearchOptions): Promise<SearchResults>;
   /** Raw OneMap body (normalise with `normalizeOneMapPlan`). */
   route(p: RouteParams, signal?: AbortSignal): Promise<unknown>;
   revgeocode(p: LatLng): Promise<RevGeocodeResult>;

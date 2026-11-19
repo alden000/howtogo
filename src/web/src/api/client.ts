@@ -6,7 +6,15 @@
 import type { LatLng } from '@howtogo/shared';
 import { log } from '../log';
 import { ApiError } from './errors';
-import type { Api, LiveConnection, LiveEvent, RouteParams, SearchResult, ShareState } from './types';
+import type { Api, LiveConnection, LiveEvent, RouteParams, SearchResult, SearchResults, ShareState } from './types';
+
+/** 1.1: the results array with the response-level flags attached (only when present). */
+export function searchResults(r: { results?: SearchResult[]; didYouMean?: boolean; usedAlternative?: string }): SearchResults {
+  const out: SearchResults = [...(r.results ?? [])];
+  if (r.didYouMean) out.didYouMean = true;
+  if (r.usedAlternative) out.usedAlternative = r.usedAlternative;
+  return out;
+}
 
 export interface HttpApiOptions {
   /** Base URL, e.g. "https://howtogo.example" or "" for same origin. From VITE_API_BASE. */
@@ -97,9 +105,12 @@ export function createHttpApi(opts: HttpApiOptions): Api {
   });
 
   const api: Api = {
-    async search(q, signal) {
-      const r = await request<{ results: SearchResult[] }>('search', `/api/search?q=${encodeURIComponent(q)}`, { signal: signal ?? null });
-      return r.results ?? [];
+    async search(q, signal, opts) {
+      let path = `/api/search?q=${encodeURIComponent(q)}`;
+      const alts = (opts?.alternatives ?? []).map((a) => a.trim().slice(0, 100)).filter((a) => a && a !== q.trim());
+      for (const a of alts.slice(0, 2)) path += `&alt=${encodeURIComponent(a)}`;
+      const r = await request<{ results?: SearchResult[]; didYouMean?: boolean; usedAlternative?: string }>('search', path, { signal: signal ?? null });
+      return searchResults(r);
     },
     route(p: RouteParams, signal) {
       const qs = new URLSearchParams({ start: ll(p.start), end: ll(p.end) });
