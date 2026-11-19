@@ -1,0 +1,71 @@
+# Search-rewrite eval — D:\GIT\howtogo-eval\qa\evals\search-rewrite\results\run-2026-11-19T20-09-25-347Z.jsonl
+
+63 cases x 1 rep(s). Accuracy = CORRECT / all calls (errors count as not correct). [..] = Wilson 95 % CI.
+
+## Accuracy (headline)
+
+| arm                  | n  | accuracy      | WRONG place (danger) | none  | errors | first term correct | top result correct | don't-invent pass |
+|----------------------|----|---------------|----------------------|-------|--------|--------------------|--------------------|-------------------|
+| opus-low             | 63 | 93.7% [85–98] | 3 = 4.8% [2–13]      | 1.6%  | 0      | 86.8% [75–93]      | 86.8% [75–93]      | 100.0% [72–100]   |
+| sonnet-low           | 63 | 90.5% [81–96] | 5 = 7.9% [3–17]      | 1.6%  | 0      | 81.1% [69–89]      | 84.9% [73–92]      | 100.0% [72–100]   |
+| sonnet-between-tools | 63 | 92.1% [83–97] | 5 = 7.9% [3–17]      | 0.0%  | 0      | 79.2% [67–88]      | 84.9% [73–92]      | 100.0% [72–100]   |
+| haiku-low            | 63 | 81.0% [70–89] | 5 = 7.9% [3–17]      | 11.1% | 0      | 71.7% [58–82]      | 71.7% [58–82]      | 100.0% [72–100]   |
+
+## Cost and latency
+
+| arm                  | model             | p50 ms | p90 ms | avg in tok | avg out tok (incl. thinking) | cost / call | monthly @ 50/day | run cost | fallbacks served |
+|----------------------|-------------------|--------|--------|------------|------------------------------|-------------|------------------|----------|------------------|
+| opus-low             | claude-opus-5-5   | 2085   | 2834   | 686        | 60                           | $0.00153    | $2.29            | $0.0964  | 0                |
+| sonnet-low           | claude-sonnet-5-5 | 1793   | 2449   | 686        | 50                           | $0.00069    | $1.03            | $0.0433  | 0                |
+| sonnet-between-tools | claude-sonnet-5-5 | 2086   | 2805   | 685        | 45                           | $0.00064    | $0.96            | $0.0401  | 0                |
+| haiku-low            | claude-haiku-5-5  | 1471   | 2634   | 686        | 107                          | $0.00006    | $0.09            | $0.0039  | 0                |
+
+## Paired comparison (same case+rep; exact McNemar)
+
+| pair (A vs B)                      | paired | A right, B wrong | B right, A wrong | p     |
+|------------------------------------|--------|------------------|------------------|-------|
+| opus-low vs sonnet-low             | 63     | 3                | 1                | 0.625 |
+| opus-low vs sonnet-between-tools   | 63     | 3                | 2                | 1.000 |
+| opus-low vs haiku-low              | 63     | 8                | 0                | 0.008 |
+| sonnet-low vs sonnet-between-tools | 63     | 1                | 2                | 1.000 |
+| sonnet-low vs haiku-low            | 63     | 8                | 2                | 0.109 |
+| sonnet-between-tools vs haiku-low  | 63     | 10               | 3                | 0.092 |
+
+## Accuracy by category
+
+| category     | opus-low        | sonnet-low    | sonnet-between-tools | haiku-low       |
+|--------------|-----------------|---------------|----------------------|-----------------|
+| abbreviation | 4/5 (1 wrong)   | 3/5 (2 wrong) | 3/5 (2 wrong)        | 4/5             |
+| colloquial   | 12/13           | 12/13         | 13/13                | 10/13 (2 wrong) |
+| dialect      | 7/8 (1 wrong)   | 6/8 (2 wrong) | 7/8 (1 wrong)        | 5/8 (1 wrong)   |
+| dont_invent  | 10/10           | 10/10         | 10/10                | 10/10           |
+| typo         | 5/5             | 5/5           | 5/5                  | 5/5             |
+| voice        | 9/9             | 8/9 (1 wrong) | 8/9 (1 wrong)        | 7/9 (1 wrong)   |
+| zh           | 12/13 (1 wrong) | 13/13         | 12/13 (1 wrong)      | 10/13 (1 wrong) |
+
+## WRONG-place outputs
+
+- sonnet-low abbr-oarfc: low [Orchard Road Presbyterian Church | Orchard MRT Station]
+- sonnet-between-tools abbr-oarfc: low [Orchard Road Presbyterian Church | Orchard Towers | Orchard MRT Station]
+- opus-low abbr-gmc: high [Golden Mile Complex | Golden Mile Tower]
+- sonnet-low abbr-gmc: high [Golden Mile Complex | Golden Mile Tower | Golden Mile Food Centre]
+- sonnet-between-tools abbr-gmc: high [Golden Mile Complex | Golden Mile Tower]
+- haiku-low col-library-bugis: high [National Library, Singapore | Bugis MRT Station]
+- haiku-low col-passport: high [ICA Building | 10 Pasir Panjang Road]
+- sonnet-between-tools zh-mustafa: low [Mu Da Fa Centre | Woodlands Centre | Marsiling Mall]
+- opus-low zh-lucky: high [Fortune Centre]
+- haiku-low zh-lucky: high [Fortune Centre]
+- opus-low dia-guchiachui: medium [Chinatown Complex Food Centre | Maxwell Food Centre | Hong Lim Market & Food Centre | People's Park Complex]
+- sonnet-low dia-guchiachui: low [Chong Pang Market & Food Centre | Chong Pang Food Centre]
+- sonnet-between-tools dia-guchiachui: low [Ang Mo Kio Ave 6 Market and Food Centre | Ang Mo Kio Central Market and Food Centre | Bukit Timah Market and Food Centre | Ayer Rajah Food Centre]
+- sonnet-low dia-siangLim: medium [Siong Lim Temple | Siong Lim Sian Tong Lian Bt Temple | Toa Payoh MRT Station]
+- haiku-low dia-thianhock: high [Thian Hock Keng Temple | Telok Ayer Street]
+- haiku-low voice-vivo: high [Vivo City | HarbourFront MRT Station]
+- sonnet-low voice-ktph: high [Tan Tock Seng Hospital]
+- sonnet-between-tools voice-ktph: high [Tan Tock Seng Hospital]
+
+## Decision
+
+Best accuracy: opus-low (93.7%, 3 wrong-place).
+RECOMMEND: opus-low — it has the best accuracy and no cheaper arm qualifies (or it is the cheapest). Cost/call $0.00153, ~$2.29/month at 50 calls/day.
+Rule: cheapest arm whose accuracy is not significantly below the best (McNemar p >= 0.05) AND whose WRONG-place count <= best + 1; else the best arm.
