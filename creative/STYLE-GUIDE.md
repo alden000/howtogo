@@ -1,4 +1,4 @@
-# 怎么去? — Style guide v1.4.1
+# 怎么去? — Style guide v1.5
 
 Source of truth for the build. **Build strictly to these tokens and frames:** no raw values outside the token sheet, and no improvised UI. New tokens need Director approval. The prototype `creative/prototype/index.html` implements every token below in its `:root` block. Brand rationale lives in `docs/02-creative-direction.md`.
 
@@ -1364,6 +1364,131 @@ Settings and W segments get these as `aria-label`; first-run cards already read 
 
 Checked: the F1 grid and the Settings segment rendered at 390 px with the build's `tokens.css` + `app.css` at 85%, 100% and 200% (Playwright): no horizontal scroll, cards 169×79 / 169×88 / 350×146, last card full width, segments 111×56 (3+2), 1 column at 200%.
 
+## 6g. 1.1 Smart search, voice and the map credit (v1.5)
+
+Frames for the Director's 1.1 rulings (2026-11-19: compact OneMap credit only if the terms allow; Layer 1 alias dictionary + Layer 2 Claude fallback, ≤ 4 s; scope add: voice search). Reuse §1 tokens and §5–6f components. **No new tokens, no new icons.** Exact copy below is final; `{x}` = variable; zh first, en second.
+
+Shared rules (as §6 / 6f):
+- Frame IDs extend H2 (search) and add **C1** (credit). Baselines `H2-{state}-{light|dark}-{100|200}-{zh|en}.png` and `C1-{state}-…` at 390×844 DPR 2.
+- **Never say "AI", "智能", "人工智能", "机器人" or "Claude" in the app UI.** The help is described as what it does ("trying other names"), never as a machine thinking. Anthropic and Claude are named only on the Privacy page (6g.5), where honesty needs the name.
+- No spinners, no progress bars, no red, no "失败 / failed / error" wording. If the extra help can't run, the person simply sees the plain results.
+- 200 %: every line wraps, nothing truncates (the voice line and the place names included), no horizontal scroll at 320 px. Targets ≥ 56 px.
+
+### 6g.1 C1 OneMap credit: decision
+
+**What the terms say** (checked 2026-11-19, public pages, no owner data sent):
+- OneMap maps docs (onemap.gov.sg/docs/maps): *"by using our base map services, you MUST include the OneMap logo and attribution"*. No size or placement rule is given.
+- OneMap Terms of Use, clause 3(b)(ii), on SLA Data and SLA Material, you must not: *"remove, obscure, modify, alter or use any copyright notices, registered or unregistered trademarks, service marks or logos"*.
+
+**Decision: the logo-only chip that hides the text behind a tap is NOT approved.** Folding "© contributors | Singapore Land Authority" behind a tap leaves the logo but hides the copyright notice, which is a reasonable reading of "obscure". For a government licence we take the safe reading. The owner can ask SLA (OneMap support) in writing; if SLA says a collapsed credit is fine, **C1-B** below is ready to build. Until then, build **C1-A**.
+
+#### C1-A Compact full credit (build this in 1.1)
+The smallest version that keeps the logo and the full notice visible at all times.
+- **Content:** OneMap logo (official asset, 20 × 20 px, `alt=""`) + two lines of plain text, English in both languages (it is the legal line, as L2):
+  - line 1 `OneMap © contributors`
+  - line 2 `Singapore Land Authority`
+- **No links on the map.** Today's `ONEMAP_ATTRIBUTION` links "OneMap" and "Singapore Land Authority" at 11 px, which is a tiny target a senior can hit by accident while panning, and it opens a browser in the middle of a trip. The terms ask for the logo and the notice, not a link. The linked credit stays on About (L2 "地图和数据 / Maps and data"). So the map credit is plain text, not interactive, and needs no tap target.
+- **Layout:** one pill, `display:inline-grid; grid-template-columns:20px auto; column-gap:4px; align-items:center`, padding 3 px 6 px, radius 6 px (as today), background `m-land` at 85 % (as today), text 11 px / 1.3 `m-label` (the §1.2 attribution exception; px, does not follow `--ts`). Size about **160 × 35 px** at every text size (today's one-line credit wraps unevenly to about 260 px wide on a 350 px card).
+- **Position:** map cards (H4 overview, "Bigger map", V viewer): **bottom-left**, `s-3` from both edges; the 56 px locate button stays bottom-right and the 1.0.1 overview padding keeps the route clear of both (update the reserved box to the new size). H5 live guidance keeps its top-left position (QA-12, short screens). Same component everywhere.
+- **Light / dark:** Default tiles with the light pill, Night tiles with the dark `m-land` pill; the logo is the same asset in both (it has its own white ring).
+- **SR:** it stays outside the `aria-hidden` map node (QA-7). It is a `<p lang="en" class="attrib">` read once as "OneMap © contributors, Singapore Land Authority". It is not focusable.
+- **Build ask:** replace `ONEMAP_ATTRIBUTION` (map, GuideMap, viewer) with this plain markup; keep the logo URL. The About block is unchanged.
+- **Baselines:** `C1-A-card` (H4 overview card with the locate button), `C1-A-guide` (H5 top-left), `C1-A-viewer` (V map), each light/dark × 100/200 (the credit does not grow at 200 %; the check is that nothing overlaps it).
+
+#### C1-B Logo chip that expands (ready, only if SLA approves in writing)
+- **Collapsed:** the OneMap logo, 20 px, in a 28 × 28 px pill (same background), bottom-left at `s-3`. The tap area is **56 × 56 px**, extended with transparent padding up and to the right (the pill sits in its bottom-left corner; the area never leaves the map card).
+- It is a `<button type="button" aria-expanded="false">`, SR name 地图来源：OneMap，按一下看完整说明 / Map credit: OneMap. Tap to see it in full.
+- **Expanded:** the C1-A pill (logo + two lines) in the same corner; the 56 px tap area now covers the pill. `aria-expanded="true"`, SR name 地图来源：OneMap © contributors，Singapore Land Authority。按一下收起 / Map credit: OneMap © contributors, Singapore Land Authority. Tap to close.
+- **Starts expanded** each time a map first shows in a session, then collapses by itself after 5 s; after a tap, it collapses after 8 s, or when the map is panned, or on a second tap. 120 ms cross-fade (reduce motion: instant). It never covers the locate button.
+- Baselines: `C1-B-collapsed`, `C1-B-expanded`.
+
+### 6g.2 H2 smart search states (alias and the extra-help fallback)
+
+Flow: the person types or says a place → OneMap + the alias dictionary (Layer 1) → results show at once. Only when they bring **no results or very few** (Developer's threshold) does the extra help (Layer 2) run, for at most **4 s**, and then its places join the list. The person never has to do anything different.
+
+**Build ask (the client must know when Layer 2 really runs):** Layer 1 results come back first and render at once; the Worker says whether extra help is worth trying (for example `assist: true`), and the client then asks for it as a second request. The "trying other names" line (b) shows only during that second request, never just because the network is slow. After 4 s, or on any failure, the client stops waiting and shows what it has (e).
+
+| State | Baseline | What shows | Copy zh / en | SR (polite, `role="status"`, once) |
+|---|---|---|---|---|
+| (a) Alias hit | `H2-alias` | Normal result rows under 找到这些地方 / Places found. Between the header and the first row, one quiet line, `caption`, `c-ink-2`, no icon. Shown only when the alias names **one** place and its full name differs from what was typed (KKH yes; 医院 → "hospital" no). | **“{q}”就是“{full}”** / **“{q}” means “{full}”** — e.g. “KKH”就是“竹脚妇幼医院” / “KKH” means “KK Women's and Children's Hospital”. | 找到 {n} 个地方。“{q}”就是“{full}”。 / {n} places found. “{q}” means “{full}”. |
+| (b) Extra help running | `H2-assist` | Under any few results already shown (or under the field when there are none): one line, `body`, `c-ink-2`, static `search` icon (24 px) to its left. **No skeletons, no spinner, no animation.** Appears only if the second request is still running after 400 ms (no flash). | **换个说法再找找…** / **Trying other names for it…** | Same text, announced once. |
+| (c) Did you mean | `H2-didyoumean` | The query matches several places (观音 → several Guan Yin temples). Header (`sect h2`, as 找到这些地方) **你是不是要找：** / **Did you mean:** then the places as normal result rows (icon `loc`, name, address), at most 8, best first, de-duplicated. If Layer 1 found a few places, they stay on top under 找到这些地方 and this section follows with only the new places. No sub-line: the rows are the action. | header 你是不是要找： / Did you mean: | 你是不是要找：{n} 个地方 / Did you mean: {n} places |
+| (c′) One clear guess | `H2-guess` | The extra help points to one place or one search term: normal results under 找到这些地方 with the quiet line from (a), using the term it searched. | **按“{term}”找到这些地方** / **Showing places for “{term}”** | 找到 {n} 个地方，按“{term}”找。 / {n} places found for “{term}”. |
+| (d) Still nothing | `H2-empty` (existing) | The existing empty panel (F4 style, `search` icon), shown after the extra help has finished or timed out. Body copy gains the postal code (it applies to every empty state): | title 没找到“{q}” / Couldn't find “{q}” · body **换个说法试试，比如“医院”“巴刹”、地址或邮区编号。** / **Try other words, like “hospital”, “market”, an address or a postal code.** | 没找到“{q}”。换个说法试试。 / Couldn't find “{q}”. Try other words. |
+| (e) Extra help unavailable | `H2-plain` | No key, timeout (> 4 s), 429, refusal, Worker error, or offline: the (b) line goes away silently and the person sees Layer 1 results, or (d). No message, no retry button, nothing about a helper. Offline as a whole still uses F4 `offline`. | — | Only the outcome is announced (the results count or (d)). |
+
+Rules:
+- The field keeps exactly what was typed; Layer 2 never rewrites the person's text in the field.
+- Order on screen: voice line (6g.3) → 找到这些地方 + quiet line + rows → 你是不是要找 + rows → (d).
+- A place picked from (c) goes to H3 like any result and goes into Recent under its real name, not the query.
+- Results count in SR: "{n}" is the number of rows in that section; for one row use 找到 1 个地方 / 1 place found.
+- 200 %: the quiet line and the (b) line wrap under themselves (the icon stays at the top of the first line); headers wrap; rows grow taller.
+- Dictionary entries that show a quiet line carry display names `{zh, en}`; if a zh name is missing, the zh line uses the English name.
+- New i18n keys: `alias_line` “{q}”就是“{full}” / “{q}” means “{full}” · `assist_line` 换个说法再找找… / Trying other names for it… · `didyoumean` 你是不是要找： / Did you mean: · `guess_line` 按“{term}”找到这些地方 / Showing places for “{term}” · `none_s` updated as (d) · SR strings `sr_found` 找到 {n} 个地方 / {n} places found, `sr_didyoumean` 你是不是要找：{n} 个地方 / Did you mean: {n} places.
+
+### 6g.3 H2 voice: "You said" line
+
+After speech is turned into text, the text goes into the field (as today) and the search runs. Above the results (directly under the field), a quiet confirmation the person can tap to fix:
+
+- **Row** `.heard`: full width, min-height 56 px, `c-surface-2`, `r-m`, padding 12 px 16 px; `mic` icon (24 px, `c-ink-2`) on the left; text `body`: **你说的是：“{text}”** / **You said: “{text}”**; on the right, `label` in `c-primary-text`: **改一改** / **Change**. The whole row is one `<button>`.
+- **Tap:** focuses the field with the caret at the end (the keyboard opens) so the words can be corrected; the row then disappears. It also disappears as soon as the field is edited or cleared, or a new voice search starts (replaced by the new one).
+- **SR:** button name 你说的是：{text}。按一下可以改。 / You said: {text}. Tap to change it. When it first appears, one polite announcement combines it with the outcome: 你说的是：{text}。找到 {n} 个地方。 / You said: {text}. {n} places found. (or the (d) text).
+- **200 %:** the text wraps over as many lines as needed; 改一改 / Change wraps under the text on the right (flex-wrap), never truncates.
+- It does not appear for typed searches. The words are shown exactly as recognised (no correction).
+- i18n: `heard_line` 你说的是：“{text}” / You said: “{text}” · `heard_edit` 改一改 / Change · `sr_heard` 你说的是：{text}。按一下可以改。 / You said: {text}. Tap to change it.
+- Baseline: `H2-heard` (with results), `H2-heard-empty` (with (d)).
+
+### 6g.4 H2 listening states (fills in the H2 "Listening line")
+
+The mic button (56 px, in the field, SR 用说的 / Speak, `aria-pressed`) starts listening. Recognition language: zh → `zh-CN`, en → `en-SG` (as built). Spoken guidance (TTS) is silent while listening. If the browser has no speech recognition, the mic button is not shown at all and nothing explains its absence.
+
+| State | Baseline | What shows (panel under the field, replacing the list; the field stays) | Copy zh / en | SR / focus |
+|---|---|---|---|---|
+| Listening | `H2-listening` (existing) | 72 px `c-primary` mic disc with the ripple rings (reduce motion: two static rings), `headline` line, `caption` sub-line in `c-ink-2`, then a secondary button (56 px). The mic button in the field shows pressed. | **我在听…请说地方名字** / **I'm listening… say the place** · sub **说完了我会自己找。** / **I'll search when you stop talking.** · button **停止** / **Stop** | Polite: 我在听，请说地方名字 / I'm listening, say the place. Focus moves to Stop. |
+| Hearing (if partial text is available) | `H2-listening-partial` | Same panel; under the headline the words so far in `body` `c-ink`, in quotes. | “{partial}” | Not announced (it changes too often). |
+| Nothing heard | `H2-voice-nohear` | Panel with `mic` icon, title + body, primary button. | **没听到声音** / **I didn't hear anything** · **再按一下“再说一次”，或者打字。** / **Tap "Try again", or type instead.** · button **再说一次** / **Try again** | Polite: title + body. Focus to Try again. |
+| Not understood | `H2-voice-nomatch` | As above. | **没听清楚** / **I didn't catch that** · **再说一次，或者打字。** / **Try again, or type it.** · button **再说一次** / **Try again** | As above. |
+| Microphone not allowed | `H2-voice-nomic` | As above, no button; the field gets focus. | **没法用麦克风** / **I can't use the microphone** · **可以在手机设置里允许，或者打字。** / **You can allow it in your phone's settings, or type instead.** | Polite: title + body. Focus to the field. |
+| Needs internet | `H2-voice-offline` | As above, `wifi-off` icon, no button. | **说话找地方需要网络** / **Speaking needs internet** · **可以先打字。** / **You can type instead.** | Polite. Focus to the field. |
+
+- **Stop**, the mic button again, or **Back** end listening and keep the person on H2 (Back does not leave H2 while listening). Words already heard are kept in the field.
+- After a result: the panel goes, the field holds the text, the 6g.3 line shows and the search runs.
+- Calm copy: no "error", no "failed"; never blame ("你说得不清楚" is not allowed).
+- i18n: `listening` (existing), `listen_sub`, `listen_stop`, `v_nohear_t/b`, `v_nomatch_t/b`, `v_nomic_t/b`, `v_off_t/b`, `try_say_again` 再说一次 / Try again.
+
+### 6g.5 Privacy page additions (L1; notice version {n} → 2)
+
+Two new bullets at the end of h2 3 **还有谁会参与 / Who else is involved** (same `**lead-in:**` style as OneMap and Cloudflare):
+
+| Key | zh | en |
+|---|---|---|
+| `pv_3e` | **Anthropic 的 Claude：**搜不到时，只收到你要找的字，用来猜是哪个地方。猜的结果最多存 30 天。 | **Anthropic's Claude:** only when a search finds nothing, it gets just the words you searched for, to guess the place. We keep its guess up to 30 days. |
+| `pv_3f` | **手机的语音服务**（多数安卓手机用 Google 的）把你的话变成文字，我们只收到文字。 | **Your phone's speech service** (on most Android phones, Google's) turns speech into text; we get only the text. |
+
+"30 days" matches the Director's KV cache of rewrites; if that TTL changes, this line changes. "Only the words" is a fact the build must keep: no location, ids or IP go to Anthropic (Director ruling).
+
+**Cuts to stay ≤ 400 words** (all visible en text except footer and "Open" link: 395 → **399**; zh notice body, the unit test's count: 565 → **593 Han** ≤ 600). Meaning is unchanged in every cut:
+
+| Key | zh (new) | en (new) |
+|---|---|---|
+| `pv_1a` | 你的称呼、家、常去和最近去过的地方、家人的名字和电话、设置和正在走的行程。 | Your name, Home, your places, recent places, family names and numbers, settings and current trip. |
+| `pv_1b` | 没有网络也能用：手机会暂存看过的地图和最近的搜索。 | For offline use, it also keeps maps you've seen and recent searches. |
+| `pv_2b` | **分享行程：**只在你分享时，发出你的位置、下一步、目的地名字和家人怎么称呼你（你同意的话，还有电话）。到达后 30 分钟或满 4 小时，分享自动结束；位置和电话马上删掉，其余的最晚 4 小时内删掉。 | **Sharing a trip:** only while you share: your position, next step, destination name and what family call you (and your number, if you allow it). It ends 30 minutes after you arrive or after 4 hours; your position and number are then deleted at once, the rest within 4 hours. |
+| `pv_2c` | **家人帮你设置：**家人填的内容先在他们手机上锁好（加密）。我们只保管这个打不开的包，你打开后或 24 小时后就删掉。 | **Family setup:** what family fill in is locked (encrypted) on their phone; we hold only the locked box, deleted once opened or after 24 hours. |
+| `pv_2d` | **匿名错误统计（可以关）：**只有“哪一种问题、在哪个画面、几次”，没有能认出你的东西。保留 90 天。 | **Anonymous error counts (you can turn this off):** only which problem, which screen, how many times; nothing that could identify you. Kept 90 days. |
+| `pv_2e` | 服务器记录里没有你的位置、地址、搜索内容或网络地址（IP）；网络地址只短暂用来防止滥用，不保存。 | Our server logs hold no location, address, search or internet address (IP); the IP is used briefly to stop misuse, never kept. |
+| `pv_3d` | **WhatsApp、短信、电话、Grab、CDG Zig：**只有你按了才会打开；打开后由它们自己的隐私规定负责。 | **WhatsApp, SMS, calls, Grab, CDG Zig:** open only when you tap them; then their own privacy rules apply. |
+| `pv_family` | 家人打开行程链接，不用安装也不用账号；我们不记录是谁在看。 | Family open a trip link with no app or account; we don't record who watches. |
+
+- Bump `PRIVACY_NOTICE` to `{ n: 2, date: <1.1 release date> }` and update the unit test's `n` check. Counts were made with the test's own `words()` rule.
+- L1 "Facts this copy relies on" gains: 5. Layer 2 sends only the query text to Anthropic; the rewrite cache TTL is 30 days. 6. Voice recognition runs in the browser/OS; the app receives only the final text.
+
+### 6g.6 New items needing Director approval (1.1)
+- **C1 decision:** C1-A (compact, always-visible full credit, no links on the map). C1-B only after written SLA approval, which the owner may request.
+- **Copy rule:** no "AI / 智能 / Claude" in the app UI; named on Privacy only.
+- **Build asks:** two-step search response so the (b) line is honest; alias entries carry `{zh, en}` display names; plain-text map credit; reserved overview box resized; `PRIVACY_NOTICE.n` = 2.
+- **No new tokens, no new icons.**
+
 ## 7. Parity checklist (prototype ↔ build)
 - [ ] Tokens identical: colour, type, space, radii, motion, haptics.
 - [ ] Back stack per frame, as above, including the D8 end-trip guard.
@@ -1372,7 +1497,7 @@ Checked: the F1 grid and the Settings segment rendered at 390 px with the build'
 - [ ] All targets ≥ 56px (automated).
 - [ ] Get-off alert: visual + voice + `getoff` haptic + assertive announcement.
 - [ ] Reduce motion: no pulses or petals, cross-fades only.
-- [ ] Map: OneMap tiles + attribution "Map data © OneMap / Singapore Land Authority"; saffron destination dot; line tags never colour-only.
+- [ ] Map: OneMap tiles + the C1-A credit (logo + "OneMap © contributors / Singapore Land Authority", plain text, always visible, 6g.1); saffron destination dot; line tags never colour-only.
 - [ ] Family page H8 matches status copy and expires on arrival.
 - [ ] H5: puck and station labels never intersect the top band or the step card (6c.0 rect check, 100% and 200%).
 - [ ] Haptic names are exactly the six in 6c.13; no `tap/notice/get_off/alert/arrived` left in `src/web`.
@@ -1384,10 +1509,12 @@ Checked: the F1 grid and the Settings segment rendered at 390 px with the build'
 - [ ] M5: `/privacy` text matches the code facts in 6f.1 (Delete all clears caches and stops a share; TTLs; telemetry fields); no contact line until the owner supplies one; no licences link anywhere.
 - [ ] M5: offline cold start has no spinner; every network-only control says 需要网络 / Needs internet.
 - [ ] v1.4.1: 较小 85% offered on F1, Settings and W; default 100%; targets still 56 px at 85%; AA never cycles to 85%; viewer stays 100%.
+- [ ] v1.5: no "AI / 智能 / Claude" in the app UI; the "trying other names" line shows only while Layer 2 really runs and goes away silently on timeout/failure; the field never changes to the rewritten term; voice line tap focuses the field; Privacy n = 2 and ≤ 400 words.
 
 ## Change log
 | Version | Date | Change |
 |---|---|---|
+| v1.5 | 2026-11-19 | 6g 1.1: C1 OneMap credit decision (terms checked: logo + notice must stay, clause 3(b)(ii) "obscure"; C1-A compact always-visible two-line credit, plain text, no links on the map; C1-B expanding chip ready only on written SLA approval). H2 smart-search states (alias line, "trying other names" line, did-you-mean, one-guess line, still-nothing with postal code, silent fallback). Voice: "You said" row, full listening states. Privacy additions (Anthropic, phone speech service) with cuts, en 399 words, notice n = 2. No new tokens or icons. |
 | v1.4.1 | 2026-11-18 | 6f.11 text size 较小 85% / Smaller (owner request): `--ts` 0.85, first of 5 options, default still 100%; 5-card grid (odd last card spans the row) and `.seg.sizes`; SR names; targets and px icons do not scale; AA cycle skips 85%; viewer stays 100%. |
 | v1.4 | 2026-11-18 | 6f M5 hardening and launch: L1 Privacy page, L2 About rework, L3 update bar + What's new (supersedes F7), L4 install helper (Android card, iOS picture guide, Open in Safari, in-app-browser bar), L5 battery saver, L6 offline cold start, L7 Settings order + error counts, L8 V/W privacy links, L9 field-test form + consent line. Icons `leaf`, `add-square`, `open-browser`; drawn iOS guide pictures in `creative/m5/`. |
 | v1.3 | 2026-11-17 | 6d M3 transit smarts, 6e M4 share and safety; m34 fix-round entries. |
