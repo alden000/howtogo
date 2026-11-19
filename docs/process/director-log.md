@@ -250,3 +250,6 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - 1.1 engine (5be61c1): 135 aliases + station zh names; flow aliases → OneMap → voice alternatives → ≤1 Claude rewrite → OneMap; cached 30 d; 20/client/h. Ruling: AI_DAILY_CAP default 300 (KV free-plan write limit; worst day ≈ $3). SDK adds ~340 KB gz to the Worker, lazy-loaded: accepted (Worker-side, not the PWA budget).
 
 - 1.1 Creative review (7d2e8bc): APPROVED WITH FIXES. M1 ruling: keep FEW = 2 (one result is often the wrong place); privacy copy becomes 几乎搜不到时 / "finds almost nothing" so it stays accurate. L1/L2 cosmetic. All batched with QA findings.
+
+## 2026-11-19 — Owner bug on live 1.0.1: family viewer map blank (S2)
+- Desktop ~1252 px, dark, zh: the status card works, the map panel is blank (no tiles, no puck). CSP is the same as the app (not the cause). viewerMap.ts has the same 256/512 minZoom mistake as 1.0.1; other suspects: zero-size container, setPuck before style load, lazy import failure. Also "Kk Women's" title-casing. Added to the 1.1 fix round with a failing-first scripted e2e (canvas size, tile request, puck layer).
