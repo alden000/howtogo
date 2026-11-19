@@ -1788,3 +1788,42 @@ Branch `dev/1.1-smart-search` (UI round on top of the engine, STYLE-GUIDE v1.5 �
 - **Owner S2 (live 1.0.1): blank family-viewer map.** Root cause: MapLibre adds `.maplibregl-map{position:relative}` to the GL container, which beat the viewer's `.mapcanvas{position:absolute;inset:0}` (same specificity, loaded later), so the container was 0 px tall and the canvas was clipped to nothing — at 390 px too, hidden by the masked baselines. Fix: higher-specificity rule (`viewer.css`), ResizeObserver → `map.resize()`, wait for the style (not every tile) before adding the puck, minZoom `ONEMAP_MINZOOM - 1.5` as the app's 1.0.1 fix. New `e2e-viewer/map.spec.ts` (1252×894 dark, 390×844): container/canvas fill the panel, tiles requested at z 11–19 and answered with a fixture PNG, puck layer present (`data-map=ready`, `data-puck=1`); red on the old viewer code (container 0 px), green now.
 - **"Kk Women's…"**: the Worker's `titleCase` lacked `KK` (and other hospital short forms); added `KK`, `SKH`, `NTFGH`, `IMH`, `NCCS`, `NHCS`, `NNI`, `SNEC`, `NDCS`, `NSC`, `NHG`, `NUHS`, `SKCH`, `YCH`, `JCH`, with tests (KK, SGH, NUH, ITE, CPF, MRT, NCCS). Names already in a live share or a phone's Recents keep the old casing until searched again (Worker search cache: 1 day).
 - Tests: typecheck 0; unit 871 (shared 321, web 307, worker 243); Docker dev-e2e 272/272; `npm run build` exit 0; e2e:viewer 47/47; qa v11 27/27, m3 all green (AC 23 3/3 alone), m5 except AC 31 and AC 38/40. Those two also fail on a 3f40b08 build here: their pages have no `serviceWorkers: 'block'`, the SW takes `/api/search` past `page.route`, and the preview server answers it with HTML. That is test setup, for QA.
+
+## 2026-11-20 — Developer: M6 build round (Windows toolchain, signed 1.1.0 APK)
+Branch `dev/m6-build` (worktree `D:\GIT\howtogo-m6`), host nnie (Windows 11, 4 cores), Git Bash.
+
+### Toolchain
+- **Android SDK:** an SDK was already present at `D:\Android\sdk` (same path, case-insensitive; used by other projects), so nothing was downloaded. `sdkmanager --licenses`: all accepted. Installed and used: **cmdline-tools 12.0** (`latest`), **platform-tools 37.0.1**, **platforms;android-36 rev 2** (compileSdk 36), **build-tools 36.0.0** (zipalign/apksigner/aapt2 for the gate; AGP picks its own default build-tools, 35.0.0 also present). `ANDROID_HOME=D:\Android\sdk` set as a **user** env var.
+- **JDK 21.0.12** (Microsoft), **Gradle 8.14.3** via the wrapper (`gradlew.bat`, downloaded from services.gradle.org on first run), AGP 8.13.0, Capacitor 8.6.2, Node 24.19 / npm 11.17.
+
+### Windows fixes (Linux behaviour unchanged)
+- **`.gitattributes`**: `*.sh` and `gradlew` are `eol=lf`, `*.bat` `eol=crlf` — with `core.autocrlf=true` every `.sh` was checked out CRLF and bash failed on `\r`. Index unchanged (already LF); files re-checked out.
+- `src/android/scripts/release.sh`: on MINGW/MSYS uses `./gradlew.bat` (Linux: `$GRADLE` → `gradle` → `/opt/gradle` → `./gradlew`); exports `npm_config_script_shell` = bash so the nested `npm run build:release` (`VITE_API_BASE= …`) does not run under cmd; host-contention check uses `pgrep` where present, else a PowerShell `Win32_Process` query for `ms-playwright` / `node_modules\(@)playwright` command lines (skips shells, whose command lines merely mention the words — an Edge crashpad and our own bash matched a naive `chromium` pattern).
+- `scripts/android/sdk-tools.sh` (new, sourced): finds build-tools under `ANDROID_HOME`/`ANDROID_SDK_ROOT`, picks `zipalign.exe`/`aapt2.exe`/`apksigner.bat` on Windows, `native_path` (cygpath -w) for Java tools. `sign-release.sh` uses it (tested on Windows: re-signed a copy, cert matched). `new-keystore.sh`: the "refuse inside the repo" check now compares cygpath-normalised paths (on Windows `git rev-parse` gives `D:/…`, `pwd` gives `/d/…`, so the guard never matched).
+- `cap sync` rewrites `capacitor.build.gradle` / `capacitor.settings.gradle` with LF only — line-ending-only diffs, reverted.
+
+### Key and versions
+- `src/android/release-cert.sha256` → **`89442984…b67ed1`** (new owner key, director-log 2026-11-20; checked against the keystore with `keytool -storepass:file`, password never printed). The round-1 `5c0f69c9…` cert is retired (never installed anywhere).
+- `src/android/release-history.json` (new, AC 33): `minCode 20000` (unreleased 0.2.0), `releases: []`. **The Director appends `{versionName, versionCode, date}` once 1.1.0 is actually handed out**; the gate then requires the next release code to be greater.
+- versionName **1.1.0** (src/web), versionCode **1010000** = (1·10000 + 1·100 + 0)·100 > 20000.
+- Signing env (`HOWTOGO_KEYSTORE`=`D:\keys\android\howtogo-release.p12`, `HOWTOGO_KEY_ALIAS=howtogo`, `HOWTOGO_KEYSTORE_PASSWORD`/`HOWTOGO_KEY_PASSWORD` read from the first line of `keystore-password.txt` into the shell env just before the build). No `keystore.properties`. Post-build scan: the password occurs in **0** files (worktree, logs, artifacts).
+
+### Build
+`npm --script-shell=<bash> run android:release`: web `build:release` → `sync` (appId ok, sw.js removed) → `gradlew.bat --no-daemon --max-workers=2 testReleaseUnitTest assembleRelease`. **611 s wall** (Gradle 9 m 54 s incl. the first wrapper download and a cold dependency cache; 172 tasks). Host check: idle.
+
+### Verification — `scripts/android/verify-release.sh` (new) + `scripts/android/check-manifest.mjs` (new): ALL PASS
+- apksigner: **v2**, 1 signer, DN `CN=HowToGo, O=HowToGo, C=SG`, cert SHA-256 == `release-cert.sha256` (AC 34).
+- `zipalign -c -P 16 -v 4`: OK; 0 `.so` files (AC 3).
+- aapt2 badging: `com.wwweeeiii.howtogo`, versionCode 1010000, versionName 1.1.0, minSdk 24, target 36, compileSdk 36, label 怎么去; code > release-history. (aapt2 36 prints `minSdkVersion:` instead of `sdkVersion:` — the check accepts both.)
+- Manifest (aapt2 xmltree, no xmllint needed): permissions = INTERNET, COARSE/FINE location, FOREGROUND_SERVICE(_LOCATION), POST_NOTIFICATIONS, VIBRATE, `<appId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; components MainActivity + GoogleApiActivity (exported=false), TripService (exported=false, location), receiver androidx ProfileInstallReceiver, providers androidx FileProvider + InitializationProvider; not debuggable, allowBackup=false, cleartext off (AC 28, 37). **Still open from round 1 (reported as NOTE, not failure): WAKE_LOCK absent from the merged manifest; GoogleApiActivity is a second activity — both need the Director's AC 28 ruling.**
+- Assets: `assets/public/index.html` present, no `sw.js`/spike harness (AC 1, 4). JVM `testReleaseUnitTest`: 13/13. Size **1,863,011 B (1.78 MiB)** ≤ 12 MB.
+
+### Artifacts (gitignored / outside the repo)
+- `D:\GIT\howtogo-m6\dist-android\` and **`D:\howtogo-builds\1.1.0\`**: `howtogo-1.1.0.apk`, `howtogo-1.1.0.apk.sha256`, `howtogo-1.1.0-mapping.txt` (R8 mapping, AC 35, not for publishing).
+- **SHA-256 `7cc62f33bdd1d9109caca59b9f70f0089fb6f7a408bff8cdf1dc830ad3f0f3e8`**.
+
+### Docs
+- `docs/process/android-sideload.md`: owner install steps (USB copy, allow-from-source, Play Protect "Install anyway", update over the top, never uninstall) and the **first device test** checklist (15 items with M6 AC refs; each marked adb-scriptable / partly / manual for a later scripted kit).
+
+### Not done / next
+- No device touched, nothing deployed. Lint was not run this round (round 1: 0 errors). AC 36 release smoke (`.qa` build) and the device checklist are the Director's session. Live data in the app still needs the Worker deployed with `https://localhost` in `ALLOWED_ORIGINS` (round-1 item 5).

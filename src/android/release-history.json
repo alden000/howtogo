@@ -1,0 +1,5 @@
+{
+  "note": "M6 AC 33: every RELEASED versionCode, newest last. A new release code must be greater than all of these and than minCode. 0.2.0 (20000, round-1 key, retired) was never released; minCode keeps codes above it.",
+  "minCode": 20000,
+  "releases": []
+}

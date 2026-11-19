@@ -7,8 +7,9 @@ set -euo pipefail
 jks="${1:-$HOME/keys/howtogo-release.jks}"
 txt="${jks%.jks}.txt"
 alias="${HOWTOGO_KEY_ALIAS:-howtogo}"
-case "$(cd "$(dirname "$jks")" 2>/dev/null && pwd || dirname "$jks")" in
-  "$(git rev-parse --show-toplevel 2>/dev/null || echo /nonexistent)"*) echo "refusing: keystore must be outside the repo" >&2; exit 1 ;;
+upath() { if command -v cygpath >/dev/null 2>&1; then cygpath -u "$1"; else printf '%s\n' "$1"; fi; } # Git Bash: D:/x → /d/x
+case "$(upath "$(cd "$(dirname "$jks")" 2>/dev/null && pwd || dirname "$jks")")" in
+  "$(upath "$(git rev-parse --show-toplevel 2>/dev/null || echo /nonexistent)")"*) echo "refusing: keystore must be outside the repo" >&2; exit 1 ;;
 esac
 [ -e "$jks" ] && { echo "refusing: $jks exists (the key is permanent; never overwrite it)" >&2; exit 1; }
 umask 077
