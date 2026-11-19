@@ -269,3 +269,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
 ## 2026-11-20 — M6: new Android signing key created on nnie (owner request)
 - The 2026-11-17 key was not found, so the owner asked for a new one; no users have installed the APK yet. D:\keysndroid\howtogo-release.p12 (PKCS12, RSA 4096, SHA384withRSA, alias howtogo, valid to 2056-11-12, DN "CN=HowToGo, O=HowToGo, C=SG", no personal data). Random 40-char password in keystore-password.txt (store = key password), never printed. ACL: owner account only. Certificate SHA-256 89:44:29:84:68:3A:45:E9:F7:6B:4E:25:F7:BD:A0:5F:BF:73:FC:F5:69:E4:10:4D:11:5D:B8:C4:75:B6:7E:D1. Outside the repo. The owner must back up the folder offline.
 - Builds pass HOWTOGO_KEYSTORE / _PASSWORD / _KEY_ALIAS / _KEY_PASSWORD from those files at build time (env only, never keystore.properties in the repo).
+
+## 2026-11-20 — M6 build round: signed 1.1.0 APK
+- f9ff7b9: the SDK already existed at D:\Android\sdk (platform-tools 37.0.1, android-36, build-tools 36.0.0); JDK 21, Gradle 8.14.3, AGP 8.13.0. Windows fixes for release/sign scripts; .gitattributes keeps *.sh and gradlew LF. verify-release.sh: v2, 1 signer, cert 89442984… = release-cert.sha256; zipalign -P 16 OK; versionCode 1010000; allow-list OK; not debuggable; no backup; no cleartext; JVM 13/13.
+- APK D:\howtogo-builds.1.0\howtogo-1.1.0.apk, 1 863 011 B, SHA-256 7cc62f33bdd1d9109caca59b9f70f0089fb6f7a408bff8cdf1dc830ad3f0f3e8.
+- AC 28 notes (re-confirmed from the 2026-11-17 rulings): no WAKE_LOCK (FGS keeps the CPU awake); the non-exported GoogleApiActivity is accepted. The script keeps them as notes. Lint is pending for the M6 gate.
+- Next: the first device session with the owner (docs/process/android-sideload.md), Creative M6 frames, then the M6 UI round.
