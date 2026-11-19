@@ -253,3 +253,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 
 ## 2026-11-19 — Owner bug on live 1.0.1: family viewer map blank (S2)
 - Desktop ~1252 px, dark, zh: the status card works, the map panel is blank (no tiles, no puck). CSP is the same as the app (not the cause). viewerMap.ts has the same 256/512 minZoom mistake as 1.0.1; other suspects: zero-size container, setPuck before style load, lazy import failure. Also "Kk Women's" title-casing. Added to the 1.1 fix round with a failing-first scripted e2e (canvas size, tile request, puck layer).
+
+## 2026-11-19 — v1.1.0 LIVE
+- QA re-check PASS (qa/reports/1.1.0.md, 93c284a): QA-61…67 fixed, owner's viewer map bug fixed (the container was 0 px tall; new map.spec), KK casing fixed; suites 165/165; LCP 2337 ms.
+- Preview smoke 30/30; production efe346f9: smoke:deploy 31/31, smoke:live 11/11. Health: `ai: "off"` (no ANTHROPIC_API_KEY yet), aliases live (`kkh` → KK Women's and Children's Hospital, via alias). Tagged v1.1.0.
+- Notes: a search cached before the deploy still shows the old casing until its cache entry expires. New S4 QA-69: KEEP_UPPER holds VivoCity/JCube/NParks upper-cased, so they would render "VIVOCITY" — use a proper-case map for brands. QA-68 "ICA Hq". Both go to the next round.
