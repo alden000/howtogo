@@ -248,3 +248,5 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Privacy v2: Anthropic line (only words, only when nothing is found, guesses kept ≤ 30 days) + the speech-service line; en 399 words.
 
 - 1.1 engine (5be61c1): 135 aliases + station zh names; flow aliases → OneMap → voice alternatives → ≤1 Claude rewrite → OneMap; cached 30 d; 20/client/h. Ruling: AI_DAILY_CAP default 300 (KV free-plan write limit; worst day ≈ $3). SDK adds ~340 KB gz to the Worker, lazy-loaded: accepted (Worker-side, not the PWA budget).
+
+- 1.1 Creative review (7d2e8bc): APPROVED WITH FIXES. M1 ruling: keep FEW = 2 (one result is often the wrong place); privacy copy becomes 几乎搜不到时 / "finds almost nothing" so it stays accurate. L1/L2 cosmetic. All batched with QA findings.
