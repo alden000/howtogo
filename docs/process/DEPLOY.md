@@ -84,7 +84,8 @@ npm run smoke:deploy -- https://howtogo-preview.genixm.workers.dev
   - manifest fields and icons;
   - `/api/health` shape;
   - `/t/<random>`: the family page, noindex, no-referrer; `/api/share/<random>` → 404;
-  - `/setup`: no-referrer.
+  - `/setup`: no-referrer;
+  - `/android`: the page; `latest.json` → the APK it names: headers, size and SHA-256 (SKIP when none is staged).
 
   Exit 0 = PASS.
 
@@ -103,6 +104,36 @@ npm run smoke:live -- https://howtogo.wwweeeiii.com
   - It prints no tokens, no response bodies, and no coordinates except the fixed public test points.
   - `--json` writes `qa/.out/smoke-live.json`.
 - 1.0.0 is tagged only after `smoke:live` PASS on production (OQ9): live OneMap (search, routes, revgeocode) and bus arrival PASS. WARN lines for alerts/lifts under `lta: proxy` do not hold the tag.
+
+## 4a. Releasing the Android APK (M6 AC 39)
+No R2 bucket (Director ruling): the signed APK is a **static asset of the Worker**, served at
+`/android/howtogo-<versionName>.apk` (+ `.sha256`). `src/android/release-history.json` (committed) lists every
+release; its last entry is `/android/latest.json` (the app's update check) and the `/android` page.
+```bash
+# 1. build → 2. verify → 3. stage, in one command (signing env from the key files, never written anywhere)
+npm run android:release
+# 4. deploy (re-stages the APK into the fresh web build), 5. smoke (downloads the APK, compares the SHA-256)
+npm run deploy:prod
+npm run smoke:deploy -- https://howtogo.wwweeeiii.com --expect-live
+```
+- `android:release` = web release build → cap sync → Gradle → `scripts/android/verify-release.sh` (must say ALL PASS)
+  → `npm run android:stage -- <apk>` (`scripts/android/stage-apk.mjs`). Stage reads versionName/versionCode from the
+  APK itself, refuses an unsigned APK, an APK over **25 MiB** (the static-assets per-file limit) or a versionCode
+  not above the history, then:
+  - appends `{versionName, versionCode, date, size, sha256, path}` to `release-history.json` (**commit it**);
+  - keeps the APK in `src/android/releases/` (gitignored: APKs never enter git);
+  - copies APK + `.sha256` into `src/web/dist/android/`.
+- `STAGE=0 npm run android:release` builds and verifies only. An APK built elsewhere: `npm run android:stage -- <path>`.
+  The same version again with other bytes needs `-- --replace`, and only if that version was never deployed.
+- `deploy:prod` runs `stage-apk.mjs --restage` after its web build. If the history names a release whose APK is not in
+  `src/android/releases/` on this machine, it warns and deploys anyway: `/android` then says "download not available"
+  and the app shows no update notice. Stage the APK first.
+- Headers (Worker, `src/worker/src/android.ts`): the APK `application/vnd.android.package-archive`,
+  `Content-Disposition: attachment`, `public, max-age=31536000, immutable` (the name carries the version);
+  `latest.json` `public, max-age=300`. A staged file whose size differs from the history entry is not offered.
+- The APK never enters the PWA precache (the SW list is built from the bundle; the SW ignores `/android*`), the app
+  itself (`sync.mjs` drops `public/android`) or the `--embed` variant (no APK there: the page says "not available").
+- `smoke:deploy` prints `SKIP android release: none staged` when `latest.json` is 404; that is not a FAIL.
 
 ## 5. Rollback
 ```bash

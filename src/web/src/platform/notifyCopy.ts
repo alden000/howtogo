@@ -14,6 +14,7 @@ export const roundWalkM = (m: number) => Math.max(10, m < 100 ? Math.round(m / 1
 
 const sign = (s: Step) => String(s.params.stop ?? '');
 const lineCode = (s: Step) => s.line?.code ?? String(s.route ?? '');
+const changeTo = (z: boolean, s: Step) => (z ? `换车 · 去 ${lineCode(s)} 月台` : `Change trains · to the ${lineCode(s)} platform`);
 
 /**
  * Title of the ongoing notification (6h.7 "Step short text"; verb first, numbers early).
@@ -25,28 +26,21 @@ export function stepShortText(
 ): string {
   const z = zh(o.lang);
   if (o.rerouting) return z ? '我在帮你找新的路…' : 'Finding a new way for you…';
-  if (!step) return z ? '行程进行中' : 'Trip in progress';
-  const m = roundWalkM(o.remainingM ?? step.lengthM ?? 0);
-  const n = o.stopsLeft ?? step.stopCount ?? 0;
-  switch (step.kind) {
+  const m = roundWalkM(o.remainingM ?? step?.lengthM ?? 0);
+  const n = o.stopsLeft ?? step?.stopCount ?? 0;
+  switch (step?.kind) {
     case 'walk_to_destination':
       return z ? `快到了 · 还有 ${m} 米` : `Almost there · ${m} m to go`;
     case 'walk_transfer':
-      if (o.next && o.next.kind === 'board_train') {
-        const code = lineCode(o.next);
-        return z ? `换车 · 去 ${code} 月台` : `Change trains · to the ${code} platform`;
-      }
+      if (o.next?.kind === 'board_train') return changeTo(z, o.next);
       return z ? `走到 ${sign(step)} · ${m} 米` : `Walk to ${sign(step)} · ${m} m`;
     case 'walk_to_stop':
       return z ? `走到 ${sign(step)} · ${m} 米` : `Walk to ${sign(step)} · ${m} m`;
     case 'board_bus':
       return z ? `等 ${step.route ?? ''} 号巴士 · ${sign(step)}` : `Wait for bus ${step.route ?? ''} · ${sign(step)}`;
     case 'board_train':
-      if (step.isTransfer) {
-        const code = lineCode(step);
-        return z ? `换车 · 去 ${code} 月台` : `Change trains · to the ${code} platform`;
-      }
-      return z ? `坐地铁 ${lineCode(step)} · ${sign(step)}` : `Take the ${lineCode(step)} train · ${sign(step)}`;
+      if (step.isTransfer) return changeTo(z, step);
+      return z ? `等地铁 ${lineCode(step)} · ${sign(step)}` : `Wait for the ${lineCode(step)} train · ${sign(step)}`;
     case 'ride_bus':
       return z ? `坐 ${step.route ?? ''} 号 · 还有 ${n} 站` : `On bus ${step.route ?? ''} · ${n} stops to go`;
     case 'ride_train':
@@ -57,14 +51,14 @@ export function stepShortText(
 
 export type AlertKind = 'next' | 'now';
 
-export function alertTitle(kind: AlertKind, lang: Lang): string {
-  if (kind === 'now') return zh(lang) ? '到站了，请下车' : 'This is your stop. Get off now';
-  return zh(lang) ? '下一站下车' : 'Get off at the next stop';
-}
+export const alertTitle = (kind: AlertKind, lang: Lang): string =>
+  kind === 'now' ? (zh(lang) ? '到站了，请下车' : 'This is your stop. Get off now') : zh(lang) ? '下一站下车' : 'Get off at the next stop';
 
 /** `{stop sign} · advice` — the sign first so the system's end ellipsis only ever drops the advice. */
-export function alertText(kind: AlertKind, mode: 'bus' | 'train', stopSign: string, lang: Lang): string {
+export function alertText(kind: AlertKind, mode: 'bus' | 'train', stopSign: string, lang: Lang, code = ''): string {
   const z = zh(lang);
+  // 6h.7 train text `{station} {code} · …`: an en station name may carry no code (Creative M6 L7)
+  if (!stopSign.includes(code)) stopSign += ` ${code}`;
   const advice =
     mode === 'bus'
       ? kind === 'next'

@@ -1,5 +1,5 @@
 /**
- * M6 STYLE-GUIDE 6h.4: OEM battery-optimisation guide — data + decision hook for B1 "让手机别关掉怎么去".
+ * M6 STYLE-GUIDE 6h.4: OEM battery-optimisation guide — data + decision hook for B1 “让手机别关掉怎么去”.
  * Brand by `Build.MANUFACTURER` (DeviceApi.info). We only read the status (isIgnoringBatteryOptimizations) and open
  * the app's settings page; never request the exemption (AC 29).
  */
@@ -32,7 +32,7 @@ export function guideBrand(manufacturer: string): GuideBrand {
 }
 
 const s = (zh: string, en: string): Copy => ({ zh, en });
-const OPEN = s('按下面的"打开设置"。', 'Tap "Open settings" below.');
+const OPEN = s('按下面的“打开设置”。', 'Tap “Open settings” below.');
 const BACK = s('按返回，回到怎么去。', 'Go back to 怎么去.');
 
 export interface GuideData {
@@ -47,8 +47,8 @@ export interface GuideData {
 
 const GOOGLE_STEPS = [
   OPEN,
-  s('按"应用的电池用量"（有的手机叫"电池"）。', 'Tap "App battery usage" (on some phones, "Battery").'),
-  s('打开"允许后台使用"，选"不受限制"。', 'Turn on "Allow background usage" and choose "Unrestricted".'),
+  s('按“应用的电池用量”（有的手机叫“电池”）。', 'Tap “App battery usage” (on some phones, "Battery").'),
+  s('打开“允许后台使用”，选“不受限制”。', 'Turn on “Allow background usage” and choose “Unrestricted”.'),
   BACK,
 ];
 
@@ -58,13 +58,13 @@ export const BATTERY_GUIDE: Record<GuideBrand, GuideData> = {
   samsung: {
     name: s('三星 Samsung', 'Samsung'),
     open: 'app',
-    steps: [OPEN, s('按"电池"。', 'Tap "Battery".'), s('选"不受限制"。', 'Choose "Unrestricted".'), BACK],
+    steps: [OPEN, s('按“电池”。', 'Tap “Battery”.'), s('选“不受限制”。', 'Choose “Unrestricted”.'), BACK],
     pictures: { 1: 'bg-samsung-1', 2: 'bg-samsung-2' },
   },
   xiaomi: {
     name: s('小米 / 红米 / POCO', 'Xiaomi / Redmi / POCO'),
     open: 'app',
-    steps: [OPEN, s('按"省电策略"。', 'Tap "Battery saver".'), s('选"无限制"，再按返回。', 'Choose "No restrictions", then go back.'), s('打开"自启动"。', 'Turn on "Autostart".'), BACK],
+    steps: [OPEN, s('按“省电策略”。', 'Tap “Battery saver”.'), s('选“无限制”，再按返回。', 'Choose “No restrictions”, then go back.'), s('打开“自启动”。', 'Turn on “Autostart”.'), BACK],
     pictures: { 1: 'bg-xiaomi-1', 2: 'bg-xiaomi-2', 3: 'bg-xiaomi-3' },
     unchecked: 'autostart',
   },
@@ -73,8 +73,8 @@ export const BATTERY_GUIDE: Record<GuideBrand, GuideData> = {
     open: 'app',
     steps: [
       OPEN,
-      s('按"耗电管理"（有的手机叫"电池"）。', 'Tap "Battery usage" (on some phones, "Battery").'),
-      s('打开"允许后台行为"和"允许自启动"。', 'Turn on "Allow background activity" and "Allow auto launch".'),
+      s('按“耗电管理”（有的手机叫“电池”）。', 'Tap “Battery usage” (on some phones, "Battery").'),
+      s('打开“允许后台行为”和“允许自启动”。', 'Turn on “Allow background activity” and “Allow auto launch”.'),
       BACK,
     ],
     pictures: { 1: 'bg-oppo-1', 2: 'bg-oppo-2' },
@@ -85,9 +85,9 @@ export const BATTERY_GUIDE: Record<GuideBrand, GuideData> = {
     open: 'app',
     steps: [
       OPEN,
-      s('按"电池"。', 'Tap "Battery".'),
-      s('按"后台耗电管理"。', 'Tap "Background power consumption management".'),
-      s('选"允许后台高耗电"。', 'Choose "Allow high background power consumption".'),
+      s('按“电池”。', 'Tap “Battery”.'),
+      s('按“后台耗电管理”。', 'Tap “Background power consumption management”.'),
+      s('选“允许后台高耗电”。', 'Choose “Allow high background power consumption”.'),
       BACK,
     ],
     pictures: { 1: 'bg-vivo-1', 2: 'bg-vivo-2', 3: 'bg-vivo-3' },
@@ -98,9 +98,9 @@ export const BATTERY_GUIDE: Record<GuideBrand, GuideData> = {
     open: 'app',
     steps: [
       OPEN,
-      s('按"电池"→"应用启动管理"（或"耗电详情"→"启动管理"）。', 'Tap "Battery" → "App launch" (or "Power usage details" → "App launch").'),
-      s('找到怎么去，关掉"自动管理"。', 'Find 怎么去 and turn off "Manage automatically".'),
-      s('在弹出的窗口里，三个开关都打开，按"确定"。', 'In the pop-up, turn on all three switches and tap "OK".'),
+      s('按“电池”→“应用启动管理”（或“耗电详情”→“启动管理”）。', 'Tap “Battery” → “App launch” (or “Power usage details” → “App launch”).'),
+      s('找到怎么去，关掉“自动管理”。', 'Find 怎么去 and turn off “Manage automatically”.'),
+      s('在弹出的窗口里，三个开关都打开，按“确定”。', 'In the pop-up, turn on all three switches and tap “OK”.'),
       BACK,
     ],
     pictures: { 1: 'bg-huawei-1', 2: 'bg-huawei-2', 3: 'bg-huawei-3' },

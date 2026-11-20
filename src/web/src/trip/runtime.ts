@@ -687,7 +687,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       lng: at.lng,
       radiusM,
       title: alertTitle(kind, t.lang),
-      body: alertText(kind, bus ? 'bus' : 'train', name, t.lang),
+      body: alertText(kind, bus ? 'bus' : 'train', name, t.lang, bus ? '' : (alight as { code?: string }).code),
       speak: line(kind),
       lang: t.lang,
     });

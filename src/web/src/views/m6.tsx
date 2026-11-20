@@ -531,7 +531,10 @@ export function UpdateNotice() {
     <div class="banner updbar" data-testid="d1-update">
       <button type="button" data-testid="d1-get" aria-label={L('d1_sr', { v: n.versionName })} onClick={() => openAndroidPage(s.platform)}>
         <Icon name="install" />
-        <span>{L('d1_bar', { v: n.versionName })}</span>
+        <span>
+          {L('d1_bar', { v: n.versionName })}
+          <span class="nw">{L('d1_go')}</span>
+        </span>
       </button>
       <button type="button" class="iconbtn sq" data-testid="d1-later" aria-label={L('d1_later')} onClick={() => setFlags({ updHiddenDay: sgDay() })}>
         <Icon name="close" />
@@ -570,7 +573,7 @@ function Row(p: { icon: IconName; label: string; value?: string; testid: string;
     <button type="button" class="row" data-testid={p.testid} onClick={p.onClick}>
       <Icon name={p.icon} />
       <span class="tx">{p.label}</span>
-      {p.value && <span class="val">{p.value}</span>}
+      {p.value && <span class={[...p.value].length <= 4 ? 'val nw' : 'val'}>{p.value}</span>}
       <Icon name="chev" />
     </button>
   );

@@ -29,11 +29,20 @@ describe('6h.7 notification copy', () => {
     const xfer = step({ kind: 'board_train', isTransfer: true, line: { code: 'CC', kind: 'mrt', name: { 'zh-CN': '', 'en-SG': '' }, colorToken: '' } });
     expect(stepShortText(xfer, zh)).toBe('换车 · 去 CC 月台');
     expect(stepShortText(xfer, en)).toBe('Change trains · to the CC platform');
+    // Creative M6 review ruling: the first train is a WAIT on the platform, like the bus wait row
+    const first = step({ kind: 'board_train', params: { stop: 'Bishan' }, line: { code: 'NS', kind: 'mrt', name: { 'zh-CN': '', 'en-SG': '' }, colorToken: '' } });
+    expect(stepShortText(first, zh)).toMatch(/^等地铁 NS · /);
+    expect(stepShortText(first, en)).toMatch(/^Wait for the NS train · /);
     const last = step({ kind: 'walk_to_destination', params: { dest: 'Home address 9' }, lengthM: 120 });
     expect(stepShortText(last, zh)).toBe('快到了 · 还有 100 米');
     expect(stepShortText(last, en)).not.toContain('Home address'); // lock-screen rule: never the destination
     expect(stepShortText(bus, { ...zh, rerouting: true })).toBe('我在帮你找新的路…');
     expect(stepShortText(bus, { ...en, rerouting: true })).toBe('Finding a new way for you…');
+  });
+  it('train get-off text carries the station code in en too (6h.7, Creative M6 L7)', () => {
+    expect(alertText('now', 'train', 'Bishan', 'en-SG', 'NS17')).toBe('Bishan NS17 · Mind the gap');
+    expect(alertText('next', 'train', '碧山 Bishan (NS17)', 'zh-CN', 'NS17')).toBe('碧山 Bishan (NS17) · 车门开了就下车');
+    expect(alertText('now', 'train', 'Bishan', 'en-SG')).toBe('Bishan · Mind the gap');
   });
   it('first 6 zh / 12 en characters carry the instruction', () => {
     expect(alertTitle('next', 'zh-CN').slice(0, 6)).toBe('下一站下车');
@@ -109,7 +118,7 @@ describe('6h.3 / 6h.4 trip notes in the app', () => {
       expect(M6.zh[k].length).toBeGreaterThan(0);
       expect(M6.en[k].length).toBeGreaterThan(0);
     }
-    expect(m6t('zh', 'd1_bar', { v: '1.2.0' })).toBe('有新版本 1.2.0 · 去下载');
+    expect(m6t('zh', 'd1_bar', { v: '1.2.0' }) + m6t('zh', 'd1_go')).toBe('有新版本 1.2.0 · 去下载');
     expect(m6t('en', 'b1_phone', { brand: 'Samsung' })).toBe('Your phone: Samsung');
   });
 });

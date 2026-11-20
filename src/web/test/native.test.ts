@@ -94,7 +94,8 @@ describe('native adapter (Capacitor mocked)', () => {
     const got: number[] = [];
     const stop = await p.location.watch((f) => got.push(f.t));
     expect(m.named('start')).toHaveLength(1);
-    expect(m.named('start')[0]!.opts).toMatchObject({ leg: 'walk', title: '行程进行中', stopLabel: '结束行程' });
+    expect(m.named('start')[0]!.opts).toMatchObject({ leg: 'walk', title: '行程进行中' });
+    expect(m.named('start')[0]!.opts).not.toHaveProperty('stopLabel'); // the native side owns the End trip label (TripLogic)
     m.emit('Trip.fix', { lat: 1, lng: 2, acc: 5, t: 10 });
     m.emit('Trip.fix', { lat: 1, lng: 2, acc: 5, t: 11 });
     expect(got).toEqual([10, 11]);
@@ -364,7 +365,7 @@ describe('OEM battery guide hook (AC 29, 30)', async () => {
     for (const [b, g] of Object.entries(BATTERY_GUIDE)) {
       expect(g.steps.length).toBeGreaterThanOrEqual(4);
       expect(g.open).toBe('app');
-      expect(g.steps[0]!.en).toBe('Tap "Open settings" below.');
+      expect(g.steps[0]!.en).toBe('Tap “Open settings” below.');
       expect(g.steps[g.steps.length - 1]!.en).toBe('Go back to 怎么去.');
       for (const pic of Object.values(g.pictures)) expect(pic.startsWith(b === 'generic' ? 'bg-google-' : `bg-${b}-`)).toBe(true);
     }

@@ -12,17 +12,17 @@
   var T = zh
     ? {
         t: '请先更新手机上的一个部件',
-        b: '怎么去需要新一点的"Android System WebView"（手机用来显示网页的部分）。更新是免费的，几分钟就好。',
+        b: '怎么去需要新一点的“Android System WebView”（手机用来显示网页的部分）。更新是免费的，几分钟就好。',
         u: '去更新',
         w: '先用网页版',
-        c: '没有 Play 商店的手机，请在手机自带的应用市场里搜索"WebView"。'
+        c: '没有 Play 商店的手机，请在手机自带的应用市场里搜索“WebView”。'
       }
     : {
         t: 'Please update one part of your phone',
-        b: '怎么去 needs a newer "Android System WebView" (the part of your phone that shows web pages). It\'s free and takes a few minutes.',
+        b: '怎么去 needs a newer “Android System WebView” (the part of your phone that shows web pages). It\'s free and takes a few minutes.',
         u: 'Update it',
         w: 'Use the web version for now',
-        c: 'No Play Store on your phone? Search for "WebView" in your phone\'s own app store.'
+        c: 'No Play Store on your phone? Search for “WebView” in your phone\'s own app store.'
       };
   var MARKET = 'market://details?id=com.google.android.webview';
   var PLAY = 'https://play.google.com/store/apps/details?id=com.google.android.webview';

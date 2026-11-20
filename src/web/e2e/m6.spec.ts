@@ -150,7 +150,7 @@ test.describe('B battery guide (6h.4)', () => {
     await page.evaluate(() => ((window as unknown as { __m6: { device: { batteryUnrestricted: boolean } } }).__m6.device.batteryUnrestricted = true));
     await ctl(page, 'back');
     await expect(page.getByTestId('bg-ok')).toContainText('已设置好，锁屏时也能提醒你下车。');
-    await expect(page.getByTestId('bg-ok')).toContainText('"自启动"这一项手机不告诉我，请你自己看一下。');
+    await expect(page.getByTestId('bg-ok')).toContainText('“自启动”这一项手机不告诉我，请你自己看一下。');
     await page.getByTestId('bg-done').scrollIntoViewIfNeeded();
     await shot(page, name('B2-ok', LZ));
     await page.getByTestId('bg-done').click();
@@ -246,4 +246,79 @@ test.describe('first use in the app (6h.10): A2 (my location), then Start: A3 �
     await page.getByTestId('bg-later').click();
     await expect(page.getByTestId('guide')).toBeVisible();
   });
+});
+
+// ------------------------------------------------------------------ Creative M6 review: missing baselines
+
+/** Demo trip in the fake app: search → route → Start, dismissing whatever first-use sheet is due, until the guide. */
+async function startTrip(page: Page) {
+  await page.getByTestId('to-field').click();
+  await page.getByTestId('search-input').fill('tan tock');
+  await page.getByTestId('search-result-0').click();
+  const a2 = page.getByTestId('loc-ok');
+  if (await a2.isVisible().catch(() => false)) await a2.click();
+  await page.getByTestId('route-option-0').click();
+  await page.getByTestId('start-guide').click();
+  for (let i = 0; i < 6 && !(await page.getByTestId('guide').isVisible()); i++) {
+    for (const id of ['notify-ok', 'dnd-no', 'novoice-later', 'bg-later']) {
+      const b = page.getByTestId(id);
+      if (await b.isVisible().catch(() => false)) await b.click();
+    }
+    await page.waitForTimeout(200);
+  }
+  await expect(page.getByTestId('guide')).toBeVisible();
+}
+
+test.describe('H5 trip notes in the app (6h.3 A5, 6h.4 B3, 6h.5 C1)', () => {
+  const cases: [string, string, string][] = [
+    ['A5-h5-note', 'notify:denied,battery', 'notify-denied'],
+    ['B3-h5', 'notify:granted,battery,killed', 'killed'],
+    ['C1-h5-note', 'notify:granted,battery,nozh', 'novoice'],
+  ];
+  for (const [id, spec, note] of cases) {
+    // C1 is a zh-trip note (no Chinese voice → speaking English), so its second variant stays zh
+    for (const v of [LZ, { theme: 'dark', size: 200, lang: id.startsWith('C1') ? 'zh' : 'en' } as V]) {
+      test(`${id} ${v.theme} ${v.size} ${v.lang}`, async ({ page }) => {
+        await open(page, v, spec, { demo: true });
+        await startTrip(page);
+        const el = page.locator(`[data-note="${note}"]`);
+        await expect(el).toBeVisible();
+        // ✕ sits top-right beside the text (Creative fix 3): its top is level with the note's first line
+        const box = await el.boundingBox();
+        const x = await el.locator('.iconbtn').first().boundingBox();
+        expect(x && box && x.y - box.y).toBeLessThan(24);
+        await layoutOk(page);
+        await shot(page, name(id, v));
+      });
+    }
+  }
+});
+
+test.describe('C2 WebView too old (6h.6), wvcheck.js on https://localhost', () => {
+  for (const v of [LZ, { theme: 'dark', size: 100, lang: 'en' } as V]) {
+    test(`C2 ${v.theme} ${v.lang}`, async ({ browser, baseURL }) => {
+      const ctx = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 1,
+        isMobile: true,
+        hasTouch: true,
+        serviceWorkers: 'block',
+        colorScheme: v.theme,
+        locale: v.lang === 'zh' ? 'zh-CN' : 'en-SG',
+        userAgent: 'Mozilla/5.0 (Linux; Android 9; SM-J600G Build/PPR1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/86.0.4240.99 Mobile Safari/537.36',
+      });
+      const page = await ctx.newPage();
+      await page.route('https://localhost/**', async (route) => {
+        const u = new URL(route.request().url());
+        route.fulfill({ response: await page.request.fetch(baseURL + u.pathname + u.search) });
+      });
+      await page.route(/^(?!https:\/\/localhost\/).*/, (r) => r.abort());
+      await page.goto('https://localhost/');
+      await page.waitForFunction(() => (window as unknown as { __howtogoWvOld?: boolean }).__howtogoWvOld === true);
+      await expect(page.locator('body')).toContainText(v.lang === 'zh' ? '请先更新手机上的一个部件' : 'Please update one part of your phone');
+      await page.waitForTimeout(250);
+      await expect(page).toHaveScreenshot(`${name('C2-webview', v)}.png`);
+      await ctx.close();
+    });
+  }
 });

@@ -129,7 +129,6 @@ export async function createNativePlatform(web: Platform, cap: CapacitorBridge |
           leg: 'walk',
           title: en ? 'Trip in progress' : '行程进行中',
           body: '',
-          stopLabel: en ? 'End trip' : '结束行程',
           lang: en ? 'en-SG' : 'zh-CN',
         });
       } catch (e) {

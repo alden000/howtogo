@@ -197,7 +197,6 @@ public class TripPlugin extends Plugin implements TripService.Listener {
         i.putExtra("leg", call.getString("leg", "walk"));
         i.putExtra("title", call.getString("title", ""));
         i.putExtra("body", call.getString("body", ""));
-        i.putExtra("stopLabel", call.getString("stopLabel", "结束"));
         i.putExtra("lang", call.getString("lang", "zh-CN"));
         try {
             ContextCompat.startForegroundService(getContext(), i);

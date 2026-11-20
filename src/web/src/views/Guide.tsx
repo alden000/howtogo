@@ -488,7 +488,7 @@ function NativeNote({ id, trip, onNoVoiceOff }: { id: NoteId; trip: ActiveTrip; 
   const L = (k: M6Key) => m6t(store.settings.value.lang, k);
   if (id === 'notify-denied')
     return (
-      <div class="tripnote" role="status" data-testid="trip-note-notify" data-note={id}>
+      <div class="tripnote m6n" role="status" data-testid="trip-note-notify" data-note={id}>
         <Icon name="bell-off" />
         <div class="tx">
           <b>{L('a5_t')}</b>
@@ -519,7 +519,7 @@ function NativeNote({ id, trip, onNoVoiceOff }: { id: NoteId; trip: ActiveTrip; 
     );
   if (id === 'killed')
     return (
-      <div class="tripnote" role="status" data-testid="trip-note-killed" data-note={id}>
+      <div class="tripnote m6n" role="status" data-testid="trip-note-killed" data-note={id}>
         <Icon name="battery" />
         <div class="tx">
           <b>{L('b3_t')}</b>
@@ -545,7 +545,7 @@ function NativeNote({ id, trip, onNoVoiceOff }: { id: NoteId; trip: ActiveTrip; 
     );
   // novoice, zh trip: speaking English (6h.5) with the installer link.
   return (
-    <div class="tripnote" role="status" data-testid="trip-note" data-note={id}>
+    <div class="tripnote m6n" role="status" data-testid="trip-note" data-note={id}>
       <Icon name="mute" />
       <div class="tx">
         <b>{L('c1_note')}</b>

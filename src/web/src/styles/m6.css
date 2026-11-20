@@ -12,12 +12,20 @@
 .m6ok p{margin:4px 0 0;color:inherit}
 /* B3 home bar: .updbar look with the jade rule (the banner default) and a button row */
 .m6kill{flex-wrap:wrap;padding-bottom:8px}
-.m6kill .updtx{flex:1 1 100%}
+.m6kill .updtx{flex:1 1 0;min-width:0}
+.m6kill>.iconbtn{order:2;align-self:flex-start;flex:none}
 .m6kill .updtx b{display:block}
 .m6kill .updtx span{font-weight:400}
-.m6kill .btn{flex:1 1 auto;min-height:var(--tap)}
+.m6kill>.btn{order:3;flex:1 1 100%;min-height:var(--tap)}
+/* Creative M6 review: buttons are never underlined (the D2 primary is an <a class="btn">); words stay whole */
+a.btn{text-decoration:none}
+.updbar .nw{white-space:nowrap;flex:none}
+.row .v.nw,.row .nw{white-space:nowrap}
 /* D2 card (§5 card): tile, title, body, buttons */
 .m6card{margin:0 0 var(--s-4)}
 .m6card h2{margin:0 0 var(--s-2);font-size:1.25rem}
 .m6card .bigtile{margin-bottom:var(--s-3)}
 .seg.stack button[role=radio][aria-checked=true]{border-color:var(--c-primary);background:var(--c-primary-soft);color:var(--c-on-primary-soft)}
+/* Creative M6 fix 3, also for the in-app H5 notes (A5/B3/C1): ✕ top-right beside the text, buttons full-width below */
+.tripnote.m6n{align-items:flex-start}
+.tripnote.m6n>svg.i{margin-top:2px}
