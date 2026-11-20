@@ -75,10 +75,21 @@ import { online } from '../api/offline';
 import { log } from '../log';
 import { followReducer, type FollowEvent, type FollowMode } from '../map/follow';
 import type { LegHint, LegKind, LocationFix, NativeAlert, Platform, PlatformError, TripAlertEvent, Unsubscribe } from '../platform/types';
-import { alertText, alertTitle, infoCopy, stepShortText, type InfoKind } from '../platform/notifyCopy';
+import type { InfoKind } from '../platform/notifyCopy';
 import { toLang, type ActiveTrip, type ShareSession, type Store } from '../state/store';
 import { here } from '../state/location';
 import { local } from '../state/storage';
+
+// 1.2.0 (Home JS ≤ 100 KB with headroom): the notification copy is needed only while a trip runs, so it is its own
+// chunk (precached), loaded when a trip attaches; anything that fires before it arrives waits for it.
+type Copy = typeof import('../platform/notifyCopy');
+let copy: Copy | null = null;
+const loadCopy = (): Promise<Copy | null> =>
+  copy ? Promise.resolve(copy) : import('../platform/notifyCopy').then((m) => (copy = m), () => null);
+const withCopy = (fn: (c: Copy) => void): void => {
+  if (copy) fn(copy);
+  else void loadCopy().then((c) => c && fn(c));
+};
 
 /** QA-21: the notification prompt is shown at most once per install. */
 const NOTIFY_ASKED_KEY = 'notify.asked';
@@ -418,7 +429,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       say(text, cue.priority, cue.stepId);
       if (cue.type === 'step_changed') patchUi({ lastLine: text });
       const info = NOTIFY_FOR[cue.type];
-      if (info) void platform.notify({ tag: 'howtogo-cue', ...infoCopy(info, l), priority: cue.priority, kind: info });
+      if (info) withCopy((c) => void platform.notify({ tag: 'howtogo-cue', ...c.infoCopy(info, l), priority: cue.priority, kind: info }));
     }
     haptic(hapticForCues(plain));
     for (const cue of cues) {
@@ -469,14 +480,16 @@ export function createTripRuntime(o: TripRuntimeOptions) {
         if (a.kind === 'now') later('getoff2', GETOFF_NOW_REPEAT_MS, () => haptic('getoff'));
         speakAlert(a);
         pocketEvent({ type: 'alert', t: now() });
-        void platform.notify({
-          tag: 'getoff',
-          title: alertTitle(a.kind, lang()),
-          body: alertText(a.kind, a.mode, a.stop, lang()),
-          priority: 'high',
-          alertId: id,
-          kind: a.kind === 'now' ? 'getoff-now' : 'getoff-next',
-        });
+        withCopy((c) =>
+          void platform.notify({
+            tag: 'getoff',
+            title: c.alertTitle(a.kind, lang()),
+            body: c.alertText(a.kind, a.mode, a.stop, lang()),
+            priority: 'high',
+            alertId: id,
+            kind: a.kind === 'now' ? 'getoff-now' : 'getoff-next',
+          }),
+        );
         return;
       }
       case 'escalate':
@@ -661,7 +674,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     const walking = !!step && step.kind.startsWith('walk');
     const remainingM = walking ? Math.max(0, step.lengthM - (t.guidance.alongM ?? 0)) : null;
     // 6h.7: the ongoing title is the step short text; re-routing shows "finding a new way", paused keeps the last.
-    const title = stepShortText(step, {
+    // `copy` is loaded before the trip attaches (attach()), so it is there whenever syncNative() runs.
+    const title = (copy?.stepShortText ?? (() => ''))(step, {
       lang: t.lang,
       stopsLeft,
       remainingM,
@@ -686,8 +700,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       lat: at.lat,
       lng: at.lng,
       radiusM,
-      title: alertTitle(kind, t.lang),
-      body: alertText(kind, bus ? 'bus' : 'train', name, t.lang, bus ? '' : (alight as { code?: string }).code),
+      title: copy?.alertTitle(kind, t.lang) ?? '',
+      body: copy?.alertText(kind, bus ? 'bus' : 'train', name, t.lang, bus ? '' : (alight as { code?: string }).code) ?? '',
       speak: line(kind),
       lang: t.lang,
     });
@@ -936,7 +950,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
           return rest;
         });
         patchUi({ shareGone: true });
-        void platform.notify({ tag: 'howtogo-share', ...infoCopy('share-ended', lang()), priority: 'normal', kind: 'share-ended' });
+        withCopy((c) => void platform.notify({ tag: 'howtogo-share', ...c.infoCopy('share-ended', lang()), priority: 'normal', kind: 'share-ended' }));
         return;
       }
       shareDirty = true; // keep only the latest; resend on the next opportunity
@@ -972,6 +986,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   async function attach(resumed: boolean) {
     const t = trip();
     if (!t || attached) return;
+    await loadCopy(); // notification copy chunk (see loadCopy); a failed load leaves notifications to withCopy()
+    if (attached || trip()?.id !== t.id) return;
     log(resumed ? 'trip:resumed' : 'trip:started');
     stopVisibility ??= platform.visibility.onChange(onVisibility);
     stopNativeAlerts ??= platform.trip?.onAlert(onNativeAlert) ?? null;

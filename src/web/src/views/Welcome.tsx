@@ -5,8 +5,11 @@ import { tf } from '../i18n/ui';
 import { here, locate } from '../state/location';
 import { TEXT_SIZES, type TextSize } from '../state/store';
 import { Icon, showToast } from '../ui/kit';
-import { HomeConfirm } from './HomeConfirm';
+import { lazyView } from '../ui/lazy';
 import { pendingHome } from '../state/pendingHome';
+
+// 1.2.0: the Home confirm card (page 3, after a pick) is its own chunk, keeping the first run light.
+const HomeConfirm = lazyView(() => import('./HomeConfirm').then((m) => m.HomeConfirm));
 
 const SIZE_KEY: Record<TextSize, 'size_85' | 'size_100' | 'size_125' | 'size_150' | 'size_200'> = {
   small: 'size_85',
