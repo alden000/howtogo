@@ -1907,3 +1907,14 @@ Branch `dev/1.2-fixes` (worktree howtogo-12). Rulings: director-log 2026-11-19 "
 - QA specs v11/m3/m4: 106/108 in the full parallel run. Two load flakes (m4 AC 25 "50 viewers" got 16; v11 6g.5 privacy element) both pass when re-run alone. For QA: the m5 key-inventory test lists keys. Add `homeNudge.v1` there if QA seeders start setting it.
 - Size: Home entry 99.9 KB / 100 KB (picker + its copy are a lazy chunk).
 - Nothing deployed; no live OneMap/Anthropic calls; no servers left running.
+
+## 2026-11-20 — Developer: 1.2.0 integration (web fixes + M6 UI + APK on the site)
+Branch `dev/1.2.0` (worktree howtogo-120), on top of 084c789 (m6-ui + 1.2-fixes merged).
+
+- **Home JS 101.7 → 97.8 KB gz** (budget 100, 2.2 KB headroom, no raise). (1) The Home confirm card (`HomeConfirm`, F1 page 3 / F6) is a lazy chunk, mounted only while a set-home pick waits. (2) `platform/notifyCopy` is a lazy chunk. The runtime requests it when a trip attaches, without awaiting it; notify calls go through `withCopy()`; the native leg title and backup alerts are re-sent once it arrives. (3) The T9 date helpers moved to `transit/dates.ts` (re-exported from m3), so Home's recents no longer pull all of `transit/m3` into the entry. The battery guide, update notice, Get-the-app card, Which-block picker and nudge were already lazy. Welcome stays eager.
+- **Version 1.2.0**: web package.json (+ lock entry), `version.ts`, fixa test. Android takes versionName from web → **versionCode 1020000**. m6fake `upd` now offers 1.3.0; m6.spec D1 expects installed 1.2.0.
+- **Merge fallout**: m6.spec `B2-notyet` failed on the merge head too (the scroll framing depended on picture-load timing). It now scrolls to the screen end (`bg-later`), which is the baseline's framing. No baselines re-recorded.
+- **Tests**: unit web 316, shared 335, worker 283, scripts pass; typecheck 0. Docker dev-e2e **316/316**. QA v11/m3/m4/m5: 157 passed, 1 skipped, 1 load flake (m4 AC 12/16, 3/3 alone). e2e:viewer 47/47.
+- **APK**: `npm run android:release`: JVM 15/15, verify-release **ALL PASS**, staged (release-history.json committed). `D:\howtogo-builds\1.2.0\howtogo-1.2.0.apk` 1,781,233 B, SHA-256 `1fb41f149b3bd245014eddf9dc0036e48dacbc50af99afebeeb176dc72d0b607` (+ `.sha256`). Password scan of the log: 0 hits.
+- **Lighthouse `/`** (release build; host ~30 % busy from other sessions): median of 3 gives perf 96, LCP **2418 ms** (2409/2418/2426), TBT 100 ms, CLS 0. A single first run gave 2529 ms.
+- Nothing deployed. No servers left running.
