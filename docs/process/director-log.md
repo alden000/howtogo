@@ -299,3 +299,9 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - All 7 items built; APK 1.1.0-m6ui 1 775 687 B, SHA-256 4bb787a3…0bbec; verify-release passes. Unit 315/321/274 + JVM 15/15; 34 new M6 baselines; 9 Settings baselines re-recorded (Android-Chrome UA shows the Get-the-app card).
 - Rulings: APK distribution = the Worker's own static assets at /android/howtogo-<ver>.apk + release-history.json (no R2 bucket: 1.8 MB, simpler, nothing new on the owner's account). smoke:deploy adds the AC 39 check (served APK SHA-256 == latest.json). Dev baselines at DPR 1 are accepted (Creative reviews at 1; marketing assets at 2×). The "坐地铁 {code} · {sign}" line goes to the Creative review. WAKE_LOCK / GoogleApiActivity: closed per the 2026-11-17 rulings (allow-list notes).
 - Parallel next: Creative review of the M6 UI ‖ Dev M6 follow-ups (dev/m6-ui) ‖ Dev web fixes QA-68…73 (dev/1.2-fixes). Then merge, QA M6 gate + the 1.2 web gate, the owner device session.
+
+## 2026-11-20 — v1.2.0 LIVE (web + Android APK at /android)
+- QA gate (qa/reports/1.2.0.md): QA-68…73 verified (v12.spec 17/17); QA-74 (Settings CLS 0.378 from the lazy D2 card) fixed → CLS 0 with a layout-shift e2e; QA-75/76/77 fixed. LCP 2291 ms.
+- Preview: a few hashed assets 404ed in the first minute (propagation, as at M1), then smoke 39/39. Production a82f7b7a: smoke:deploy 40/40 (incl. AC 39 APK SHA-256 = latest.json), smoke:live 11/11. Tagged v1.2.0.
+- APK 1.2.0 (versionCode 1020000) 1 781 xxx B, SHA-256 0a008ee1ddc4b9dd8dfbbde903690e236883fc2db503e8bfc2679ec29c9fba1d, served at https://howtogo.wwweeeiii.com/android/howtogo-1.2.0.apk; /android page live.
+- Still open: the owner device session (script in qa/reports/1.2.0.md), dialect alias review (artifact), M6 lint.
