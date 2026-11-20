@@ -1,5 +1,14 @@
 {
   "note": "M6 AC 33/39: every RELEASED version, newest LAST, as {versionName, versionCode, date (YYYY-MM-DD), size (APK bytes), sha256 (64 lower-case hex), path (/android/howtogo-<versionName>.apk)}. Written by scripts/android/stage-apk.mjs from the APK itself (never by hand). A new release code must be greater than all of these and than minCode. 0.2.0 (20000, round-1 key, retired) was never released; minCode keeps codes above it. The Worker bundles this file: the last entry is /android/latest.json and the /android page (src/worker/src/android.ts); the APK itself is a static asset staged into src/web/dist/android/ (no R2).",
   "minCode": 20000,
-  "releases": []
+  "releases": [
+    {
+      "versionName": "1.2.0",
+      "versionCode": 1020000,
+      "date": "2026-11-20",
+      "size": 1781233,
+      "sha256": "1fb41f149b3bd245014eddf9dc0036e48dacbc50af99afebeeb176dc72d0b607",
+      "path": "/android/howtogo-1.2.0.apk"
+    }
+  ]
 }
