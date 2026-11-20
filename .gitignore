@@ -13,3 +13,7 @@ src/worker/src/generated/
 *.keystore
 *.p12
 keystore.properties
+
+# M6 AC 39: APKs never enter git (staged copies live in src/android/releases/ and src/web/dist/android/)
+*.apk
+src/android/releases/

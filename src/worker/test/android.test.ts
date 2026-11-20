@@ -25,37 +25,44 @@ const HISTORY: ReleaseHistory = {
   ],
 };
 const EMPTY: ReleaseHistory = { minCode: 20000, releases: [] };
-const APK_BYTES = new Uint8Array(1000).map((_, i) => i % 256);
+const bytesOf = (n: number) => new Uint8Array(n).map((_, i) => i % 251);
+/** The staged file of each release has the size recorded in the history (the Worker checks it). */
+const APK_BYTES = bytesOf(1_694_285);
+const SIZES: Record<string, number> = { "howtogo-1.0.0.apk": 1_600_000, "howtogo-1.0.1.apk": 1_694_285 };
 
-/** A minimal stand-in for the R2 bucket binding (head + get, with Range offsets). */
-function fakeBucket(keys: string[], opts: { fail?: boolean } = {}) {
+/** A minimal stand-in for the static-assets binding (HEAD + GET, Range → 206) holding staged APKs. */
+function fakeAssets(keys: string[], opts: { fail?: boolean; size?: number } = {}) {
   const calls: string[] = [];
-  const meta = (key: string) => ({ key, size: APK_BYTES.length, httpEtag: `"etag-${key}"` });
-  const bucket = {
-    async head(key: string) {
-      calls.push(`head ${key}`);
-      if (opts.fail) throw new Error("r2 down");
-      return keys.includes(key) ? meta(key) : null;
-    },
-    async get(key: string, o?: { range?: Headers }) {
-      calls.push(`get ${key}`);
-      if (opts.fail) throw new Error("r2 down");
-      if (!keys.includes(key)) return null;
-      const m = /^bytes=(\d+)-(\d*)$/.exec(o?.range?.get("Range") ?? "");
-      if (m) {
-        const offset = Number(m[1]);
-        const end = m[2] ? Number(m[2]) : APK_BYTES.length - 1;
-        return { ...meta(key), range: { offset, length: end - offset + 1 }, body: new Blob([APK_BYTES.slice(offset, end + 1)]).stream() };
+  const assets = {
+    async fetch(input: Request) {
+      const path = new URL(input.url).pathname;
+      calls.push(`${input.method} ${path}`);
+      if (opts.fail) throw new Error("assets down");
+      const key = path.replace(/^\/android\//, "");
+      const isSha = key.endsWith(".sha256");
+      if (!path.startsWith("/android/") || !keys.includes(key.replace(/\.sha256$/, ""))) return new Response("nope", { status: 404 });
+      const apk = key.replace(/\.sha256$/, "");
+      const size = opts.size ?? SIZES[apk] ?? 1000;
+      const body = isSha ? new TextEncoder().encode(`${SHA}  ${apk}\n`) : size === APK_BYTES.length ? APK_BYTES : bytesOf(size);
+      const h = { "Content-Length": String(body.length), ETag: `"etag-${key}"`, "Content-Type": "application/octet-stream" };
+      const m = /^bytes=(\d+)-(\d*)$/.exec(input.headers.get("Range") ?? "");
+      if (m && !isSha) {
+        const start = Number(m[1]);
+        const end = m[2] ? Number(m[2]) : body.length - 1;
+        return new Response(input.method === "HEAD" ? null : body.slice(start, end + 1), {
+          status: 206,
+          headers: { ...h, "Content-Length": String(end - start + 1), "Content-Range": `bytes ${start}-${end}/${body.length}` },
+        });
       }
-      return { ...meta(key), body: new Blob([APK_BYTES]).stream() };
+      return new Response(input.method === "HEAD" ? null : body, { status: 200, headers: h });
     },
   };
-  return { bucket: bucket as unknown as R2Bucket, calls };
+  return { assets: assets as unknown as Fetcher, calls };
 }
 
-const withDL = (keys = ["howtogo-1.0.1.apk", "howtogo-1.0.0.apk"], o: { fail?: boolean } = {}) => {
-  const fb = fakeBucket(keys, o);
-  return { env: { ...(env as Env), DL: fb.bucket } as Env, calls: fb.calls };
+const withDL = (keys = ["howtogo-1.0.1.apk", "howtogo-1.0.0.apk"], o: { fail?: boolean; size?: number } = {}) => {
+  const fa = fakeAssets(keys, o);
+  return { env: { ...(env as Env), ASSETS: fa.assets } as Env, calls: fa.calls };
 };
 const req = (path: string, headers: Record<string, string> = {}, method = "GET", origin = "https://howtogo.test") =>
   new Request(origin + path, { method, headers });
@@ -114,7 +121,7 @@ describe("GET /android/latest.json (AC 39, 40)", () => {
     const e = { ...withDL().env, ALLOWED_ORIGINS: "https://localhost" } as Env;
     const res = await handleAndroid(req("/android/latest.json", { Origin: "https://localhost" }), e, HISTORY);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ versionName: "1.0.1", versionCode: 1000100, sha256: SHA, size: 1_694_285, date: "2026-12-01" });
+    expect(await res.json()).toEqual({ versionName: "1.0.1", versionCode: 1000100, sha256: SHA, size: 1_694_285, date: "2026-12-01", path: "/android/howtogo-1.0.1.apk" });
     expect(res.headers.get("Content-Type")).toBe("application/json; charset=utf-8");
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=300");
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://localhost");
@@ -127,8 +134,9 @@ describe("GET /android/latest.json (AC 39, 40)", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 
-  it("404 {error:not_available} with an empty history, without the DL binding, or when the APK object is missing", async () => {
+  it("404 {error:not_available} with an empty history, no ASSETS binding, a missing or stale (other size) APK", async () => {
     for (const [e, h] of [
+      [withDL(undefined, { size: 1234 }).env, HISTORY],
       [withDL().env, EMPTY],
       [env as Env, HISTORY],
       [withDL(["howtogo-1.0.0.apk"]).env, HISTORY],
@@ -152,14 +160,15 @@ describe("GET /android/latest.json (AC 39, 40)", () => {
 });
 
 describe("GET /android/howtogo-<v>.apk (AC 39, OQ3)", () => {
-  it("streams the APK from R2 with the download headers", async () => {
+  it("serves the staged APK from the static assets with the download headers", async () => {
     const res = await handleAndroid(req("/android/howtogo-1.0.1.apk"), withDL().env, HISTORY);
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("application/vnd.android.package-archive");
     expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="howtogo-1.0.1.apk"');
-    expect(res.headers.get("Content-Length")).toBe("1000");
+    expect(res.headers.get("Content-Length")).toBe("1694285");
     expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+    expect(res.headers.get("Accept-Ranges")).toBe("bytes");
     expect(res.headers.get("ETag")).toBe('"etag-howtogo-1.0.1.apk"');
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(APK_BYTES);
   });
@@ -168,19 +177,29 @@ describe("GET /android/howtogo-<v>.apk (AC 39, OQ3)", () => {
     expect((await handleAndroid(req("/android/howtogo-1.0.0.apk"), withDL().env, HISTORY)).status).toBe(200);
     const head = await handleAndroid(req("/android/howtogo-1.0.1.apk", {}, "HEAD"), withDL().env, HISTORY);
     expect(head.status).toBe(200);
-    expect(head.headers.get("Content-Length")).toBe("1000");
+    expect(head.headers.get("Content-Length")).toBe("1694285");
     expect(await head.text()).toBe("");
+  });
+
+  it("the .sha256 sidecar is served as text, immutable, only for released versions", async () => {
+    const res = await handleAndroid(req("/android/howtogo-1.0.1.apk.sha256"), withDL().env, HISTORY);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
+    expect(res.headers.get("Content-Disposition")).toBeNull();
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+    expect(await res.text()).toBe(`${SHA}  howtogo-1.0.1.apk\n`);
+    expect((await handleAndroid(req("/android/howtogo-9.9.9.apk.sha256"), withDL().env, HISTORY)).status).toBe(404);
   });
 
   it("Range requests get 206 + Content-Range (resumed downloads)", async () => {
     const res = await handleAndroid(req("/android/howtogo-1.0.1.apk", { Range: "bytes=100-199" }), withDL().env, HISTORY);
     expect(res.status).toBe(206);
-    expect(res.headers.get("Content-Range")).toBe("bytes 100-199/1000");
+    expect(res.headers.get("Content-Range")).toBe("bytes 100-199/1694285");
     expect(res.headers.get("Content-Length")).toBe("100");
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(APK_BYTES.slice(100, 200));
   });
 
-  it("404 for a version not in the history (never asks R2), a missing object, no binding, or an R2 error", async () => {
+  it("404 for a version not in the history (never asks the assets), a missing file, no binding, or an assets error", async () => {
     const unknown = withDL(["howtogo-9.9.9.apk"]);
     expect((await handleAndroid(req("/android/howtogo-9.9.9.apk"), unknown.env, HISTORY)).status).toBe(404);
     expect(unknown.calls).toEqual([]);
@@ -286,7 +305,7 @@ describe("GET /android — the W-A page (6h.9, AC 38)", () => {
     }
   });
 
-  it("unavailable: no release, no DL binding, or no APK object → message instead of download + facts; steps stay", async () => {
+  it("unavailable: no release, no ASSETS binding, or no staged APK → message instead of download + facts; steps stay", async () => {
     for (const [h, e] of [
       [EMPTY, withDL().env],
       [HISTORY, env as Env],

@@ -97,7 +97,7 @@ export function createWorker(embedded: Embedded) {
   return {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(request.url);
-    // M6 AC 38–40: the /android download page, /android/latest.json and the APK (R2 binding DL).
+    // M6 AC 38–40: the /android download page, /android/latest.json and the APK (static assets, staged by scripts/android/stage-apk.mjs).
     if (ANDROID_PATH.test(pathname)) return handleAndroid(request, env);
     // M4 family viewer page: /t/:id → viewer.html with its own headers (noindex, no-referrer, CSP).
     if (VIEWER_PATH.test(pathname) && (request.method === "GET" || request.method === "HEAD")) {

@@ -46,8 +46,10 @@ grep -q "^targetSdkVersion:'36'" "$tmp/badging.txt" && pass "targetSdk 36" || fa
 grep -q "compileSdkVersion='36'" "$tmp/badging.txt" && pass "compileSdk 36" || fail "compileSdk not 36"
 grep -q "^application-label:'怎么去'" "$tmp/badging.txt" && pass "label 怎么去" || fail "label: $(grep '^application-label:' "$tmp/badging.txt")"
 hist="$(native_path "$root/src/android/release-history.json" | sed 's/\\/\\\\/g')"
-if node -e "const h=require('$hist');const last=Math.max(h.minCode||0,...(h.releases||[]).map(r=>r.versionCode));process.exit($code>last?0:1)"; then
-  pass "versionCode $code > last release/minCode in release-history.json"
+apksha="$(sha256sum "$apk" | cut -d' ' -f1)"
+# Above every release, or THIS very APK already staged as the last entry (stage-apk.mjs; re-verify is fine).
+if node -e "const h=require('$hist');const r=h.releases||[];const l=r[r.length-1];if(l&&l.versionCode===$code&&l.sha256==='$apksha')process.exit(0);const last=Math.max(h.minCode||0,...r.map(x=>x.versionCode));process.exit($code>last?0:1)"; then
+  pass "versionCode $code > last release/minCode in release-history.json (or this APK is the staged last entry)"
 else fail "versionCode $code not above release-history.json"; fi
 
 # 4. manifest allow-list + release flags (AC 28, 37)

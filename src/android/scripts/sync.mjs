@@ -15,6 +15,8 @@ execSync('npx cap sync android', { cwd: root, stdio: 'inherit' });
 const pub = join(root, 'android/app/src/main/assets/public');
 // The service worker is never registered in the app (AC 4); drop it from the APK too.
 for (const f of ['sw.js', 'spike.html']) rmSync(join(pub, f), { force: true });
+// M6 AC 39: a staged release APK (scripts/android/stage-apk.mjs → dist/android/) never goes inside the APK.
+rmSync(join(pub, 'android'), { recursive: true, force: true });
 if (process.env.CAP_SPIKE === '1') {
   copyFileSync(join(root, 'spike/spike.html'), join(pub, 'spike.html'));
   console.log('spike.html copied (CAP_SPIKE=1)');

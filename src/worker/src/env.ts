@@ -53,11 +53,6 @@ export interface Env {
    * Unset → the Claude rewrite layer is off (aliases still work); `/api/health` reports `ai: "off"`.
    */
   ANTHROPIC_API_KEY?: string;
-  /**
-   * M6 OQ3: R2 bucket `howtogo-dl` holding the signed APKs as `howtogo-<versionName>.apk` (production only,
-   * optional). Unset → /android shows "download not available" and /android/latest.json is a 404.
-   */
-  DL?: R2Bucket;
   /** 1.1: global cap on Claude rewrite calls per Singapore day (default 300). "0" turns the AI layer off. */
   AI_DAILY_CAP?: string;
 }

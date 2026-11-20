@@ -5,7 +5,7 @@
 //   npm run deploy:prod                 → `howtogo` ([env.production], custom domain)
 //   ... -- --embed                      embedded-assets variant (wrangler.embed.toml) where the assets upload fails
 //   ... -- --dry-run                    build + bundle only (`wrangler deploy --dry-run`), nothing is uploaded
-// Steps: refuse placeholder ids → release build (VITE_API_BASE="" = same origin) → [embed] → wrangler deploy →
+// Steps: refuse placeholder ids → release build (VITE_API_BASE="" = same origin) → re-stage the APK → [embed] → wrangler deploy →
 // print the smoke command. Rollback: `npx wrangler rollback [--env production]` (docs/process/DEPLOY.md).
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -59,6 +59,8 @@ const run = (cmd, argv, opts = {}) => {
 };
 
 run("npm", ["run", "build", "-w", "@howtogo/web"], { cwd: ROOT, env: { ...process.env, VITE_API_BASE: "" } });
+// M6 AC 39: the web build emptied dist/; put the staged release APK back (/android/howtogo-<v>.apk, static asset).
+run("node", ["scripts/android/stage-apk.mjs", "--restage"], { cwd: ROOT });
 let config = "wrangler.toml";
 if (embed) {
   run("node", ["scripts/embed-config.mjs"], { cwd: WORKER });

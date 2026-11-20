@@ -101,6 +101,9 @@ let total = 0;
 for (const file of walk(DIST).sort()) {
   const path = "/" + relative(DIST, file).split(sep).join("/");
   if (SKIP.has(path)) continue;
+  // M6: a staged APK (scripts/android/stage-apk.mjs) is never embedded: too big for the bundle. In the embedded
+  // variant /android shows "download not available" (no ASSETS binding).
+  if (path.startsWith("/android/")) continue;
   const type = TYPES[extname(file).toLowerCase()];
   if (!type) {
     console.error(`embed-assets: unknown file type ${path}`);

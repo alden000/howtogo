@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# M6 AC 1: web release build → cap sync → Gradle assembleRelease (+ JVM unit tests), host-contention rule D-9.
+# M6 AC 1/39: web release build → cap sync → Gradle assembleRelease (+ JVM unit tests), host-contention rule D-9,
+# then (release only) scripts/android/verify-release.sh → scripts/android/stage-apk.mjs (history + static asset).
 # Usage (repo root): npm run android:release          QA build instead: BUILD_TYPE=qa npm run android:release
+#   STAGE=0 builds + verifies without staging; STAGE_ARGS="--replace" re-stages a never-deployed same version.
 # Signing (release): HOWTOGO_KEYSTORE, HOWTOGO_KEYSTORE_PASSWORD, HOWTOGO_KEY_ALIAS, HOWTOGO_KEY_PASSWORD in the
 # environment, or src/android/android/keystore.properties (gitignored). Without them the release APK is unsigned.
 # Linux and Windows (Git Bash): on Windows the Gradle wrapper (gradlew.bat) is used and nested npm scripts run in bash.
@@ -44,3 +46,10 @@ fi
 wait_host
 GRADLE_OPTS="${GRADLE_OPTS:--Xmx3g}" "$GRADLE" --no-daemon --max-workers=2 "test${Type}UnitTest" "assemble${Type}"
 ls -l "app/build/outputs/apk/$type/"
+if [ "$type" = release ]; then
+  apk="$PWD/app/build/outputs/apk/release/app-release.apk"
+  bash "$root/scripts/android/verify-release.sh" "$apk"
+  if [ "${STAGE:-1}" != 0 ]; then
+    (cd "$root" && node scripts/android/stage-apk.mjs "$apk" ${STAGE_ARGS:-})
+  else echo "STAGE=0: not staged (npm run android:stage -- <apk>)"; fi
+fi

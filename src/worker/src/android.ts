@@ -1,11 +1,14 @@
 // M6 AC 38–40, OQ3, OQ11: the Android distribution endpoints on the Worker.
 //   GET /android, /android/        → the W-A download page (STYLE-GUIDE 6h.9; HTML in src/android-page.ts)
 //   GET /android/latest.json       → { versionName, versionCode, sha256, size, date } of the latest release
-//   GET /android/howtogo-<v>.apk   → the APK streamed from the optional R2 binding DL (bucket howtogo-dl)
-// Source of truth: src/android/release-history.json (bundled at build time), newest release LAST. A release
-// is "available" only when the history has it AND the DL binding holds `howtogo-<versionName>.apk`; otherwise
-// latest.json is a 404 and the page shows its `unavailable` state, so the app's update notice (D1) never
-// points at a download that can't work. The APK never goes into src/web/public (it would end up inside the APK).
+//   GET /android/howtogo-<v>.apk   → the APK from the Worker's own static assets (Director ruling: no R2)
+//   GET /android/howtogo-<v>.apk.sha256 → its `sha256sum` line
+// Source of truth: src/android/release-history.json (bundled at build time), newest release LAST, written by
+// scripts/android/stage-apk.mjs, which also copies the verified APK into src/web/dist/android/ (deploy.mjs
+// re-stages it after its web build). A release is "available" only when the history has it AND the static
+// assets hold `/android/howtogo-<versionName>.apk` with the recorded size; otherwise latest.json is a 404 and the
+// page shows its `unavailable` state, so the app's update notice (D1) never points at a download that can't
+// work. The APK never goes into src/web/public (it would end up inside the APK) nor the PWA precache.
 import bundledHistory from "../../android/release-history.json";
 import type { Env } from "./env";
 import { canonicalRedirect, IMMUTABLE } from "./pages";
@@ -21,6 +24,8 @@ export interface Release {
   size: number;
   /** Lower-case hex SHA-256 of the APK (64 chars). */
   sha256: string;
+  /** Served path, `/android/howtogo-<versionName>.apk` (stage-apk.mjs writes it; derived when absent). */
+  path?: string;
 }
 export interface ReleaseHistory {
   note?: string;
@@ -61,16 +66,29 @@ export function latestRelease(history: ReleaseHistory): Release | null {
 }
 
 export const apkKey = (versionName: string) => `howtogo-${versionName}.apk`;
+export const apkPath = (versionName: string) => `/android/${apkKey(versionName)}`;
 
-/** The latest release if its APK can actually be downloaded (history entry + DL binding + object). */
+/** HEAD/GET a staged file from the static assets (null on 404, a missing binding or an error). */
+async function assetFetch(env: Env, path: string, method = "HEAD", headers?: Headers): Promise<Response | null> {
+  if (!env.ASSETS) return null;
+  try {
+    const init: RequestInit = { method };
+    if (headers?.has("Range")) init.headers = { Range: headers.get("Range")! };
+    const res = await env.ASSETS.fetch(new Request(`https://assets.local${path}`, init));
+    return res.status === 200 || res.status === 206 ? res : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The latest release if its APK can actually be downloaded (history entry + staged asset of that size). */
 export async function availableRelease(env: Env, history: ReleaseHistory): Promise<Release | null> {
   const rel = latestRelease(history);
-  if (!rel || !env.DL) return null;
-  try {
-    return (await env.DL.head(apkKey(rel.versionName))) ? rel : null;
-  } catch {
-    return null; // R2 error → unavailable (6h.9 states)
-  }
+  if (!rel) return null;
+  const res = await assetFetch(env, apkPath(rel.versionName));
+  const len = res?.headers.get("Content-Length");
+  // A stale staging (other build than the history entry) is not offered: wrong size → unavailable.
+  return res && (len === null || Number(len) === rel.size) ? rel : null;
 }
 
 export { formatDate, formatSize, groupSha, megabytes } from "./android-page";
@@ -97,7 +115,7 @@ export function negotiateLang(url: URL, acceptLanguage: string | null): { lang: 
 export const isIos = (ua: string | null) => /\b(iPhone|iPad|iPod)\b/.test(ua ?? "");
 
 export const ANDROID_PATH = /^\/android(?:\/.*)?$/;
-const APK_PATH = /^\/android\/howtogo-(\d+\.\d+\.\d+)\.apk$/;
+const APK_PATH = /^\/android\/howtogo-(\d+\.\d+\.\d+)\.apk(\.sha256)?$/;
 
 const notFound = () =>
   new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
@@ -154,7 +172,7 @@ async function servePageResponse(request: Request, env: Env, history: ReleaseHis
 async function serveLatest(request: Request, env: Env, history: ReleaseHistory): Promise<Response> {
   const rel = await availableRelease(env, history);
   const body = rel
-    ? { versionName: rel.versionName, versionCode: rel.versionCode, sha256: rel.sha256, size: rel.size, date: rel.date }
+    ? { versionName: rel.versionName, versionCode: rel.versionCode, sha256: rel.sha256, size: rel.size, date: rel.date, path: apkPath(rel.versionName) }
     : { error: "not_available" };
   const res = new Response(request.method === "HEAD" ? null : JSON.stringify(body), {
     status: rel ? 200 : 404,
@@ -164,50 +182,28 @@ async function serveLatest(request: Request, env: Env, history: ReleaseHistory):
   return finalize(res, request, env);
 }
 
-function contentRange(range: R2Range, size: number): [number, number] {
-  if ("suffix" in range && range.suffix !== undefined) return [Math.max(0, size - range.suffix), size - 1];
-  const start = "offset" in range && range.offset !== undefined ? range.offset : 0;
-  const end = "length" in range && range.length !== undefined ? Math.min(size - 1, start + range.length - 1) : size - 1;
-  return [start, end];
-}
-
-async function serveApk(request: Request, env: Env, history: ReleaseHistory, versionName: string): Promise<Response> {
-  if (!env.DL || !history.releases.some((r) => isRelease(r) && r.versionName === versionName)) return notFound();
-  const key = apkKey(versionName);
-  const wantsRange = request.method === "GET" && request.headers.has("Range");
-  let obj: R2Object | R2ObjectBody | null;
-  try {
-    if (request.method === "HEAD") obj = await env.DL.head(key);
-    else {
-      try {
-        obj = await env.DL.get(key, wantsRange ? { range: request.headers } : undefined);
-      } catch {
-        obj = await env.DL.get(key); // unsatisfiable Range → the whole file
-      }
-    }
-  } catch {
-    return notFound();
-  }
-  if (!obj) return notFound();
+async function serveApk(request: Request, env: Env, history: ReleaseHistory, versionName: string, sha: boolean): Promise<Response> {
+  if (!history.releases.some((r) => isRelease(r) && r.versionName === versionName)) return notFound();
+  const key = apkKey(versionName) + (sha ? ".sha256" : "");
+  const src = await assetFetch(env, `/android/${key}`, request.method === "HEAD" ? "HEAD" : "GET", sha ? undefined : request.headers);
+  if (!src) return notFound();
   const h = new Headers({
-    "Content-Type": "application/vnd.android.package-archive",
-    "Content-Disposition": `attachment; filename="${key}"`,
+    "Content-Type": sha ? "text/plain; charset=utf-8" : "application/vnd.android.package-archive",
     "X-Content-Type-Options": "nosniff",
+    // The file name carries the version: a published APK never changes (a new build is a new versionName).
     "Cache-Control": IMMUTABLE,
-    "Accept-Ranges": "bytes",
     "Referrer-Policy": "no-referrer",
-    ETag: obj.httpEtag,
   });
-  if (new URL(request.url).protocol === "https:") h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  const body = "body" in obj ? obj.body : null;
-  if (wantsRange && obj.range && body) {
-    const [start, end] = contentRange(obj.range, obj.size);
-    h.set("Content-Range", `bytes ${start}-${end}/${obj.size}`);
-    h.set("Content-Length", String(end - start + 1));
-    return new Response(body, { status: 206, headers: h });
+  if (!sha) {
+    h.set("Content-Disposition", `attachment; filename="${key}"`);
+    h.set("Accept-Ranges", "bytes");
   }
-  h.set("Content-Length", String(obj.size));
-  return new Response(request.method === "HEAD" ? null : body, { status: 200, headers: h });
+  for (const k of ["Content-Length", "Content-Range", "ETag", "Last-Modified"]) {
+    const v = src.headers.get(k);
+    if (v) h.set(k, v);
+  }
+  if (new URL(request.url).protocol === "https:") h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  return new Response(request.method === "HEAD" ? null : src.body, { status: src.status, headers: h });
 }
 
 /** Every /android and /android/* request. `history` is injectable for tests. */
@@ -222,6 +218,6 @@ export async function handleAndroid(request: Request, env: Env, history: Release
   if (method !== "GET" && method !== "HEAD") return new Response(null, { status: 405, headers: { Allow: "GET, HEAD" } });
   if (path === "/android" || path === "/android/") return servePageResponse(request, env, history);
   const apk = APK_PATH.exec(path);
-  if (apk) return serveApk(request, env, history, apk[1]!);
+  if (apk) return serveApk(request, env, history, apk[1]!, !!apk[2]);
   return notFound();
 }

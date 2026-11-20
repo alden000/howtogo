@@ -13,11 +13,14 @@
 //                     /api/share/<random> → 404 share_not_found
 //   /setup            Referrer-Policy: no-referrer
 //   /assets/<missing> 404 (a stale index.html never gets HTML for a chunk)
+//   /android          M6 AC 39 (scripts/smoke-android.mjs): the page; latest.json → download the APK it names,
+//                     SHA-256 + size + headers must match. SKIP (not FAIL) when no release is staged.
 // Prints one line per check and `smoke:deploy PASS|FAIL`. Exit 0 PASS, 1 FAIL, 64 usage.
 // Never prints response bodies; sends only `User-Agent: howtogo-smoke/<version>`. On FAIL after a deploy:
 // `npx wrangler rollback [--env production]` (docs/process/DEPLOY.md).
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { checkAndroid } from "./smoke-android.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);
@@ -147,6 +150,9 @@ check("/api/share/<random> → 404 share_not_found", share.status === 404 && sha
 // 8. caregiver setup page
 const setup = await get("/setup");
 check("/setup Referrer-Policy no-referrer", setup.headers.get("referrer-policy") === "no-referrer", `status ${setup.status}`);
+
+// 9. Android download (M6 AC 39)
+await checkAndroid(get, check);
 
 const failed = results.filter((r) => !r.ok);
 if (flag("--json")) {
