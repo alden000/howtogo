@@ -1,7 +1,7 @@
 // M6 AC 28 / AC 37: permission + component allow-list and release flags of a built APK's manifest.
 // Input: the output of `aapt2 dump xmltree --file AndroidManifest.xml <apk>` (file path argument).
 // Usage: node scripts/android/check-manifest.mjs <xmltree.txt> <appId>
-// Exit 1 on any difference. Items that wait on a Director ruling are reported as NOTE, not failures.
+// Exit 1 on any difference. Items the Director ruled on (2026-11-17) are reported as NOTE, not failures.
 import { readFileSync } from 'node:fs';
 
 const [file, appId = 'com.wwweeeiii.howtogo'] = process.argv.slice(2);
@@ -38,7 +38,7 @@ const comps = (tag) => app.kids.filter((e) => e.tag === tag);
 const isFalse = (v) => v === undefined ? null : /^(false|0x0+|0)$/.test(v);
 
 const fails = [], notes = [], ok = [];
-// --- permissions (AC 28): exactly the allow-list. WAKE_LOCK: ruling pending (round 1 dropped it) → optional.
+// --- permissions (AC 28): exactly the allow-list. WAKE_LOCK: dropped by the 2026-11-17 ruling (FGS keeps the CPU awake); tolerated if a library adds it.
 const P = 'android.permission.';
 const required = ['INTERNET', 'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'FOREGROUND_SERVICE',
   'FOREGROUND_SERVICE_LOCATION', 'POST_NOTIFICATIONS', 'VIBRATE'].map((p) => P + p)
@@ -47,7 +47,7 @@ const optional = [P + 'WAKE_LOCK'];
 const perms = els.filter((e) => /^uses-permission/.test(e.tag)).map((e) => e.attrs.name);
 for (const p of required) if (!perms.includes(p)) fails.push(`missing permission ${p}`);
 for (const p of perms) if (!required.includes(p) && !optional.includes(p)) fails.push(`permission not in allow-list: ${p}`);
-for (const p of optional) if (!perms.includes(p)) notes.push(`${p} absent (allow-list lists it; Director ruling pending)`);
+for (const p of optional) if (!perms.includes(p)) notes.push(`${p} absent (as ruled 2026-11-17: not needed, the foreground service keeps the CPU awake)`);
 ok.push(`permissions (${perms.length}): ${perms.map((p) => p.replace(P, '').replace(appId + '.', '<appId>.')).join(', ')}`);
 
 // --- components (AC 28)
@@ -58,7 +58,7 @@ if (main.length !== 1) fails.push('MainActivity missing');
 for (const a of acts) {
   if (name(a) === `${appId}.MainActivity`) continue;
   if (name(a) === 'com.google.android.gms.common.api.GoogleApiActivity' && isFalse(a.attrs.exported) !== false)
-    notes.push('second activity GoogleApiActivity (play-services-base, exported=false): Director ruling pending');
+    notes.push('second activity GoogleApiActivity (play-services-base, exported=false): accepted by the 2026-11-17 ruling (no exported surface)');
   else fails.push(`activity not in allow-list: ${name(a)} exported=${a.attrs.exported}`);
 }
 const svcs = comps('service');

@@ -1,0 +1,5 @@
+/* 6h.8 D2 card (§5 card): tile, title, body, buttons. In the Settings chunk with the card (QA-74). */
+.m6card{margin:0 0 var(--s-4)}
+.m6card h2{margin:0 0 var(--s-2);font-size:1.25rem}
+.m6card .bigtile{margin-bottom:var(--s-3)}
+a.btn{text-decoration:none}

@@ -24,13 +24,13 @@ import omLogo from '../assets/onemap/onemap-logo.png';
 import omLogo2x from '../assets/onemap/onemap-logo@2x.png';
 import { showUpdBar } from '../pwa/launch';
 import { isAndroidBrowser, newer } from '../m6/core';
+import { GetAppCard } from './getApp';
 
 // 6f.3 L3: the update bar also sits at the top of the Settings list (lazy launch chunk, shared with H1).
 const UpdateBar = lazyView(() => import('./launch').then((m) => m.UpdateBar));
 // M6 (6h.8, 6h.10): update notice + native rows (app), Get-the-app card (web on Android).
 const m6Views = () => import('./m6');
 const UpdateNotice = lazyView(() => m6Views().then((m) => m.UpdateNotice), { idle: false });
-const GetAppCard = lazyView(() => m6Views().then((m) => m.GetAppCard), { idle: false });
 const NativeAppRows = lazyView(() => m6Views().then((m) => m.NativeAppRows), { idle: false });
 const VersionRow = lazyView(() => m6Views().then((m) => m.VersionRow), { idle: false });
 

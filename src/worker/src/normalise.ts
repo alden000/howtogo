@@ -18,6 +18,10 @@ const DISPLAY_OVERRIDES: Record<string, string> = { BLK: "Blk", ...BRAND_CASE };
 
 function caseWord(word: string, first: boolean): string {
   if (!word) return word;
+  // QA-75: whole-word brand spellings first, so a brand with a digit ("7-ELEVEN") is not kept in capitals.
+  const bare = word.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, "");
+  const brand = DISPLAY_OVERRIDES[bare.toUpperCase()];
+  if (brand) return word.replace(bare, brand);
   // Station codes, unit numbers and postal codes: keep as-is (upper-cased).
   if (/\d/.test(word)) return word.toUpperCase();
   const core = word.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "");

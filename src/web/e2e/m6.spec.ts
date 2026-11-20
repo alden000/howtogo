@@ -36,6 +36,30 @@ async function shot(page: Page, n: string) {
   await expect(page).toHaveScreenshot(`${n}.png`);
 }
 
+/**
+ * QA-76: frame a screen at its end deterministically. The step pictures are lazy chunks that grow the screen when
+ * they arrive; scrolling before they are all in left the scroll position short of the end in some runs. So: wait
+ * for every picture, scroll the element to the bottom edge, and wait until the scroller is really at its end.
+ */
+async function scrollToEnd(page: Page, testid: string, to: 'screen' | 'element' = 'screen') {
+  await page.waitForFunction(() => [...document.querySelectorAll('.igpic')].every((p) => p.querySelector('svg')));
+  await page.waitForFunction(
+    ([id, mode]) => {
+      const el = document.querySelector(`[data-testid="${id}"]`)!;
+      let sc: Element | null = el.parentElement;
+      while (sc && !(sc.scrollHeight > sc.clientHeight && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      sc ??= document.scrollingElement!;
+      // 'screen': the end of the screen, bottom padding included; 'element': the element's bottom on the screen's bottom edge
+      if (mode === 'screen') sc.scrollTop = sc.scrollHeight;
+      else el.scrollIntoView({ block: 'end', behavior: 'instant' });
+      return mode === 'screen'
+        ? sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1
+        : Math.abs(el.getBoundingClientRect().bottom - Math.min(sc.getBoundingClientRect().bottom, innerHeight)) <= 1;
+    },
+    [testid, to] as const,
+  );
+}
+
 /** No horizontal scroll, no target under 56 px in the open sheet / screen (6h shared rules). */
 async function layoutOk(page: Page) {
   const r = await page.evaluate(() => {
@@ -143,8 +167,8 @@ test.describe('B battery guide (6h.4)', () => {
     await ctl(page, 'away');
     await ctl(page, 'back');
     await expect(page.getByTestId('bg-notyet')).toHaveText('还没改好。可以再试一次，或者以后再说。');
-    // 1.2.0: scroll to the end of the screen (the baseline's framing) - centring the note depended on picture-load timing.
-    await page.getByTestId('bg-later').scrollIntoViewIfNeeded();
+    // The baseline's framing is the end of the screen (QA-76: only after every step picture is in).
+    await scrollToEnd(page, 'bg-later');
     await shot(page, name('B2-notyet', LZ));
     await page.getByTestId('bg-open').click();
     await ctl(page, 'away');
@@ -152,7 +176,7 @@ test.describe('B battery guide (6h.4)', () => {
     await ctl(page, 'back');
     await expect(page.getByTestId('bg-ok')).toContainText('已设置好，锁屏时也能提醒你下车。');
     await expect(page.getByTestId('bg-ok')).toContainText('“自启动”这一项手机不告诉我，请你自己看一下。');
-    await page.getByTestId('bg-done').scrollIntoViewIfNeeded();
+    await scrollToEnd(page, 'bg-done', 'element');
     await shot(page, name('B2-ok', LZ));
     await page.getByTestId('bg-done').click();
     await expect(page.getByTestId('battery-guide')).toHaveCount(0);
@@ -211,11 +235,43 @@ test.describe('D update notice + Get-the-app card (6h.8)', () => {
     await ctx.close();
   });
 
-  test('no D2 card on desktop / iOS, none inside the app', async ({ page }) => {
+  test('QA-74: the D2 card is in the first paint of Settings - no layout shift on Android Chrome (CLS < 0.05)', async ({ browser }) => {
+    const ctx = await browser.newContext({ userAgent: ANDROID_CHROME, viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => {
+      const w = window as unknown as { __cls: number };
+      w.__cls = 0;
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) if (!e.hadRecentInput) w.__cls += e.value;
+      }).observe({ type: 'layout-shift', buffered: true });
+    });
     await open(page, LZ, null, { path: '/settings' });
-    await expect(page.locator('h1')).toBeVisible();
-    await expect(page.getByTestId('d2-card')).toHaveCount(0);
+    await expect(page.getByTestId('d2-card')).toBeVisible();
+    await expect(page.getByTestId('row-name')).toBeVisible();
+    // let every lazy piece of the screen (update bar, version row, idle preloads) arrive
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1500);
+    const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+    expect(cls).toBeLessThan(0.05);
+    await ctx.close();
+  });
+
+  test('no D2 card on desktop / iOS, none inside the app', async ({ browser, page }) => {
+    // The suite's default device (Pixel 7) is Android Chrome, so desktop and iOS get their own user agents.
+    // The card is in the first paint of Settings (QA-74), so a count of 0 once the list is up is final.
+    for (const userAgent of [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+    ]) {
+      const ctx = await browser.newContext({ userAgent, viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+      const p = await ctx.newPage();
+      await open(p, LZ, null, { path: '/settings' });
+      await expect(p.getByTestId('row-name')).toBeVisible();
+      await expect(p.getByTestId('d2-card')).toHaveCount(0);
+      await ctx.close();
+    }
     await open(page, LZ, 'upd', { path: '/settings' });
+    await expect(page.getByTestId('row-name')).toBeVisible();
     await expect(page.getByTestId('d2-card')).toHaveCount(0);
   });
 });

@@ -21,10 +21,6 @@
 a.btn{text-decoration:none}
 .updbar .nw{white-space:nowrap;flex:none}
 .row .v.nw,.row .nw{white-space:nowrap}
-/* D2 card (§5 card): tile, title, body, buttons */
-.m6card{margin:0 0 var(--s-4)}
-.m6card h2{margin:0 0 var(--s-2);font-size:1.25rem}
-.m6card .bigtile{margin-bottom:var(--s-3)}
 .seg.stack button[role=radio][aria-checked=true]{border-color:var(--c-primary);background:var(--c-primary-soft);color:var(--c-on-primary-soft)}
 /* Creative M6 fix 3, also for the in-app H5 notes (A5/B3/C1): ✕ top-right beside the text, buttons full-width below */
 .tripnote.m6n{align-items:flex-start}

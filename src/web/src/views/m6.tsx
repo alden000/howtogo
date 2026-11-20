@@ -1,7 +1,7 @@
 /**
  * M6 frames drawn in the WebView (STYLE-GUIDE 6h): native permission explainers A2–A6, the battery guide B1–B3,
  * the no-Chinese-voice sheet C1, the update notice D1, the web Get-the-app card D2 and the native Settings rows
- * (6h.10). Lazy chunk: the web build only ever loads `GetAppCard` from here (Android browsers).
+ * (6h.10). Lazy chunk (native frames; the web D2 card lives in views/getApp.tsx, QA-74).
  */
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
@@ -544,27 +544,6 @@ export function UpdateNotice() {
 }
 
 // ------------------------------------------------------------------ D2 Get-the-app card (web, 6h.8)
-
-export function GetAppCard() {
-  const s = useServices();
-  const L = useL();
-  if (flags.value.getAppDismissed || s.store.trip.value) return null;
-  return (
-    <section class="card m6card" data-testid="d2-card" aria-labelledby="d2-t">
-      <Tile icon="smartphone" />
-      <h2 id="d2-t">{L('d2_t')}</h2>
-      <p class="lead">{L('d2_b')}</p>
-      <div class="opts">
-        <a class="btn btn-primary" href="/android" data-testid="d2-go">
-          {L('d2_go')}
-        </a>
-        <button type="button" class="btn btn-quiet" data-testid="d2-no" onClick={() => setFlags({ getAppDismissed: true })}>
-          {L('d2_no')}
-        </button>
-      </div>
-    </section>
-  );
-}
 
 // ------------------------------------------------------------------ Settings → 这个应用 (6h.10)
 

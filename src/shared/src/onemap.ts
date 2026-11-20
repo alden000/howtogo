@@ -60,6 +60,7 @@ export function prettyStopName(raw: string): string {
   return s
     .split(' ')
     .map((w) => {
+      if (BRAND_CASE[w]) return BRAND_CASE[w]; // QA-75: "7-ELEVEN" → "7-Eleven" before the digit rule
       if (KEEP_UPPER.has(w) || /\d/.test(w)) return w;
       return w
         .split(/([/-])/)

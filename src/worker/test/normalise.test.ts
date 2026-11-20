@@ -133,6 +133,12 @@ describe("QA-68/69 casing", () => {
     expect(titleCase("NPARKS HQ")).toBe("NParks HQ");
     expect(titleCase("HARBOURFRONT WALK (VIVOCITY)")).toBe("Harbourfront Walk (VivoCity)");
   });
+  it("QA-75: a brand with a digit takes its own case; other digit words stay upper case", () => {
+    expect(titleCase("7-ELEVEN MART")).toBe("7-Eleven Mart");
+    expect(titleCase("7-ELEVEN (CHINATOWN POINT)")).toBe("7-Eleven (Chinatown Point)");
+    expect(titleCase("(7-ELEVEN)")).toBe("(7-Eleven)");
+    expect(titleCase("BLK 418A #01-23")).toBe("Blk 418A #01-23");
+  });
 });
 
 describe("normaliseBusArrival (synthetic LTA v3 fixture)", () => {

@@ -161,6 +161,7 @@ describe('names and lines', () => {
     expect(prettyStopName('FARRER PARK MRT STATION')).toBe('Farrer Park');
     expect(prettyStopName('OPP BLK 61')).toBe('Opp Blk 61');
     expect(prettyStopName('HARBOURFRONT STN/VIVOCITY')).toBe('Harbourfront Stn/VivoCity'); // QA-69 brand case
+    expect(prettyStopName('OPP 7-ELEVEN')).toBe('Opp 7-Eleven'); // QA-75
     expect(prettyStopName('Tan Tock Seng Hospital')).toBe('Tan Tock Seng Hospital');
     expect(parseExit('FARRER PK STN EXIT A')).toBe('A');
     expect(parseExit('Exit 3')).toBe('3');

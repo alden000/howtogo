@@ -3,6 +3,7 @@
  * update notice) and the web Get-the-app card. Lives in the lazy M6 chunk, never in the Home entry.
  */
 import type { UiLang } from '../state/store';
+import { D2_EN, D2_ZH } from './m6d2';
 
 const zh = {
   // 6h.2 A2 location explainer
@@ -76,10 +77,7 @@ const zh = {
   d1_sr: '有新版本 {v}，去下载',
   d1_later: '以后再说',
   d1_row: '版本 {v} · 有新版本',
-  d2_t: '下载安卓版 怎么去',
-  d2_b: '锁屏也能提醒你下车，放在口袋里也会说话和震动。',
-  d2_go: '看看怎么下载',
-  d2_no: '不用了',
+  ...D2_ZH,
   // 6h.10 Settings
   s_battery: '让手机别关掉怎么去',
   s_notify: '通知',
@@ -154,10 +152,7 @@ const en: Record<keyof typeof zh, string> = {
   d1_sr: 'New version {v}. Get it',
   d1_later: 'Later',
   d1_row: 'Version {v} · New version available',
-  d2_t: 'Get the Android app',
-  d2_b: 'It can remind you to get off even with the screen locked, and talks and buzzes in your pocket.',
-  d2_go: 'See how to get it',
-  d2_no: 'No thanks',
+  ...D2_EN,
   s_battery: 'Keep 怎么去 running',
   s_notify: 'Notifications',
   s_loc: 'Location permission',
