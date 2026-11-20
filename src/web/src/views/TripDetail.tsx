@@ -33,11 +33,17 @@ let pending: (() => Promise<void>) | null = null;
  * starts in manual mode. An active trip first asks "End your current trip?" (G6).
  */
 export function useStartTrip() {
-  const { store, router, runtime, platform } = useServices();
+  const services = useServices();
+  const { store, router, runtime, platform } = services;
   const go = async (s: StartArgs) => {
     // Inside the tap: iOS needs DeviceOrientationEvent.requestPermission() from a gesture.
     void platform.heading.requestPermission().catch(() => false);
     log('ui:start');
+    // M6 (6h.10): inside the app the first Start runs A2 → A3 → A6 → C1 → B1 (each only when due) before the trip.
+    if (platform.capabilities.native) {
+      const { preflight } = await import('./m6');
+      if (!(await preflight(services))) return log('m6:start-left');
+    }
     if ('journey' in s) await runtime.startJourney(s.journey);
     else await runtime.start(s.it, s.places);
     router.enterGuide();

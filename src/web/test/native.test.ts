@@ -94,7 +94,7 @@ describe('native adapter (Capacitor mocked)', () => {
     const got: number[] = [];
     const stop = await p.location.watch((f) => got.push(f.t));
     expect(m.named('start')).toHaveLength(1);
-    expect(m.named('start')[0]!.opts).toMatchObject({ leg: 'walk', title: '行程进行中', stopLabel: '结束' });
+    expect(m.named('start')[0]!.opts).toMatchObject({ leg: 'walk', title: '行程进行中', stopLabel: '结束行程' });
     m.emit('Trip.fix', { lat: 1, lng: 2, acc: 5, t: 10 });
     m.emit('Trip.fix', { lat: 1, lng: 2, acc: 5, t: 11 });
     expect(got).toEqual([10, 11]);
@@ -262,6 +262,17 @@ describe('runtime with the native trip service', () => {
     expect(set.map((a) => a.id)).toEqual([`trip1:${stepId}:next`, `trip1:${stepId}:now`]);
     expect(set[0]!.title).toBe('下一站下车');
     expect(set[0]!.speak).toBeTruthy();
+    // 6h.7: alert text = stop sign first, advice after " · "; ongoing title = step short text, app language passed.
+    expect(set[0]!.body).toMatch(/ · 请现在按铃$/);
+    expect(set[1]!.body).toMatch(/ · 车停稳了再站起来$/);
+    const ride = env.svc.legs.find((l) => l.kind === 'ride')!;
+    expect(ride.title).toMatch(/^坐 \S+ 号 · 还有 \d+ 站$/);
+    expect(ride.lang).toBe('zh-CN');
+    const wait = env.svc.legs.find((l) => l.kind === 'wait')!;
+    expect(wait.title).toMatch(/^等 \S+ 号巴士 · /);
+    // lock-screen rule: no destination name in any leg title
+    const dest = env.store.trip.value!.places.at(-1)!.name;
+    if (dest) expect(env.svc.legs.every((l) => !(l.title ?? '').includes(dest))).toBe(true);
   });
 
   it('JS first: alerts once and marks the id so the service skips it (AC 18)', async () => {
@@ -272,6 +283,7 @@ describe('runtime with the native trip service', () => {
     expect(env.svc.marked).toContain(`trip1:${stepId}:next`);
     expect(env.fake.fake.vibrations.filter((v) => v === 'getoff')).toHaveLength(1);
     expect(env.fake.fake.notifications.find((n) => n.tag === 'getoff')?.alertId).toBe(`trip1:${stepId}:next`);
+    expect(env.fake.fake.notifications.find((n) => n.tag === 'getoff')).toMatchObject({ title: '下一站下车', kind: 'getoff-next' });
   });
 
   it('native first: the H6 sheet shows but nothing buzzes, speaks or notifies twice (AC 18)', async () => {
@@ -345,10 +357,20 @@ describe('OEM battery guide hook (AC 29, 30)', async () => {
   const { guideBrand, batteryGuideDue, BATTERY_GUIDE } = await import('../src/platform/batteryGuide');
   const info = { manufacturer: 'Xiaomi', brand: 'Redmi', sdk: 34, batteryUnrestricted: false, playServices: true, lastTripKilled: false };
   it('brand by manufacturer, generic fallback; every brand has steps', () => {
-    expect(['samsung', 'Xiaomi', 'POCO', 'realme', 'vivo', 'HONOR', 'OnePlus', 'Google'].map(guideBrand)).toEqual([
-      'samsung', 'xiaomi', 'xiaomi', 'oppo', 'vivo', 'huawei', 'oneplus', 'generic',
+    expect(['samsung', 'Xiaomi', 'POCO', 'realme', 'vivo', 'HONOR', 'OnePlus', 'Google', 'motorola'].map(guideBrand)).toEqual([
+      'samsung', 'xiaomi', 'xiaomi', 'oppo', 'vivo', 'huawei', 'oppo', 'google', 'generic',
     ]);
-    for (const g of Object.values(BATTERY_GUIDE)) expect(g.steps.length).toBeGreaterThanOrEqual(3);
+    // 6h.4: open 'app' everywhere; first step Open settings, last Go back; pictures named for their brand.
+    for (const [b, g] of Object.entries(BATTERY_GUIDE)) {
+      expect(g.steps.length).toBeGreaterThanOrEqual(4);
+      expect(g.open).toBe('app');
+      expect(g.steps[0]!.en).toBe('Tap "Open settings" below.');
+      expect(g.steps[g.steps.length - 1]!.en).toBe('Go back to 怎么去.');
+      for (const pic of Object.values(g.pictures)) expect(pic.startsWith(b === 'generic' ? 'bg-google-' : `bg-${b}-`)).toBe(true);
+    }
+    expect(BATTERY_GUIDE.xiaomi.unchecked).toBe('autostart');
+    expect(BATTERY_GUIDE.huawei.unchecked).toBe('switches');
+    expect(BATTERY_GUIDE.samsung.unchecked).toBeUndefined();
   });
   it('once before the first trip; a note after a kill; never when already unrestricted', () => {
     expect(batteryGuideDue(info, false)).toBe('guide');

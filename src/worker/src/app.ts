@@ -2,6 +2,7 @@ import type { Env } from "./env";
 import { handleAlerts, handleBusArrival, handleLifts, handleRevGeocode, handleRoute, handleSearch } from "./api";
 import { fixtureMode } from "./fixtures";
 import { aiEnabled } from "./ai";
+import { ANDROID_PATH, handleAndroid } from "./android";
 import { HttpError, UpstreamError, errorResponse, finalize, json, originAllowed, preflight } from "./http";
 import { checkRateLimit } from "./ratelimit";
 import { ltaSource } from "./lta";
@@ -96,6 +97,8 @@ export function createWorker(embedded: Embedded) {
   return {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(request.url);
+    // M6 AC 38–40: the /android download page, /android/latest.json and the APK (R2 binding DL).
+    if (ANDROID_PATH.test(pathname)) return handleAndroid(request, env);
     // M4 family viewer page: /t/:id → viewer.html with its own headers (noindex, no-referrer, CSP).
     if (VIEWER_PATH.test(pathname) && (request.method === "GET" || request.method === "HEAD")) {
       return serveViewer(request, env, embedded);

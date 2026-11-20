@@ -172,6 +172,8 @@ sw.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.hostname === 'www.onemap.gov.sg' && url.pathname.startsWith('/maps/tiles/')) return e.respondWith(tile(req));
   if (url.origin !== sw.location.origin) return;
+  // M6 W-A: /android (the download page, latest.json, the APK) is the Worker's, never the app shell.
+  if (url.pathname === '/android' || url.pathname.startsWith('/android/')) return;
   if (req.mode === 'navigate') return e.respondWith(navigate(req));
   const m = /^\/api\/([a-z-]+)/.exec(url.pathname);
   if (m) {

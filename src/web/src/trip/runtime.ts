@@ -75,6 +75,7 @@ import { online } from '../api/offline';
 import { log } from '../log';
 import { followReducer, type FollowEvent, type FollowMode } from '../map/follow';
 import type { LegHint, LegKind, LocationFix, NativeAlert, Platform, PlatformError, TripAlertEvent, Unsubscribe } from '../platform/types';
+import { alertText, alertTitle, infoCopy, stepShortText, type InfoKind } from '../platform/notifyCopy';
 import { toLang, type ActiveTrip, type ShareSession, type Store } from '../state/store';
 import { here } from '../state/location';
 import { local } from '../state/storage';
@@ -233,7 +234,8 @@ export interface StartOptions {
 
 const isRide = (s: Step | undefined) => !!s && s.kind.startsWith('ride');
 const rideMode = (s: Step | undefined): 'bus' | 'train' => (s?.mode === 'bus' ? 'bus' : 'train');
-const NOTIFY_FOR = new Set(['off_route', 'arrived_destination', 'arrived_waypoint', 'transfer']);
+/** M6 6h.7: only these cues post a notification (info channel), with lock-screen-safe copy (no place names). */
+const NOTIFY_FOR: Record<string, InfoKind> = { off_route: 'offroute', arrived_destination: 'arrival' };
 
 export function createTripRuntime(o: TripRuntimeOptions) {
   const { store, platform, api } = o;
@@ -415,7 +417,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       const text = cueToSpeech(cue, l);
       say(text, cue.priority, cue.stepId);
       if (cue.type === 'step_changed') patchUi({ lastLine: text });
-      if (NOTIFY_FOR.has(cue.type)) void platform.notify({ tag: 'howtogo-cue', title: '怎么去?', body: text, priority: cue.priority });
+      const info = NOTIFY_FOR[cue.type];
+      if (info) void platform.notify({ tag: 'howtogo-cue', ...infoCopy(info, l), priority: cue.priority, kind: info });
     }
     haptic(hapticForCues(plain));
     for (const cue of cues) {
@@ -453,7 +456,6 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       case 'show':
       case 'grow': {
         if (!a) return;
-        const zh = lang() === 'zh-CN';
         log(`alert:${a.kind}`);
         // M6 AC 18: one alert per id. The native service alerted first → the sheet shows, nothing buzzes or speaks twice.
         const id = alertId(a.stepId, a.kind);
@@ -469,10 +471,11 @@ export function createTripRuntime(o: TripRuntimeOptions) {
         pocketEvent({ type: 'alert', t: now() });
         void platform.notify({
           tag: 'getoff',
-          title: a.kind === 'now' ? (zh ? '到站了，请下车' : 'This is your stop. Get off now') : zh ? '下一站下车' : 'Get off at the next stop',
-          body: a.stop,
+          title: alertTitle(a.kind, lang()),
+          body: alertText(a.kind, a.mode, a.stop, lang()),
           priority: 'high',
           alertId: id,
+          kind: a.kind === 'now' ? 'getoff-now' : 'getoff-next',
         });
         return;
       }
@@ -654,8 +657,18 @@ export function createTripRuntime(o: TripRuntimeOptions) {
           : isRide(step)
             ? 'ride'
             : 'walk';
-    const body = String(step?.say ?? step?.text ?? '').slice(0, 80);
-    return { kind, stopsLeft: kind === 'ride' ? ui.peek().stopsLeft : null, lowBattery: false, body };
+    const stopsLeft = kind === 'ride' ? ui.peek().stopsLeft : null;
+    const walking = !!step && step.kind.startsWith('walk');
+    const remainingM = walking ? Math.max(0, step.lengthM - (t.guidance.alongM ?? 0)) : null;
+    // 6h.7: the ongoing title is the step short text; re-routing shows "finding a new way", paused keeps the last.
+    const title = stepShortText(step, {
+      lang: t.lang,
+      stopsLeft,
+      remainingM,
+      rerouting: ui.peek().reroute === 'searching',
+      next: t.guidance.steps[t.guidance.stepIndex + 1],
+    });
+    return { kind, stopsLeft, lowBattery: false, body: title, title, lang: t.lang };
   }
 
   /** Native backup alerts for a ride step (AC 17): "next" around the stop before alighting, "now" at the alighting stop. */
@@ -665,7 +678,6 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     const alight = stops[stops.length - 1] ?? { ...step.end, name: '', displayName: '' };
     const prev = stops.length > 1 ? stops[stops.length - 2]! : null;
     const name = String(step.params.stop ?? alight.displayName ?? alight.name ?? '');
-    const zh = t.lang === 'zh-CN';
     const line = (kind: 'next' | 'now') =>
       cueToSpeech({ id: '', type: kind === 'now' ? 'get_off_now' : 'get_off_next_stop', priority: 'high', stepId: step.id, stepIndex: 0, params: { stop: name }, t: 0 }, t.lang);
     const mk = (kind: 'next' | 'now', at: LatLng, radiusM: number): NativeAlert => ({
@@ -674,8 +686,8 @@ export function createTripRuntime(o: TripRuntimeOptions) {
       lat: at.lat,
       lng: at.lng,
       radiusM,
-      title: kind === 'now' ? (zh ? '到站了，请下车' : 'This is your stop. Get off now') : zh ? '下一站下车' : 'Get off at the next stop',
-      body: name,
+      title: alertTitle(kind, t.lang),
+      body: alertText(kind, bus ? 'bus' : 'train', name, t.lang),
       speak: line(kind),
       lang: t.lang,
     });
@@ -924,6 +936,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
           return rest;
         });
         patchUi({ shareGone: true });
+        void platform.notify({ tag: 'howtogo-share', ...infoCopy('share-ended', lang()), priority: 'normal', kind: 'share-ended' });
         return;
       }
       shareDirty = true; // keep only the latest; resend on the next opportunity

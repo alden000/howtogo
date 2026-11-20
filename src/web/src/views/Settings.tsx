@@ -23,9 +23,16 @@ import { lazyView } from '../ui/lazy';
 import omLogo from '../assets/onemap/onemap-logo.png';
 import omLogo2x from '../assets/onemap/onemap-logo@2x.png';
 import { showUpdBar } from '../pwa/launch';
+import { isAndroidBrowser, newer } from '../m6/core';
 
 // 6f.3 L3: the update bar also sits at the top of the Settings list (lazy launch chunk, shared with H1).
 const UpdateBar = lazyView(() => import('./launch').then((m) => m.UpdateBar));
+// M6 (6h.8, 6h.10): update notice + native rows (app), Get-the-app card (web on Android).
+const m6Views = () => import('./m6');
+const UpdateNotice = lazyView(() => m6Views().then((m) => m.UpdateNotice), { idle: false });
+const GetAppCard = lazyView(() => m6Views().then((m) => m.GetAppCard), { idle: false });
+const NativeAppRows = lazyView(() => m6Views().then((m) => m.NativeAppRows), { idle: false });
+const VersionRow = lazyView(() => m6Views().then((m) => m.VersionRow), { idle: false });
 
 const NAME_MAX = 20;
 export const isStandalone = () => typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches;
@@ -132,7 +139,8 @@ function VoiceRows() {
 }
 
 export function SettingsScreen() {
-  const { store, router, flags } = useServices();
+  const { store, router, flags, platform } = useServices();
+  const native = !!platform.capabilities.native;
   const t = useT();
   const t5 = useT5();
   const s = store.settings.value;
@@ -147,6 +155,8 @@ export function SettingsScreen() {
           {t('settings')}
         </h1>
         {showUpdBar.value && <UpdateBar />}
+        {native && <UpdateNotice />}
+        {isAndroidBrowser(undefined, native) && <GetAppCard />}
         <HomeConfirm />
         {/* 6f.7 L7: the final 1.0 order — Me · Display · Travel · Privacy · This app. */}
         <h2 class="grp">{t('grp_me')}</h2>
@@ -177,14 +187,19 @@ export function SettingsScreen() {
         </div>
         <h2 class="grp">{t('grp_app')}</h2>
         <div class="opts">
-          {!isStandalone() && <Row icon="install" label={t('install')} testid="row-install" onClick={() => router.openSheet('install')} />}
+          {native && <NativeAppRows />}
+          {!native && !isStandalone() && <Row icon="install" label={t('install')} testid="row-install" onClick={() => router.openSheet('install')} />}
           <Row icon="qr" label={t('fam_setup')} testid="row-setup" onClick={() => router.navigate('/setup/start')} />
           <Row icon="report" label={t('report')} testid="report" onClick={() => router.openSheet('report')} />
           <Row icon="info" label={t('about_row')} testid="row-about" onClick={() => router.navigate('/about')} />
         </div>
-        <p class="t-caption" data-testid="version">
-          {t('version', { v: APP_VERSION })}
-        </p>
+        {native && newer.value ? (
+          <VersionRow />
+        ) : (
+          <p class="t-caption" data-testid="version">
+            {t('version', { v: APP_VERSION })}
+          </p>
+        )}
       </main>
     </>
   );

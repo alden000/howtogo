@@ -177,6 +177,18 @@ Errors:
 
 Storage: `{box:{state,expiresAt}, ct}` only. The alarm deletes `ct` at 24 h whether used or not, keeps the content-free tombstone (`used`/`expired`) for 7 days so the app can show the right message, then deletes everything. The code and ciphertext are never logged.
 
+## Android distribution (M6 AC 38–40, OQ3)
+Not under `/api/`; no rate limit. Source of truth: `src/android/release-history.json` (bundled into the Worker at build time; `releases` newest LAST, each `{versionName, versionCode, date: "YYYY-MM-DD", size: <bytes>, sha256: "<64 lower-case hex>"}`). A release is **available** only when the last entry is valid AND the optional R2 binding `DL` (bucket `howtogo-dl`, production only) holds `howtogo-<versionName>.apk`.
+
+### GET /android/latest.json
+`200 {"versionName":"1.0.1","versionCode":1000100,"sha256":"…","size":1694285,"date":"2026-12-01"}`, `Cache-Control: public, max-age=300`. Not available → `404 {"error":"not_available"}` (`max-age=60`). CORS and security headers as the API (the app WebView origin `https://localhost` is in `ALLOWED_ORIGINS`); `OPTIONS` preflight as the API.
+
+### GET /android/howtogo-<versionName>.apk
+Streams the object `howtogo-<versionName>.apk` from `DL`, only for versionNames in the history. `Content-Type: application/vnd.android.package-archive`, `Content-Disposition: attachment; filename="howtogo-<v>.apk"`, `Content-Length`, `ETag`, `X-Content-Type-Options: nosniff`, `Cache-Control: public, max-age=31536000, immutable`; `Range` → `206` + `Content-Range`; `HEAD` supported. Unknown version, no binding, missing object or R2 error → `404`.
+
+### GET /android (and /android/)
+The W-A download page (STYLE-GUIDE 6h.9), server-rendered: `?lang=zh|en` else `Accept-Language`, `?from=<x.y.z>` adds the update line, iPhone/iPad/iPod UA → the iPhone state, unavailable → "download not available". `X-Robots-Tag: noindex, nofollow`, `Referrer-Policy: no-referrer`, CSP `default-src 'none'` with a per-response nonce for its one style and one script, no third-party requests (QR code drawn server-side). Production redirects workers.dev to the custom domain like other pages. Other `/android/*` paths → `404`.
+
 ## Fixture mode (AC 21, dev/QA only)
 With `FIXTURE_MODE=1` (`npm run dev:fixtures -w @howtogo/worker`, i.e. `wrangler dev --var FIXTURE_MODE:1`) no credentials are needed and nothing is sent upstream. Input validation still applies. Responses carry `X-Fixture: 1` and `Cache-Control: no-store`.
 - `/api/route`: one of 5 SYNTHETIC OneMap plans (3 from `@howtogo/shared/fixtures`, 2 in `src/worker/fixtures/trips.ts`): Toa Payoh → TTSH, Bishan → Raffles Place, Ang Mo Kio → TTSH, Jurong East → NUH, Bedok → Changi General Hospital. The trip whose destination (then origin) is nearest the request is picked (`X-Fixture-Trip: <name>`) and re-timed to start at the requested date/time.

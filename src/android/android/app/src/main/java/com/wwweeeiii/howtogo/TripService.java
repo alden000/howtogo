@@ -47,6 +47,7 @@ public class TripService extends Service {
     static final String ACTION_START = "com.wwweeeiii.howtogo.trip.START";
     static final String ACTION_LEG = "com.wwweeeiii.howtogo.trip.LEG";
     static final String ACTION_ACK = "com.wwweeeiii.howtogo.trip.ACK";
+    static final String ACTION_DISMISS_INFO = "com.wwweeeiii.howtogo.trip.DISMISS_INFO";
     static final String PREFS = "trip";
     static final String PREF_ACTIVE = "active";
 
@@ -57,7 +58,7 @@ public class TripService extends Service {
     private FusedLocationProviderClient fused;
     private LocationManager lm;
     private boolean usePlay;
-    private String title = "", body = "", stopLabel = "结束", lang = "zh-CN";
+    private String title = "", leg = "walk", lang = "zh-CN";
     private TripLogic.Profile profile = TripLogic.profileFor("walk", null, false);
     private boolean updating = false;
     private long lastFixT = 0;
@@ -100,7 +101,7 @@ public class TripService extends Service {
         usePlay = hasPlayServices(this);
         if (usePlay) fused = LocationServices.getFusedLocationProviderClient(this);
         lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Cues.createChannels(this);
+        Cues.createChannels(this, Cues.channelLang(this));
         Speaker.get(this); // warm up the engine
     }
 
@@ -113,10 +114,10 @@ public class TripService extends Service {
         }
         switch (action) {
             case ACTION_START:
-                title = nz(intent.getStringExtra("title"), title);
-                body = TripLogic.clip(intent.getStringExtra("body"), 80);
-                stopLabel = nz(intent.getStringExtra("stopLabel"), stopLabel);
+                title = TripLogic.clip(nz(intent.getStringExtra("title"), ""), 80);
                 lang = nz(intent.getStringExtra("lang"), lang);
+                leg = nz(intent.getStringExtra("leg"), "walk");
+                Cues.createChannels(this, lang);
                 profile = TripLogic.profileFor(intent.getStringExtra("leg"), null, false);
                 // startForeground within 5 s, with the manifest's type.
                 ServiceCompat.startForeground(this, Cues.ID_TRIP, buildOngoing(),
@@ -128,11 +129,18 @@ public class TripService extends Service {
                 Log.i(TAG, "trip:service-start " + profile + (usePlay ? " fused" : " lm"));
                 break;
             case ACTION_LEG: {
-                String leg = intent.getStringExtra("leg");
+                leg = nz(intent.getStringExtra("leg"), "walk");
                 int sl = intent.getIntExtra("stopsLeft", -1);
                 TripLogic.Profile p = TripLogic.profileFor(leg, sl < 0 ? null : sl, intent.getBooleanExtra("lowBattery", false));
-                String b = intent.getStringExtra("body");
-                if (b != null) body = TripLogic.clip(b, 80);
+                // 6h.7: title = step short text (web layer, no destination names); text follows the leg kind.
+                String tt = intent.getStringExtra("title");
+                if (tt == null) tt = intent.getStringExtra("body");
+                if (tt != null) title = TripLogic.clip(tt, 80);
+                String l = intent.getStringExtra("lang");
+                if (l != null && !l.equals(lang)) {
+                    lang = l;
+                    Cues.createChannels(this, lang);
+                }
                 // Re-posting also restores the ongoing notification after an Android 14+ swipe-dismissal (AC 13).
                 getSystemService(NotificationManager.class).notify(Cues.ID_TRIP, buildOngoing());
                 if (!p.equals(profile)) {
@@ -152,6 +160,9 @@ public class TripService extends Service {
                 }
                 break;
             }
+            case ACTION_DISMISS_INFO:
+                getSystemService(NotificationManager.class).cancel(Cues.ID_INFO);
+                break;
             default:
                 break;
         }
@@ -221,20 +232,7 @@ public class TripService extends Service {
     }
 
     private Notification buildOngoing() {
-        return new NotificationCompat.Builder(this, Cues.CH_TRIP)
-            .setSmallIcon(R.drawable.ic_stat_trip)
-            .setContentTitle(title.isEmpty() ? TripLogic.ongoingTitle(lang) : title)
-            .setContentText(body)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setSilent(true)
-            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .setContentIntent(Cues.openApp(this, null, 1))
-            // OQ7: Stop opens the app on the End-trip confirm (pocket taps are the risk); it never ends at once.
-            .addAction(0, stopLabel, Cues.openApp(this, Cues.ACTION_OPEN_STOP, 2))
-            .build();
+        return Cues.ongoing(this, title, leg, lang);
     }
 
     @Override

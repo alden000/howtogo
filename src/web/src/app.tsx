@@ -69,6 +69,18 @@ const launchViews = () => import('./views/launch');
 const WhatsNewSheet = lazyView(() => launchViews().then((m) => m.WhatsNewSheet));
 const InstallGuideSheet = lazyView(() => launchViews().then((m) => m.InstallGuideSheet));
 const IabHelpSheet = lazyView(() => launchViews().then((m) => m.IabHelpSheet));
+// M6 (6h): native-only frames (idle: false — the web build never needs them).
+const m6Views = () => import('./views/m6');
+const m6 = <K extends keyof Awaited<ReturnType<typeof m6Views>>>(k: K) => lazyView(() => m6Views().then((m) => m[k] as never), { idle: false });
+const LocExplainNative = m6('LocExplainNative');
+const LocDeniedNative = m6('LocDeniedNative');
+const LocApproxSheet = m6('LocApproxSheet');
+const NotifySheet = m6('NotifySheet');
+const DndSheet = m6('DndSheet');
+const NoVoiceSheet = m6('NoVoiceSheet');
+const BrandSheet = m6('BrandSheet');
+const BatteryGuideSheet = m6('BatteryGuideSheet');
+const BatteryGuideScreen = m6('BatteryGuideScreen');
 
 /** D-10: screens that show route data get the sample-routes banner while the Worker is in fixture mode. */
 const SAMPLE_SCREENS = new Set(['home', 'search', 'routes']);
@@ -98,6 +110,7 @@ export function App() {
     [],
   );
   const sheet = router.sheet.value;
+  const native = !!platform.capabilities.native;
   const depth = router.depth.value;
   useEffect(() => connectivityToasts(t), [t]);
   // Screen push/pop (§2): direction from the in-app history depth; the key remounts the screen so it animates in.
@@ -195,6 +208,9 @@ export function App() {
     case 'setup':
       view = <SetupFamily />;
       break;
+    case 'battery':
+      view = platform.capabilities.native ? <BatteryGuideScreen /> : null;
+      break;
     case 'places':
       view = <PlacesScreen />;
       break;
@@ -248,8 +264,14 @@ export function App() {
           }}
         />
       )}
-      {sheet === 'loc-explain' && <LocExplainSheet />}
-      {sheet === 'loc-denied' && <LocDeniedSheet />}
+      {sheet === 'loc-explain' && (native ? <LocExplainNative /> : <LocExplainSheet />)}
+      {sheet === 'loc-denied' && (native ? <LocDeniedNative /> : <LocDeniedSheet />)}
+      {native && sheet === 'loc-approx' && <LocApproxSheet />}
+      {native && sheet === 'm6-notify' && <NotifySheet />}
+      {native && sheet === 'm6-dnd' && <DndSheet />}
+      {native && sheet === 'm6-novoice' && <NoVoiceSheet />}
+      {native && sheet === 'm6-brand' && <BrandSheet />}
+      {native && sheet === 'battery-guide' && <BatteryGuideSheet />}
       {sheet === 'name' && <NameSheet />}
       {sheet === 'home' && <HomeSheet />}
       {sheet === 'place-rename' && <PlaceRenameSheet />}

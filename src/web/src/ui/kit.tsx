@@ -18,7 +18,9 @@ export type IconName =
   // §6d.10 / §6e.9 icons approved with the M3/M4 frames (+ msg from §1.4):
   | 'seat' | 'stand' | 'full' | 'wheelchair' | 'wheelchair-no' | 'deck2' | 'train-off' | 'card' | 'copy' | 'edit' | 'qr' | 'msg'
   // M5 UI-1: 6f.10 leaf (battery saver), creative/m5/icons.svg
-  | 'leaf';
+  | 'leaf'
+  // M6 6h.11 (creative/m6/icons.svg): battery guide, notifications off, the Android app
+  | 'battery' | 'bell-off' | 'smartphone';
 
 /** Icon paths copied from the prototype's <symbol>s (24px grid, 2.2px stroke). */
 const PATHS: Record<IconName, string> = {
@@ -76,6 +78,9 @@ const PATHS: Record<IconName, string> = {
   edit: '<path d="M4 20h4.2L19.5 8.7l-4.2-4.2L4 15.8zM13.5 6.3l4.2 4.2"/>',
   qr: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2.5v2.5H14zM20 14v.5M20 20h-3.5M14 20v-.5"/>',
   msg: '<path d="M4 5h16v11H9l-5 4z"/>',
+  battery: '<rect x="3" y="7.5" width="16" height="9" rx="2"/><path d="M21.5 10.5v3M6.5 10.5v3M9.5 10.5v3"/>',
+  'bell-off': '<path d="M8.2 6.4A6 6 0 0 1 18 11v4.2M18 18H4.5L6 16v-5c0-.6.1-1.2.3-1.8"/><path d="M10 20.5a2 2 0 0 0 4 0"/><path d="M3.5 3.5l17 17"/>',
+  smartphone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
 };
 
 /** One hidden sprite per page; icons reference it with <use>. */

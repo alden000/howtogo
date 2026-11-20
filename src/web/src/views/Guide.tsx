@@ -43,6 +43,8 @@ import {
 /** `tick` haptic for UI-only moments (the runtime gives every other haptic). */
 export { useTick, dwellLabel } from './viewUtil';
 import { useTick, dwellLabel } from './viewUtil';
+import { m6t, type M6Key } from '../i18n/m6';
+import { enVoice, killed as m6killed } from '../m6/core';
 
 const placeOf = (s: Step | undefined): string => String(s?.params.dest ?? s?.params.stop ?? '');
 const focusHeadline = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-testid="current-step"]')?.focus());
@@ -126,7 +128,12 @@ function Live({ trip, t }: { trip: ActiveTrip; t: TFn }) {
   useEffect(() => {
     if (ui.reroute !== 'searching' && ui.reroute !== 'found') rerouteAvoid.value = null;
   }, [ui.reroute]);
-  const note = pickNote(ui, { online: online.value, foundYou, noVoiceDismissed: noVoiceOff });
+  const { platform: plat } = useServices();
+  const native = !!plat.capabilities.native;
+  useEffect(() => {
+    if (native) void plat.speech.voices().then((v) => (enVoice.value = v.en)).catch(() => {});
+  }, []);
+  const note = pickNote(ui, { online: online.value, foundYou, noVoiceDismissed: noVoiceOff, native, killed: m6killed.value });
   useStateHook(note ? `note-${note}` : null);
 
   // ---- follow-me
@@ -471,10 +478,92 @@ const NOTE: Record<NoteId, { icon: IconName; title: Parameters<TFn>[0]; line?: P
   'notify-ask': { icon: 'bell', title: 'note_notify_ask' },
   'notify-denied': { icon: 'bell', title: 'note_notify_denied', line: 'note_notify_denied_s' },
   novoice: { icon: 'mute', title: 'note_novoice_zh' },
+  killed: { icon: 'battery', title: 'note_novoice_zh' },
 };
 
+/** M6 notes inside the app (6h.3 A5, 6h.4 B3, 6h.5 C1 native copy). */
+function NativeNote({ id, trip, onNoVoiceOff }: { id: NoteId; trip: ActiveTrip; onNoVoiceOff: () => void }) {
+  const s = useServices();
+  const { runtime, router, platform, store } = s;
+  const L = (k: M6Key) => m6t(store.settings.value.lang, k);
+  if (id === 'notify-denied')
+    return (
+      <div class="tripnote" role="status" data-testid="trip-note-notify" data-note={id}>
+        <Icon name="bell-off" />
+        <div class="tx">
+          <b>{L('a5_t')}</b>
+          <span>{L('a5_s')}</span>
+        </div>
+        <button type="button" class="iconbtn x" data-testid="trip-note-close" aria-label={L('ok_sr')} onClick={() => runtime.dismissNotifyNote()}>
+          <Icon name="close" />
+        </button>
+        <div class="bacts">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-testid="note-notify-on"
+            onClick={() => {
+              void import('./m6').then((m) => {
+                const off = m.watchNotifyReturn(s, () => {
+                  off();
+                  runtime.dismissNotifyNote();
+                });
+              });
+              void platform.device?.openSettings('notifications');
+            }}
+          >
+            {L('a5_btn')}
+          </button>
+        </div>
+      </div>
+    );
+  if (id === 'killed')
+    return (
+      <div class="tripnote" role="status" data-testid="trip-note-killed" data-note={id}>
+        <Icon name="battery" />
+        <div class="tx">
+          <b>{L('b3_t')}</b>
+          <span>{L('b3_s')}</span>
+        </div>
+        <button type="button" class="iconbtn x" data-testid="trip-note-close" aria-label={L('ok_sr')} onClick={() => (m6killed.value = false)}>
+          <Icon name="close" />
+        </button>
+        <div class="bacts">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-testid="note-killed-setup"
+            onClick={() => {
+              m6killed.value = false;
+              router.openSheet('battery-guide');
+            }}
+          >
+            {L('b3_btn')}
+          </button>
+        </div>
+      </div>
+    );
+  // novoice, zh trip: speaking English (6h.5) with the installer link.
+  return (
+    <div class="tripnote" role="status" data-testid="trip-note" data-note={id}>
+      <Icon name="mute" />
+      <div class="tx">
+        <b>{L('c1_note')}</b>
+        <button type="button" class="btn-quiet linkish" data-testid="no-voice-add" onClick={() => void platform.device?.openSettings('tts-install')}>
+          {L('c1_add')}
+        </button>
+      </div>
+      <button type="button" class="iconbtn x" data-testid="trip-note-close" aria-label={L('ok_sr')} onClick={onNoVoiceOff}>
+        <Icon name="close" />
+      </button>
+    </div>
+  );
+}
+
 function TripNote({ id, trip, t, onNoVoiceOff }: { id: NoteId; trip: ActiveTrip; t: TFn; onNoVoiceOff: () => void }) {
-  const { runtime, router } = useServices();
+  const { runtime, router, platform } = useServices();
+  if (platform.capabilities.native && (id === 'notify-denied' || id === 'killed' || (id === 'novoice' && trip.lang === 'zh-CN' && enVoice.value)))
+    return <NativeNote id={id} trip={trip} onNoVoiceOff={onNoVoiceOff} />;
   const n = NOTE[id];
   const title = id === 'novoice' && trip.lang === 'en-SG' ? t('note_novoice_en') : t(n.title);
   const reroute = id === 'reroute-failed' || id === 'reroute-offline';

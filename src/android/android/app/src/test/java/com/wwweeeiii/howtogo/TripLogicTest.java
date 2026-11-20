@@ -165,4 +165,37 @@ public class TripLogicTest {
     public void distance() {
         assertEquals(111.3, TripLogic.distanceM(1.34, 103.85, 1.34, 103.851), 1.0);
     }
+
+    @Test
+    public void channelCopyFollowsAppLanguage() {
+        // STYLE-GUIDE 6h.7 channel table
+        assertEquals("行程进行中", TripLogic.channelName("trip", "zh-CN"));
+        assertEquals("Trip in progress", TripLogic.channelName("trip", "en-SG"));
+        assertEquals("下车提醒", TripLogic.channelName("alerts", "zh"));
+        assertEquals("Get-off alerts", TripLogic.channelName("alerts", "en"));
+        assertEquals("到达和分享", TripLogic.channelName("info", "zh-CN"));
+        assertEquals("Arrival and sharing", TripLogic.channelName("info", "en-SG"));
+        assertEquals("坐车、走路时一直显示现在这一步。", TripLogic.channelDescription("trip", "zh-CN"));
+        assertEquals("Tells you when to get off. Please keep this on.", TripLogic.channelDescription("alerts", "en-SG"));
+        assertEquals("到了、分享停了、走了另一条路时告诉你。", TripLogic.channelDescription("info", "zh-CN"));
+        assertEquals("Tells you when you arrive, when sharing stops, or when you take another way.", TripLogic.channelDescription("info", "en"));
+        assertEquals("到站前提醒你下车。请不要关掉。", TripLogic.channelDescription("alerts", null)); // default zh
+    }
+
+    @Test
+    public void ongoingAndActionCopy() {
+        assertEquals("下车前我会提醒你。", TripLogic.ongoingText("ride", "zh-CN"));
+        assertEquals("I'll tell you before your stop.", TripLogic.ongoingText("ride", "en-SG"));
+        assertEquals("跟着屏幕走就好。", TripLogic.ongoingText("walk", "zh-CN"));
+        assertEquals("Just follow the screen.", TripLogic.ongoingText("wait", "en-SG"));
+        assertEquals("Just follow the screen.", TripLogic.ongoingText("last_walk", "en-SG"));
+        assertEquals("行程进行中", TripLogic.ongoingTitle("zh-CN"));
+        assertEquals("结束行程", TripLogic.endTripLabel("zh-CN"));
+        assertEquals("End trip", TripLogic.endTripLabel("en-SG"));
+        assertEquals("知道了", TripLogic.okLabel("zh-CN"));
+        assertEquals("OK", TripLogic.okLabel("en-SG"));
+        assertEquals(600_000L, TripLogic.ARRIVAL_TIMEOUT_MS);
+        // The step title never carries coordinates even if a caller slips one in.
+        assertEquals("坐 139 号 · 还有 3 站", TripLogic.clip("坐 139 号 · 还有 3 站 1.35210, 103.81980", 80));
+    }
 }

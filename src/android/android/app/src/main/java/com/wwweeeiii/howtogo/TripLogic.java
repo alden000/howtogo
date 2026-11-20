@@ -115,6 +115,50 @@ public final class TripLogic {
         return lang != null && lang.startsWith("en") ? "Trip in progress" : "行程进行中";
     }
 
+    // ---------------------------------------------------------------- notification copy (STYLE-GUIDE 6h.7)
+    static boolean en(String lang) {
+        return lang != null && lang.startsWith("en");
+    }
+
+    /** Channel name, zh / en per the app language. Unknown id → the id itself. */
+    public static String channelName(String id, String lang) {
+        boolean e = en(lang);
+        switch (id) {
+            case "trip": return e ? "Trip in progress" : "行程进行中";
+            case "alerts": return e ? "Get-off alerts" : "下车提醒";
+            case "info": return e ? "Arrival and sharing" : "到达和分享";
+            default: return id;
+        }
+    }
+
+    public static String channelDescription(String id, String lang) {
+        boolean e = en(lang);
+        switch (id) {
+            case "trip": return e ? "Shows your current step while you travel." : "坐车、走路时一直显示现在这一步。";
+            case "alerts": return e ? "Tells you when to get off. Please keep this on." : "到站前提醒你下车。请不要关掉。";
+            case "info": return e ? "Tells you when you arrive, when sharing stops, or when you take another way." : "到了、分享停了、走了另一条路时告诉你。";
+            default: return "";
+        }
+    }
+
+    /** Ongoing notification text under the step title: ride → the stop promise; walk / wait → follow the screen. */
+    public static String ongoingText(String leg, String lang) {
+        boolean e = en(lang);
+        if ("ride".equals(leg)) return e ? "I'll tell you before your stop." : "下车前我会提醒你。";
+        return e ? "Just follow the screen." : "跟着屏幕走就好。";
+    }
+
+    public static String endTripLabel(String lang) {
+        return en(lang) ? "End trip" : "结束行程";
+    }
+
+    public static String okLabel(String lang) {
+        return en(lang) ? "OK" : "知道了";
+    }
+
+    /** Arrival notifications time out after 10 min (6h.7). */
+    public static final long ARRIVAL_TIMEOUT_MS = 10 * 60 * 1000L;
+
     // ---------------------------------------------------------------- distance
     public static double distanceM(double lat1, double lng1, double lat2, double lng2) {
         double r = 6_371_000d;

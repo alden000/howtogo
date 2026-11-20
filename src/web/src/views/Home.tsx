@@ -19,6 +19,9 @@ const SetupUndo = lazyView(() => import('./family').then((m) => m.SetupUndo));
 const launch = () => import('./launch');
 const LaunchTop = lazyView(() => launch().then((m) => m.LaunchTop));
 const LaunchCard = lazyView(() => launch().then((m) => m.LaunchCard));
+// M6 (6h.8 D1, 6h.4 B3): native only — the update notice and the "phone closed 怎么去" bar, never during a trip.
+const UpdateNotice = lazyView(() => import('./m6').then((m) => m.UpdateNotice), { idle: false });
+const KilledBar = lazyView(() => import('./m6').then((m) => m.KilledBar), { idle: false });
 
 import { family } from '../state/family';
 import { refreshAlerts, refreshLifts } from '../transit/live';
@@ -46,6 +49,7 @@ export function Home() {
   const home = store.places.value.home;
   const others = store.places.value.others;
   const trip = store.trip.value;
+  const native = !!platform.capabilities.native;
   const recents = store.recents.value;
   const near = here.value;
   const plan = store.plan.value;
@@ -149,6 +153,8 @@ export function Home() {
       </header>
       <main class="scroll">
         <LaunchTop />
+        {native && !trip && <UpdateNotice />}
+        {native && !trip && <KilledBar />}
         <SetupUndo />
         <DisruptionBanner where="home" />
         <HomeConfirm />

@@ -44,7 +44,7 @@ export function minutesLeft(remainingS: number): number {
 
 // ------------------------------------------------------------------ trip notes (6c.10)
 
-export type NoteId = 'reroute-failed' | 'reroute-offline' | 'notify-ask' | 'offline' | 'weak' | 'manual' | 'found-you' | 'wakelock' | 'notify-denied' | 'novoice';
+export type NoteId = 'reroute-failed' | 'reroute-offline' | 'notify-ask' | 'offline' | 'weak' | 'manual' | 'found-you' | 'wakelock' | 'notify-denied' | 'novoice' | 'killed';
 
 /**
  * One note at a time, by priority: re-route failed/offline > notification explainer (only while the
@@ -53,16 +53,22 @@ export type NoteId = 'reroute-failed' | 'reroute-offline' | 'notify-ask' | 'offl
  */
 export function pickNote(
   ui: Pick<TripUi, 'reroute' | 'gpsWeak' | 'manual' | 'wakeLockFailed' | 'noVoice'> & Partial<Pick<TripUi, 'notify'>>,
-  o: { online: boolean; foundYou: boolean; noVoiceDismissed: boolean },
+  o: { online: boolean; foundYou: boolean; noVoiceDismissed: boolean; native?: boolean; killed?: boolean },
 ): NoteId | null {
   if (ui.reroute === 'failed') return 'reroute-failed';
   if (ui.reroute === 'offline') return 'reroute-offline';
   if (ui.notify === 'asking') return 'notify-ask';
   if (!o.online) return 'offline';
   if (ui.gpsWeak && !ui.manual) return 'weak';
+  // M6 6h.3 A5: in the app the notifications-off note comes after weak GPS, before manual mode; the app never
+  // shows the wake-lock note (6h.10). 6h.4 B3: the "phone closed 怎么去" note once on the resumed trip.
+  if (o.native) {
+    if (ui.notify === 'denied') return 'notify-denied';
+    if (o.killed) return 'killed';
+  }
   if (ui.manual) return 'manual';
   if (o.foundYou) return 'found-you';
-  if (ui.wakeLockFailed) return 'wakelock';
+  if (ui.wakeLockFailed && !o.native) return 'wakelock';
   if (ui.notify === 'denied') return 'notify-denied';
   if (ui.noVoice && !o.noVoiceDismissed) return 'novoice';
   return null;

@@ -29,6 +29,7 @@ export const STORAGE_KEYS = {
     'helpshare.v1', // a Help-only live share (id + owner token) while it lasts
     'notify.asked', // the notification prompt was shown once
     'm6.batteryGuideSeen', // Android app: OEM battery guide shown
+    'm6.flags', // Android app: one-time sheets shown, brand picked, update-notice day; web: Get-the-app card dismissed
     'telemetry.v1', // M5 §I pending anonymous error COUNTS (code, screen, n) + the day's send budget
     // M5 UI-2
     'install.v1', // install card: completed route views count, dismissals, snooze-until date, installed (no UA)

@@ -4,13 +4,21 @@ import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.PluginHandle;
+import androidx.core.content.ContextCompat;
+import androidx.core.splashscreen.SplashScreen;
 
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // Local (in-app) plugins must be registered before super.onCreate.
         registerPlugin(TripPlugin.class);
+        // STYLE-GUIDE 6h.1: SplashScreen API (backported to API 24), then AppTheme.NoActionBar.
+        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
+        // c-canvas of the current theme behind the WebView: no white flash between splash and H1 in dark mode.
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().setBackgroundColor(ContextCompat.getColor(this, R.color.splash_background));
+        }
         route(getIntent());
     }
 

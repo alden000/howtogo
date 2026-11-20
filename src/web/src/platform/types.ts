@@ -89,6 +89,8 @@ export interface NotifyCue {
   priority: CuePriority;
   /** M6: get-off alerts carry their id so the lock-screen "知道了" acknowledges the right one. */
   alertId?: string;
+  /** M6 6h.7: which notification layout (channel, actions, haptic, timeout) the native side uses. */
+  kind?: 'getoff-next' | 'getoff-now' | 'offroute' | 'arrival' | 'share-ended';
 }
 
 export type ShareOutcome = 'shared' | 'copied' | 'cancelled' | 'failed';
@@ -169,6 +171,10 @@ export interface LegHint {
   lowBattery: boolean;
   /** Ongoing-notification line ("current step short text"), no coordinates. */
   body: string;
+  /** M6 6h.7: ongoing-notification title = the step short text (no destination/contact names). */
+  title?: string;
+  /** App language: the native side follows it for the ongoing text, actions and channel names. */
+  lang?: 'zh-CN' | 'en-SG';
 }
 
 /** A native backup get-off alert (M6 AC 17). id = `trip:step:kind`. */
@@ -220,6 +226,16 @@ export interface DeviceInfo {
   playServices: boolean;
   /** The trip service died with the process during the last trip (AC 30). Reported once per launch. */
   lastTripKilled: boolean;
+  /** M6 UI (6h.2): FINE / COARSE granted; Capacitor state ('denied' only after "don't ask again"). */
+  fineLocation?: boolean;
+  coarseLocation?: boolean;
+  locationState?: string;
+  /** 6h.3: notifications on (any Android version) and Do Not Disturb would silence get-off alerts. */
+  notificationsEnabled?: boolean;
+  dndBlocks?: boolean;
+  /** 6h.8 D1: the installed app version. */
+  versionName?: string;
+  versionCode?: number;
 }
 
 export type SettingsTarget = 'app' | 'battery' | 'notifications' | 'alerts-channel' | 'tts-install';
@@ -231,6 +247,8 @@ export interface DeviceApi {
   /** AC 24: the router's depth after every navigation; at 0 the system owns Back (predictive back-to-home). */
   setBackDepth(depth: number): void;
   onBack(cb: () => void): Unsubscribe;
+  /** 6h.8 D1 / 6h.6 C2: open an https: or market: URL outside the WebView (external browser / store). */
+  openUrl?(url: string): Promise<boolean>;
 }
 
 export interface Platform {

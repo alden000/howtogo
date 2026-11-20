@@ -55,7 +55,7 @@ public class TripPlugin extends Plugin implements TripService.Listener {
     @Override
     public void load() {
         TripService.listener = this;
-        Cues.createChannels(getContext());
+        Cues.createChannels(getContext(), Cues.channelLang(getContext()));
         // A trip flag still set while no service runs = the process died during the last trip (AC 30).
         if (!TripService.running) {
             lastTripKilled = getContext().getSharedPreferences(TripService.PREFS, Context.MODE_PRIVATE).getBoolean(TripService.PREF_ACTIVE, false);
@@ -217,6 +217,8 @@ public class TripPlugin extends Plugin implements TripService.Listener {
         i.putExtra("stopsLeft", sl == null ? -1 : sl);
         i.putExtra("lowBattery", call.getBoolean("lowBattery", false));
         if (call.getString("body") != null) i.putExtra("body", call.getString("body"));
+        if (call.getString("title") != null) i.putExtra("title", call.getString("title"));
+        if (call.getString("lang") != null) i.putExtra("lang", call.getString("lang"));
         sendIfRunning(i);
         call.resolve();
     }
@@ -313,10 +315,14 @@ public class TripPlugin extends Plugin implements TripService.Listener {
         Context c = getContext();
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         String title = call.getString("title", ""), body = call.getString("body", "");
+        String lang = call.getString("lang", "zh-CN"), kind = call.getString("kind", "");
+        Cues.createChannels(c, lang);
         if ("high".equals(call.getString("priority"))) {
-            nm.notify(Cues.ID_ALERT, Cues.alert(c, call.getString("alertId", ""), title, body, call.getString("lang", "zh-CN")));
+            nm.notify(Cues.ID_ALERT, Cues.alert(c, call.getString("alertId", ""), title, body, lang));
         } else {
-            nm.notify(Cues.ID_INFO, Cues.info(c, title, body));
+            nm.notify(Cues.ID_INFO, Cues.info(c, kind, title, body, lang));
+            // 6h.7: off-route uses the gentle pattern (getoff stays unique to get-off alerts, D21).
+            if ("offroute".equals(kind)) Cues.vibrate(c, "gentle");
         }
         call.resolve();
     }
@@ -349,6 +355,22 @@ public class TripPlugin extends Plugin implements TripService.Listener {
         r.put("batteryUnrestricted", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName())));
         r.put("playServices", TripService.hasPlayServices(c));
         r.put("tripRunning", TripService.running);
+        // M6 UI (6h.2 A3/A4): precise vs approximate, and "don't ask again" (Capacitor reports DENIED only then).
+        r.put("fineLocation", ContextCompat.checkSelfPermission(c, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+        r.put("coarseLocation", ContextCompat.checkSelfPermission(c, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+        r.put("locationState", getPermissionState("location").toString());
+        // 6h.3 A5/A6: notifications on at all, and whether Do Not Disturb would silence get-off alerts.
+        r.put("notificationsEnabled", NotificationManagerCompat.from(c).areNotificationsEnabled());
+        r.put("dndBlocks", dndBlocks(c));
+        // 6h.8 D1: the installed version, compared with /android/latest.json.
+        try {
+            android.content.pm.PackageInfo pi = c.getPackageManager().getPackageInfo(c.getPackageName(), 0);
+            r.put("versionName", pi.versionName == null ? "" : pi.versionName);
+            r.put("versionCode", Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : (long) pi.versionCode);
+        } catch (Exception e) {
+            r.put("versionName", "");
+            r.put("versionCode", 0);
+        }
         if (!killedChecked) {
             killedChecked = true;
             r.put("lastTripKilled", lastTripKilled);
@@ -356,6 +378,37 @@ public class TripPlugin extends Plugin implements TripService.Listener {
             r.put("lastTripKilled", false);
         }
         call.resolve(r);
+    }
+
+    /** DND is on (anything but "all") and the alerts channel may not bypass it. */
+    static boolean dndBlocks(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return false;
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (nm == null) return false;
+        int f = nm.getCurrentInterruptionFilter();
+        if (f == NotificationManager.INTERRUPTION_FILTER_ALL || f == NotificationManager.INTERRUPTION_FILTER_UNKNOWN) return false;
+        android.app.NotificationChannel ch = nm.getNotificationChannel(Cues.CH_ALERT);
+        return ch == null || !ch.canBypassDnd();
+    }
+
+    /**
+     * 6h.8 D1 / 6h.6 C2: open a page in the external browser (the APK download must reach the system installer)
+     * or a store page. Only https: and market: URLs.
+     */
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        String url = call.getString("url", "");
+        if (!(url.startsWith("https://") || url.startsWith("market://"))) {
+            call.reject("unsupported url", "unsupported");
+            return;
+        }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getActivity().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("no app for url", "unavailable");
+        }
     }
 
     /** target: app | battery | notifications | alerts-channel | tts-install */

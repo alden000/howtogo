@@ -129,7 +129,7 @@ export async function createNativePlatform(web: Platform, cap: CapacitorBridge |
           leg: 'walk',
           title: en ? 'Trip in progress' : '行程进行中',
           body: '',
-          stopLabel: en ? 'Stop' : '结束',
+          stopLabel: en ? 'End trip' : '结束行程',
           lang: en ? 'en-SG' : 'zh-CN',
         });
       } catch (e) {
@@ -231,6 +231,7 @@ export async function createNativePlatform(web: Platform, cap: CapacitorBridge |
       void call('toggleBackButtonHandler', { enabled }, APP).catch(() => {});
     },
     onBack: (cb) => listen<unknown>('backButton', () => cb(), APP),
+    openUrl: (url) => call('openUrl', { url }).then(() => true, () => false),
   };
 
   const p: Platform = {

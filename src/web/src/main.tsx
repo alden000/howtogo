@@ -132,6 +132,11 @@ async function boot() {
     platform = createDemoPlatform(web, fake);
   }
 
+  if (mock) {
+    if (q.get('m6') !== null) session.set('mode.m6', q.get('m6')!);
+    const spec = session.get('mode.m6');
+    if (spec) platform = (await import('./platform/m6fake')).createM6Fake(platform, spec);
+  }
   // M5 AC 17d: migrate stored data to this build's schema BEFORE anything reads it.
   const mig = runMigrations(local);
   if (mig.ran.length) log(`storage:migrated ${mig.from}->${mig.to}`);
@@ -232,6 +237,8 @@ async function boot() {
     router.openSheet('end-trip');
   });
 
+  // M6 (6h): device report, daily update check (D1). Mock QA hook `?m6=…` fakes the native app (platform/m6fake.ts).
+  if (platform.capabilities.native) void import('./m6/core').then((m) => m.initNative(platform, nativeApp ? apiBase : location.origin));
   const services: Services = { store, router, api, platform, runtime, mode: { demo, mock }, flags };
   render(
     <ServicesContext.Provider value={services}>
@@ -292,4 +299,5 @@ async function boot() {
   if (mock) (window as unknown as { __howtogoPreload?: () => Promise<unknown> }).__howtogoPreload = preloadViews;
 }
 
-void boot();
+// M6 6h.6 C2: public/wvcheck.js found a WebView older than Chrome 100 and shows its own screen; the app never loads.
+if (!(window as unknown as { __howtogoWvOld?: boolean }).__howtogoWvOld) void boot();

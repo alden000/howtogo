@@ -1,5 +1,5 @@
 {
-  "note": "M6 AC 33: every RELEASED versionCode, newest last. A new release code must be greater than all of these and than minCode. 0.2.0 (20000, round-1 key, retired) was never released; minCode keeps codes above it.",
+  "note": "M6 AC 33/39: every RELEASED version, newest LAST, as {\"versionName\": \"1.0.1\", \"versionCode\": 20101, \"date\": \"YYYY-MM-DD\", \"size\": <APK bytes>, \"sha256\": \"<64 lower-case hex>\"}. A new release code must be greater than all of these and than minCode. 0.2.0 (20000, round-1 key, retired) was never released; minCode keeps codes above it. The Worker bundles this file: the last entry is /android/latest.json and the /android page (src/worker/src/android.ts); its APK must be uploaded to the R2 bucket howtogo-dl as howtogo-<versionName>.apk before deploying.",
   "minCode": 20000,
   "releases": []
 }

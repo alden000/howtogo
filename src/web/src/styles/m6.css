@@ -1,0 +1,23 @@
+/* M6 frames (STYLE-GUIDE 6h): existing tokens only (no new colour, type, space, radius or motion tokens). */
+.m6col .numsteps li>div{flex:1;min-width:0}
+.sheet .numsteps li>div{flex:1;min-width:0}
+.numsteps .igpic{margin-top:var(--s-2)}
+.sheet>.igpic,.m6col>.igpic{margin:var(--s-2) 0 var(--s-3)}
+/* B1 brand row: c-surface-2, r-m, name + "不是这个？" (56 px) */
+.brandrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:var(--s-3) 0;padding:6px 16px;border-radius:var(--r-m);background:var(--c-surface-2)}
+.brandrow b{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+/* B2 jade-soft status box */
+.m6ok{display:flex;gap:12px;align-items:flex-start;margin:var(--s-3) 0;padding:12px 16px;border-radius:var(--r-m);background:var(--c-jade-soft);color:var(--c-on-jade-soft)}
+.m6ok>svg.i{flex:none;width:28px;height:28px}
+.m6ok p{margin:4px 0 0;color:inherit}
+/* B3 home bar: .updbar look with the jade rule (the banner default) and a button row */
+.m6kill{flex-wrap:wrap;padding-bottom:8px}
+.m6kill .updtx{flex:1 1 100%}
+.m6kill .updtx b{display:block}
+.m6kill .updtx span{font-weight:400}
+.m6kill .btn{flex:1 1 auto;min-height:var(--tap)}
+/* D2 card (§5 card): tile, title, body, buttons */
+.m6card{margin:0 0 var(--s-4)}
+.m6card h2{margin:0 0 var(--s-2);font-size:1.25rem}
+.m6card .bigtile{margin-bottom:var(--s-3)}
+.seg.stack button[role=radio][aria-checked=true]{border-color:var(--c-primary);background:var(--c-primary-soft);color:var(--c-on-primary-soft)}

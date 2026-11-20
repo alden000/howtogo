@@ -137,6 +137,14 @@ service = "whereisthebus-lta-proxy"
 [env.production.observability]
 enabled = false
 
+# M6 OQ3 (AC 39): the signed APKs, served at /android/howtogo-<versionName>.apk (src/android.ts). Key =
+# `howtogo-<versionName>.apk`. COMMENTED OUT until the bucket exists: the Director creates it
+# (`npx wrangler r2 bucket create howtogo-dl`), uploads the APK, then uncomments these three lines.
+# Without the binding /android shows "download not available" and /android/latest.json is a 404.
+# [[env.production.r2_buckets]]
+# binding = "DL"
+# bucket_name = "howtogo-dl"
+
 # ---------------------------------------------------------------------------
 # M4 OQ6: test-only environment for the two-browser e2e (`wrangler dev --local --env test`).
 # SHARE_TEST_TTL_SECONDS is honoured ONLY when ENVIRONMENT = "test"; test/config.test.ts fails if
