@@ -1,0 +1,2455 @@
+{
+  "_about": "DRAFT research data — NOT wired into the app. Old dialect / colloquial Singapore place names used by elderly Chinese Singaporeans, for owner review before adding to the alias table. Coordinates come from the app's /api/search?step=1 (OneMap) on 2026-11-20 unless noted. confidence: high = referent confirmed by an authoritative source and target is obvious; medium = referent sourced but target/extent judged, or only secondary sources; low = unconfirmed (\"?\") — ask an elder.",
+  "generated": "2026-11-20",
+  "count": 77,
+  "entries": [
+    {
+      "term": "大坡",
+      "variants": [
+        "大埠",
+        "Tua Poh",
+        "Toa Poh (city sense)"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien",
+      "meaning": "\"big town\"; 坡 is a mis-writing of 埠 (port/town)",
+      "today": "South bank of the Singapore River: South Bridge Road / Chinatown area. Area name, still in use.",
+      "targets": [
+        {
+          "name": "Chinatown MRT Station",
+          "postal": "059443",
+          "lat": 1.284,
+          "lng": 103.8431,
+          "why": "centre of 大坡 for elders"
+        },
+        {
+          "name": "Chinatown Point",
+          "postal": "059413",
+          "lat": 1.285,
+          "lng": 103.8447,
+          "why": "landmark on New Bridge Rd"
+        },
+        {
+          "name": "Raffles Place MRT Station",
+          "postal": "048618",
+          "lat": 1.2839,
+          "lng": 103.8515,
+          "why": "river-mouth end of 大坡"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 大坡 (South Bridge Road area)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/south-bridge-road-area"
+        },
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": "Area, not a point: show a \"did you mean\" list. Do not confuse with the town 大巴窑 Toa Payoh (elders may say \"Toa Poh\" for both)."
+    },
+    {
+      "term": "坡底",
+      "variants": [
+        "坡低 (common typo)",
+        "埠底",
+        "Poh Teh",
+        "Poh Tay",
+        "Poh Tei"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien",
+      "meaning": "\"down in town\" — the city centre",
+      "today": "The city / downtown in general (historically Chinatown–Raffles Place). No single place.",
+      "targets": [
+        {
+          "name": "Raffles Place MRT Station",
+          "postal": "048618",
+          "lat": 1.2839,
+          "lng": 103.8515,
+          "why": "CBD centre"
+        },
+        {
+          "name": "Chinatown MRT Station",
+          "postal": "059443",
+          "lat": 1.284,
+          "lng": 103.8431,
+          "why": "what many elders mean by \"going to town\""
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 坡底 (downtown)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/downtown"
+        },
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": "Meaning is certain but the destination is vague. Always ask: \"坡底哪里？牛车水、莱佛士坊，还是小坡？\""
+    },
+    {
+      "term": "牛车水",
+      "variants": [
+        "Gu Chia Chui (Hokkien)",
+        "Ngau Che Seui (Cantonese)",
+        "Kreta Ayer",
+        "gu qiah zue"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien / Cantonese (calque of Malay Kreta Ayer)",
+      "meaning": "\"bullock-cart water\" — ox carts carried water here",
+      "today": "Chinatown. Still the official Chinese name.",
+      "targets": [
+        {
+          "name": "Chinatown MRT Station",
+          "postal": "059443",
+          "lat": 1.284,
+          "lng": 103.8431,
+          "why": "main entry"
+        },
+        {
+          "name": "Chinatown Complex",
+          "postal": "050335",
+          "lat": 1.2823,
+          "lng": 103.8432,
+          "why": "牛车水大厦 market/hawker centre"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 大坡 (牛车水 area)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/south-bridge-road-area"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Well known; Chinatown Complex is what elders mean by 牛车水大厦/牛车水巴刹."
+    },
+    {
+      "term": "大坡大马路",
+      "variants": [
+        "金铺街",
+        "Tua Poh Tua Beh Lor"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien",
+      "meaning": "\"Big Town main (horse-carriage) road\"; 金铺街 = \"goldsmith-shop street\"",
+      "today": "South Bridge Road. Exists.",
+      "targets": [
+        {
+          "name": "Buddha Tooth Relic Temple & Museum",
+          "postal": "058840",
+          "lat": 1.2815,
+          "lng": 103.8442,
+          "why": "mid-point landmark on South Bridge Rd"
+        },
+        {
+          "name": "Chinatown MRT Station",
+          "postal": "059443",
+          "lat": 1.284,
+          "lng": 103.8431,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 大马路 (North/South Bridge Road)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/north-bridge-road-or-south-bridge-road"
+        },
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 小坡 (lists 大坡大马路 / 金铺街 = South Bridge Rd)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/north-bridge-road-area"
+        }
+      ],
+      "notes": "\"大马路\" alone is ambiguous: 大坡大马路 = South Bridge Rd, 小坡大马路 = North Bridge Rd. Ask \"大坡还是小坡？\""
+    },
+    {
+      "term": "大坡二马路",
+      "variants": [
+        "Tua Poh Ji Beh Lor"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien",
+      "meaning": "\"Big Town second road\"",
+      "today": "New Bridge Road. Exists.",
+      "targets": [
+        {
+          "name": "Chinatown Point",
+          "postal": "059413",
+          "lat": 1.285,
+          "lng": 103.8447,
+          "why": "landmark on New Bridge Rd"
+        },
+        {
+          "name": "Outram Park MRT Station",
+          "postal": "059816",
+          "lat": 1.2802,
+          "lng": 103.8401,
+          "why": "south end"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 二马路 (Victoria Street; notes 大坡二马路 = New Bridge Road)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/victoria-street"
+        }
+      ],
+      "notes": "\"二马路\" alone usually means Victoria Street (小坡二马路)."
+    },
+    {
+      "term": "海山街",
+      "variants": [
+        "Hai San Kway",
+        "Hai Shan Street"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien",
+      "meaning": "\"Hai San (secret society) street\"",
+      "today": "Upper Cross Street. Exists; Yue Hwa building was the 南天酒楼.",
+      "targets": [
+        {
+          "name": "Yue Hwa (Nam Tin) Building",
+          "postal": "059805",
+          "lat": 1.2849,
+          "lng": 103.8435,
+          "why": "裕华大厦 at Upper Cross St / Eu Tong Sen St"
+        },
+        {
+          "name": "Chinatown MRT Station",
+          "postal": "059443",
+          "lat": 1.284,
+          "lng": 103.8431,
+          "why": "next to it"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 海山街 (Upper Cross Street)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/upper-cross-street"
+        },
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "妈祖宫",
+      "variants": [
+        "Ma Chor Keng",
+        "天福宫"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien",
+      "meaning": "\"Mazu temple\"",
+      "today": "Thian Hock Keng temple, Telok Ayer Street. Exists.",
+      "targets": [
+        {
+          "name": "Thian Hock Keng",
+          "postal": "068613",
+          "lat": 1.2811,
+          "lng": 103.8475,
+          "why": "the temple itself"
+        },
+        {
+          "name": "Telok Ayer MRT Station (DT18)",
+          "postal": "048416",
+          "lat": 1.2821,
+          "lng": 103.8486,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": "? Zaobao lists 妈祖宫 as an elders' name but gives no referent; 天福宫 (Mazu temple on Telok Ayer St) is the natural reading. Ask: \"是直落亚逸街的天福宫吗？\""
+    },
+    {
+      "term": "死人街",
+      "variants": [
+        "Sei Yan Gai (Cantonese)",
+        "Sago Lane"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Cantonese",
+      "meaning": "\"street of the dead\" — funeral parlours and death houses",
+      "today": "Sago Lane; mostly built over, next to Chinatown Complex.",
+      "targets": [
+        {
+          "name": "Chinatown Complex",
+          "postal": "050335",
+          "lat": 1.2823,
+          "lng": 103.8432,
+          "why": "stands by the old lane"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 死人街 (Sago Lane)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/sago-lane-colloquially-known-as-sei-yan-gai"
+        }
+      ],
+      "notes": "Original street largely gone. Elders may find the name inauspicious; do not show it on screen unprompted."
+    },
+    {
+      "term": "老巴刹",
+      "variants": [
+        "Lau Pa Sat",
+        "老吧刹",
+        "Telok Ayer Market",
+        "直落亚逸巴刹"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien + Malay (pasar)",
+      "meaning": "\"old market\"",
+      "today": "Lau Pa Sat food centre, Raffles Quay. Exists.",
+      "targets": [
+        {
+          "name": "Lau Pa Sat",
+          "postal": "048582",
+          "lat": 1.2806,
+          "lng": 103.8504,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 新巴刹 (says 直落亚逸 was the first market)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/ellenborough-market"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "OneMap already knows \"Lau Pa Sat\"; the alias is only needed for the Chinese spelling."
+    },
+    {
+      "term": "十八间",
+      "variants": [
+        "Chap Peh Keng",
+        "zhap buay keng"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien / Teochew",
+      "meaning": "\"eighteen units\" (shophouses)",
+      "today": "Boat Quay area. Exists (conservation area).",
+      "targets": [
+        {
+          "name": "Boat Quay",
+          "postal": null,
+          "lat": 1.2877,
+          "lng": 103.8493,
+          "why": "area point"
+        },
+        {
+          "name": "Raffles Place MRT Station",
+          "postal": "048618",
+          "lat": 1.2839,
+          "lng": 103.8515,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 十八间 (Boat Quay area)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/area-around-boat-quay-colloquially-known-as-zhap-buay-keng"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "红灯码头",
+      "variants": [
+        "Ang Teng Beh Tau",
+        "红灯马头 (typo)"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien",
+      "meaning": "\"red-lamp pier\" — a red lamp guided boats in",
+      "today": "Clifford Pier (1933). Building exists, now a restaurant at Fullerton Bay Hotel.",
+      "targets": [
+        {
+          "name": "Clifford Pier",
+          "postal": "049326",
+          "lat": 1.2839,
+          "lng": 103.8536,
+          "why": "exact"
+        },
+        {
+          "name": "Raffles Place MRT Station",
+          "postal": "048618",
+          "lat": 1.2839,
+          "lng": 103.8515,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 红灯码头 (Clifford Pier)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/clifford-pier"
+        }
+      ],
+      "notes": "No longer a working pier; elders going to boats now need Marina South Pier — ask if they mean to take a boat."
+    },
+    {
+      "term": "人民公园",
+      "variants": [
+        "People's Park"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Mandarin / Cantonese",
+      "meaning": "\"People's Park\" (the old open-air market)",
+      "today": "People's Park Complex, Eu Tong Sen St. The original market is gone.",
+      "targets": [
+        {
+          "name": "People's Park Complex",
+          "postal": "059108",
+          "lat": 1.2841,
+          "lng": 103.8425,
+          "why": "exact"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Elders may mean the old market (pre-1966) or People's Park Centre next door — both by Chinatown MRT, so routing is the same."
+    },
+    {
+      "term": "吉宁街",
+      "variants": [
+        "Kling Street",
+        "Kiling Kway"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Hokkien (from Malay \"Keling\")",
+      "meaning": "\"Indian street\"",
+      "today": "? One unofficial list says Cross Street; other usage points to Market Street / Chulia Street.",
+      "targets": [
+        {
+          "name": "Telok Ayer MRT Station (DT18)",
+          "postal": "048416",
+          "lat": 1.2821,
+          "lng": 103.8486,
+          "why": "near Cross St / Market St — placeholder"
+        }
+      ],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "狮城帮 — 新加坡街道路名中英文对照 (unofficial)",
+          "url": "https://www.shichengbang.com/p/24706"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Unconfirmed. \"Keling\" is now considered offensive. Ask: \"吉宁街附近有什么庙或巴刹？\""
+    },
+    {
+      "term": "丹戎巴葛",
+      "variants": [
+        "Tanjong Pagar",
+        "Tanjung Pagar"
+      ],
+      "area": "City south of the river — 大坡 / 牛车水 / 直落亚逸",
+      "dialect": "Malay-derived",
+      "meaning": "\"cape of stakes\"",
+      "today": "Tanjong Pagar. Exists.",
+      "targets": [
+        {
+          "name": "Tanjong Pagar MRT Station (EW15)",
+          "postal": "069119",
+          "lat": 1.2766,
+          "lng": 103.8457,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Official name; listed so the Chinese spelling resolves."
+    },
+    {
+      "term": "水仙门",
+      "variants": [
+        "Chui Sian Mng",
+        "Tsui Sin Mun (Cantonese)",
+        "水仙们 (typo)"
+      ],
+      "area": "Singapore River & Fort Canning",
+      "dialect": "Hokkien",
+      "meaning": "\"narcissus gate\" — borrowed from a Quanzhou place name (no actual gate)",
+      "today": "Area around Elgin Bridge on the north bank (High St / North Bridge Rd near Clarke Quay). No single building.",
+      "targets": [
+        {
+          "name": "Clarke Quay MRT Station",
+          "postal": "059815",
+          "lat": 1.2875,
+          "lng": 103.8461,
+          "why": "nearest MRT"
+        },
+        {
+          "name": "Elgin Bridge",
+          "postal": null,
+          "lat": 1.2891,
+          "lng": 103.8492,
+          "why": "the bridge itself"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 水仙门 (vicinity of Elgin Bridge)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/vicinity-of-elgin-bridge"
+        },
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 小坡 (水仙门一街 = North Bridge Rd)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/north-bridge-road-area"
+        }
+      ],
+      "notes": "\"水仙门一街/头街\" = North Bridge Road. Area → did-you-mean list."
+    },
+    {
+      "term": "吊桥头",
+      "variants": [
+        "Tiau Kio Tau",
+        "吊桥",
+        "水仙门吊桥",
+        "大马路桥"
+      ],
+      "area": "Singapore River & Fort Canning",
+      "dialect": "Hokkien",
+      "meaning": "\"head of the suspension bridge\"",
+      "today": "Elgin Bridge (水仙门吊桥) and the streets at its ends. The bridge exists (rebuilt 1929, no longer a suspension bridge).",
+      "targets": [
+        {
+          "name": "Elgin Bridge",
+          "postal": null,
+          "lat": 1.2891,
+          "lng": 103.8492,
+          "why": "the bridge"
+        },
+        {
+          "name": "Clarke Quay MRT Station",
+          "postal": "059815",
+          "lat": 1.2875,
+          "lng": 103.8461,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 吊桥 / 水仙门吊桥 (Elgin Bridge)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/elgin-bridge"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? 吊桥 = Elgin Bridge is sourced; \"头\" (which end) is inferred. Ask: \"桥北（小坡）还是桥南（大坡）那头？\""
+    },
+    {
+      "term": "新巴刹",
+      "variants": [
+        "Sin Pa Sat",
+        "新吧刹",
+        "Ellenborough Market"
+      ],
+      "area": "Singapore River & Fort Canning",
+      "dialect": "Hokkien + Malay (pasar)",
+      "meaning": "\"new market\" (second market after Telok Ayer)",
+      "today": "Ellenborough Market by the river next to Eu Tong Sen St — demolished; site near Clarke Quay Central.",
+      "targets": [
+        {
+          "name": "Clarke Quay MRT Station",
+          "postal": "059815",
+          "lat": 1.2875,
+          "lng": 103.8461,
+          "why": "beside the old site"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 新巴刹 (Ellenborough Market)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/ellenborough-market"
+        }
+      ],
+      "notes": "? Original gone. \"新巴刹\" is also generic \"the new market\" — elders in an estate may mean their own. Ask which area."
+    },
+    {
+      "term": "皇家山",
+      "variants": [
+        "升旗山",
+        "Hong Ka Suah",
+        "Bukit Larangan"
+      ],
+      "area": "Singapore River & Fort Canning",
+      "dialect": "Hokkien / Malay",
+      "meaning": "\"royal hill\" (also \"forbidden hill\", \"flag-raising hill\")",
+      "today": "Fort Canning Hill / Park. Exists.",
+      "targets": [
+        {
+          "name": "Fort Canning MRT Station (DT20)",
+          "postal": "179038",
+          "lat": 1.2925,
+          "lng": 103.8443,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 皇家山 (Fort Canning Park)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/fort-canning-park"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "青桥",
+      "variants": [
+        "Chhiⁿ Kio",
+        "Tse Kio",
+        "Cheh Kio"
+      ],
+      "area": "Singapore River & Fort Canning",
+      "dialect": "Hokkien",
+      "meaning": "\"green bridge\"",
+      "today": "? Ord Bridge (some say Clemenceau Bridge).",
+      "targets": [
+        {
+          "name": "Ord Bridge",
+          "postal": null,
+          "lat": 1.291,
+          "lng": 103.844,
+          "why": "bridge"
+        }
+      ],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Only a blog lead. Ask: \"青桥是在克拉码头那边吗？\""
+    },
+    {
+      "term": "小坡",
+      "variants": [
+        "小埠",
+        "Sio Poh",
+        "Seow Poh"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien",
+      "meaning": "\"small town\"",
+      "today": "North bank: North Bridge Rd / Bras Basah / Bugis. Area name.",
+      "targets": [
+        {
+          "name": "City Hall MRT Station",
+          "postal": "179100",
+          "lat": 1.293,
+          "lng": 103.8525,
+          "why": "south end"
+        },
+        {
+          "name": "Bugis MRT Station",
+          "postal": "188022",
+          "lat": 1.3003,
+          "lng": 103.8556,
+          "why": "north end"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 小坡 (North Bridge Road area)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/north-bridge-road-area"
+        },
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": "Area → did-you-mean list."
+    },
+    {
+      "term": "小坡大马路",
+      "variants": [
+        "水仙门一街",
+        "水仙门头街",
+        "Sio Poh Tua Beh Lor"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien",
+      "meaning": "\"Small Town main road\"",
+      "today": "North Bridge Road. Exists (long road).",
+      "targets": [
+        {
+          "name": "City Hall MRT Station",
+          "postal": "179100",
+          "lat": 1.293,
+          "lng": 103.8525,
+          "why": "south section"
+        },
+        {
+          "name": "Bugis MRT Station",
+          "postal": "188022",
+          "lat": 1.3003,
+          "lng": 103.8556,
+          "why": "middle section"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 小坡",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/north-bridge-road-area"
+        }
+      ],
+      "notes": "Long road: ask for a landmark."
+    },
+    {
+      "term": "二马路",
+      "variants": [
+        "小坡二马路",
+        "Ji Beh Lor",
+        "Jee Beh Lor"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien",
+      "meaning": "\"second horse-carriage road\"",
+      "today": "Victoria Street. Exists.",
+      "targets": [
+        {
+          "name": "Victoria Street",
+          "postal": null,
+          "lat": 1.3006,
+          "lng": 103.8558,
+          "why": "road point near Bugis"
+        },
+        {
+          "name": "Bugis MRT Station",
+          "postal": "188022",
+          "lat": 1.3003,
+          "lng": 103.8556,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 二马路 (Victoria Street)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/victoria-street"
+        },
+        {
+          "title": "Wikipedia — Victoria Street, Singapore (lead only; cites NLB BiblioAsia)",
+          "url": "https://en.wikipedia.org/wiki/Victoria_Street,_Singapore"
+        }
+      ],
+      "notes": "With 大坡 in front = New Bridge Road."
+    },
+    {
+      "term": "三马路",
+      "variants": [
+        "Sa Beh Lor",
+        "Sah Beh Lor"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien",
+      "meaning": "\"third horse-carriage road\"",
+      "today": "Queen Street. Exists.",
+      "targets": [
+        {
+          "name": "Queen Street Bus Terminal",
+          "postal": null,
+          "lat": 1.3034,
+          "lng": 103.8565,
+          "why": "Queen St bus terminal"
+        },
+        {
+          "name": "Bugis MRT Station",
+          "postal": "188022",
+          "lat": 1.3003,
+          "lng": 103.8556,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Wikipedia — Victoria Street, Singapore (lead only; cites NLB BiblioAsia)",
+          "url": "https://en.wikipedia.org/wiki/Victoria_Street,_Singapore"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Sequence (North Bridge→Victoria→Queen→Waterloo→Bencoolen) is widely repeated but not yet checked against NLB / Savage & Yeoh \"Singapore Street Names\"."
+    },
+    {
+      "term": "四马路",
+      "variants": [
+        "Si Beh Lor",
+        "四马路观音堂"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien",
+      "meaning": "\"fourth horse-carriage road\"",
+      "today": "Waterloo Street (Kwan Im temple). Exists.",
+      "targets": [
+        {
+          "name": "Kwan Im Thong Hood Cho Temple",
+          "postal": "187964",
+          "lat": 1.3009,
+          "lng": 103.853,
+          "why": "四马路观音堂 — what most elders want"
+        },
+        {
+          "name": "Bencoolen MRT Station (DT21)",
+          "postal": "189658",
+          "lat": 1.2989,
+          "lng": 103.8504,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        },
+        {
+          "title": "Wikipedia — Victoria Street, Singapore (lead only; cites NLB BiblioAsia)",
+          "url": "https://en.wikipedia.org/wiki/Victoria_Street,_Singapore"
+        }
+      ],
+      "notes": "\"去四马路\" very often means \"go to the Kwan Im temple\"."
+    },
+    {
+      "term": "五马路",
+      "variants": [
+        "Gor Beh Lor",
+        "Goh Beh Lor"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien",
+      "meaning": "\"fifth horse-carriage road\"",
+      "today": "Bencoolen Street (per Wikipedia lead). Exists.",
+      "targets": [
+        {
+          "name": "Bencoolen MRT Station (DT21)",
+          "postal": "189658",
+          "lat": 1.2989,
+          "lng": 103.8504,
+          "why": "on the street"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Wikipedia — Victoria Street, Singapore (lead only; cites NLB BiblioAsia)",
+          "url": "https://en.wikipedia.org/wiki/Victoria_Street,_Singapore"
+        },
+        {
+          "title": "NLB Infopedia — Bencoolen Street",
+          "url": "https://eresources.nlb.gov.sg/infopedia/articles/SIP_174_2005-01-25.html"
+        }
+      ],
+      "notes": "? Infopedia gives a different Hokkien name for Bencoolen St (\"Mang-ku-lu toa lo\"). Ask an elder to name a shop on it."
+    },
+    {
+      "term": "白沙浮",
+      "variants": [
+        "Peh Sua Pu",
+        "Pek Sua Phu",
+        "Bugis Street"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien / Teochew",
+      "meaning": "\"white sand float\" (sandy shore)",
+      "today": "Bugis / Bugis Street. Original street rebuilt.",
+      "targets": [
+        {
+          "name": "Bugis Street",
+          "postal": "189876",
+          "lat": 1.3007,
+          "lng": 103.8548,
+          "why": "market"
+        },
+        {
+          "name": "Bugis MRT Station",
+          "postal": "188022",
+          "lat": 1.3003,
+          "lng": 103.8556,
+          "why": "MRT"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "National Museum Mandarin docents blog — 武吉士街道名称 (secondary)",
+          "url": "https://nmsmandarindocents.wordpress.com/2009/09/23/%E6%AD%A6%E5%90%89%E5%A3%AB%E8%A1%97%E9%81%93%E5%90%8D%E7%A7%B0/"
+        }
+      ],
+      "notes": "Widely used; needs a primary citation."
+    },
+    {
+      "term": "二十间",
+      "variants": [
+        "Ji Chap Keng",
+        "Jee Zhap Keng"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Hokkien",
+      "meaning": "\"twenty units\" (European seaside villas)",
+      "today": "Beach Road (the villas are gone).",
+      "targets": [
+        {
+          "name": "Beach Road",
+          "postal": null,
+          "lat": 1.2995,
+          "lng": 103.8593,
+          "why": "road point"
+        },
+        {
+          "name": "Raffles Hotel",
+          "postal": "188719",
+          "lat": 1.2958,
+          "lng": 103.854,
+          "why": "Beach Road landmark"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 二十间 (Beach Road)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/beach-road-colloquially-known-as-ji-zhap-keng"
+        }
+      ],
+      "notes": "Beach Road is long; ask for a landmark."
+    },
+    {
+      "term": "甘榜格南",
+      "variants": [
+        "甘榜加兰",
+        "Kampong Glam",
+        "Kampung Gelam"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "Malay-derived",
+      "meaning": "\"village of gelam trees\"",
+      "today": "Kampong Glam / Arab St / Sultan Mosque. Exists.",
+      "targets": [
+        {
+          "name": "Bugis MRT Station",
+          "postal": "188022",
+          "lat": 1.3003,
+          "lng": 103.8556,
+          "why": "nearest MRT (app search returned nothing for \"Sultan Mosque\")"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Developer: check why \"Sultan Mosque\" returns nothing in the app search."
+    },
+    {
+      "term": "柔佛街",
+      "variants": [
+        "?"
+      ],
+      "area": "City north of the river — 小坡 / 武吉士 / 甘榜格南",
+      "dialect": "?",
+      "meaning": "\"Johor street\"",
+      "today": "? Not found in any source. Could be Johore Road (off Jalan Besar / Queen St) or the Queen Street terminal for buses to Johor.",
+      "targets": [
+        {
+          "name": "Queen Street Bus Terminal",
+          "postal": null,
+          "lat": 1.3034,
+          "lng": 103.8565,
+          "why": "placeholder: Johor buses leave here"
+        }
+      ],
+      "confidence": "low",
+      "sources": [],
+      "notes": "? Ask: \"柔佛街是去新山坐车的地方，还是一条路？\""
+    },
+    {
+      "term": "结霜桥",
+      "variants": [
+        "Kiat Sng Kio",
+        "Gek Sng Kio",
+        "结冰桥 (variant)",
+        "结霜乔 (typo)"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Hokkien / Teochew",
+      "meaning": "\"frost bridge\" — the bridge over Rochor Canal you crossed to reach an ice factory (1920s–1985)",
+      "today": "Sungei Road (双溪路), generally the area round Sim Lim Tower. Bridge and ice factory gone; Sungei Road flea market closed 10 Jul 2017.",
+      "targets": [
+        {
+          "name": "Sim Lim Tower",
+          "postal": "208787",
+          "lat": 1.3038,
+          "lng": 103.8547,
+          "why": "森林大厦, named in the source"
+        },
+        {
+          "name": "Jalan Besar MRT Station (DT22)",
+          "postal": "208826",
+          "lat": 1.3052,
+          "lng": 103.8553,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 结霜桥 (Sungei Road)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/sungei-road-colloquially-known-as-gek-sng-kio"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "One secondary source places it on the north bank of Rochor. Ask: \"是森林大厦、旧贼仔市那边吗？\" 结霜桥叻沙 (Berseh Food Centre) is a food name, not a place to route to."
+    },
+    {
+      "term": "双溪",
+      "variants": [
+        "Sungei",
+        "双溪路"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Malay-derived (\"river\")",
+      "meaning": "\"river\"",
+      "today": "Ambiguous: Sungei Road (thieves' market) most likely for city elders; also Sungei Kadut, Sungei Buloh, or any river.",
+      "targets": [
+        {
+          "name": "Sim Lim Tower",
+          "postal": "208787",
+          "lat": 1.3038,
+          "lng": 103.8547,
+          "why": "Sungei Road"
+        },
+        {
+          "name": "Jalan Besar MRT Station (DT22)",
+          "postal": "208826",
+          "lat": 1.3052,
+          "lng": 103.8553,
+          "why": "Sungei Road"
+        }
+      ],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 结霜桥 (双溪路)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/sungei-road-colloquially-known-as-gek-sng-kio"
+        }
+      ],
+      "notes": "? Always ask \"哪一个双溪？\" with Sungei Road first."
+    },
+    {
+      "term": "梧槽",
+      "variants": [
+        "Or Chor",
+        "Rochor",
+        "梧曹 (typo)"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Hokkien rendering of Malay Rochor",
+      "meaning": "from the Rochor river/canal",
+      "today": "Rochor area / Rochor Canal. Exists.",
+      "targets": [
+        {
+          "name": "Rochor MRT Station (DT13)",
+          "postal": "188505",
+          "lat": 1.3039,
+          "lng": 103.8528,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 结霜桥 (mentions 梧槽水道)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/sungei-road-colloquially-known-as-gek-sng-kio"
+        }
+      ],
+      "notes": "\"梧槽大伯公\" is a different place (Balestier). Treat \"梧槽\" alone as Rochor."
+    },
+    {
+      "term": "惹兰勿刹",
+      "variants": [
+        "Jalan Besar",
+        "惹兰峇刹",
+        "惹兰勿杀 (typo)"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Malay-derived",
+      "meaning": "\"big road\"",
+      "today": "Jalan Besar. Exists.",
+      "targets": [
+        {
+          "name": "Jalan Besar MRT Station (DT22)",
+          "postal": "208826",
+          "lat": 1.3052,
+          "lng": 103.8553,
+          "why": "exact"
+        },
+        {
+          "name": "Jalan Besar Stadium",
+          "postal": "207542",
+          "lat": 1.3096,
+          "lng": 103.8601,
+          "why": "landmark"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 惹兰 (Jalan)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/road-colloquially-known-as-jalan"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "竹脚",
+      "variants": [
+        "Tek Kah",
+        "Tekka",
+        "竹脚巴刹",
+        "竹脚中心"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Hokkien",
+      "meaning": "\"foot of the bamboo\"",
+      "today": "Tekka area (Serangoon Rd / Bukit Timah Rd); Tekka Market = Zhujiao Centre.",
+      "targets": [
+        {
+          "name": "Zhujiao Centre (Tekka Market)",
+          "postal": "210662",
+          "lat": 1.3062,
+          "lng": 103.85,
+          "why": "竹脚中心"
+        },
+        {
+          "name": "Little India MRT Station",
+          "postal": "229900",
+          "lat": 1.3072,
+          "lng": 103.8498,
+          "why": "MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "\"竹脚医院\" = KK Hospital (separate entry). If they say 竹脚 + 生孩子/医院 → KK."
+    },
+    {
+      "term": "竹脚医院",
+      "variants": [
+        "竹脚妇产医院",
+        "KK",
+        "Kandang Kerbau Hospital"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Hokkien",
+      "meaning": "\"Tekka hospital\"",
+      "today": "KK Women's and Children's Hospital. Exists.",
+      "targets": [
+        {
+          "name": "Kk Women's and Children's Hospital",
+          "postal": "229899",
+          "lat": 1.3105,
+          "lng": 103.8468,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "小印度",
+      "variants": [
+        "Little India"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Mandarin",
+      "meaning": "\"Little India\"",
+      "today": "Little India. Exists.",
+      "targets": [
+        {
+          "name": "Little India MRT Station",
+          "postal": "229900",
+          "lat": 1.3072,
+          "lng": 103.8498,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "白桥",
+      "variants": [
+        "Pek Kio",
+        "白桥巴刹"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Hokkien",
+      "meaning": "\"white bridge\"",
+      "today": "Area around Farrer Park (Pek Kio market, Owen Rd). Bridge gone.",
+      "targets": [
+        {
+          "name": "Farrer Park MRT Station",
+          "postal": "218703",
+          "lat": 1.3131,
+          "lng": 103.8548,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 白桥 (Farrer Park area)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/area-around-farrer-park-colloquially-known-as-pek-kio"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "RS says \"Moulmein\"; same neighbourhood."
+    },
+    {
+      "term": "新世界",
+      "variants": [
+        "Sin Sei Kai",
+        "New World"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Mandarin / Hokkien",
+      "meaning": "\"New World\" amusement park (closed 1987)",
+      "today": "Site is now City Square Mall (Jalan Besar / Kitchener Rd).",
+      "targets": [
+        {
+          "name": "City Square Mall",
+          "postal": "208539",
+          "lat": 1.3114,
+          "lng": 103.8566,
+          "why": "on the old site"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [],
+      "notes": "? Needs a citation (NLB Infopedia \"New World Amusement Park\"). Common elders' landmark."
+    },
+    {
+      "term": "火城",
+      "variants": [
+        "Her Sia",
+        "Hue Sia"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Hokkien",
+      "meaning": "\"fire city\" — residents feared the gasworks would explode",
+      "today": "Kallang Gasworks (demolished); area by Kallang Riverside.",
+      "targets": [
+        {
+          "name": "Kallang Riverside Park",
+          "postal": null,
+          "lat": 1.3072,
+          "lng": 103.8683,
+          "why": "by the old site"
+        },
+        {
+          "name": "Lavender MRT Station",
+          "postal": "208699",
+          "lat": 1.3074,
+          "lng": 103.8628,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 火城 (Kallang Gasworks)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/kallang-gasworks"
+        }
+      ],
+      "notes": "Not Kampong Glam. Original gone; target is approximate."
+    },
+    {
+      "term": "文家格",
+      "variants": [
+        "Mang Ga Kar"
+      ],
+      "area": "Rochor, Jalan Besar & Little India — 梧槽 / 惹兰勿刹 / 竹脚",
+      "dialect": "Hokkien ?",
+      "meaning": "?",
+      "today": "? A blog reader suggested Lavender Street.",
+      "targets": [
+        {
+          "name": "Lavender MRT Station",
+          "postal": "208699",
+          "lat": 1.3074,
+          "lng": 103.8628,
+          "why": "placeholder"
+        }
+      ],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Unconfirmed — ask an elder before adding."
+    },
+    {
+      "term": "乌桥",
+      "variants": [
+        "黑桥",
+        "Orh Kio",
+        "Oh Kio",
+        "O Kio"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Hokkien",
+      "meaning": "\"black bridge\" — a black wooden bridge over the Whampoa River near Balestier / Toa Payoh Lor 6",
+      "today": "Balestier Road area. Bridge gone.",
+      "targets": [
+        {
+          "name": "Balestier Plaza",
+          "postal": "329802",
+          "lat": 1.3257,
+          "lng": 103.8504,
+          "why": "mid-Balestier landmark"
+        },
+        {
+          "name": "Novena MRT Station (NS20)",
+          "postal": "307642",
+          "lat": 1.3204,
+          "lng": 103.8438,
+          "why": "nearest MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 乌桥 (Balestier Road)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/balestier-road"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Without 头. 乌桥头/黑桥头 is Havelock Road (different place) — offer both."
+    },
+    {
+      "term": "黑桥头",
+      "variants": [
+        "乌桥头",
+        "Orh Kio Tau",
+        "Oh Kio Tau",
+        "黑桥口"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Hokkien",
+      "meaning": "\"head of the black bridge\" — a black iron bridge that stood on Delta Road",
+      "today": "Havelock Road / Delta Road junction, Beo Crescent. Bridge gone.",
+      "targets": [
+        {
+          "name": "Beo Crescent Market",
+          "postal": "169982",
+          "lat": 1.2888,
+          "lng": 103.8274,
+          "why": "Beo Crescent Market — the 乌桥头 neighbourhood"
+        },
+        {
+          "name": "Havelock MRT Station (TE16)",
+          "postal": "168604",
+          "lat": 1.2885,
+          "lng": 103.8336,
+          "why": "nearest MRT (TEL)"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 乌桥头 (Havelock Road area)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/area-around-havelock-road-colloquially-known-as-oh-kio-tau"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Database says Havelock/Delta junction; RS says Beo Crescent (~300 m apart). \"黑桥/乌桥\" without 头 = Balestier. Ask: \"合乐路、河水山那边，还是马里士他？\""
+    },
+    {
+      "term": "梧槽大伯公",
+      "variants": [
+        "Or Chor Tua Pek Kong"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Hokkien",
+      "meaning": "\"Rochor (river) earth-god temple\"",
+      "today": "Goh Chor Tua Pek Kong temple, Balestier Road. Exists.",
+      "targets": [
+        {
+          "name": "Balestier Plaza",
+          "postal": "329802",
+          "lat": 1.3257,
+          "lng": 103.8504,
+          "why": "temple is along Balestier Rd"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 乌桥 / 梧槽大伯公 (Balestier Road)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/balestier-road"
+        }
+      ],
+      "notes": "Get the temple's own OneMap entry before wiring."
+    },
+    {
+      "term": "大巴窑",
+      "variants": [
+        "Toa Payoh",
+        "Tua Pa Yoh",
+        "大芭窑 (typo)"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Hokkien + Malay (paya)",
+      "meaning": "\"big swamp\"",
+      "today": "Toa Payoh town. Exists.",
+      "targets": [
+        {
+          "name": "Toa Payoh MRT Station (NS19)",
+          "postal": "319398",
+          "lat": 1.3326,
+          "lng": 103.8475,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 大巴窑",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/toa-payoh"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "红毛花园",
+      "variants": [
+        "Ang Mo Hue Hng"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Hokkien",
+      "meaning": "\"the Westerners' garden\"",
+      "today": "Singapore Botanic Gardens. Exists.",
+      "targets": [
+        {
+          "name": "Singapore Botanic Gardens",
+          "postal": "259569",
+          "lat": 1.3135,
+          "lng": 103.8132,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "陈笃生医院",
+      "variants": [
+        "Tan Tock Seng",
+        "陈笃生"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Mandarin",
+      "meaning": "named after Tan Tock Seng",
+      "today": "Tan Tock Seng Hospital. Exists.",
+      "targets": [
+        {
+          "name": "Tan Tock Seng Hospital",
+          "postal": "308433",
+          "lat": 1.3214,
+          "lng": 103.8457,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "大世界",
+      "variants": [
+        "Tua Sei Kai",
+        "Great World"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Mandarin / Hokkien",
+      "meaning": "\"Great World\" amusement park",
+      "today": "Site is now Great World (mall), Kim Seng Rd.",
+      "targets": [
+        {
+          "name": "Great World MRT Station (TE15)",
+          "postal": "238384",
+          "lat": 1.2939,
+          "lng": 103.8337,
+          "why": "exact"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [],
+      "notes": "? Needs a citation (NLB Infopedia \"Great World Amusement Park\")."
+    },
+    {
+      "term": "十英里",
+      "variants": [
+        "十条石",
+        "十里",
+        "Chap Kok Chioh",
+        "Ten Mile Junction"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Hokkien",
+      "meaning": "\"tenth milestone\" on Bukit Timah Road",
+      "today": "Old Ten Mile Junction, Bukit Panjang (plaza closed 2011).",
+      "targets": [
+        {
+          "name": "Bukit Panjang MRT Station",
+          "postal": "678213",
+          "lat": 1.3796,
+          "lng": 103.7612,
+          "why": "town centre"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "\"X条石\" names count milestones on different roads (Changi, Jurong, Upper Serangoon…). Ask \"哪条路的十条石？\""
+    },
+    {
+      "term": "六英里",
+      "variants": [
+        "六条石",
+        "Lak Kok Chioh"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Hokkien",
+      "meaning": "\"sixth milestone\"",
+      "today": "? Zaobao lists it without location. On Bukit Timah Rd ≈ Beauty World; on Upper Serangoon Rd = Kovan (后港六条石).",
+      "targets": [],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Ask \"哪条路的六条石？武吉知马还是后港？\""
+    },
+    {
+      "term": "武吉知马",
+      "variants": [
+        "Bukit Timah",
+        "Bukit Timah Road"
+      ],
+      "area": "Central — Balestier, Toa Payoh, Novena, Bukit Timah",
+      "dialect": "Malay-derived",
+      "meaning": "\"tin hill\"",
+      "today": "Very long road / district.",
+      "targets": [
+        {
+          "name": "Bukit Timah Road",
+          "postal": null,
+          "lat": 1.3228,
+          "lng": 103.8149,
+          "why": "road point near Botanic Gardens — placeholder"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Too big: ask for a landmark or milestone."
+    },
+    {
+      "term": "河水山",
+      "variants": [
+        "Hor Chui Sua",
+        "Bukit Ho Swee"
+      ],
+      "area": "South-west — Havelock, Tiong Bahru, Queenstown, Bukit Merah",
+      "dialect": "Hokkien",
+      "meaning": "\"river-water hill\"",
+      "today": "Bukit Ho Swee estate (Havelock / Tiong Bahru). Old kampong burned 1961.",
+      "targets": [
+        {
+          "name": "Havelock MRT Station (TE16)",
+          "postal": "168604",
+          "lat": 1.2885,
+          "lng": 103.8336,
+          "why": "nearest MRT"
+        },
+        {
+          "name": "Tiong Bahru MRT Station",
+          "postal": "168731",
+          "lat": 1.2862,
+          "lng": 103.827,
+          "why": "alternative"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Need a better citation (Infopedia \"Bukit Ho Swee fire\")."
+    },
+    {
+      "term": "中峇鲁",
+      "variants": [
+        "Tiong Bahru",
+        "中巴鲁"
+      ],
+      "area": "South-west — Havelock, Tiong Bahru, Queenstown, Bukit Merah",
+      "dialect": "Hokkien + Malay",
+      "meaning": "\"new cemetery\" (Hokkien 冢 + Malay baru)",
+      "today": "Tiong Bahru. Exists.",
+      "targets": [
+        {
+          "name": "Tiong Bahru Market",
+          "postal": "168898",
+          "lat": 1.2848,
+          "lng": 103.8322,
+          "why": "what elders usually want"
+        },
+        {
+          "name": "Tiong Bahru MRT Station",
+          "postal": "168731",
+          "lat": 1.2862,
+          "lng": 103.827,
+          "why": "MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "十六楼",
+      "variants": [
+        "Chap Lak Lau",
+        "chap luck lau"
+      ],
+      "area": "South-west — Havelock, Tiong Bahru, Queenstown, Bukit Merah",
+      "dialect": "Hokkien",
+      "meaning": "\"16 storeys\" — 1960s 16-storey HDB blocks, then landmarks",
+      "today": "Queensway area (Zaobao); Tanglin Halt (reader comment).",
+      "targets": [
+        {
+          "name": "Queenstown MRT Station (EW19)",
+          "postal": "149729",
+          "lat": 1.2946,
+          "lng": 103.8061,
+          "why": "Queensway side"
+        },
+        {
+          "name": "Commonwealth MRT Station (EW20)",
+          "postal": "149735",
+          "lat": 1.3025,
+          "lng": 103.7982,
+          "why": "Tanglin Halt side"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Two candidates ~1.5 km apart; Tanglin Halt blocks demolished. Ask: \"联邦道还是东陵佛门？\""
+    },
+    {
+      "term": "无尾巷",
+      "variants": [
+        "Bo Bue Hang",
+        "Bo Bei Hang"
+      ],
+      "area": "South-west — Havelock, Tiong Bahru, Queenstown, Bukit Merah",
+      "dialect": "Hokkien",
+      "meaning": "\"dead-end lane\"",
+      "today": "Stirling Road / Queensway area.",
+      "targets": [
+        {
+          "name": "Queenstown MRT Station (EW19)",
+          "postal": "149729",
+          "lat": 1.2946,
+          "lng": 103.8061,
+          "why": "Stirling Rd is next to it"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": "Generic phrase — any dead end. Only use when the elder also says Queenstown."
+    },
+    {
+      "term": "红山",
+      "variants": [
+        "Ang Suah",
+        "Bukit Merah",
+        "Redhill"
+      ],
+      "area": "South-west — Havelock, Tiong Bahru, Queenstown, Bukit Merah",
+      "dialect": "Hokkien / Malay calque",
+      "meaning": "\"red hill\"",
+      "today": "Bukit Merah / Redhill. Exists.",
+      "targets": [
+        {
+          "name": "Redhill MRT Station (EW18)",
+          "postal": "158792",
+          "lat": 1.2896,
+          "lng": 103.8167,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Bukit Merah town centre is a second option."
+    },
+    {
+      "term": "巴西班让",
+      "variants": [
+        "Pasir Panjang",
+        "巴丝班让 (typo)"
+      ],
+      "area": "South-west — Havelock, Tiong Bahru, Queenstown, Bukit Merah",
+      "dialect": "Malay-derived",
+      "meaning": "\"long sand\"",
+      "today": "Pasir Panjang. Exists (long road).",
+      "targets": [
+        {
+          "name": "Pasir Panjang MRT Station (CC26)",
+          "postal": "117424",
+          "lat": 1.2762,
+          "lng": 103.7914,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Long road — Haw Par Villa / wholesale centre are other possible destinations."
+    },
+    {
+      "term": "加冷",
+      "variants": [
+        "Kallang",
+        "加冷河"
+      ],
+      "area": "East — Kallang, Geylang, Changi",
+      "dialect": "Malay-derived",
+      "meaning": "from Orang Kallang",
+      "today": "Kallang district. Exists (large).",
+      "targets": [
+        {
+          "name": "Kallang MRT Station (EW10)",
+          "postal": "387405",
+          "lat": 1.3115,
+          "lng": 103.8714,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Stadium / Kallang Wave Mall / old airport are other possible destinations."
+    },
+    {
+      "term": "芽笼",
+      "variants": [
+        "Geylang",
+        "Ge Lang",
+        "牙笼 (typo)"
+      ],
+      "area": "East — Kallang, Geylang, Changi",
+      "dialect": "Malay-derived",
+      "meaning": "possibly from Malay kilang (\"factory\")",
+      "today": "Geylang. Exists (large).",
+      "targets": [
+        {
+          "name": "Aljunied MRT Station (EW9)",
+          "postal": "388310",
+          "lat": 1.3164,
+          "lng": 103.8829,
+          "why": "Geylang lorongs"
+        },
+        {
+          "name": "Paya Lebar MRT Station (CC9)",
+          "postal": "409049",
+          "lat": 1.3172,
+          "lng": 103.8923,
+          "why": "Geylang Serai"
+        },
+        {
+          "name": "Kallang MRT Station (EW10)",
+          "postal": "387405",
+          "lat": 1.3115,
+          "lng": 103.8714,
+          "why": "west end"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 芽笼",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/geylang"
+        }
+      ],
+      "notes": "Area → did-you-mean list. 芽笼士乃 (Geylang Serai) is a separate place."
+    },
+    {
+      "term": "快乐世界",
+      "variants": [
+        "Gay World",
+        "Happy World",
+        "Kua Lok Sei Kai"
+      ],
+      "area": "East — Kallang, Geylang, Changi",
+      "dialect": "Mandarin / Hokkien",
+      "meaning": "\"Happy World\" amusement park",
+      "today": "? Gone (demolished c. 2000), Mountbatten Rd / Geylang Rd area.",
+      "targets": [],
+      "confidence": "low",
+      "sources": [],
+      "notes": "? Needs citation and target. Ask what they want to go to there now."
+    },
+    {
+      "term": "樟宜十条石",
+      "variants": [
+        "Changi Chap Kok Chioh"
+      ],
+      "area": "East — Kallang, Geylang, Changi",
+      "dialect": "Hokkien",
+      "meaning": "\"Changi 10th milestone\"",
+      "today": "? On Changi Road; exact point unknown.",
+      "targets": [],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Ask for a landmark."
+    },
+    {
+      "term": "后港",
+      "variants": [
+        "Au Kang",
+        "Aw Kang",
+        "後港"
+      ],
+      "area": "North-east — Hougang, Serangoon, Sengkang",
+      "dialect": "Hokkien / Teochew",
+      "meaning": "\"back harbour\" (upstream of Serangoon River)",
+      "today": "Hougang. Exists.",
+      "targets": [
+        {
+          "name": "Hougang MRT Station (NE14)",
+          "postal": "538758",
+          "lat": 1.3713,
+          "lng": 103.8924,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 后港",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/hougang"
+        },
+        {
+          "title": "NHB Roots — Hougang Heritage Trail markers (Chinese)",
+          "url": "https://www.roots.gov.sg/-/media/Roots/Files/Hougang-Heritage-Trail/Hougang-Heritage-Trail-Markers---Chinese.pdf?la=en"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "后港六条石",
+      "variants": [
+        "Au Kang Lak Kok Chioh"
+      ],
+      "area": "North-east — Hougang, Serangoon, Sengkang",
+      "dialect": "Hokkien",
+      "meaning": "\"6th milestone, Hougang (Upper Serangoon Rd)\"",
+      "today": "Kovan area.",
+      "targets": [
+        {
+          "name": "Kovan MRT Station",
+          "postal": "534799",
+          "lat": 1.3599,
+          "lng": 103.8845,
+          "why": "exact"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Other \"后港N条石\" values need checking."
+    },
+    {
+      "term": "实龙岗",
+      "variants": [
+        "Serangoon",
+        "Sit Leng Kang",
+        "实笼岗 (typo)"
+      ],
+      "area": "North-east — Hougang, Serangoon, Sengkang",
+      "dialect": "Malay-derived",
+      "meaning": "from Malay (origin disputed)",
+      "today": "Ambiguous: Serangoon Road (Little India) vs Serangoon town (Nex).",
+      "targets": [
+        {
+          "name": "Serangoon MRT Station",
+          "postal": "556082",
+          "lat": 1.351,
+          "lng": 103.8711,
+          "why": "Serangoon town"
+        },
+        {
+          "name": "Little India MRT Station",
+          "postal": "229900",
+          "lat": 1.3072,
+          "lng": 103.8498,
+          "why": "Serangoon Road"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Elders from the city often mean Serangoon Road. Ask: \"小印度那边，还是实龙岗地铁站？\""
+    },
+    {
+      "term": "港脚",
+      "variants": [
+        "Kang Kha"
+      ],
+      "area": "North-east — Hougang, Serangoon, Sengkang",
+      "dialect": "Hokkien",
+      "meaning": "\"foot of the harbour\" — fishing port on the Serangoon River, end of Upper Serangoon Rd (7½ ms)",
+      "today": "Sengkang / old Upper Serangoon terminus.",
+      "targets": [
+        {
+          "name": "Sengkang MRT Station (NE16)",
+          "postal": "545062",
+          "lat": 1.3917,
+          "lng": 103.8955,
+          "why": "approximate"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 盛港",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/sengkang"
+        },
+        {
+          "title": "sfcca.sg — 盛港：泥泞乡道的涅槃 (2024)",
+          "url": "https://sfcca.sg/2024/09/08/%e7%9b%9b%e6%b8%af%ef%bc%9a%e6%b3%a5%e6%b3%9e%e4%b9%a1%e9%81%93%e7%9a%84%e6%b6%85%e6%a7%83"
+        }
+      ],
+      "notes": "Exact point uncertain."
+    },
+    {
+      "term": "杨厝港",
+      "variants": [
+        "Yio Chu Kang",
+        "Yeo Chu Kang",
+        "Nio Chu Kang"
+      ],
+      "area": "North-east — Hougang, Serangoon, Sengkang",
+      "dialect": "Hokkien",
+      "meaning": "\"Yeo family's river settlement (kangchu)\"",
+      "today": "Yio Chu Kang. Exists.",
+      "targets": [
+        {
+          "name": "Yio Chu Kang MRT Station (NS15)",
+          "postal": "569813",
+          "lat": 1.3818,
+          "lng": 103.8449,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Yio Chu Kang Road is long (Hougang to Ang Mo Kio)."
+    },
+    {
+      "term": "板桥医院",
+      "variants": [
+        "Pan Kio",
+        "Woodbridge",
+        "Ban Qiao"
+      ],
+      "area": "North-east — Hougang, Serangoon, Sengkang",
+      "dialect": "Hokkien / Mandarin",
+      "meaning": "\"wooden bridge hospital\"",
+      "today": "Institute of Mental Health (Buangkok). Exists.",
+      "targets": [
+        {
+          "name": "Institute of Mental Health",
+          "postal": "539747",
+          "lat": 1.3821,
+          "lng": 103.8848,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Do not show the cruder nickname (疯人院 / siao lang keng)."
+    },
+    {
+      "term": "三巴旺",
+      "variants": [
+        "Sembawang",
+        "三巴汪 (typo)"
+      ],
+      "area": "North — Yishun, Sembawang, Ang Mo Kio",
+      "dialect": "Malay-derived",
+      "meaning": "from the sembawang tree",
+      "today": "Sembawang. Exists.",
+      "targets": [
+        {
+          "name": "Sembawang MRT Station (NS11)",
+          "postal": "759775",
+          "lat": 1.4491,
+          "lng": 103.82,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 三巴旺",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/sembawang"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "义顺",
+      "variants": [
+        "宜信",
+        "Nee Soon",
+        "曾厝港",
+        "Chan Chu Kang"
+      ],
+      "area": "North — Yishun, Sembawang, Ang Mo Kio",
+      "dialect": "Hokkien / Mandarin",
+      "meaning": "Nee Soon (after Lim Nee Soon); 曾厝港 = \"Chan family settlement\"",
+      "today": "Yishun. Exists.",
+      "targets": [
+        {
+          "name": "Fair Price Groceries Yishun MRT Station",
+          "postal": "769093",
+          "lat": 1.4291,
+          "lng": 103.835,
+          "why": "MRT (OneMap returned a shop name; postal 769093 is the station)"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Old Nee Soon village was nearer Sembawang / Chong Pang."
+    },
+    {
+      "term": "宏茂桥",
+      "variants": [
+        "Ang Mo Kio",
+        "红毛桥"
+      ],
+      "area": "North — Yishun, Sembawang, Ang Mo Kio",
+      "dialect": "Hokkien",
+      "meaning": "\"Westerner's bridge\"",
+      "today": "Ang Mo Kio. Exists.",
+      "targets": [
+        {
+          "name": "Ang Mo Kio MRT Station",
+          "postal": "569811",
+          "lat": 1.3699,
+          "lng": 103.8496,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "红桥",
+      "variants": [
+        "Ang Kio"
+      ],
+      "area": "North — Yishun, Sembawang, Ang Mo Kio",
+      "dialect": "Hokkien",
+      "meaning": "\"red bridge\"",
+      "today": "? Area between Ang Mo Kio and Thomson Road (blog lead only).",
+      "targets": [],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Ask for a landmark. 红桥头 is also unlocated."
+    },
+    {
+      "term": "裕廊",
+      "variants": [
+        "Jurong",
+        "裕廊七条石"
+      ],
+      "area": "West — Jurong, Choa Chu Kang, Lim Chu Kang",
+      "dialect": "Malay-derived",
+      "meaning": "—",
+      "today": "Jurong (very large).",
+      "targets": [
+        {
+          "name": "Jurong East MRT Station (EW24 / NS1)",
+          "postal": "609690",
+          "lat": 1.333,
+          "lng": 103.7424,
+          "why": "main hub"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "Ask \"裕廊东、裕廊西还是文礼？\""
+    },
+    {
+      "term": "蔡厝港",
+      "variants": [
+        "Choa Chu Kang",
+        "Chua Chu Kang"
+      ],
+      "area": "West — Jurong, Choa Chu Kang, Lim Chu Kang",
+      "dialect": "Hokkien",
+      "meaning": "\"Chua family settlement\"",
+      "today": "Choa Chu Kang. Exists.",
+      "targets": [
+        {
+          "name": "Choa Chu Kang MRT Station (NS4)",
+          "postal": "689810",
+          "lat": 1.3854,
+          "lng": 103.7444,
+          "why": "exact"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "term": "林厝港",
+      "variants": [
+        "Lim Chu Kang"
+      ],
+      "area": "West — Jurong, Choa Chu Kang, Lim Chu Kang",
+      "dialect": "Hokkien",
+      "meaning": "\"Lim family settlement\"",
+      "today": "Lim Chu Kang (farm area).",
+      "targets": [
+        {
+          "name": "Lim Chu Kang Road",
+          "postal": null,
+          "lat": 1.4012,
+          "lng": 103.6938,
+          "why": "road point — rural"
+        }
+      ],
+      "confidence": "medium",
+      "sources": [
+        {
+          "title": "Official Chinese place name (OneMap / Street Directory); no dialect research needed",
+          "url": null
+        }
+      ],
+      "notes": "Rural: ask for a farm / cemetery name."
+    },
+    {
+      "term": "四排坡",
+      "variants": [
+        "四排埔",
+        "Si Pai Poh",
+        "si bai bo",
+        "中央医院",
+        "新加坡中央医院"
+      ],
+      "area": "Hospitals",
+      "dialect": "Hokkien (from English \"Sepoy\")",
+      "meaning": "\"Sepoy lines\"",
+      "today": "Outram Road area; Singapore General Hospital. Exists.",
+      "targets": [
+        {
+          "name": "Singapore General Hospital",
+          "postal": "169608",
+          "lat": 1.2796,
+          "lng": 103.8355,
+          "why": "exact"
+        },
+        {
+          "name": "Outram Park MRT Station",
+          "postal": "059816",
+          "lat": 1.2802,
+          "lng": 103.8401,
+          "why": "MRT"
+        }
+      ],
+      "confidence": "high",
+      "sources": [
+        {
+          "title": "新加坡华语资料库 Singaporean Mandarin Database — 四排埔 (Outram Road area / SGH)",
+          "url": "https://www.languagecouncils.sg/mandarin/ch/learning-resources/singaporean-mandarin-database/terms/vicinity-of-outram-road"
+        },
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "\"去四排坡\" almost always = SGH appointment."
+    },
+    {
+      "term": "大门楼",
+      "variants": [
+        "?",
+        "大门内 (similar name in an elders' list)"
+      ],
+      "area": "Unconfirmed names from the brief (no source found)",
+      "dialect": "?",
+      "meaning": "\"big gatehouse\"",
+      "today": "? Not found in any source.",
+      "targets": [],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Ask: \"大门楼是哪里？附近有什么庙、巴刹、车站？\""
+    },
+    {
+      "term": "大人巷",
+      "variants": [
+        "大人街",
+        "Tua Lang Hang",
+        "大人衙 (Tai Gin Gay, related?)"
+      ],
+      "area": "Unconfirmed names from the brief (no source found)",
+      "dialect": "Hokkien ?",
+      "meaning": "\"lane of the officials\"",
+      "today": "? Not found. A 大人街 appears in an elders' list; 大人衙 = old Chinese Protectorate office, Havelock Road.",
+      "targets": [],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "Remember Singapore — Old, Common Names of Places in Singapore (lead only; incl. reader comments)",
+          "url": "https://remembersingapore.org/2011/04/04/old-names-of-places/"
+        }
+      ],
+      "notes": "? Ask: \"是合乐路那边的大人衙吗？\""
+    },
+    {
+      "term": "蓝玻璃",
+      "variants": [
+        "Lam Po Le"
+      ],
+      "area": "Unconfirmed names from the brief (no source found)",
+      "dialect": "Hokkien",
+      "meaning": "\"blue glass\" — houses with blue glass windows",
+      "today": "? Zaobao says 史达拉摩路 (road not identified).",
+      "targets": [],
+      "confidence": "low",
+      "sources": [
+        {
+          "title": "麦专程《保存旧街道俗称事不宜迟》联合早报 2011-07-02 (repost)",
+          "url": "https://chinadigitaltimes.net/chinese/?p=165210"
+        }
+      ],
+      "notes": "? Identify the road first."
+    }
+  ]
+}

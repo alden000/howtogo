@@ -280,3 +280,22 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Approved: icons battery, bell-off, smartphone; launcher/splash/notification icon geometry; 27 drawn battery-guide pictures (zh/en). No new tokens.
 - OQ defaults accepted: off-route notification on the `info` channel; no destination or contact names in notifications (lock-screen privacy); the QA build keeps the same icon (label "怎么去 QA" tells them apart); Play Protect wording checked on the owner's phone.
 - Next: M6 UI round (native explainers, battery guide, notifications, no-voice, WebView-too-old, update notice, Get-the-app card, /android page, icons into res/).
+
+## 2026-11-20 — Owner request: dialect place names (坡底, 黑桥头…)
+- Live check: the Claude fallback already handles 坡底/坡低/大坡 → Chinatown, 小坡 → Bugis, 水仙门 → High Street, 红灯码头 → Clifford Pier; it fails on 黑桥头/黑桥/乌桥/结霜桥. Also a ranking issue: a 7-Eleven sits above Chinatown MRT for 坡底 → rank MRT/landmarks above shops (QA-71, S3).
+- PM research (pm/dialect-names): 60–90 sourced names with estimated locations, routing targets, confidence and sources, plus a list of owner questions. The owner reviews; then they become alias entries (instant, free, deterministic).
+- Note: curl on this Windows host garbles CJK query strings; use node fetch with encodeURIComponent for CJK tests.
+
+- APK handed out via the owner's existing dl.wwweeeiii.com share tool (D:\srv\downloads-service\share.ps1, random-token folder, expires 2026-11-27 08:00 SGT): 200, application/vnd.android.package-archive, 1 863 011 B. The temporary LAN server on :8978 was stopped. Future APKs use share.ps1 too.
+- Dialect research interim: 结霜桥 = Sungei Road / Sim Lim Tower (high); 黑桥头 = Havelock/Delta Rd at Beo Crescent (medium-high); 黑桥/乌桥 alone can also mean Balestier → did-you-mean.
+
+## 2026-11-20 — Owner bug: driver card (H10) shows only "Admiralty Grove" for Home (S2)
+- The saved Home has no address/postal: a road/estate-level OneMap hit was accepted. H10 shows name + address + postal only when present (tripSheets.tsx:157).
+- Ruling (next round, QA-72): (1) H10 back-fills a missing postal/block by reverse geocoding the saved lat/lng (live OneMap) and shows the full address; (2) choosing a road/estate as Home or a place asks "哪一座？/ Which block?" with nearby blocks or a postal-code entry (Creative to spec); (3) a one-time Home nudge for places without a postal code. Owner workaround: re-save Home by postal code.
+
+- Owner add (QA-73, S2, same round as QA-72): "use my location" when setting Home saves only an estate/building name. Cause: normaliseRevGeocode (worker/src/normalise.ts:103) prefers the GeocodeInfo entry with BUILDINGNAME (e.g. "ADMIRALTY GROVE") even without BLOCK/POSTAL. Fix: prefer entries with BLOCK + 6-digit POSTAL, keep the estate name as a secondary line; the set-Home-from-location flow shows the full address + postal for confirmation with "不对？换一个 / Not right? Pick another" (nearby blocks), and saves address + postal. Unit tests with multi-entry GeocodeInfo fixtures.
+
+## 2026-11-20 — M6 UI round done (dev/m6-ui e03d647)
+- All 7 items built; APK 1.1.0-m6ui 1 775 687 B, SHA-256 4bb787a3…0bbec; verify-release passes. Unit 315/321/274 + JVM 15/15; 34 new M6 baselines; 9 Settings baselines re-recorded (Android-Chrome UA shows the Get-the-app card).
+- Rulings: APK distribution = the Worker's own static assets at /android/howtogo-<ver>.apk + release-history.json (no R2 bucket: 1.8 MB, simpler, nothing new on the owner's account). smoke:deploy adds the AC 39 check (served APK SHA-256 == latest.json). Dev baselines at DPR 1 are accepted (Creative reviews at 1; marketing assets at 2×). The "坐地铁 {code} · {sign}" line goes to the Creative review. WAKE_LOCK / GoogleApiActivity: closed per the 2026-11-17 rulings (allow-list notes).
+- Parallel next: Creative review of the M6 UI ‖ Dev M6 follow-ups (dev/m6-ui) ‖ Dev web fixes QA-68…73 (dev/1.2-fixes). Then merge, QA M6 gate + the 1.2 web gate, the owner device session.
