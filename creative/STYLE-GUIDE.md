@@ -1,4 +1,4 @@
-# 怎么去? — Style guide v1.6
+# 怎么去? — Style guide v1.7
 
 Source of truth for the build. **Build strictly to these tokens and frames:** no raw values outside the token sheet, and no improvised UI. New tokens need Director approval. The prototype `creative/prototype/index.html` implements every token below in its `:root` block. Brand rationale lives in `docs/02-creative-direction.md`.
 
@@ -1719,6 +1719,28 @@ Entry-point parity matches the M6 table: first Start = A2 → A3 → A6 → C1 �
 - **Decisions to confirm:** off-route uses the `info` channel (keeps `getoff` unique, D21); no destination/contact names in notifications (lock-screen privacy); the QA build keeps the same icon (label differs).
 - **No new tokens.**
 
+## 6i. 1.2 fixes (v1.7)
+
+### 6i.1 B1 Which block? (`.confirm`, from F1 page 3 / P8)
+Shown when a Home or My place without a 6-digit postal code is picked, or after 不对？换一个 / Not right? Pick another. Icon disc: Home `home` on `tint-home`; a place `loc` on `c-surface-2`. Title (`headline`, focus target) **哪一座？/ Which block?** · line (`body`, not shown after "Not right?") “{p}”有好几座楼。选你的那一座，司机更容易找到。/ “{p}” has several blocks. Pick yours so drivers find it easily.
+- Loading (`role=status`): 正在找附近的楼… / Finding blocks nearby…
+- Rows (`.rlist/.ritem`, 80 px, ≤ 6, `lang=en`): street (bold) · `num` Singapore {postal} · chevron. Within 150 m.
+- None (`role=status`): 附近没有找到楼。可以输入邮区编号。/ No blocks found nearby. You can type the postal code.
+- Field (`.field2`, 64 px, numeric, 6 digits): label 或者输入邮区编号（6 位数）/ Or type the postal code (6 digits). With no rows: 邮区编号（6 位数）/ Postal code (6 digits).
+- Primary **用这个邮区编号 / Use this postal code** (72). Errors: `.field2.bad` + `.fnote` (info icon, ink, no red): 请输入 6 位数的邮区编号。/ Please type a 6-digit postal code. · 没有找到这个邮区编号。请再看一看。/ We couldn't find that postal code. Please check it and try again.
+- Secondary (56) **先不用，就用“{p}” / Not now, keep “{p}”**. Saves the pick as it is, or after "Not right?" goes back to the confirm card.
+- Picking a block: an estate name stays the label; a road name gives way to the block's name. My places → toast 存好了 / Saved.
+- Baselines: `B1-list`, `B1-none`, `B1-error`, `B1-200`.
+
+### 6i.2 F1 page 3 / P8 Home confirm card: address line
+Under 家：{label} / Home: {label}: `body`, `lang=en`, street (left out if it equals the label) / saffron `num` Singapore {postal}. From 用我现在的位置: the secondary reads **不对？换一个 / Not right? Pick another** → B1 (no search). From search it stays 不对，重新找 / No, search again. Baseline `F1-home-confirm-addr`.
+
+### 6i.3 H1 one-time nudge (`.note`, wraps at 200 %)
+Only when Home has no postal code, once: home icon · quiet button (bold, fills the row) **加上门牌号，司机更容易找到你家 / Add your block number so drivers can find your home** → B1 · quiet **不用了 / No thanks**. Either tap sets `homeNudge.v1` (cleared by Delete all). No live role. Never during a trip. Baseline `H1-nudge`.
+
+### 6i.4 H10 addition
+A Home or destination without a postal code fills in its street and Singapore {postal} once it is online (one reverse geocode, saved back to the place). It fills quietly, with no spinner and no announcement. Offline: unchanged. A street line equal to the name is not repeated.
+
 ## 7. Parity checklist (prototype ↔ build)
 - [ ] Tokens identical: colour, type, space, radii, motion, haptics.
 - [ ] Back stack per frame, as above, including the D8 end-trip guard.
@@ -1745,6 +1767,7 @@ Entry-point parity matches the M6 table: first Start = A2 → A3 → A6 → C1 �
 ## Change log
 | Version | Date | Change |
 |---|---|---|
+| v1.7 | 2026-11-20 | 6i 1.2 fixes: B1 Which block?, Home confirm address line + "Not right? Pick another", H1 one-time nudge, H10 postal back-fill. No new tokens. |
 | v1.6 | 2026-11-20 | 6h M6 Android app: adaptive/themed launcher icon, splash and notification small icon as real files + Android drop-in resources (`creative/m6/`); native location and notification explainers with denied/approximate/open-settings states and the DND note (A2–A6); battery guide with steps and drawn pictures for Google/generic, Samsung, Xiaomi, OPPO/realme/OnePlus, vivo, Huawei/Honor, status on return, H5 note after a kill (B1–B3); no-Chinese-voice sheet and WebView-too-old screen (C1–C2); notification channels, layouts, step short texts and lock-screen truncation rules (N); update notice and web Get-the-app card (D1–D2); the `/android` download page, phone and desktop (W-A). Icons `battery`, `bell-off`, `smartphone`. No new tokens. |
 | v1.5 | 2026-11-19 | 6g 1.1: C1 OneMap credit decision (terms checked: logo + notice must stay, clause 3(b)(ii) "obscure"; C1-A compact always-visible two-line credit, plain text, no links on the map; C1-B expanding chip ready only on written SLA approval). H2 smart-search states (alias line, "trying other names" line, did-you-mean, one-guess line, still-nothing with postal code, silent fallback). Voice: "You said" row, full listening states. Privacy additions (Anthropic, phone speech service) with cuts, en 399 words, notice n = 2. No new tokens or icons. |
 | v1.4.1 | 2026-11-18 | 6f.11 text size 较小 85% / Smaller (owner request): `--ts` 0.85, first of 5 options, default still 100%; 5-card grid (odd last card spans the row) and `.seg.sizes`; SR names; targets and px icons do not scale; AA cycle skips 85%; viewer stays 100%. |

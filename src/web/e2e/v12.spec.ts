@@ -78,6 +78,7 @@ test('QA-72: Which block? takes a postal code (bad code → message), or keeps t
   await page.getByTestId('home-block-postal').fill('7306');
   await page.getByTestId('home-block-postal-go').click();
   await expect(page.getByTestId('home-block-err')).toHaveText('Please type a 6-digit postal code.');
+  await expect(page.getByTestId('home-block-err')).toHaveCSS('color', await page.getByTestId('home-block').locator('.t-headline').evaluate((e) => getComputedStyle(e).color));
   await page.getByTestId('home-block-postal').fill('730680');
   await page.getByTestId('home-block-postal-go').click();
   await expect(page.getByTestId('home-confirm-addr')).toContainText('Singapore 730680');
@@ -137,8 +138,11 @@ test('QA-72: H10 back-fills a saved Home without a postal code and caches it', a
 test('QA-72: one-time Home nudge for a Home without a postal code', async ({ page }) => {
   await boot(page, { nudge: true, places: { home: { ...ESTATE, address: undefined, postal: undefined }, others: [] } });
   const nudge = page.getByTestId('home-nudge');
-  await expect(nudge).toContainText('加上门牌，司机更容易找到');
+  await expect(nudge).toContainText('加上门牌号，司机更容易找到你家');
+  await expect(nudge).not.toHaveAttribute('role', 'status');
   await page.getByTestId('home-nudge-add').click();
+  // F2: the picker title takes focus when it replaces the card.
+  await expect(page.getByTestId('home-block').locator('.t-headline')).toBeFocused();
   await expect(nudge).toHaveCount(0);
   await expect(page.getByTestId('home-block')).toBeVisible();
   await page.getByTestId('home-block-0').click();

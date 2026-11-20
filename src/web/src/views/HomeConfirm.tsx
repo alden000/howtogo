@@ -4,7 +4,7 @@
  * asks "哪一座？/ Which block?" first; a Home from "use where I am now" offers "不对？换一个 / Not right?
  * Pick another" (nearby blocks or a postal code) instead of searching again.
  */
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { useServices, useT } from '../context';
 import { Icon, showToast } from '../ui/kit';
 import { homeToSave, pendingHome } from '../state/pendingHome';
@@ -18,7 +18,18 @@ export function HomeConfirm({ onDone }: { onDone?: () => void }) {
   const { store, router } = useServices();
   const t = useT();
   const [picking, setPicking] = useState(false);
+  // F2: when the card comes back after the picker, focus its title.
+  const titleRef = useRef<HTMLElement>(null);
+  const back = useRef(false);
   const p = pendingHome.value;
+  const asking = !!p && (picking || (!hasPostal(p) && !p.noBlockAsk));
+  useEffect(() => {
+    if (asking) back.current = true;
+    else if (back.current && titleRef.current) {
+      back.current = false;
+      titleRef.current.focus();
+    }
+  }, [asking]);
   if (!p) return null;
   const save = () => {
     store.setHome(homeToSave(p));
@@ -27,7 +38,7 @@ export function HomeConfirm({ onDone }: { onDone?: () => void }) {
     if (onDone) onDone();
     else showToast('home-set', t('toast_home_set'));
   };
-  if (picking || (!hasPostal(p) && !p.noBlockAsk)) {
+  if (asking) {
     return (
       <BlockPicker
         testid="home-block"
@@ -56,7 +67,9 @@ export function HomeConfirm({ onDone }: { onDone?: () => void }) {
       <span class="ic" aria-hidden="true">
         <Icon name="home" />
       </span>
-      <b class="t-headline">{t('home_label', { p: p.name })}</b>
+      <b class="t-headline" tabIndex={-1} ref={titleRef}>
+        {t('home_label', { p: p.name })}
+      </b>
       {(showStreet || postal) && (
         <p class="t-body" lang="en" data-testid="home-confirm-addr" style={{ margin: 0 }}>
           {showStreet && (

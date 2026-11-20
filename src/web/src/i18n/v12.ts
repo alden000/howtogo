@@ -12,11 +12,12 @@ export const V12_ZH = {
   blk_loading: '正在找附近的楼…',
   blk_none: '附近没有找到楼。可以输入邮区编号。',
   blk_postal: '或者输入邮区编号（6 位数）',
-  blk_postal_go: '用这个编号',
+  blk_postal_only: '邮区编号（6 位数）',
+  blk_postal_go: '用这个邮区编号',
   blk_postal_bad: '请输入 6 位数的邮区编号。',
-  blk_postal_none: '没有找到这个邮区编号。',
+  blk_postal_none: '没有找到这个邮区编号。请再看一看。',
   blk_keep: '先不用，就用“{p}”',
-  home_nudge: '加上门牌，司机更容易找到',
+  home_nudge: '加上门牌号，司机更容易找到你家',
   home_nudge_close: '不用了',
 };
 type Shape = Record<keyof typeof V12_ZH, string>;
@@ -26,11 +27,12 @@ export const V12_EN: Shape = {
   blk_loading: 'Finding blocks nearby…',
   blk_none: 'No blocks found nearby. You can type the postal code.',
   blk_postal: 'Or type the postal code (6 digits)',
-  blk_postal_go: 'Use this code',
+  blk_postal_only: 'Postal code (6 digits)',
+  blk_postal_go: 'Use this postal code',
   blk_postal_bad: 'Please type a 6-digit postal code.',
-  blk_postal_none: "We couldn't find that postal code.",
+  blk_postal_none: "We couldn't find that postal code. Please check it and try again.",
   blk_keep: 'Not now, keep “{p}”',
-  home_nudge: 'Add your block number so drivers find it easily',
+  home_nudge: 'Add your block number so drivers can find your home',
   home_nudge_close: 'No thanks',
 };
 

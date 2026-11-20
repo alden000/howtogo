@@ -4,7 +4,7 @@
  * `/api/revgeocode?blocks=1`) and takes a 6-digit postal code instead; "keep" saves the pick as it is.
  * Built from the existing confirm card (.confirm), result rows (.rlist/.ritem) and field (.field2).
  */
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { LatLng, Place } from '@howtogo/shared';
 import type { SearchResult } from '../api/types';
 import { useServices, useT } from '../context';
@@ -22,6 +22,8 @@ export function BlockPicker(props: {
   onPick: (b: SearchResult) => void;
   onKeep?: (() => void) | undefined;
   testid?: string;
+  /** Icon disc: Home `home` on tint-home (default); a My place `loc` on c-surface-2 (6i.1 / P8). */
+  icon?: 'home' | 'loc';
 }) {
   const { api } = useServices();
   const t = useT12();
@@ -29,6 +31,9 @@ export function BlockPicker(props: {
   const [code, setCode] = useState('');
   const [err, setErr] = useState<'' | 'bad' | 'none'>('');
   const [busy, setBusy] = useState(false);
+  // F2: the picker replaces the card, so move focus to its title (the title is the announcement).
+  const titleRef = useRef<HTMLElement>(null);
+  useEffect(() => titleRef.current?.focus(), []);
   useEffect(() => {
     let live = true;
     setBlocks(null);
@@ -51,10 +56,12 @@ export function BlockPicker(props: {
   const id = props.testid ?? 'block-pick';
   return (
     <div class="confirm" data-testid={id} style={{ marginBottom: 'var(--s-4)' }}>
-      <span class="ic" aria-hidden="true">
-        <Icon name="home" />
+      <span class="ic" aria-hidden="true" style={props.icon === 'loc' ? { background: 'var(--c-surface-2)', color: 'var(--c-ink)' } : undefined}>
+        <Icon name={props.icon ?? 'home'} />
       </span>
-      <b class="t-headline">{t('blk_title')}</b>
+      <b class="t-headline" tabIndex={-1} ref={titleRef}>
+        {t('blk_title')}
+      </b>
       {props.intro !== false && props.keepName && <p class="t-body" style={{ margin: 0 }}>{t('blk_why', { p: props.keepName })}</p>}
       {blocks === null ? (
         <p class="t-body" role="status" aria-busy="true" data-testid={`${id}-loading`} style={{ margin: 0 }}>
@@ -72,7 +79,7 @@ export function BlockPicker(props: {
                 <span class="ic" aria-hidden="true">
                   <Icon name="loc" />
                 </span>
-                <span class="tx">
+                <span class="tx" lang="en">
                   <b>{streetLine(b.address) || b.name}</b>
                   <span class="num">Singapore {b.postal}</span>
                 </span>
@@ -82,8 +89,8 @@ export function BlockPicker(props: {
           ))}
         </ul>
       )}
-      <div class="field2" style={{ margin: 0 }}>
-        <label for={`${id}-postal`}>{t('blk_postal')}</label>
+      <div class={`field2${err ? ' bad' : ''}`} style={{ margin: 0 }}>
+        <label for={`${id}-postal`}>{t(blocks && blocks.length === 0 ? 'blk_postal_only' : 'blk_postal')}</label>
         <input
           id={`${id}-postal`}
           data-testid={`${id}-postal`}
@@ -99,12 +106,13 @@ export function BlockPicker(props: {
           }}
           onKeyDown={(e) => e.key === 'Enter' && void usePostal()}
         />
+        {err && (
+          <span class="fnote" role="alert" id={`${id}-err`} data-testid={`${id}-err`}>
+            <Icon name="info" />
+            {t(err === 'bad' ? 'blk_postal_bad' : 'blk_postal_none')}
+          </span>
+        )}
       </div>
-      {err && (
-        <p class="t-body" role="alert" id={`${id}-err`} data-testid={`${id}-err`} style={{ margin: 0, color: 'var(--c-danger)' }}>
-          {t(err === 'bad' ? 'blk_postal_bad' : 'blk_postal_none')}
-        </p>
-      )}
       <button type="button" class="btn btn-primary" data-testid={`${id}-postal-go`} disabled={busy} onClick={() => void usePostal()}>
         {t('blk_postal_go')}
       </button>
@@ -131,6 +139,7 @@ export function PlaceBlockAsk() {
   return (
     <BlockPicker
       testid="place-block"
+      icon="loc"
       center={p}
       keepName={p.name}
       onPick={(b) => save(withBlock(p, b))}
@@ -139,16 +148,16 @@ export function PlaceBlockAsk() {
   );
 }
 
-/** One-time Home nudge (QA-72): Home has no block/postal code → "加上门牌，司机更容易找到". */
+/** One-time Home nudge (QA-72, 6i.3): Home has no block/postal code. A standing offer, so no live role. */
 export function HomeNudge({ onAdd }: { onAdd: () => void }) {
   const t = useT12();
   return (
-    <p class="note" role="status" data-testid="home-nudge">
+    <div class="note nudge" data-testid="home-nudge">
       <Icon name="home" />
       <button
         type="button"
         class="btn-quiet"
-        style={{ flex: 1, textAlign: 'left', fontWeight: 700, minHeight: 'var(--tap)' }}
+        style={{ flex: '1 1 10em', textAlign: 'left', fontWeight: 700, minHeight: 'var(--tap)' }}
         data-testid="home-nudge-add"
         onClick={() => {
           homeNudge.done();
@@ -160,6 +169,6 @@ export function HomeNudge({ onAdd }: { onAdd: () => void }) {
       <button type="button" class="btn btn-quiet" data-testid="home-nudge-close" onClick={() => homeNudge.done()}>
         {t('home_nudge_close')}
       </button>
-    </p>
+    </div>
   );
 }
