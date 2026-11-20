@@ -280,3 +280,8 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Approved: icons battery, bell-off, smartphone; launcher/splash/notification icon geometry; 27 drawn battery-guide pictures (zh/en). No new tokens.
 - OQ defaults accepted: off-route notification on the `info` channel; no destination or contact names in notifications (lock-screen privacy); the QA build keeps the same icon (label "怎么去 QA" tells them apart); Play Protect wording checked on the owner's phone.
 - Next: M6 UI round (native explainers, battery guide, notifications, no-voice, WebView-too-old, update notice, Get-the-app card, /android page, icons into res/).
+
+## 2026-11-20 — Owner request: dialect place names (坡底, 黑桥头…)
+- Live check: the Claude fallback already handles 坡底/坡低/大坡 → Chinatown, 小坡 → Bugis, 水仙门 → High Street, 红灯码头 → Clifford Pier; it fails on 黑桥头/黑桥/乌桥/结霜桥. Also a ranking issue: a 7-Eleven sits above Chinatown MRT for 坡底 → rank MRT/landmarks above shops (QA-71, S3).
+- PM research (pm/dialect-names): 60–90 sourced names with estimated locations, routing targets, confidence and sources, plus a list of owner questions. The owner reviews; then they become alias entries (instant, free, deterministic).
+- Note: curl on this Windows host garbles CJK query strings; use node fetch with encodeURIComponent for CJK tests.
