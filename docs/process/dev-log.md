@@ -1828,7 +1828,6 @@ Branch `dev/m6-build` (worktree `D:\GIT\howtogo-m6`), host nnie (Windows 11, 4 c
 ### Not done / next
 - No device touched, nothing deployed. Lint was not run this round (round 1: 0 errors). AC 36 release smoke (`.qa` build) and the device checklist are the Director's session. Live data in the app still needs the Worker deployed with `https://localhost` in `ALLOWED_ORIGINS` (round-1 item 5).
 
-<<<<<<< HEAD
 ## 2026-11-20 — Developer: M6 UI round (native-only screens and assets, branch `dev/m6-ui`)
 Worktree `D:\GIT\howtogo-m6u`, built strictly to STYLE-GUIDE v1.6 §6h with its exact copy. No device touched, nothing deployed.
 
@@ -1883,7 +1882,6 @@ No deploy, no wrangler against Cloudflare, no phone touched.
 
 ### Release build
 - `npm run android:release`: Gradle 3 m 59 s, JVM 15/15, verify-release **ALL PASS**, staged then un-staged. **`D:\howtogo-builds\1.1.0-m6ui\howtogo-1.1.0.apk`** 1,775,863 B, SHA-256 `29951fec8325ebd56880dedb012a230def4c867696bb427c15be4a1d881e18f5` (+ `.sha256`, mapping). Password scan: 0 hits.
-=======
 ## 2026-11-20 — Developer: 1.2 fixes
 Branch `dev/1.2-fixes` (worktree howtogo-12). Rulings: director-log 2026-11-19 "v1.1.0 LIVE" → 2026-11-20 (QA-68…73).
 
@@ -1909,4 +1907,3 @@ Branch `dev/1.2-fixes` (worktree howtogo-12). Rulings: director-log 2026-11-19 "
 - QA specs v11/m3/m4: 106/108 in the full parallel run. Two load flakes (m4 AC 25 "50 viewers" got 16; v11 6g.5 privacy element) both pass when re-run alone. For QA: the m5 key-inventory test lists keys. Add `homeNudge.v1` there if QA seeders start setting it.
 - Size: Home entry 99.9 KB / 100 KB (picker + its copy are a lazy chunk).
 - Nothing deployed; no live OneMap/Anthropic calls; no servers left running.
->>>>>>> dev/1.2-fixes
