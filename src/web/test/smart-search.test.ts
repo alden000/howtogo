@@ -24,7 +24,7 @@ describe('search client (1.1 fields)', () => {
     expect(r.didYouMean).toBe(true);
     expect(r.usedAlternative).toBe('tan tock seng');
     // ≤ 2 alternatives, the best one never repeated, trimmed.
-    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=tank%20talk%20sang&alt=tan%20tock%20seng&alt=ten%20talk%20sing');
+    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=tank%20talk%20sang&alt=tan%20tock%20seng&alt=ten%20talk%20sing&v=2');
     expect(logLines().join()).not.toContain('tank');
   });
 

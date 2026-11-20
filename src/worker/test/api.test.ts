@@ -5,6 +5,7 @@ import { TOKEN_KV_KEY, resetTokenCache } from "../src/onemap";
 import bishan from "./fixtures/onemap-search-bishan.json";
 import route from "./fixtures/onemap-route.json";
 import revgeo from "./fixtures/onemap-revgeocode.json";
+import estate from "./fixtures/onemap-revgeocode-estate.json";
 import disrupted from "./fixtures/lta-train-alerts-disrupted.json";
 import { ORIGIN, call, jsonRes, stubFetch, tokenResponse } from "./helpers";
 
@@ -105,14 +106,27 @@ describe("GET /api/route", () => {
   });
 });
 
+describe("GET /api/revgeocode?blocks=1 (QA-72/73)", () => {
+  it("lists nearby blocks with postal codes from a wider buffer", async () => {
+    const { calls } = stubFetch(() => jsonRes(estate));
+    const res = await call("/api/revgeocode?lat=1.44&lng=103.801&blocks=1");
+    const body = (await res.json()) as { blocks: { name: string; postal: string }[] };
+    expect(body.blocks.map((b) => [b.name, b.postal])).toEqual([
+      ["676A Woodlands Drive 71", "731676"],
+      ["676B Woodlands Drive 71", "732676"],
+    ]);
+    expect(calls[0]!.url.searchParams.get("buffer")).toBe("150");
+  });
+});
+
 describe("GET /api/revgeocode", () => {
   it("normalises and rounds the location sent upstream", async () => {
     const { calls } = stubFetch(() => jsonRes(revgeo));
     const res = await call("/api/revgeocode?lat=1.3498912&lng=103.8470634");
     expect(await res.json()).toEqual({
-      name: "Bishan Community Club",
-      address: "51 Bishan Street 13 Bishan Community Club Singapore 579799",
-      postal: "579799",
+      name: "201 Bishan Street 23",
+      address: "201 Bishan Street 23 Singapore 570201",
+      postal: "570201",
     });
     expect(calls[0]!.url.searchParams.get("location")).toBe("1.34989,103.84706");
     expect(res.headers.get("Cache-Control")).toBe("private, max-age=3600");

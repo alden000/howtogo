@@ -6,6 +6,8 @@ import { online } from '../api/offline';
 import { here, locate } from '../state/location';
 import { nextAaSize, TEXT_SCALE } from '../state/store';
 import { HomeConfirm } from './HomeConfirm';
+import { hasPostal, homeNudge } from '../state/address';
+import { pendingHome } from '../state/pendingHome';
 import { announce, Icon, NeedsNet, showToast, useStateHook, Wordmark } from '../ui/kit';
 
 /** "Already near home" radius for Take me home (the too-close threshold of AC 34). */
@@ -14,6 +16,8 @@ import { lazyView, warmView } from '../ui/lazy';
 // M5 AC 3: shown only when there is a disruption / a just-imported setup: separate chunks, warmed when idle.
 const DisruptionBanner = lazyView(() => import('./transit').then((m) => m.DisruptionBanner));
 const SetupUndo = lazyView(() => import('./family').then((m) => m.SetupUndo));
+// 1.2 QA-72: the one-time Home nudge (a Home without a postal code), with the Which-block picker chunk.
+const HomeNudge = lazyView(() => import('./blockPick').then((m) => m.HomeNudge));
 // M5 L3/L4 (6f.3, 6f.4): update bar, What's new, in-app-browser bar (top) and install card (under the tiles).
 // One lazy chunk that decides for itself (kept out of the Home entry, AC 3); nothing renders during a trip/share.
 const launch = () => import('./launch');
@@ -152,6 +156,7 @@ export function Home() {
         <SetupUndo />
         <DisruptionBanner where="home" />
         <HomeConfirm />
+        {home && !hasPostal(home) && !homeNudge.seen.value && !pendingHome.value && <HomeNudge onAdd={() => (pendingHome.value = { ...home })} />}
         <div class="greet">
           <h2 class="t-display" data-testid="greeting">
             {s.name ? t('greet_named', { g: greet, n: s.name }) : greet}

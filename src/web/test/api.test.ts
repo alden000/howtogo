@@ -21,7 +21,7 @@ describe('http api client', () => {
     const api = createHttpApi({ base: 'https://w.example/', fetch: fetch as typeof globalThis.fetch });
     const r = await api.search('bishan mrt');
     expect(r[0]!.postal).toBe('579842');
-    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=bishan%20mrt');
+    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=bishan%20mrt&v=2');
     expect(logLines()).toContain('api:search 200');
     expect(logLines().join()).not.toContain('bishan');
 

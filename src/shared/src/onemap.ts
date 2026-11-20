@@ -15,6 +15,7 @@
  */
 import { decodePolyline, dedupePoints, haversine } from './geo';
 import { inferLine, transitModeForLine } from './lines';
+import { BRAND_CASE } from './names';
 import type { Itinerary, LatLng, Leg, Mode, PlanResult, Place, Stop, Turn } from './types';
 
 type Obj = Record<string, unknown>;
@@ -49,7 +50,7 @@ function time(v: unknown): number | undefined {
 
 // ------------------------------------------------------------ names
 
-const KEEP_UPPER = new Set(['MRT', 'LRT', 'SBS', 'SMRT', 'NTUC', 'HDB', 'CPF', 'ITE', 'NUS', 'NTU', 'SGH', 'TTSH', 'KKH', 'NUH', 'CDC']);
+const KEEP_UPPER = new Set(['MRT', 'LRT', 'SBS', 'SMRT', 'NTUC', 'HDB', 'CPF', 'ITE', 'NUS', 'NTU', 'SGH', 'TTSH', 'KKH', 'NUH', 'CDC', 'HQ']);
 
 /** "FARRER PARK MRT STATION" → "Farrer Park"; "OPP BLK 61" → "Opp Blk 61". */
 export function prettyStopName(raw: string): string {
@@ -62,7 +63,7 @@ export function prettyStopName(raw: string): string {
       if (KEEP_UPPER.has(w) || /\d/.test(w)) return w;
       return w
         .split(/([/-])/)
-        .map((p) => (p.length > 0 && /[A-Z]/.test(p) ? p[0] + p.slice(1).toLowerCase() : p))
+        .map((p) => BRAND_CASE[p] ?? (p.length > 0 && /[A-Z]/.test(p) ? p[0] + p.slice(1).toLowerCase() : p))
         .join('');
     })
     .join(' ');

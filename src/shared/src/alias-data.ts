@@ -182,6 +182,12 @@ export const ALIASES: readonly AliasEntry[] = [
   { kind: 'school', keys: ['smu', '新加坡管理大学'], terms: ['Singapore Management University'] },
   { kind: 'school', keys: ['sutd', '新加坡科技设计大学'], terms: ['Singapore University of Technology and Design'] },
   { kind: 'school', keys: ['suss', '新跃社科大学'], terms: ['Singapore University of Social Sciences'] },
+  // QA-70: "poly" after a polytechnic's name means the polytechnic, never a polyclinic.
+  { kind: 'school', keys: ['ngee ann poly', 'ngee ann polytechnic', 'np', '义安理工学院', '义安理工'], terms: ['Ngee Ann Polytechnic'] },
+  { kind: 'school', keys: ['temasek poly', 'temasek polytechnic', '淡马锡理工学院', '淡马锡理工'], terms: ['Temasek Polytechnic'] },
+  { kind: 'school', keys: ['singapore poly', 'singapore polytechnic', 'sp', '新加坡理工学院'], terms: ['Singapore Polytechnic'] },
+  { kind: 'school', keys: ['republic poly', 'republic polytechnic', 'rp', '共和理工学院', '共和理工'], terms: ['Republic Polytechnic'] },
+  { kind: 'school', keys: ['nanyang poly', 'nanyang polytechnic', 'nyp', '南洋理工学院'], terms: ['Nanyang Polytechnic'] },
 ];
 
 /**
@@ -196,7 +202,7 @@ export const ABBREVIATIONS: Readonly<Record<string, string>> = {
   hbf: 'harbourfront',
   je: 'jurong east',
   jw: 'jurong west',
-  poly: 'polyclinic',
+  poly: 'polyclinic', // except after a polytechnic's name (POLYTECHNIC_HEAD in alias.ts, QA-70)
   hosp: 'hospital',
   int: 'interchange',
 };

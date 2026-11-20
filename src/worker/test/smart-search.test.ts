@@ -54,7 +54,7 @@ type Anth = (req: Request) => Response | Promise<Response>;
 /** OneMap answers from `places` (searchVal → building names); Anthropic from `anth`. */
 async function upstream(places: Record<string, string[]>, anth?: Anth, alsoEvict: string[] = []) {
   // The Cache API outlives a test: drop every OneMap term this test relies on.
-  for (const t of [...Object.keys(places), ...alsoEvict]) await evictCached(`search:v1:${t.toLowerCase()}`);
+  for (const t of [...Object.keys(places), ...alsoEvict]) await evictCached(`search:v2:${t.toLowerCase()}`);
   const ai: { body: Record<string, unknown>; headers: Headers }[] = [];
   const oneMap: string[] = [];
   const stub = stubFetch(async (url, _init, req) => {
@@ -83,7 +83,7 @@ beforeEach(async () => {
   AI_CONFIG.timeoutMs = 4000;
   await env.TOKEN_KV.put(TOKEN_KV_KEY, JSON.stringify({ token: "tok-A", expiresAt: Date.now() + 48 * 3600_000 }));
   for (const k of (await env.TOKEN_KV.list({ prefix: "ai:" })).keys) await env.TOKEN_KV.delete(k.name);
-  await evictCached(`search:v1:${Q}`);
+  await evictCached(`search:v2:${Q}`);
   logs = [];
   for (const m of ["log", "warn", "error", "info", "debug"] as const) {
     vi.spyOn(console, m).mockImplementation((...a: unknown[]) => void logs.push(a));
@@ -111,6 +111,12 @@ describe("alias layer", () => {
     expect(ai).toHaveLength(0);
   });
 
+  it("QA-71: Chinatown MRT Station ranks above the 7-Eleven tenant entry", async () => {
+    await upstream({ "chinatown mrt": ["7 ELEVEN MART CHINATOWN MRT STATION", "CHINATOWN MRT STATION"] });
+    const body = (await (await get("/api/search?q=chinatown%20mrt", env)).json()) as Body;
+    expect(body.results.map((r) => r.name)).toEqual(["Chinatown MRT Station", "7 Eleven Mart Chinatown MRT Station"]);
+  });
+
   it("speech renderings (K K 医院) reach the same alias", async () => {
     const { oneMap } = await upstream({}, undefined, ["KK Women's and Children's Hospital", "K K 医院"]);
     await get("/api/search?q=" + encodeURIComponent("K K 医院"), env);
@@ -119,7 +125,7 @@ describe("alias layer", () => {
 
   it("de-duplicates by name + postal across layers", async () => {
     const shared = row("TAN TOCK SENG HOSPITAL");
-    for (const t of ["TTSH", "Tan Tock Seng Hospital"]) await evictCached(`search:v1:${t.toLowerCase()}`);
+    for (const t of ["TTSH", "Tan Tock Seng Hospital"]) await evictCached(`search:v2:${t.toLowerCase()}`);
     stubFetch(() => jsonRes({ results: [shared] }));
     const body = (await (await get("/api/search?q=TTSH", env)).json()) as Body;
     expect(body.results).toHaveLength(1);

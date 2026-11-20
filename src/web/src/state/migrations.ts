@@ -33,6 +33,7 @@ export const STORAGE_KEYS = {
     // M5 UI-2
     'install.v1', // install card: completed route views count, dismissals, snooze-until date, installed (no UA)
     'whatsnew.v1', // What's new: shown once after updating to 1.0.0 ('seen' / 'fresh')
+    'homeNudge.v1', // 1.2 QA-72: the one-time "add your block number" Home nudge was shown and answered ('1')
   ],
   /** Legacy keys a migration folds in and removes. */
   legacy: ['recents'],

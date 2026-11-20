@@ -10,6 +10,8 @@
     "./telemetry": "./src/telemetry.ts",
     "./battery": "./src/battery.ts",
     "./alias": "./src/alias.ts",
+    "./names": "./src/names.ts",
+    "./rank-places": "./src/placeRank.ts",
     "./simulate": "./src/simulate.ts",
     "./fixtures": "./test/fixtures/index.ts"
   },

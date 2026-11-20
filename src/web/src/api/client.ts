@@ -8,6 +8,8 @@ import { log } from '../log';
 import { ApiError } from './errors';
 import type { Api, LiveConnection, LiveEvent, RouteParams, SearchResult, SearchResults, ShareState } from './types';
 
+/** 1.2 search cache-key version (`&v=`): bump when the Worker's search answer changes shape, casing or order. */
+export const SEARCH_CACHE_V = 2;
 /** 1.1: the results array with the response-level flags attached (only when present). */
 type SearchBody = { results?: SearchResult[]; didYouMean?: boolean; usedAlternative?: string; alias?: { zh?: string; en: string }; guess?: string; assist?: boolean };
 export function searchResults(r: SearchBody): SearchResults {
@@ -114,6 +116,8 @@ export function createHttpApi(opts: HttpApiOptions): Api {
       const alts = (opts?.alternatives ?? []).map((a) => a.trim().slice(0, 100)).filter((a) => a && a !== q.trim());
       for (const a of alts.slice(0, 2)) path += `&alt=${encodeURIComponent(a)}`;
       if (opts?.step === 1) path += '&step=1';
+      // 1.2: new cache key so HTTP/SW caches never serve a 1.1 answer (old casing, QA-68/69; old order, QA-71).
+      path += `&v=${SEARCH_CACHE_V}`;
       const r = await request<SearchBody>('search', path, { signal: signal ?? null });
       return searchResults(r);
     },
@@ -131,6 +135,10 @@ export function createHttpApi(opts: HttpApiOptions): Api {
     },
     revgeocode(p) {
       return request('revgeocode', `/api/revgeocode?lat=${p.lat.toFixed(6)}&lng=${p.lng.toFixed(6)}`);
+    },
+    async nearbyBlocks(p) {
+      const r = await request<{ blocks?: SearchResult[] }>('revgeocode', `/api/revgeocode?lat=${p.lat.toFixed(6)}&lng=${p.lng.toFixed(6)}&blocks=1`);
+      return Array.isArray(r.blocks) ? r.blocks : [];
     },
     busArrival(stop, service) {
       const qs = new URLSearchParams({ stop });

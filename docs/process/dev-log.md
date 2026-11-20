@@ -1827,3 +1827,29 @@ Branch `dev/m6-build` (worktree `D:\GIT\howtogo-m6`), host nnie (Windows 11, 4 c
 
 ### Not done / next
 - No device touched, nothing deployed. Lint was not run this round (round 1: 0 errors). AC 36 release smoke (`.qa` build) and the device checklist are the Director's session. Live data in the app still needs the Worker deployed with `https://localhost` in `ALLOWED_ORIGINS` (round-1 item 5).
+
+## 2026-11-20 — Developer: 1.2 fixes
+Branch `dev/1.2-fixes` (worktree howtogo-12). Rulings: director-log 2026-11-19 "v1.1.0 LIVE" → 2026-11-20 (QA-68…73).
+
+### Fixed
+- **QA-73 (S2)** `normaliseRevGeocode` (worker/src/normalise.ts) now prefers the nearest GeocodeInfo entry with a BLOCK and a 6-digit POSTAL (then any postal, then a building, then a road). If that entry has no building name, the nearest estate/building-only entry comes back as `estate` (a secondary line). Revgeo cache key `revgeo:v2:`. "Use where I am now" for Home: the confirm card shows name (the estate, if there is one), street and "Singapore 123456". The second button is "不对？换一个 / Not right? Pick another", which opens the nearby-block picker. Saved Home = address + postal. Note: the existing Bishan fixture test now expects the nearest block (201 Bishan St 23), not the farther CC.
+- **QA-72 (S2)** (1) H10: a Home or destination without a postal code is reverse geocoded once (online only, not in sample mode). The card shows the street and postal, and the result is cached back into the saved Home or My place. (2) "哪一座？/ Which block?": a pick with no postal code as Home (confirm card) or as a My place (My places page) lists the blocks within 150 m (new `GET /api/revgeocode?…&blocks=1`, ≤ 8, cache `blocks:v1:`; fixture mode `[]`) and takes a 6-digit postal code (via /api/search). "Keep" saves the pick as it is. An estate name stays as the name/label; a road name gives way to the block's name. (3) One-time Home nudge on H1 when Home has no postal code. Flag `homeNudge.v1` is set when the user taps the nudge or closes it. It is documented in STORAGE_KEYS and cleared by Delete all.
+- **QA-71 (S3)** New `src/shared/src/placeRank.ts`, applied to the merged `/api/search` list. Deterministic scoring: transport +3, hospital/polyclinic/market/food centre/CC/library +2, landmark +1, other 0, tenant/shop (7-Eleven, Cheers, ATM, kiosk, cafés…) −2. Tenants are checked first because they often end in "MRT Station". A name equal to the query gets +4, a name starting with it +1, an alias hit +2. Ties keep the incoming order.
+- **QA-69/68 (S4)** Brand case comes from a shared map (`src/shared/src/names.ts`: VivoCity, JCube, NParks), used by the Worker `titleCase` and shared `prettyStopName`; they are no longer in KEEP_UPPER. `HQ` is kept upper case ("ICA HQ").
+- **QA-70 (S4)** "poly" after ngee ann / temasek / singapore / republic / nanyang → polytechnic (inside longer queries too). New curated polytechnic entries (incl. `np`, `sp`, `rp`, `nyp`). Town + poly is still a polyclinic.
+- **Stale casing**: Worker OneMap key `search:v1:` → `search:v2:`. The PWA adds `&v=2` (`SEARCH_CACHE_V`) so browser HTTP and SW caches miss 1.1 answers. The SW cache name is unchanged, which keeps QA m5 working.
+
+### Visible changes (for Creative: Developer proposals, please confirm the copy and layout)
+- Which-block card (built from .confirm + .rlist/.ritem + .field2; error text uses --c-danger). Title "哪一座？ / Which block?". Line "“{p}”有好几座楼。选你的那一座，司机更容易找到。 / “{p}” has several blocks. Pick yours so drivers find it easily.". Rows show street + "Singapore {postal}". "正在找附近的楼… / Finding blocks nearby…". "附近没有找到楼。可以输入邮区编号。 / No blocks found nearby. You can type the postal code.". Field label "或者输入邮区编号（6 位数） / Or type the postal code (6 digits)". Button "用这个编号 / Use this code". Errors "请输入 6 位数的邮区编号。 / Please type a 6-digit postal code." and "没有找到这个邮区编号。 / We couldn't find that postal code.". Secondary button "先不用，就用“{p}” / Not now, keep “{p}”".
+- Home confirm card: a new address line (street + "Singapore {postal}", lang=en) under "家：{p}". From location, the second button reads "不对？换一个 / Not right? Pick another".
+- H1 one-time note (.note): "加上门牌，司机更容易找到 / Add your block number so drivers find it easily" + "不用了 / No thanks".
+- H10: Home/destination without postal now shows street + postal after the back-fill. A street line equal to the name is no longer repeated.
+- Search order changes (QA-71) and brand casing (VivoCity, JCube, NParks, ICA HQ).
+- Copy lives in `src/web/src/i18n/v12.ts` (lazy, with the picker chunk) + `home_pick_other` in ui.ts.
+
+### Tests
+- Unit: shared 336 (new v12-search.test.ts), worker 251 (multi-entry revgeocode fixture `onemap-revgeocode-estate.json`, blocks endpoint, ranking, casing), web 307. Typecheck clean.
+- dev-e2e (Docker): 278/278, incl. new `e2e/v12.spec.ts` (6). No baseline changed, none re-recorded. `e2e/util.ts` marks the Home nudge seen, like `whatsnew.v1`.
+- QA specs v11/m3/m4: 106/108 in the full parallel run. Two load flakes (m4 AC 25 "50 viewers" got 16; v11 6g.5 privacy element) both pass when re-run alone. For QA: the m5 key-inventory test lists keys. Add `homeNudge.v1` there if QA seeders start setting it.
+- Size: Home entry 99.9 KB / 100 KB (picker + its copy are a lazy chunk).
+- Nothing deployed; no live OneMap/Anthropic calls; no servers left running.
