@@ -288,3 +288,7 @@ Owner: "Go with all your recommended defaults. No need android play store."
 
 - APK handed out via the owner's existing dl.wwweeeiii.com share tool (D:\srv\downloads-service\share.ps1, random-token folder, expires 2026-11-27 08:00 SGT): 200, application/vnd.android.package-archive, 1 863 011 B. The temporary LAN server on :8978 was stopped. Future APKs use share.ps1 too.
 - Dialect research interim: 结霜桥 = Sungei Road / Sim Lim Tower (high); 黑桥头 = Havelock/Delta Rd at Beo Crescent (medium-high); 黑桥/乌桥 alone can also mean Balestier → did-you-mean.
+
+## 2026-11-20 — Owner bug: driver card (H10) shows only "Admiralty Grove" for Home (S2)
+- The saved Home has no address/postal: a road/estate-level OneMap hit was accepted. H10 shows name + address + postal only when present (tripSheets.tsx:157).
+- Ruling (next round, QA-72): (1) H10 back-fills a missing postal/block by reverse geocoding the saved lat/lng (live OneMap) and shows the full address; (2) choosing a road/estate as Home or a place asks "哪一座？/ Which block?" with nearby blocks or a postal-code entry (Creative to spec); (3) a one-time Home nudge for places without a postal code. Owner workaround: re-save Home by postal code.
