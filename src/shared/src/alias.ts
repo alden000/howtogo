@@ -32,6 +32,9 @@ const T2S: Record<string, string> = {
   鐵: '铁', 站: '站', 轉: '转', 換: '换', 這: '这', 帶: '带', 讓: '让', 歐: '欧', 莊: '庄',
 };
 
+/** QA-70: a polytechnic's name in front of "poly" ("ngee ann poly", "sp" is a curated key). */
+const POLYTECHNIC_HEAD = /\b(ngee ann|temasek|singapore|republic|nanyang) poly\b/g;
+
 /** Speech/typing fillers around a place name ("我要去宏茂桥站" → "宏茂桥"). */
 const ZH_PREFIX = /^(?:请|請)?(?:带我去|帶我去|我要去|我想去|我去|去|到|往)/;
 const ZH_SUFFIX = /(?:地铁站|地鐵站|巴士转换站|巴士轉換站|转换站|轉換站|车站|車站|站)$/;
@@ -132,8 +135,10 @@ export function expandAliases(query: string): AliasExpansion {
     if (hit) return { terms: clean(hit.terms), match: 'filler', ...(hit.display ? { display: hit.display } : {}) };
   }
 
-  const words = key.split(' ');
-  if (words.length > 1 && words.some((w) => w in ABBREVIATIONS)) {
+  // QA-70: "ngee ann poly", "temasek poly" … → polytechnic; every other "poly" stays a polyclinic.
+  const poly = key.replace(POLYTECHNIC_HEAD, '$1 polytechnic');
+  const words = poly.split(' ');
+  if (words.length > 1 && (poly !== key || words.some((w) => w in ABBREVIATIONS))) {
     const expanded = words.map((w) => ABBREVIATIONS[w] ?? w).join(' ');
     if (expanded !== key) return { terms: clean([expanded]), match: 'abbreviation' };
   }

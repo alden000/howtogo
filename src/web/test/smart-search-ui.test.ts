@@ -23,7 +23,7 @@ describe('search client: two-step and the UI fields', () => {
     const fetch = vi.fn(async (_u: string | URL | Request) => json({ results: [], didYouMean: false, assist: true, alias: { zh: '竹脚妇幼医院', en: "KK Women's and Children's Hospital" }, guess: 'X' }));
     const api = createHttpApi({ base: 'https://w.example/', fetch: fetch as typeof globalThis.fetch });
     const r = await api.search('kkh', undefined, { step: 1 });
-    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=kkh&step=1');
+    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=kkh&step=1&v=2');
     expect(r.assist).toBe(true);
     expect(r.alias).toEqual({ zh: '竹脚妇幼医院', en: "KK Women's and Children's Hospital" });
     expect(r.guess).toBe('X');
@@ -31,7 +31,7 @@ describe('search client: two-step and the UI fields', () => {
   it('the full request has no step; absent flags stay absent', async () => {
     const fetch = vi.fn(async (_u: string | URL | Request) => json({ results: [hit('A', 'direct')], didYouMean: false, assist: false }));
     const r = await createHttpApi({ base: 'https://w.example/', fetch: fetch as typeof globalThis.fetch }).search('a');
-    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=a');
+    expect(String(fetch.mock.calls[0]![0])).toBe('https://w.example/api/search?q=a&v=2');
     expect(r.assist).toBeUndefined();
     expect(r.alias).toBeUndefined();
     expect(r.guess).toBeUndefined();

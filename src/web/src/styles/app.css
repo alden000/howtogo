@@ -222,6 +222,7 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 .toast svg{width:28px;height:28px;flex:none}
 .note{display:flex;gap:10px;align-items:center;margin:0 var(--s-4) var(--s-2);padding:10px 16px;border-radius:var(--r-m);background:var(--c-surface-2);font-size:.9rem;font-weight:700;color:var(--c-ink)}
 .note .btn-quiet{min-height:var(--tap);margin-left:auto}
+.note.nudge{flex-wrap:wrap}
 /* D-10 sample-routes banner: calm surface-2 note with the info icon, under the top bar; never shrinks, so it stays whole at 200 %. */
 .note.sample{flex-shrink:0;align-items:flex-start;font-weight:400;text-wrap:pretty}
 .note.sample .i{flex:none;margin-top:1px}

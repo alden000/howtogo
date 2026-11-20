@@ -14,6 +14,8 @@ export interface Here extends LatLng {
   /** QA-38 (M4 AC 36): the reverse-geocoded street address and 6-digit postal code, when known. */
   address?: string;
   postal?: string;
+  /** QA-73 (1.2): an estate/building name near the point (a secondary line; the Home name when set from here). */
+  estate?: string;
   /** Horizontal accuracy in metres (AC 39 accuracy circle). */
   acc?: number;
   /** QA-59: the Worker is in sample (fixture) mode and did not name this position (label stays null). */
@@ -39,7 +41,7 @@ export async function locate(platform: Platform, api: Api): Promise<'ok' | 'deni
     log('loc:ok');
     const r = await api.revgeocode(f).catch(() => null);
     const label = r?.name || null;
-    here.value = { lat: f.lat, lng: f.lng, label, acc: f.acc, ...(r?.address ? { address: r.address } : {}), ...(r?.postal ? { postal: r.postal } : {}), ...(r?.sample ? { sample: true } : {}) };
+    here.value = { lat: f.lat, lng: f.lng, label, acc: f.acc, ...(r?.address ? { address: r.address } : {}), ...(r?.postal ? { postal: r.postal } : {}), ...(r?.estate ? { estate: r.estate } : {}), ...(r?.sample ? { sample: true } : {}) };
     if (label || r?.address) lastAddress.value = { ...here.value, at: Date.now() };
     locFailure.value = null;
     return 'ok';

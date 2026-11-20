@@ -51,6 +51,8 @@ export interface RevGeocodeResult {
   postal: string;
   /** QA-59: fixture (sample) mode — the Worker never names the position; name/address/postal are "". */
   sample?: boolean;
+  /** QA-73 (1.2): an estate/building name near the point, shown as a secondary line. */
+  estate?: string;
 }
 
 export interface BusArrivalNext {
@@ -168,6 +170,8 @@ export interface Api {
   /** Raw OneMap body (normalise with `normalizeOneMapPlan`). */
   route(p: RouteParams, signal?: AbortSignal): Promise<unknown>;
   revgeocode(p: LatLng): Promise<RevGeocodeResult>;
+  /** QA-72/73 (1.2) "哪一座？/ Which block?": addressable blocks (with postal codes) near a point, nearest first. */
+  nearbyBlocks?(p: LatLng): Promise<SearchResult[]>;
   busArrival(stop: string, service?: string): Promise<BusArrival>;
   alerts(): Promise<Alerts>;
   lifts(): Promise<Lifts>;

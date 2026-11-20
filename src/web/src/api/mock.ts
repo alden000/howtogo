@@ -129,6 +129,14 @@ export function createMockApi(opts: MockApiOptions = {}): Api {
       if (!near || near.d > 300) return fail('revgeocode', 404, 'not_found');
       return wait({ name: near.m.name, address: near.m.address, postal: near.m.postal }, 'revgeocode');
     },
+    nearbyBlocks(p) {
+      // QA-72/73: the synthetic places within 800 m stand in for nearby blocks (nearest first).
+      const res = MOCK_PLACES.map((m) => ({ m, d: haversine(p, m) }))
+        .filter((x) => x.d <= 800)
+        .sort((a, b) => a.d - b.d)
+        .map(({ m: { aliases: _a, fixture: _f, role: _r, ...r } }) => r);
+      return wait(res, 'revgeocode');
+    },
     busArrival(stop, service) {
       // M3 AC 39 scenarios (same names as the Worker's FIXTURE_MODE `?fixture=`), switchable mid-test.
       const sc = scenario('bus', 'live');

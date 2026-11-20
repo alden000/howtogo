@@ -22,6 +22,7 @@ import { addPlace } from '../state/places';
 
 export { pendingHome } from '../state/pendingHome';
 import { pendingHome } from '../state/pendingHome';
+import { hasPostal, pendingPlace } from '../state/address';
 
 export const DEBOUNCE_MS = 300;
 const MAX_RESULTS = 8;
@@ -191,6 +192,11 @@ export function Search() {
       return router.back();
     }
     if (mode === 'place') {
+      // QA-72: a road/estate (no postal code) asks "Which block?" on the My places page before it is saved.
+      if (!hasPostal(p)) {
+        pendingPlace.value = p;
+        return router.back();
+      }
       // QA-40: save to My places (label = the name until renamed) and return to the editor.
       store.places.value = addPlace(store.places.peek(), p);
       showToast('place-saved', t('fam_saved'));

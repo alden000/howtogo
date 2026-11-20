@@ -16,10 +16,11 @@ import {
   fixtureSearch,
 } from "./fixtures";
 import { ltaBusArrival, ltaGet, ltaSource } from "./lta";
-import { normaliseBusArrival, normaliseLifts, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
+import { normaliseBusArrival, normaliseLifts, normaliseNearbyBlocks, normaliseRevGeocode, normaliseSearch, normaliseTrainAlerts } from "./normalise";
 import { oneMapGet } from "./onemap";
 import { aiEnabled, aiRewrite } from "./ai";
 import { expandAliases, type AliasDisplay } from "@howtogo/shared/alias";
+import { rankPlaces } from "@howtogo/shared/rank-places";
 import type { Place } from "./normalise";
 
 type Ctx = Pick<ExecutionContext, "waitUntil">;
@@ -55,13 +56,15 @@ const MAX_RESULTS = 10;
 const MAX_ALTS = 2;
 /** Fewer hits than this → try alternatives, then the Claude rewrite. */
 const FEW = 2;
+/** QA-71: a curated alias hit is the place the short form names; it keeps its lead over a better category. */
+const ALIAS_BONUS = 2;
 
 const cleanQuery = (raw: string | null) => (raw ?? "").trim().replace(/\s+/g, " ");
 
-/** One OneMap search, cached 24 h per lower-cased query (the M1 cache key, unchanged). */
+/** One OneMap search, cached 24 h per lower-cased query. 1.2: key v2 so entries cached with the 1.1 casing (QA-68/69) are not served. */
 async function oneMapSearch(env: Env, q: string, ctx?: Ctx): Promise<{ results: Place[]; hit: boolean }> {
   const { body, hit } = await cached(
-    `search:v1:${q.toLowerCase()}`,
+    `search:v2:${q.toLowerCase()}`,
     TTL.search,
     async () => {
       const res = await oneMapGet(
@@ -174,7 +177,8 @@ export async function handleSearch(url: URL, env: Env, ctx?: Ctx, ip: string | n
     }
   }
 
-  const body: SearchBody = { results: results.slice(0, MAX_RESULTS), didYouMean };
+  // QA-71: stations, interchanges, hospitals, markets and landmarks before tenant/shop entries (stable).
+  const body: SearchBody = { results: rankPlaces(results, q, (h) => (h.via === "alias" ? ALIAS_BONUS : 0)).slice(0, MAX_RESULTS), didYouMean };
   if (usedAlternative) body.usedAlternative = usedAlternative;
   if (first.display && aliasHits > 0) body.alias = first.display;
   if (guess) body.guess = guess;
@@ -286,11 +290,13 @@ export async function handleRevGeocode(url: URL, env: Env, ctx?: Ctx): Promise<R
     bad("invalid_coordinates", "lat and lng are required.");
   }
   if (!inSingapore(lat, lng)) bad("out_of_bounds", "The location must be in Singapore.");
+  // QA-72/73 "Which block?": `blocks=1` lists the addressable blocks within ~150 m (nearest first).
+  if (url.searchParams.get("blocks") === "1") return nearbyBlocks(env, lat, lng, ctx);
   if (fixtureMode(env)) return fixtureRevGeocode(lat, lng);
   // AC 17: keyed on coordinates rounded to 5 dp (~1 m).
   const loc = `${round(lat, 5)},${round(lng, 5)}`;
   const { body, hit } = await cached(
-    `revgeo:v1:${loc}`,
+    `revgeo:v2:${loc}`,
     TTL.revgeocode,
     async () => {
       const res = await oneMapGet(env, `/api/public/revgeocode?location=${loc}&buffer=50&addressType=All`, {
@@ -303,6 +309,26 @@ export async function handleRevGeocode(url: URL, env: Env, ctx?: Ctx): Promise<R
   const value = JSON.parse(body) as ReturnType<typeof normaliseRevGeocode>;
   if (!value) throw new HttpError(404, "not_found", "No address was found near this spot.");
   return json(value, 200, cacheHeaders(TTL.revgeocode, hit));
+}
+
+const BLOCKS_BUFFER_M = 150;
+
+async function nearbyBlocks(env: Env, lat: number, lng: number, ctx?: Ctx): Promise<Response> {
+  // QA-59: fixture mode never names a real position → no blocks (the app then offers the postal-code entry).
+  if (fixtureMode(env)) return json({ blocks: [], sample: true }, 200, cacheHeaders(TTL.revgeocode, false));
+  const loc = `${round(lat, 5)},${round(lng, 5)}`;
+  const { body, hit } = await cached(
+    `blocks:v1:${loc}`,
+    TTL.revgeocode,
+    async () => {
+      const res = await oneMapGet(env, `/api/public/revgeocode?location=${loc}&buffer=${BLOCKS_BUFFER_M}&addressType=All`, {
+        requireToken: true,
+      });
+      return JSON.stringify({ blocks: normaliseNearbyBlocks(parseJson(await res.text())) });
+    },
+    ctx,
+  );
+  return rawJson(body, 200, cacheHeaders(TTL.revgeocode, hit));
 }
 
 // ---------- /api/bus-arrival ----------

@@ -35,6 +35,7 @@ export function offlineAware(api: Api, isOnline: () => boolean = () => online.va
     search: guard(api.search),
     route: guard(api.route),
     revgeocode: guard(api.revgeocode),
+    ...(api.nearbyBlocks ? { nearbyBlocks: guard(api.nearbyBlocks) } : {}),
     busArrival: guard(api.busArrival),
     alerts: guard(api.alerts),
     lifts: guard(api.lifts),

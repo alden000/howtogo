@@ -437,6 +437,8 @@ const zh = {
   ...M34_ZH,
   // M5 UI-1
   ...M5UI1_ZH,
+  // 1.2 fixes (QA-73): Home from "use where I am now" (the Which-block copy is lazy: i18n/v12.ts)
+  home_pick_other: '不对？换一个',
 };
 
 const en: typeof zh = {
@@ -866,6 +868,8 @@ const en: typeof zh = {
   ...M34_EN,
   // M5 UI-1
   ...M5UI1_EN,
+  // 1.2 fixes (QA-73): Home from "use where I am now" (the Which-block copy is lazy: i18n/v12.ts)
+  home_pick_other: 'Not right? Pick another',
 };
 
 export type UiKey = keyof typeof zh;

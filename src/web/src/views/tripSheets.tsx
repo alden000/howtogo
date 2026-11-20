@@ -8,6 +8,7 @@ import type { Place } from '@howtogo/shared';
 import { DWELL_CHOICES_MIN } from '@howtogo/shared';
 import { useServices, useT } from '../context';
 import { here, lastAddress, locate } from '../state/location';
+import { backfillAddress, hasPostal, samePoint, streetLine } from '../state/address';
 import { online } from '../api/offline';
 import { useT5 } from '../i18n/m5lazy';
 import { clock } from './present';
@@ -150,11 +151,34 @@ export function DriverSheet() {
     const h = last ?? here.value;
     p = h ? { name: h.label ?? '', lat: h.lat, lng: h.lng, ...(h.address ? { address: h.address } : {}), ...(h.postal ? { postal: h.postal } : {}) } : null;
   }
+  // QA-72 (1.2): a saved Home / destination without a block or postal code ("Admiralty Grove") → reverse
+  // geocode its point once, show the full address, and cache it back into the saved place.
+  const [filled, setFilled] = useState<{ key: string; address: string; postal: string } | null>(null);
+  const fillKey = p && tab !== 'here' && !hasPostal(p) ? `${p.lat},${p.lng}` : '';
+  useEffect(() => {
+    if (!fillKey || offline || !p) return;
+    const target = p;
+    let live = true;
+    void backfillAddress(api, target).then((r) => {
+      if (!r) return;
+      if (live) setFilled({ key: fillKey, ...r });
+      const cur = store.places.peek();
+      if (cur.home && samePoint(cur.home, target) && !hasPostal(cur.home)) store.setHome({ ...cur.home, ...r });
+      const i = cur.others.findIndex((o) => samePoint(o, target) && !hasPostal(o));
+      if (i >= 0) store.places.value = { ...store.places.peek(), others: store.places.peek().others.map((o, k) => (k === i ? { ...o, ...r } : o)) };
+      log('driver:backfill');
+    });
+    return () => {
+      live = false;
+    };
+  }, [fillKey, offline]);
+  if (p && tab !== 'here' && filled && filled.key === `${p.lat},${p.lng}` && !hasPostal(p)) p = { ...p, ...filled };
   const noAddr = tab === 'here' && offline && !last;
   // QA-59: sample mode has no address for the real position → "My location · 我的位置" on the bilingual driver card + a sample note.
   const sampleHere = tab === 'here' && !last && !!here.value?.sample && !here.value.label;
   const hereLines = sampleHere ? { lines: ['My location · 我的位置'], near: null } : tab === 'here' && p ? whereAmILines(p) : null;
-  const lines = hereLines ? hereLines.lines : p ? [p.name, p.address && p.address !== p.name ? p.address.replace(/\s*Singapore\s*\d{6}$/i, '') : ''].filter(Boolean) : [];
+  const street = streetLine(p?.address);
+  const lines = hereLines ? hereLines.lines : p ? [p.name, street && street.toLowerCase() !== p.name.toLowerCase() ? street : ''].filter(Boolean) : [];
   const postal = p?.postal ?? /\b(\d{6})\b/.exec(p?.address ?? '')?.[1];
   const head = tab === 'here' ? ['I am here', '我现在在这里'] : ['Please take me to', '请送我去'];
   return (

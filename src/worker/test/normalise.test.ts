@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   etaMinutes,
   normaliseBusArrival,
+  normaliseNearbyBlocks,
   normaliseRevGeocode,
   normaliseSearch,
   normaliseTrainAlerts,
@@ -13,6 +14,7 @@ import bus from "./fixtures/lta-bus-arrival-v3.json";
 import disrupted from "./fixtures/lta-train-alerts-disrupted.json";
 import normal from "./fixtures/lta-train-alerts-normal.json";
 import revgeo from "./fixtures/onemap-revgeocode.json";
+import estateFirst from "./fixtures/onemap-revgeocode-estate.json";
 
 describe("titleCase", () => {
   it("keeps acronyms and station codes, lowercases small words", () => {
@@ -69,23 +71,67 @@ describe("normaliseSearch (real OneMap fixture)", () => {
 });
 
 describe("normaliseRevGeocode", () => {
-  it("prefers an entry with a building name", () => {
+  it("prefers the nearest entry with a block and a 6-digit postal code (QA-73)", () => {
     expect(normaliseRevGeocode(revgeo)).toEqual({
-      name: "Bishan Community Club",
-      address: "51 Bishan Street 13 Bishan Community Club Singapore 579799",
-      postal: "579799",
-    });
-  });
-  it("uses block + road when no building", () => {
-    expect(normaliseRevGeocode({ GeocodeInfo: [revgeo.GeocodeInfo[0]] })).toEqual({
       name: "201 Bishan Street 23",
       address: "201 Bishan Street 23 Singapore 570201",
       postal: "570201",
     });
   });
+  it("keeps a building name that belongs to the block entry", () => {
+    expect(normaliseRevGeocode({ GeocodeInfo: [revgeo.GeocodeInfo[1]] })).toEqual({
+      name: "Bishan Community Club",
+      address: "51 Bishan Street 13 Bishan Community Club Singapore 579799",
+      postal: "579799",
+    });
+  });
+  it("QA-73: an estate entry without block/postal loses to a block entry; the estate stays a secondary line", () => {
+    expect(normaliseRevGeocode(estateFirst)).toEqual({
+      name: "676A Woodlands Drive 71",
+      address: "676A Woodlands Drive 71 Singapore 731676",
+      postal: "731676",
+      estate: "Admiralty Grove",
+    });
+  });
+  it("QA-73: a block without a valid postal loses to a block with one", () => {
+    const r = normaliseRevGeocode({
+      GeocodeInfo: [
+        { BUILDINGNAME: "NIL", BLOCK: "12", ROAD: "TEST ROAD", POSTALCODE: "NIL", LATITUDE: "1.3", LONGITUDE: "103.8" },
+        { BUILDINGNAME: "NIL", BLOCK: "14", ROAD: "TEST ROAD", POSTALCODE: "123014", LATITUDE: "1.3", LONGITUDE: "103.8" },
+      ],
+    });
+    expect(r?.postal).toBe("123014");
+    expect(r?.name).toBe("14 Test Road");
+  });
+  it("falls back to the estate name when no entry has a postal code", () => {
+    expect(normaliseRevGeocode({ GeocodeInfo: [estateFirst.GeocodeInfo[0]] })).toEqual({ name: "Admiralty Grove", address: "", postal: "" });
+  });
   it("returns null when nothing found", () => {
     expect(normaliseRevGeocode({ GeocodeInfo: [] })).toBeNull();
     expect(normaliseRevGeocode({})).toBeNull();
+  });
+});
+
+describe("normaliseNearbyBlocks (QA-72/73 Which block?)", () => {
+  it("lists distinct blocks with postal codes, nearest first, skipping estate-only entries", () => {
+    expect(normaliseNearbyBlocks(estateFirst)).toEqual([
+      { name: "676A Woodlands Drive 71", address: "676A Woodlands Drive 71 Singapore 731676", postal: "731676", lat: 1.4401, lng: 103.8011 },
+      { name: "676B Woodlands Drive 71", address: "676B Woodlands Drive 71 Singapore 732676", postal: "732676", lat: 1.4404, lng: 103.8013 },
+    ]);
+  });
+  it("respects the limit and junk", () => {
+    expect(normaliseNearbyBlocks(estateFirst, 1)).toHaveLength(1);
+    expect(normaliseNearbyBlocks(null)).toEqual([]);
+  });
+});
+
+describe("QA-68/69 casing", () => {
+  it("ICA HQ stays upper case; brands keep their own case", () => {
+    expect(titleCase("ICA HQ")).toBe("ICA HQ");
+    expect(titleCase("VIVOCITY")).toBe("VivoCity");
+    expect(titleCase("JCUBE")).toBe("JCube");
+    expect(titleCase("NPARKS HQ")).toBe("NParks HQ");
+    expect(titleCase("HARBOURFRONT WALK (VIVOCITY)")).toBe("Harbourfront Walk (VivoCity)");
   });
 });
 

@@ -4,6 +4,7 @@ export * from './lines';
 export * from './data';
 export { normalizeOneMapPlan, prettyStopName, parseExit } from './onemap';
 export * from './rank';
+export * from './placeRank';
 export * from './steps';
 export * from './journey';
 export * from './guidance';

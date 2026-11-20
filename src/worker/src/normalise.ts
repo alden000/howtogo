@@ -1,16 +1,20 @@
 /** Pure normalisers for upstream payloads. No I/O here. */
+import { BRAND_CASE } from "@howtogo/shared/names";
 
 const KEEP_UPPER = new Set([
   "MRT", "LRT", "HDB", "SG", "ITE", "NUS", "NTU", "SMU", "SUTD", "SIT", "SUSS", "YMCA", "YWCA", "CHIJ",
   "ACS", "SAFRA", "NTUC", "CPF", "IRAS", "ICA", "MOE", "MOH", "LTA", "URA", "SLA", "JTC", "PUB", "SPF",
-  "NEA", "NParks".toUpperCase(), "CBD", "UOB", "OCBC", "DBS", "POSB", "KFC", "SBS", "SMRT", "IKEA", "NEX",
-  "TTSH", "SGH", "KTPH", "NUH", "CGH", "KKH", "AMK", "JCube".toUpperCase(), "VivoCity".toUpperCase(),
+  "NEA", "CBD", "UOB", "OCBC", "DBS", "POSB", "KFC", "SBS", "SMRT", "IKEA", "NEX",
+  "TTSH", "SGH", "KTPH", "NUH", "CGH", "KKH", "AMK",
+  // QA-68: "ICA HQ" (not "ICA Hq").
+  "HQ",
   // Owner bug (1.0.1 viewer: "Kk Women's…"): hospital / national-centre short forms OneMap spells in capitals.
   "KK", "SKH", "NTFGH", "IMH", "NCCS", "NHCS", "NNI", "SNEC", "NDCS", "NSC", "NHG", "NUHS", "SKCH", "YCH", "JCH",
   "II", "III", "IV", "PCN", "BLK", "ECP", "PIE", "AYE", "CTE", "KPE", "TPE", "SLE", "BKE", "KJE", "MCE",
 ]);
 const SMALL = new Set(["of", "and", "the", "at", "by", "for", "in", "on", "to", "de"]);
-const DISPLAY_OVERRIDES: Record<string, string> = { BLK: "Blk", JCUBE: "JCube", VIVOCITY: "VivoCity", NPARKS: "NParks" };
+/** QA-69: brand names keep their own mixed case (shared BRAND_CASE: VivoCity, JCube, NParks…), never all caps. */
+const DISPLAY_OVERRIDES: Record<string, string> = { BLK: "Blk", ...BRAND_CASE };
 
 function caseWord(word: string, first: boolean): string {
   if (!word) return word;
@@ -97,25 +101,77 @@ interface GeocodeInfo {
   BLOCK?: string;
   ROAD?: string;
   POSTALCODE?: string;
+  LATITUDE?: string;
+  LONGITUDE?: string;
 }
 
-/** OneMap revgeocode → {name,address,postal}; null when nothing is near. */
-export function normaliseRevGeocode(data: unknown): { name: string; address: string; postal: string } | null {
-  const list = (data as { GeocodeInfo?: unknown })?.GeocodeInfo;
-  if (!Array.isArray(list) || list.length === 0) return null;
-  // Prefer an entry with a building name, then one with a road.
-  const infos = list as GeocodeInfo[];
-  const best = infos.find((g) => clean(g.BUILDINGNAME)) ?? infos.find((g) => clean(g.ROAD)) ?? infos[0]!;
-  const building = clean(best.BUILDINGNAME);
-  const block = clean(best.BLOCK);
-  const road = clean(best.ROAD);
-  const postalRaw = clean(best.POSTALCODE);
-  const postal = /^\d{6}$/.test(postalRaw) ? postalRaw : "";
-  const street = [block, road].filter(Boolean).join(" ");
+/** OneMap revgeocode result (QA-73: `estate` = an estate/building name near the point, a secondary line). */
+export interface RevGeo {
+  name: string;
+  address: string;
+  postal: string;
+  estate?: string;
+}
+
+const postalOf = (g: GeocodeInfo) => {
+  const p = clean(g.POSTALCODE);
+  return /^\d{6}$/.test(p) ? p : "";
+};
+/** A real, addressable block: block number + 6-digit postal code. */
+const isBlock = (g: GeocodeInfo) => !!clean(g.BLOCK) && !!postalOf(g);
+
+function revEntry(g: GeocodeInfo): { name: string; address: string; postal: string } {
+  const building = clean(g.BUILDINGNAME);
+  const street = [clean(g.BLOCK), clean(g.ROAD)].filter(Boolean).join(" ");
+  const postal = postalOf(g);
   const name = titleCase(building || street);
-  if (!name) return null;
   const address = titleCase([street, building && street ? building : "", postal && `SINGAPORE ${postal}`].filter(Boolean).join(" "));
   return { name, address, postal };
+}
+
+/**
+ * OneMap revgeocode → {name,address,postal[,estate]}; null when nothing is near. OneMap lists entries
+ * nearest first. QA-73: prefer the nearest entry with a BLOCK and a 6-digit POSTAL (a place a driver can
+ * find) over an estate/building-only entry ("ADMIRALTY GROVE"); that estate name is kept as `estate`.
+ */
+export function normaliseRevGeocode(data: unknown): RevGeo | null {
+  const list = (data as { GeocodeInfo?: unknown })?.GeocodeInfo;
+  if (!Array.isArray(list) || list.length === 0) return null;
+  const infos = list as GeocodeInfo[];
+  const best =
+    infos.find(isBlock) ?? infos.find((g) => postalOf(g)) ?? infos.find((g) => clean(g.BUILDINGNAME)) ?? infos.find((g) => clean(g.ROAD)) ?? infos[0]!;
+  const out: RevGeo = revEntry(best);
+  if (!out.name) return null;
+  if (!clean(best.BUILDINGNAME)) {
+    const near = infos.find((g) => g !== best && clean(g.BUILDINGNAME) && !isBlock(g));
+    const estate = near ? titleCase(clean(near.BUILDINGNAME)) : "";
+    if (estate && estate.toLowerCase() !== out.name.toLowerCase()) out.estate = estate;
+  }
+  return out;
+}
+
+/**
+ * QA-72/73 "哪一座？/ Which block?": the distinct addressable blocks (BLOCK + 6-digit POSTAL) in a revgeocode
+ * answer, nearest first, at most `limit`. Entries without coordinates are skipped.
+ */
+export function normaliseNearbyBlocks(data: unknown, limit = 8): Place[] {
+  const list = (data as { GeocodeInfo?: unknown })?.GeocodeInfo;
+  if (!Array.isArray(list)) return [];
+  const out: Place[] = [];
+  const seen = new Set<string>();
+  for (const g of list as GeocodeInfo[]) {
+    if (!isBlock(g)) continue;
+    const lat = num(g.LATITUDE);
+    const lng = num(g.LONGITUDE);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    const e = revEntry(g);
+    const key = `${clean(g.BLOCK).toUpperCase()}|${e.postal}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...e, lat, lng });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 export type Load = "SEA" | "SDA" | "LSD";

@@ -46,6 +46,11 @@ OneMap elastic search (token sent when available). `q` 1–100 chars. Each OneMa
 - `step=1` (1.1 UI two-step): answers with aliases + OneMap (+ voice alternatives) only, never Claude, plus `assist`: `true` when there are < 2 results and the rewrite is on (key set, cap > 0). The PWA then sends the same query without `step` (OneMap terms are cached, so only the rewrite costs) and shows "Trying other names…" only while that second request runs (STYLE-GUIDE 6g.2).
 - Fixture mode: unchanged (`{"results":[…]}` from the synthetic places, no `via`, no AI).
 
+**1.2:**
+- **Ranking (QA-71)**: the merged list is re-ordered by a deterministic score (`src/shared/src/placeRank.ts`): MRT/LRT stations, bus interchanges/terminals (+3) > hospitals, polyclinics, clinics, markets, food/hawker centres, CCs, libraries (+2) > landmarks (parks, malls, temples, museums, schools…, +1) > other (0) > tenant/shop entries (7-Eleven, Cheers, ATMs, kiosks, cafés…, −2, checked first because they often end in "MRT Station"); +4 for a name equal to `q`, +1 for a name starting with `q`; +2 for an alias hit. Ties keep the incoming order (alias, then OneMap relevance).
+- **Casing (QA-68/69)**: `HQ` stays upper case; brands keep their own case (`VivoCity`, `JCube`, `NParks`; `src/shared/src/names.ts`). The OneMap cache key is now `search:v2:` so 1.1 entries are not served; the PWA adds `&v=2` (ignored here) so browser/SW caches miss too.
+- **Aliases (QA-70)**: `poly` after a polytechnic's name (`ngee ann`, `temasek`, `singapore`, `republic`, `nanyang`) → polytechnic; `np`/`sp`/`rp`/`nyp` are curated polytechnic keys; every other `poly` is still a polyclinic.
+
 ## GET /api/route
 `?start=lat,lng&end=lat,lng&date=MM-DD-YYYY&time=HH:MM:SS&mode=TRANSIT|BUS|RAIL&maxWalkDistance=<0..5000>&numItineraries=<1..5>`
 - `date`/`time` default to now in Singapore time; `mode` defaults to TRANSIT; `numItineraries` to 3; `maxWalkDistance` omitted if absent.
@@ -58,7 +63,9 @@ OneMap revgeocode (`buffer=50&addressType=All`); the location is rounded to 5 dp
 ```json
 {"name":"Bishan Community Club","address":"51 Bishan Street 13 Bishan Community Club Singapore 579799","postal":"579799"}
 ```
-Prefers the nearest entry with a building name. `404 not_found` when nothing is within 50 m. Fixture mode: empty strings plus `"sample":true` (see Fixture mode).
+1.2 (QA-73): prefers the nearest entry with a BLOCK and a 6-digit POSTAL (then any postal, then a building name, then a road); when that entry has no building name, the nearest estate/building-only entry is returned as `estate` (a secondary line), e.g. `{"name":"676A Woodlands Drive 71","address":"676A Woodlands Drive 71 Singapore 731676","postal":"731676","estate":"Admiralty Grove"}`. Cache key `revgeo:v2:`. `404 not_found` when nothing is within 50 m.
+
+`&blocks=1` (1.2, QA-72/73 "Which block?"): `200 {"blocks":[{name,address,postal,lat,lng}…]}` — the distinct addressable blocks (BLOCK + 6-digit POSTAL) within 150 m, nearest first, ≤ 8 (cached 1 h under `blocks:v1:`). Fixture mode: `{"blocks":[],"sample":true}`. Fixture mode: empty strings plus `"sample":true` (see Fixture mode).
 
 ## GET /api/bus-arrival?stop=<5 digits>[&service=<no>]
 LTA DataMall BusArrival v3 (own key; else via the `LTA_PROXY` service binding, same output). Upstream cached 20 s per stop; `etaMin` is recomputed on every request.

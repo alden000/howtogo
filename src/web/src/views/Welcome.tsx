@@ -44,7 +44,17 @@ export function Welcome() {
   useEffect(() => {
     const h = here.value;
     if (wantHere && h && !router.sheet.value) {
-      pendingHome.value = { name: h.label ?? t('where_now'), lat: h.lat, lng: h.lng };
+      // QA-73: keep the full address + postal (the card shows them to confirm); the estate name names the Home.
+      pendingHome.value = {
+        name: h.estate ?? h.label ?? t('where_now'),
+        lat: h.lat,
+        lng: h.lng,
+        ...(h.address ? { address: h.address } : {}),
+        ...(h.postal ? { postal: h.postal } : {}),
+        ...(h.estate ? { estate: h.estate } : {}),
+        fromHere: true,
+        ...(h.sample ? { noBlockAsk: true } : {}),
+      };
       setWantHere(false);
     }
   }, [wantHere, here.value, router.sheet.value]);

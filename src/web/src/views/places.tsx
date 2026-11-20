@@ -10,6 +10,7 @@ import { canAdd, LABEL_MAX, movePlace, placeKind, removePlace, renamePlace, type
 import { announce, Bar, Icon, Sheet, showToast, type IconName } from '../ui/kit';
 import { useTick } from './viewUtil';
 import { HomeConfirm } from './HomeConfirm';
+import { PlaceBlockAsk } from './blockPick';
 
 const KIND_ICON: Record<PlaceKind | 'home', IconName> = { home: 'home', clinic: 'clinic', market: 'market', daughter: 'family', other: 'loc' };
 
@@ -41,6 +42,7 @@ export function PlacesScreen() {
           {t('pl_lead')}
         </p>
         <HomeConfirm />
+        <PlaceBlockAsk />
         <ol class="stoplist placelist">
           {home ? (
             <li data-testid="place-home">
