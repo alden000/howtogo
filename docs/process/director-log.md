@@ -285,3 +285,6 @@ Owner: "Go with all your recommended defaults. No need android play store."
 - Live check: the Claude fallback already handles 坡底/坡低/大坡 → Chinatown, 小坡 → Bugis, 水仙门 → High Street, 红灯码头 → Clifford Pier; it fails on 黑桥头/黑桥/乌桥/结霜桥. Also a ranking issue: a 7-Eleven sits above Chinatown MRT for 坡底 → rank MRT/landmarks above shops (QA-71, S3).
 - PM research (pm/dialect-names): 60–90 sourced names with estimated locations, routing targets, confidence and sources, plus a list of owner questions. The owner reviews; then they become alias entries (instant, free, deterministic).
 - Note: curl on this Windows host garbles CJK query strings; use node fetch with encodeURIComponent for CJK tests.
+
+- APK handed out via the owner's existing dl.wwweeeiii.com share tool (D:\srv\downloads-service\share.ps1, random-token folder, expires 2026-11-27 08:00 SGT): 200, application/vnd.android.package-archive, 1 863 011 B. The temporary LAN server on :8978 was stopped. Future APKs use share.ps1 too.
+- Dialect research interim: 结霜桥 = Sungei Road / Sim Lim Tower (high); 黑桥头 = Havelock/Delta Rd at Beo Crescent (medium-high); 黑桥/乌桥 alone can also mean Balestier → did-you-mean.
