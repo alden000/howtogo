@@ -143,7 +143,8 @@ test.describe('B battery guide (6h.4)', () => {
     await ctl(page, 'away');
     await ctl(page, 'back');
     await expect(page.getByTestId('bg-notyet')).toHaveText('还没改好。可以再试一次，或者以后再说。');
-    await page.getByTestId('bg-notyet').scrollIntoViewIfNeeded();
+    // 1.2.0: scroll to the end of the screen (the baseline's framing) - centring the note depended on picture-load timing.
+    await page.getByTestId('bg-later').scrollIntoViewIfNeeded();
     await shot(page, name('B2-notyet', LZ));
     await page.getByTestId('bg-open').click();
     await ctl(page, 'away');
@@ -180,16 +181,16 @@ test.describe('C1 no Chinese voice (6h.5)', () => {
 
 test.describe('D update notice + Get-the-app card (6h.8)', () => {
   test('D1 on Home and Settings; tap opens /android?from= outside the app; ✕ hides it for the day', async ({ page }) => {
-    await open(page, LZ, 'upd,v:1.1.0');
-    await expect(page.getByTestId('d1-update')).toContainText('有新版本 1.2.0 · 去下载');
+    await open(page, LZ, 'upd,v:1.2.0');
+    await expect(page.getByTestId('d1-update')).toContainText('有新版本 1.3.0 · 去下载');
     await shot(page, name('D1-home', LZ));
     await page.getByTestId('d1-get').click();
     const urls = await page.evaluate(() => (window as unknown as { __m6: { urls: string[] } }).__m6.urls);
     expect(urls).toHaveLength(1);
-    expect(urls[0]).toMatch(/\/android\?from=1\.1\.0$/);
+    expect(urls[0]).toMatch(/\/android\?from=1\.2\.0$/);
     await page.getByTestId('nav-settings').click();
     await expect(page.getByTestId('d1-update')).toBeVisible();
-    await expect(page.getByTestId('row-version-new')).toContainText('版本 1.1.0 · 有新版本');
+    await expect(page.getByTestId('row-version-new')).toContainText('版本 1.2.0 · 有新版本');
     await shot(page, name('D1-settings', LZ));
     await page.getByTestId('d1-later').click();
     await expect(page.getByTestId('d1-update')).toHaveCount(0);

@@ -62,7 +62,7 @@ export function createM6Fake(web: Platform, spec: string): Platform {
     },
   };
   (globalThis as { __m6?: M6FakeControl }).__m6 = ctl;
-  if (has('upd')) newer.value = { versionName: '1.2.0', versionCode: 1020000, sha256: '0'.repeat(64), size: 1_900_000, date: '2026-12-01' };
+  if (has('upd')) newer.value = { versionName: '1.3.0', versionCode: 1030000, sha256: '0'.repeat(64), size: 1_900_000, date: '2026-12-01' };
   let reported = false;
   return {
     ...web,

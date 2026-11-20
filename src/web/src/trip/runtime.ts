@@ -674,7 +674,7 @@ export function createTripRuntime(o: TripRuntimeOptions) {
     const walking = !!step && step.kind.startsWith('walk');
     const remainingM = walking ? Math.max(0, step.lengthM - (t.guidance.alongM ?? 0)) : null;
     // 6h.7: the ongoing title is the step short text; re-routing shows "finding a new way", paused keeps the last.
-    // `copy` is loaded before the trip attaches (attach()), so it is there whenever syncNative() runs.
+    // `copy` is requested when the trip attaches; syncNative() runs again once it is there (attach()).
     const title = (copy?.stepShortText ?? (() => ''))(step, {
       lang: t.lang,
       stopsLeft,
@@ -986,8 +986,15 @@ export function createTripRuntime(o: TripRuntimeOptions) {
   async function attach(resumed: boolean) {
     const t = trip();
     if (!t || attached) return;
-    await loadCopy(); // notification copy chunk (see loadCopy); a failed load leaves notifications to withCopy()
-    if (attached || trip()?.id !== t.id) return;
+    // Notification copy chunk (see loadCopy), not awaited: the trip starts at once. The native leg title and backup
+    // alerts are re-sent once it is there (they go out with empty text only in the moment before).
+    if (!copy)
+      void loadCopy().then((c) => {
+        if (!c) return;
+        nativeLegKey = '';
+        nativeArmKey = '';
+        syncNative();
+      });
     log(resumed ? 'trip:resumed' : 'trip:started');
     stopVisibility ??= platform.visibility.onChange(onVisibility);
     stopNativeAlerts ??= platform.trip?.onAlert(onNativeAlert) ?? null;
